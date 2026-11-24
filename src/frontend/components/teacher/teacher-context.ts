@@ -8,8 +8,6 @@ import type { AgentDoing } from "./follow-status";
 import type { FollowSlip } from "./use-follow-slip";
 
 export interface LessonPresence {
-	/** A teacher message is being written. */
-	streaming: boolean;
 	/** A turn is in flight. */
 	working: boolean;
 	/** The learner has unsent text here: Follow stays on this lesson. */

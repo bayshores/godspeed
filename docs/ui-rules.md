@@ -108,6 +108,7 @@ The strip is the teacher's panel at its narrowest, down the window's right edge 
 - It is 28 points wide (`--lh-strip`) on every page in the app shell and made of the top bar's dark. Nothing else sits on the window's right edge, and no page draws under it: a page ends where the strip starts.
 - Its marks (the square, the name, the arrow, "needs you", "your turn", the notices' count, a deadline's countdown) are plain words and shapes, never a key. Anything that needs a key or a longer line goes in its peek, which is a pop-up and keeps its keys.
 - A new thing the teacher says or waits for is a row in the peek or a notice, never a new mark or a control elsewhere in the bar.
+- What the teacher does in a lesson's turn is the lesson's desk, in the lesson text ([7.1](architecture/07.1-while-the-teacher-works.md)); the strip, the peek's status row and the panel's head then say only "Working".
 - What the teacher does while Follow is on is Follow's slip, one line at the page's foot that ends at the strip (or the docked panel) in the same dark ([8.1.7](architecture/08.1.7-follows-slip.md)): the step it is on, why Follow waits, its count of steps and the list of them. While the slip is up the strip, the peek's status row and the panel's head say only "Working", and the strip's one announcer reads the slip's words. The peek keeps what needs the learner.
 - Before calling a change to the strip, the peek or a page's right side finished, look at the page with the peek out and with the panel open, at 1512, 1100 and 800 points wide.
 
@@ -174,7 +175,7 @@ The app moves in one register, quick and quiet, like an e-ink page redrawing. Th
 - A wait while data is read is `LoadingBox` (a still box in the size of what comes) or `LoadingLine` (where it has no size yet), in `components/loading.tsx`. Its one live element is the spinner. What replaces a wait the learner saw steps in (`useWaited` with `.lh-set`); what was there at first render never animates.
 - A failed load rises in (`LoadFailed`).
 - A page opens at rest: after it first shows, nothing in it moves, arrives or changes size by itself. What the first drawing needs is read before it: server data in the route's loader (the active space's record, progress and sheets are read once for the window, in the app shell), stored state (a draft, an open panel, a dragged width) in the state's initializer, a measured layout in a layout effect. An effect after mount never reads what the first drawing depends on.
-- A wait has the shape of what comes, at the place it will appear, and shows objects (the lesson's desk shows the learner's files as paper), not skeleton bars. It has one live element and repeats no word the strip already says.
+- A wait has the shape of what comes, at the place it will appear, and shows objects (the lesson's desk shows the learner's files as paper), not skeleton bars. It has one live element. A wait for the teacher says in plain words what it does: the lesson's desk has one sentence and the teacher's steps ([7.1](architecture/07.1-while-the-teacher-works.md)), and while it shows, the strip and the teacher's panel say only "Working".
 - Before calling a waiting state finished, reload a lesson mid-wait at 1440, 1100 and 800 points wide: it shows without motion, in place, and nothing jumps when the reply lands.
 
 ## Type

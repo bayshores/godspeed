@@ -350,7 +350,7 @@ describe("after godspeed's teacher ended, though the server still says connected
 		// What each surface shows, from the status every surface reads.
 		const words = () => {
 			const agent = status()!;
-			const doing = agentDoing({ agent, round: null, lesson: { streaming: true, working: true }, extractions: [], jobs: [] });
+			const doing = agentDoing({ agent, round: null, lesson: { working: true }, extractions: [], jobs: [] });
 			const facts = api!.facts.teacher;
 			return {
 				strip: stripView({ agent, terminal: teacherTerminalState(facts), working: !!doing?.working, background: false, work: null, ready: [], panelOpen: false }).square,
@@ -368,7 +368,7 @@ describe("after godspeed's teacher ended, though the server still says connected
 					await act(async () => r.render(page(access({ ...busy, terminals: [{ id: "t1", here: true }] }))));
 				},
 				async () => {
-					assert.deepEqual(words(), { strip: "working", panel: "Writing the lesson", tile: "Teaching", lessonWaits: false });
+					assert.deepEqual(words(), { strip: "working", panel: "Working", tile: "Teaching", lessonWaits: false });
 					await act(async () => shell.push({ id: "t1", ended: { stopped: true, code: null }, prompt: null, url: false }));
 					await act(async () => root!.render(page(access(busy))));
 					assert.deepEqual(words(), { strip: "off", panel: "Turn on Teacher to begin.", tile: "Stopped", lessonWaits: true });

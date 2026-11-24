@@ -44,6 +44,12 @@ describe("question tools", () => {
 	});
 });
 
+describe("why a lesson's turn runs", () => {
+	it("is the same causes in the same order", () => {
+		assert.deepEqual(strings(ts("contracts/lesson-work"), "TURN_CAUSES"), strings(rust("session/turn_cause"), "TURN_CAUSES"));
+	});
+});
+
 describe("a lesson title cut short", () => {
 	it("ends with the mark the lesson page looks for", () => {
 		assert.ok(rust("contracts/graph").includes(`format!("{}${TITLE_CUT}"`));
@@ -209,20 +215,6 @@ describe("the folder's agent event hook", () => {
 		const cut = [...script.matchAll(/tool === "(\w+)"/g)].map((m) => m[1]!);
 		assert.ok(cut.length > 0);
 		for (const tool of cut) assert.ok(tools.includes(tool), tool);
-	});
-});
-
-describe("the teacher's step words", () => {
-	it("use the lesson desk's verbs for the same tools", () => {
-		const desk = read("src/frontend/components/lesson/agent-at-work-model.ts");
-		const steps = rust("session/teacher_steps");
-		const stem = (word: string | undefined) => word?.toLowerCase().replace(/(ing|ed)$/, "");
-		const deskVerb = (tool: string) => (tool === "read_passage" ? /tool === "read_passage"[\s\S]*?steps: \[`(\w+)/ : new RegExp(`case "${tool}":[^\`"]*[\`"](\\w+)`)).exec(desk)?.[1];
-		const serverVerb = (tool: string) => new RegExp(tool === "read_passage" ? `fn read_passage[\\s\\S]*?format!\\("(\\w+)` : `"${tool}" => [\\s\\S]*?format!\\("(\\w+)`).exec(steps)?.[1];
-		for (const tool of ["search_space_files", "search_graph", "read_passage"]) {
-			assert.ok(deskVerb(tool) && serverVerb(tool), tool);
-			assert.equal(stem(serverVerb(tool)), stem(deskVerb(tool)), tool);
-		}
 	});
 });
 

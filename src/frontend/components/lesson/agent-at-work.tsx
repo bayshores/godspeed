@@ -1,42 +1,41 @@
 import { useId, useRef, type CSSProperties, type ReactNode } from "react";
+import type { LessonWork } from "@/shared/core";
+import { useLitMarker } from "@/frontend/components/lit-marker";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { BrailleSpinner } from "@/frontend/components/braille-spinner";
-import { useReplayOnChange } from "@/frontend/components/motion";
 import { cn } from "@/frontend/lib/utils";
-import type { AgentWork } from "./agent-at-work-model";
 import type { Arrive } from "./arrivals";
-import { PageStage } from "./page-stage";
-import { planLines, type DeskState, type PlanLine } from "./wait-model";
+import { DeskStack } from "./desk-stack";
+import { PencilLine } from "./pencil-line";
+import { deskReading, deskRows, deskStack, type DeskRow, type DeskState } from "./wait-model";
 
 /**
- * THE DESK: where the reply will appear, while the teacher works on it. It shows only what the
- * teacher is doing in this reply: its plan, and once it opens a file, that file's pages beside
- * the plan, filling the sheet down to its foot. `foot` rests under it: Stop and the lines typed
- * to the teacher that wait for it. It says nothing the strip says.
+ * THE DESK: the lesson text's newest sheet while the teacher works on a reply. One sentence says
+ * what the teacher does; under it, its plan or its steps in the server's words, the current one on
+ * a tile where the pencil writes; beside them, the files it works from as a stack of paper, the
+ * one it reads in front. `foot` rests under it: Stop and the lines typed to the teacher that wait
+ * for it. With no files the rows stand alone in the middle of the sheet.
  */
-export function AgentAtWork({
-	state,
-	work,
-	arrive,
-	foot,
-}: {
-	state: DeskState;
-	work: AgentWork;
-	arrive: Arrive;
-	foot: ReactNode;
-}) {
+export function AgentAtWork({ state, head, work, arrive, foot }: { state: DeskState; head: string | null; work: LessonWork; arrive: Arrive; foot: ReactNode }) {
 	// Each desk's own arrival slots, so the next turn's desk steps in again.
 	const slot = useId();
-	const ref = useRef<HTMLDivElement>(null);
-	const reading = work.reading;
-	useReplayOnChange(ref, reading !== null, "lh-block-in");
+	const reading = deskReading(work);
+	const stack = deskStack(work.files, reading);
+	const { rows, under } = deskRows(work);
 	return (
-		<div ref={ref} data-testid="agent-at-work" data-state={state} className={cn("lh-desk @container/desk flex flex-col gap-6", reading && "flex-1")}>
-			<div className={cn("flex gap-7 @max-[560px]/desk:flex-col", reading && "min-h-[420px] flex-1 @max-[560px]/desk:min-h-0")}>
-				<WorkList work={work} slot={slot} arrive={arrive} />
-				{reading && (
-					<div className="flex min-w-0 flex-1 flex-col @max-[560px]/desk:h-[220px] @max-[560px]/desk:flex-none @max-[360px]/desk:hidden">
-						<PageStage key={reading.path} reading={reading} className={cn(arrive(`${slot}:file:${reading.path}`) && "lh-block-in")} />
+		<div data-testid="agent-at-work" data-state={state} className="lh-desk @container/desk flex flex-1 flex-col gap-6">
+			{/* The sentence's line is kept while it has no words, so nothing moves when they come. */}
+			<p data-testid="desk-head" className="lh-card-title min-h-[1lh]">
+				{head && (
+					<span key={head} className={cn(arrive(`${slot}:head:${head}`) && "lh-block-in")}>
+						{head}
+					</span>
+				)}
+			</p>
+			<div className={cn("flex flex-1 gap-7 @max-[440px]/desk:flex-col", stack.length > 0 ? "min-h-[320px] @max-[440px]/desk:min-h-0" : "items-center justify-center")}>
+				<DeskRows rows={rows} under={under} state={state} slot={slot} arrive={arrive} stackless={stack.length === 0} />
+				{stack.length > 0 && (
+					<div className="flex w-[44%] max-w-[300px] shrink-0 flex-col @max-[440px]/desk:h-[220px] @max-[440px]/desk:w-full @max-[440px]/desk:max-w-none @max-[360px]/desk:hidden">
+						<DeskStack files={stack} reading={reading} />
 					</div>
 				)}
 			</div>
@@ -45,55 +44,59 @@ export function AgentAtWork({
 	);
 }
 
-/** The plan, each item stepping in after the one above it. The current item lies on a tile with
- *  the newest step under it; with no plan, the newest step alone is that tile. Only the current
- *  item spins. */
-function WorkList({ work, slot, arrive }: { work: AgentWork; slot: string; arrive: Arrive }) {
-	const lines = work.plan ? planLines(work.plan) : [];
-	const n = work.steps.length;
-	const step = n > 0 && (
-		<span key={n} className={cn("line-clamp-3 font-count text-[14px] leading-5 break-words text-ink-2", arrive(`${slot}:step:${n}`) && "lh-block-in")} style={{ "--lh-block-delay": "60ms" } as CSSProperties}>
-			{work.steps[n - 1]}
-		</span>
-	);
-	const hasNow = lines.some((line) => line.state === "now");
+/** The rows, each stepping in after the one above it. One tile lies under the current row and
+ *  slides to the next one when the teacher moves on (useLitMarker); the newest step stands under
+ *  the current plan item. */
+function DeskRows({ rows, under, state, slot, arrive, stackless }: { rows: DeskRow[]; under: string | null; state: DeskState; slot: string; arrive: Arrive; stackless: boolean }) {
+	const list = useRef<HTMLOListElement>(null);
+	const now = rows.find((row) => row.state === "now")?.key ?? null;
+	const tile = useLitMarker(list, "[data-now]", now);
 	return (
-		<ol data-testid="desk-plan" className="flex w-[300px] shrink-0 flex-col gap-1 @max-[560px]/desk:w-full">
-			{lines.map((line, i) => (
-				<li key={line.key} className={cn(ROW, line.state === "now" && NOW, arrive(`${slot}:plan:${line.key}`) && "lh-block-in")} style={{ "--lh-block-delay": `${i * 40}ms` } as CSSProperties}>
-					<Mark state={line.state} />
-					<div className="flex min-w-0 flex-col gap-1.5">
-						<LineText line={line} />
-						{line.state === "now" && step}
-					</div>
+		<ol ref={list} data-testid="desk-plan" className={cn("relative isolate flex min-w-0 flex-col gap-1", stackless ? "w-full max-w-[420px]" : "flex-1")}>
+			<div ref={tile} aria-hidden className="lh-lit-marker lh-desk-well lh-sheet" />
+			{rows.map((row, i) => (
+				<li key={row.key} data-now={row.state === "now" || undefined} className={cn("flex gap-3 px-3 py-2.5", arrive(`${slot}:row:${row.key}`) && "lh-block-in")} style={{ "--lh-block-delay": `${i * 40}ms` } as CSSProperties}>
+					{row.state === "now" && row.text === null ? (
+						<PencilLine state={state} />
+					) : (
+						<>
+							<Mark row={row} state={state} />
+							<div className="flex min-w-0 flex-col gap-1.5">
+								<RowText row={row} />
+								{row.state === "now" && under && (
+									<span key={under} className={cn("line-clamp-3 text-[14px] leading-5 break-words text-ink-2", arrive(`${slot}:under:${under}`) && "lh-block-in")} style={{ "--lh-block-delay": "60ms" } as CSSProperties}>
+										{under}
+									</span>
+								)}
+							</div>
+						</>
+					)}
 				</li>
 			))}
-			{!hasNow && step && (
-				<li className={cn(ROW, NOW)}>
-					<Mark state="now" />
-					<div className="min-w-0">{step}</div>
-				</li>
-			)}
 		</ol>
 	);
 }
 
-/** Every row is padded like the tile, so the plan's words stay in one column. */
-const ROW = "flex gap-3 px-3 py-2.5";
-/** The current item: a tile in the well's shade, the paper's own ground. */
-const NOW = "lh-desk-well lh-sheet";
-
-function Mark({ state }: { state: PlanLine["state"] }) {
+/** Done: a check. Next: a small square. Now: the pencil, writing while an agent is at the desk. */
+function Mark({ row, state }: { row: DeskRow; state: DeskState }) {
 	return (
 		<span className="flex h-5 w-5 shrink-0 items-center justify-center">
-			{(state === "done" || state === "folded") && <PixelIcon name="check" className="text-ink-2" />}
-			{state === "now" && <BrailleSpinner className="h-5" label="Working" />}
-			{state === "next" && <span className="size-2 bg-tone-2" />}
+			{(row.state === "done" || row.state === "folded") && <PixelIcon name="check" className="text-ink-2" />}
+			{row.state === "now" && (
+				<span aria-hidden data-state={state} className="lh-pencil lh-pencil-mark">
+					<PixelIcon name="pencil" className="lh-pencil-tip h-5" />
+				</span>
+			)}
+			{row.state === "next" && <span className="size-2 bg-tone-2" />}
 		</span>
 	);
 }
 
-function LineText({ line }: { line: PlanLine }) {
-	if (line.state === "folded") return <span className="font-count text-[15px] leading-5 text-ink-2">{line.count} done</span>;
-	return <span className={cn("line-clamp-2 text-[15px] leading-5 break-words", line.state === "now" ? "text-ink" : "text-ink-2")}>{line.text}</span>;
+function RowText({ row }: { row: DeskRow }) {
+	if (row.state === "folded") return <span className="font-count text-[15px] leading-5 text-ink-2">{row.count} done</span>;
+	return (
+		<span key={row.text} className={cn("line-clamp-2 text-[15px] leading-5 break-words", row.state === "now" ? "text-ink" : "text-ink-2")}>
+			{row.text}
+		</span>
+	);
 }

@@ -34,7 +34,7 @@ use waiters::Waiters;
 
 pub use checkin::display_agent_name;
 pub use helper::UNNAMED_HELPER;
-pub use steps::{OUTSIDE_QUIET_MS, ROUND_STALE_MS, ROUND_STEPS_MAX};
+pub use steps::{OUTSIDE_QUIET_MS, ROUND_STALE_MS};
 pub use stream::agent_model;
 pub use terminals::WindowPage;
 pub use view::WorkView;

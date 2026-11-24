@@ -1,28 +1,117 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import type { AgentWork } from "../../src/frontend/components/lesson/agent-at-work-model.ts";
-import { deskMark, deskState, heldBack, nothingWritten, planLines, titleEcho } from "../../src/frontend/components/lesson/wait-model.ts";
-import type { LhViewMessage } from "../../src/shared/core/index.ts";
+import { deskCalls, deskHead, deskMark, deskReading, deskRows, deskStack, heldBack, nothingWritten, replyArrived, titleEcho } from "../../src/frontend/components/lesson/wait-model.ts";
+import { NO_LESSON_WORK, type DeskFile, type LessonWork, type LhViewMessage } from "../../src/shared/core/index.ts";
 
-/** The lesson while the teacher works: the desk, the title echo, the plan's rows and the landing. */
+type DeskStep = LessonWork["steps"][number];
 
-const work = (over: Partial<AgentWork> = {}): AgentWork => ({ plan: null, steps: [], reading: null, replied: false, ...over });
+/** The lesson while the teacher works: the desk's sentence, rows and stack, the title echo and the landing. */
+
+const live = (over: Partial<LessonWork> = {}): LessonWork => ({ ...NO_LESSON_WORK, live: true, taken: true, cause: "first", ...over });
+const step = (id: string, text: string, over: Partial<DeskStep> = {}): DeskStep => ({ id, at: "2026-11-23T22:20:33.000Z", text, call: null, reads: null, ...over });
+const file = (name: string, kind: DeskFile["kind"] = "pdf"): DeskFile => ({ name, path: `/files/${name}`, kind });
 const user = (text: string, extra: LhViewMessage["parts"] = []): LhViewMessage => ({ id: `u:${text}`, role: "user", parts: [{ type: "text", text }, ...extra] });
 const teacher = (...parts: LhViewMessage["parts"]): LhViewMessage => ({ id: "a1", role: "assistant", parts });
 const card = (files: number): LhViewMessage => ({ id: "c", role: "user", parts: [{ type: "data-space-context", data: { spaceId: "s", name: "S", description: "", files: Array.from({ length: files }, (_, i) => ({ name: `f${i}`, kind: "study", path: null })) } }] });
 
-describe("deskState", () => {
-	it("shows no desk while no turn runs, before the teacher plans or takes a step, or once the reply's text has landed", () => {
-		assert.equal(deskState({ busy: false, waitingForAgent: false, work: work({ steps: ["x"] }) }), null);
-		assert.equal(deskState({ busy: true, waitingForAgent: false, work: null }), null);
-		assert.equal(deskState({ busy: true, waitingForAgent: true, work: work() }), null);
-		assert.equal(deskState({ busy: true, waitingForAgent: false, work: work({ steps: ["x"], replied: true }) }), null);
+describe("deskHead", () => {
+	it("says what the teacher does, by why the turn runs", () => {
+		const said = (cause: LessonWork["cause"]) => deskHead({ name: "Claude", waiting: false, work: live({ cause }) });
+		assert.equal(said("first"), "Claude is getting your first step ready.");
+		assert.equal(said("answer"), "Claude is reading your answer.");
+		assert.equal(said("problem"), "Claude is checking your work.");
+		assert.equal(said("ask"), "Claude is answering your question.");
+		assert.equal(said("next"), "Claude is writing the next step.");
+		assert.equal(said("job"), "Claude is writing the next step.");
+		assert.equal(said("retry"), "Claude is trying again.");
+		assert.equal(said("open_problem"), "Claude is getting the problem ready.");
 	});
 
-	it("shows once there is a plan or a step, still while no agent takes the turn", () => {
-		assert.equal(deskState({ busy: true, waitingForAgent: false, work: work({ steps: ["opened notes.md"] }) }), "working");
-		assert.equal(deskState({ busy: true, waitingForAgent: false, work: work({ plan: { items: ["Read"], done: 0 } }) }), "working");
-		assert.equal(deskState({ busy: true, waitingForAgent: true, work: work({ plan: { items: ["Read"], done: 0 } }) }), "waiting");
+	it("waits while no agent runs or none took the turn, and says nothing before the server's first word", () => {
+		assert.equal(deskHead({ name: "Claude", waiting: true, work: NO_LESSON_WORK }), "Waiting for Claude to start.");
+		assert.equal(deskHead({ name: "Claude", waiting: false, work: live({ taken: false }) }), "Waiting for Claude to start.");
+		assert.equal(deskHead({ name: "Claude", waiting: false, work: NO_LESSON_WORK }), null);
+	});
+});
+
+describe("replyArrived", () => {
+	it("is true once the reply ends in words or the agent's reasoning", () => {
+		assert.equal(replyArrived(undefined), false);
+		assert.equal(replyArrived(teacher({ type: "tool-read", state: "output-available" })), false);
+		assert.equal(replyArrived(teacher({ type: "text", text: " " })), false);
+		assert.equal(replyArrived(teacher({ type: "text", text: "Here is the idea." })), true);
+		assert.equal(replyArrived(teacher({ type: "reasoning", text: "" })), true);
+	});
+});
+
+describe("deskRows", () => {
+	it("is the pencil alone before the first step, then the steps with the newest current", () => {
+		assert.deepEqual(deskRows(live()).rows, [{ key: "start", text: null, state: "now" }]);
+		const { rows, under } = deskRows(live({ steps: [step("1", "Looking at CSE 29"), step("2", "Reading PA4.pdf, page 2")] }));
+		assert.deepEqual(rows, [
+			{ key: "1", text: "Looking at CSE 29", state: "done" },
+			{ key: "2", text: "Reading PA4.pdf, page 2", state: "now" },
+		]);
+		assert.equal(under, null);
+	});
+
+	it("folds the oldest steps past what the desk holds", () => {
+		const steps = Array.from({ length: 9 }, (_, i) => step(`${i}`, `Step ${i}`));
+		const { rows } = deskRows(live({ steps }));
+		assert.equal(rows.length, 6);
+		assert.deepEqual(rows[0], { key: "done", count: 4, state: "folded" });
+		assert.equal(rows.at(-1)!.state, "now");
+	});
+
+	it("with a plan, shows its items and puts the newest step under the current one", () => {
+		const { rows, under } = deskRows(live({ plan: { items: ["Read", "Plan", "Write"], done: 1 }, steps: [step("1", "Reading notes.md")] }));
+		assert.deepEqual(
+			rows.map((row) => row.state),
+			["done", "now", "next"],
+		);
+		assert.equal(under, "Reading notes.md");
+		const all = deskRows(live({ plan: { items: ["Read"], done: 1 }, steps: [step("1", "Reading notes.md")] }));
+		assert.deepEqual(all.rows.at(-1), { key: "1", text: "Reading notes.md", state: "now" }, "all done: the newest step is its own row");
+	});
+
+	it("folds a long plan's done items into one row with their count, and stops where the desk ends", () => {
+		const items = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
+		const { rows } = deskRows(live({ plan: { items, done: 3 } }));
+		assert.deepEqual(rows[0], { key: "done", count: 3, state: "folded" });
+		assert.deepEqual(rows.slice(1).map((row) => (row.state === "folded" ? "" : row.text)), ["d", "e", "f", "g", "h"]);
+		assert.equal(deskRows(live({ plan: { items, done: 0 } })).rows.length, 6, "nothing done: the first six");
+	});
+});
+
+describe("deskReading and deskCalls", () => {
+	it("is the place read last, and the calls the steps stand for", () => {
+		const reads = { ...file("PA4.pdf"), from: null, to: null, page: 2 };
+		const work = live({ steps: [step("1", "Reading PA4.pdf, page 2", { reads, call: "c1" }), step("2", "Searching the web for “malloc”")] });
+		assert.deepEqual(deskReading(work), reads);
+		assert.deepEqual([...deskCalls(work)], ["c1"]);
+		assert.equal(deskReading(live()), null);
+	});
+});
+
+describe("deskStack", () => {
+	const files = ["a.pdf", "b.md", "c.pdf", "d.pdf", "e.pdf", "f.pdf"].map((name) => file(name));
+	it("lays five files at most, in the server's order", () => {
+		assert.deepEqual(
+			deskStack(files, null).map((f) => f.name),
+			["a.pdf", "b.md", "c.pdf", "d.pdf", "e.pdf"],
+		);
+	});
+
+	it("brings the file being read to the front, and one from outside joins in front", () => {
+		const reading = (name: string) => ({ ...file(name), from: null, to: null, page: null });
+		assert.deepEqual(
+			deskStack(files.slice(0, 3), reading("c.pdf")).map((f) => f.name),
+			["c.pdf", "a.pdf", "b.md"],
+		);
+		assert.deepEqual(
+			deskStack(files.slice(0, 5), reading("z.pdf")).map((f) => f.name),
+			["z.pdf", "a.pdf", "b.md", "c.pdf", "d.pdf"],
+		);
 	});
 });
 
@@ -40,24 +129,6 @@ describe("titleEcho", () => {
 		assert.equal(titleEcho([user("Limits of sequences, with proofs")], "Limits of sequences"), -1);
 		assert.equal(titleEcho([user("Hi"), user("Limits")], "Limits"), -1);
 		assert.equal(titleEcho([user("")], ""), -1);
-	});
-});
-
-describe("planLines", () => {
-	it("shows a short plan whole: done, now and next", () => {
-		assert.deepEqual(
-			planLines({ items: ["Read", "Plan", "Write"], done: 1 }).map((l) => l.state),
-			["done", "now", "next"],
-		);
-	});
-
-	it("folds a long plan's done items into one row with their count, and stops where the desk ends", () => {
-		const items = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
-		const lines = planLines({ items, done: 3 });
-		assert.deepEqual(lines[0], { key: "done", count: 3, state: "folded" });
-		assert.deepEqual(lines.slice(1).map((l) => (l.state === "folded" ? "" : l.text)), ["d", "e", "f", "g", "h"]);
-		assert.equal(lines[1]!.state, "now");
-		assert.equal(planLines({ items, done: 0 }).length, 6, "nothing done: the first six");
 	});
 });
 

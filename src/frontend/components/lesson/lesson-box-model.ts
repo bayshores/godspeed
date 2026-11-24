@@ -132,6 +132,19 @@ export function lessonBox(s: {
 		};
 	}
 	const ask = (canAsk: boolean, filled: boolean): BoxButton => ({ action: "send", label: `Ask ${s.teacher}`, filled, disabled: !canAsk });
+	if (turn.kind === "ask" && s.busy) {
+		// A line sent while the teacher works steers what it writes, and a steer carries no files.
+		const canSend = s.hasText && steers;
+		return {
+			placeholder: `Tell ${s.teacher} what to focus on`,
+			size: "line",
+			keys: [{ action: "send", label: "Send", filled: canSend && !turn.nextKey, disabled: !canSend }],
+			enter: canSend ? "send" : null,
+			exit: null,
+			attach: false,
+			help: null,
+		};
+	}
 	if (turn.kind === "ask") {
 		const canAsk = (s.hasText || s.hasFiles) && steers;
 		return {

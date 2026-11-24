@@ -1,5 +1,5 @@
-//! Session logic: compaction, plans, questions, practice, work pages, the teacher's steps, markdown
-//! export and costs.
+//! Session logic: compaction, plans, questions, practice, work pages, the teacher's steps and why a
+//! turn runs, markdown export and costs.
 
 pub mod schema;
 
@@ -12,6 +12,8 @@ pub mod plan_tree;
 pub mod plan_step_bar;
 pub mod work_pages;
 pub mod teacher_steps;
+pub mod lesson_steps;
+pub mod turn_cause;
 pub mod practice_outcomes;
 pub mod session_markdown;
 pub mod question_core;

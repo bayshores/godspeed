@@ -1,20 +1,43 @@
-import { isQuestionTool, PRACTICE_PROBLEM_TOOL, type LhViewMessage } from "@/shared/core";
-import type { AgentWork, CardFile } from "./agent-at-work-model";
+import { isQuestionTool, PRACTICE_PROBLEM_TOOL, type DeskFile, type DeskReading, type LessonWork, type LhViewMessage } from "@/shared/core";
 
 /**
- * The lesson while the teacher works on a reply: the desk at the foot of the lesson text,
- * which shows the teacher's plan and the file it reads, never words the strip already says.
- * Pure.
+ * The lesson while the teacher works on a reply: the desk in the lesson text's newest sheet, which
+ * says in one sentence what the teacher is doing, lists its steps in the server's words and lays
+ * the files it works from on the desk as paper. Pure.
  */
 
-/** "waiting": no agent has taken the turn; "working": one has. */
+/** "waiting": no agent is at the desk; "working": one is. */
 export type DeskState = "waiting" | "working";
 
-/** Whether the desk shows: from the teacher's first plan or step in this reply until the reply's
- *  text lands. Before that, the pencil shows and the strip says the teacher works. */
-export function deskState({ busy, waitingForAgent, work }: { busy: boolean; waitingForAgent: boolean; work: AgentWork | null }): DeskState | null {
-	if (!busy || !work || work.replied || (work.plan === null && work.steps.length === 0)) return null;
-	return waitingForAgent ? "waiting" : "working";
+/** The reply being worked on has its words: the desk gives way to them. */
+export function replyArrived(reply: LhViewMessage | undefined): boolean {
+	const last = reply?.parts.at(-1);
+	return last?.type === "reasoning" || (last?.type === "text" && typeof last.text === "string" && last.text.trim().length > 0);
+}
+
+/** The desk's one sentence: what the teacher does, by why the turn runs. Null for the moment
+ *  between the learner's send and the server's first word on the turn. */
+export function deskHead({ name, waiting, work }: { name: string; waiting: boolean; work: LessonWork }): string | null {
+	if (waiting || (work.live && !work.taken)) return `Waiting for ${name} to start.`;
+	if (!work.live) return null;
+	switch (work.cause) {
+		case "first":
+			return `${name} is getting your first step ready.`;
+		case "answer":
+			return `${name} is reading your answer.`;
+		case "problem":
+			return `${name} is checking your work.`;
+		case "ask":
+			return `${name} is answering your question.`;
+		case "retry":
+			return `${name} is trying again.`;
+		case "open_problem":
+			return `${name} is getting the problem ready.`;
+		case "next":
+		case "job":
+		case null:
+			return `${name} is writing the next step.`;
+	}
 }
 
 const flat = (text: string) => text.replace(/\s+/g, " ").trim();
@@ -39,24 +62,58 @@ export function titleEcho(messages: readonly LhViewMessage[], title: string): nu
 	return said === name || cut ? first : -1;
 }
 
-/** The space's files, from its card: the lesson's first message. */
-export function cardFiles(messages: readonly LhViewMessage[]): readonly CardFile[] {
-	const card = messages[0]?.parts.find((p) => p.type === "data-space-context");
-	return (card?.data as { files?: CardFile[] } | undefined)?.files ?? [];
-}
+/** The most rows the desk shows. */
+const DESK_ROWS = 6;
 
-/** The most rows the plan shows beside the paper. */
-const PLAN_ROWS = 6;
-
-export type PlanLine = { key: string; text: string; state: "done" | "now" | "next" } | { key: "done"; count: number; state: "folded" };
+/** One row of the desk: a plan item or a step, or the count of the done ones folded. A row with no
+ *  words is the pencil writing before the teacher's first step. */
+export type DeskRow = { key: string; text: string | null; state: "done" | "now" | "next" } | { key: "done"; count: number; state: "folded" };
 
 /** The plan's rows: each item, or, for a plan longer than the desk holds, its done items folded
  *  into one row with their count, and the rows after the current one cut where the desk ends. */
-export function planLines({ items, done }: { items: readonly string[]; done: number }): PlanLine[] {
-	const lines: PlanLine[] = items.map((text, i) => ({ key: `${i}:${text}`, text, state: i < done ? "done" : i === done ? "now" : "next" }));
-	if (lines.length <= PLAN_ROWS) return lines;
-	const folded: PlanLine[] = done > 0 ? [{ key: "done", count: done, state: "folded" }, ...lines.slice(done)] : lines;
-	return folded.slice(0, PLAN_ROWS);
+function planLines({ items, done }: { items: readonly string[]; done: number }): DeskRow[] {
+	const lines: DeskRow[] = items.map((text, i) => ({ key: `${i}:${text}`, text, state: i < done ? "done" : i === done ? "now" : "next" }));
+	if (lines.length <= DESK_ROWS) return lines;
+	const folded: DeskRow[] = done > 0 ? [{ key: "done", count: done, state: "folded" }, ...lines.slice(done)] : lines;
+	return folded.slice(0, DESK_ROWS);
+}
+
+/** The desk's rows and the step under the current one. With a plan, its items, the newest step
+ *  under the current item (or, all done, the newest step its own row). Without one, the steps, the
+ *  newest current and the oldest folded past what the desk holds. */
+export function deskRows({ plan, steps }: Pick<LessonWork, "plan" | "steps">): { rows: DeskRow[]; under: string | null } {
+	const newest = steps.at(-1);
+	const now = (): DeskRow => ({ key: newest?.id ?? "start", text: newest?.text ?? null, state: "now" });
+	if (plan) {
+		const rows = planLines(plan);
+		return rows.some((row) => row.state === "now") ? { rows, under: newest?.text ?? null } : { rows: [...rows, now()], under: null };
+	}
+	if (!newest) return { rows: [now()], under: null };
+	const rows: DeskRow[] = steps.map((step) => ({ key: step.id, text: step.text, state: step === newest ? "now" : "done" }));
+	if (rows.length <= DESK_ROWS) return { rows, under: null };
+	const shown = rows.slice(-(DESK_ROWS - 1));
+	return { rows: [{ key: "done", count: rows.length - shown.length, state: "folded" }, ...shown], under: null };
+}
+
+/** The place the teacher read last, if it read a file. */
+export function deskReading(work: Pick<LessonWork, "steps">): DeskReading | null {
+	return work.steps.findLast((step) => step.reads !== null)?.reads ?? null;
+}
+
+/** The tool calls the desk's steps stand for: their cards stay out of the lesson text while it shows. */
+export function deskCalls(work: Pick<LessonWork, "steps">): ReadonlySet<string> {
+	return new Set(work.steps.flatMap((step) => (step.call ? [step.call] : [])));
+}
+
+/** The most files on the desk. */
+const DESK_FILES = 5;
+
+/** The files on the desk, front first: the one being read in front, the rest in the server's
+ *  order. A file read from outside them joins in front and the back one leaves. */
+export function deskStack(files: readonly DeskFile[], reading: DeskReading | null): DeskFile[] {
+	if (!reading) return files.slice(0, DESK_FILES);
+	const front: DeskFile = { name: reading.name, path: reading.path, kind: reading.kind };
+	return [front, ...files.filter((file) => file.path !== reading.path)].slice(0, DESK_FILES);
 }
 
 /** Where a desk that is leaving held the lesson: its message count, the newest message's part

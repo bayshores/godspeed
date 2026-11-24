@@ -59,14 +59,14 @@ import { litRules } from "./lit-model";
 // Most of the app reads the teacher from here.
 export { useTeacher };
 
-/** A lesson screen reports whether the teacher is writing or working, and
+/** A lesson screen reports whether the teacher is working on it, and
  *  whether the learner has unsent text (Follow then stays on the lesson). */
-export function useTeacherLesson(streaming: boolean, working: boolean, draft: boolean): void {
+export function useTeacherLesson(working: boolean, draft: boolean): void {
 	const api = useTeacher();
 	const set = api?.setLesson;
 	useEffect(() => {
-		set?.({ streaming, working, draft });
-	}, [set, streaming, working, draft]);
+		set?.({ working, draft });
+	}, [set, working, draft]);
 	useEffect(() => () => set?.(null), [set]);
 }
 
@@ -83,7 +83,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	// ── the lesson screen ──
 	const [lesson, setLessonState] = useState<LessonPresence | null>(null);
 	const setLesson = useCallback((p: LessonPresence | null) => {
-		setLessonState((prev) => (prev === p || (prev && p && prev.streaming === p.streaming && prev.working === p.working && prev.draft === p.draft) ? prev : p));
+		setLessonState((prev) => (prev === p || (prev && p && prev.working === p.working && prev.draft === p.draft) ? prev : p));
 	}, []);
 	const lessonRef = useRef(lesson);
 	lessonRef.current = lesson;

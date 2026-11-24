@@ -10,10 +10,10 @@ const PIXEL = 2;
 const SIZE = { "--lh-pencil-w": `${COLUMNS * PIXEL}px`, "--lh-pencil-steps": pencilSteps(COLUMNS) } as CSSProperties;
 
 /**
- * THE PENCIL: where the reply will begin, a pencil writes a line of handwriting, lifts, and
- * writes it again over the faded line, so the row is never empty once it has written. It lies
- * still, with no ink, while no agent has taken the turn. It says no words: the strip names the
- * teacher and what it does. The motion is in globals.css (.lh-pencil).
+ * THE PENCIL: the desk's current row before the teacher's first step. A pencil writes a line of
+ * handwriting, lifts, and writes it again over the faded line, so the row is never empty once it
+ * has written. It lies still, with no ink, while no agent has taken the turn. The motion is in
+ * globals.css (.lh-pencil).
  */
 export function PencilLine({ state }: { state: DeskState }) {
 	return (

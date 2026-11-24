@@ -20,6 +20,7 @@ use gs_pdf::Pdf;
 use gs_store::chats::ChatStore;
 use gs_store::jobs::JobStore;
 
+use super::turn_work;
 use crate::App;
 use crate::jobs::{deliver_job_result, live_agent};
 use crate::spaces::{keep_page, kept_pages_at};
@@ -75,6 +76,10 @@ impl JobHost for AppJobs {
 
 	fn keep_page(&self, file: &KeptPages, page: u32, markdown: &str) -> Result<(), String> {
 		keep_page(&self.0, file, page, markdown)
+	}
+
+	fn job_activity(&self, job_id: &str, line: &str) {
+		turn_work::job_activity(&self.0, job_id, line);
 	}
 }
 

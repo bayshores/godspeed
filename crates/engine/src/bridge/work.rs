@@ -290,6 +290,14 @@ impl Bridge {
 		agent.is_some_and(|agent| self.0.state.lock().items.iter().any(|item| item.claimed_at.is_some() && item.agent.as_deref() == Some(agent) && is_background(&item.conversation)))
 	}
 
+	/// The lesson whose turn this agent (by its session, or the app terminal it runs in) holds now:
+	/// what it does meanwhile belongs to that lesson's desk.
+	pub fn lesson_held_by(&self, terminal: Option<&str>, agent: Option<&str>) -> Option<String> {
+		let s = self.0.state.lock();
+		let holds = |item: &&WorkItem| (agent.is_some() && item.agent.as_deref() == agent) || (terminal.is_some() && item.terminal.as_deref() == terminal);
+		s.items.iter().filter(|item| item.claimed_at.is_some() && !is_background(&item.conversation)).find(holds).map(|item| item.conversation.clone())
+	}
+
 	/// Answers a work item. The conversation's next item is held for the answering agent for
 	/// `hold_ms` (it waits for it right after; `release_conversation` ends the hold).
 	pub fn respond_to_work(&self, work_id: &str, reply: AgentReply, hold_ms: i64) -> Result<Answered, String> {

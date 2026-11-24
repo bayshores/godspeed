@@ -84,6 +84,8 @@ export interface ServerEvents {
 	"vault-notes-changed": Record<string, never>;
 	/** The teacher's round of work began, gained a step or ended (GET /api/teacher-work). */
 	"teacher-work": Record<string, never>;
+	/** A lesson's running turn began, was taken, gained a step or a plan, or ended (GET /api/chats/{id}/work). */
+	"lesson-work": { chatId: string };
 	/** The teacher in godspeed's terminal finished answering the learner there ("done") or stopped to ask them something ("needs"). */
 	"agent-event": { kind: "done" | "needs" };
 	/** A deadline's cheat sheet or its agent request changed. */
@@ -124,5 +126,6 @@ export const SERVER_EVENT_TYPES = [
 	"teacher-chats-changed",
 	"vault-notes-changed",
 	"teacher-work",
+	"lesson-work",
 ] as const satisfies readonly ServerEventType[];
 

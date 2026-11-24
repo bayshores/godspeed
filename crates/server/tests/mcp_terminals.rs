@@ -3,59 +3,21 @@
 
 use std::sync::Arc;
 
-use axum::http::{HeaderMap, HeaderValue, Method};
-use gs_base::config::Paths;
-use gs_base::{fsx, ids};
-use gs_server::mcp::handle_mcp_request;
 use gs_services::App;
-use http_body_util::BodyExt;
 
-const TOKEN: &str = "abababababababababababababababababababababababababababababababab";
-const TERMINAL: &str = "0123456789abcdef0123456789abcdef";
+mod common;
+use common::{TERMINAL, app, call, own_tool, read_pages, round, send, work_id};
+
 const CLOSED: &str = "This terminal was closed in godspeed.";
-
-fn app() -> Arc<App> {
-	let dir = std::env::temp_dir().join(format!("gs-mcp-terminals-{}", ids::uuid()));
-	let data = dir.join("data");
-	std::fs::create_dir_all(&data).unwrap();
-	fsx::write_atomic(&data.join("mcp-token"), TOKEN.as_bytes(), Some(0o600)).unwrap();
-	App::new(Paths::new(data, dir.join("home"), dir.join("tmp"), dir), None)
-}
 
 /// A wait_for_work call as the waiter sends it, from `terminal` when given.
 async fn wait(app: &Arc<App>, terminal: Option<&str>) -> (u16, String) {
 	call(app, terminal, None, "wait_for_work", r#"{"timeout_seconds":1}"#).await
 }
 
-/// A tools/call from `terminal` and the agent session `agent`, when given.
-async fn call(app: &Arc<App>, terminal: Option<&str>, agent: Option<&str>, tool: &str, arguments: &str) -> (u16, String) {
-	send(app, terminal, agent.map(|a| format!(r#""godspeed/agent":"{a}""#)), tool, arguments).await
-}
-
 /// The same from a Claude Code session the folder's waiter wakes, as its connector sends it.
 async fn woken(app: &Arc<App>, terminal: Option<&str>, agent: &str, tool: &str, arguments: &str) -> (u16, String) {
 	send(app, terminal, Some(format!(r#""godspeed/agent":"{agent}","godspeed/wakes":true"#)), tool, arguments).await
-}
-
-/// A local request with the token, from `terminal` when given.
-fn headers(terminal: Option<&str>) -> HeaderMap {
-	let mut headers = HeaderMap::new();
-	headers.insert("host", HeaderValue::from_static("127.0.0.1:48065"));
-	headers.insert("authorization", HeaderValue::from_str(&format!("Bearer {TOKEN}")).unwrap());
-	headers.insert("content-type", HeaderValue::from_static("application/json"));
-	headers.insert("accept", HeaderValue::from_static("application/json, text/event-stream"));
-	if let Some(id) = terminal {
-		headers.insert("x-godspeed-terminal", HeaderValue::from_str(id).unwrap());
-	}
-	headers
-}
-
-async fn send(app: &Arc<App>, terminal: Option<&str>, meta: Option<String>, tool: &str, arguments: &str) -> (u16, String) {
-	let meta = meta.map(|m| format!(r#","_meta":{{{m}}}"#)).unwrap_or_default();
-	let body = format!(r#"{{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{{"name":"{tool}","arguments":{arguments}{meta}}}}}"#);
-	let res = handle_mcp_request(app, &Method::POST, &headers(terminal), body.as_bytes()).await;
-	let status = res.status().as_u16();
-	(status, String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap())
 }
 
 #[tokio::test]
@@ -155,14 +117,8 @@ async fn typing_while_respond_waits_for_a_follow_up_ends_the_turn_with_a_note() 
 	app.bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
 	call(&app, Some(TERMINAL), Some("sess-1"), "start_lesson", r#"{"topic":"Cells"}"#).await;
 	let (_, body) = call(&app, Some(TERMINAL), Some("sess-1"), "wait_for_work", r#"{"timeout_seconds":5}"#).await;
-	let work_id = body.split(r#"workId\":\""#).nth(1).and_then(|rest| rest.split('\\').next()).unwrap_or_else(|| panic!("no work: {body}")).to_owned();
-	// A lesson's first turn comes in pages; respond waits until all are read.
-	for page in 2..=8 {
-		let (_, body) = call(&app, Some(TERMINAL), Some("sess-1"), "read_work", &format!(r#"{{"work_id":"{work_id}","page":{page}}}"#)).await;
-		if body.contains(r#""isError":true"#) {
-			break;
-		}
-	}
+	let work_id = work_id(&body);
+	read_pages(&app, Some(TERMINAL), Some("sess-1"), &work_id).await;
 	let responding = gs_base::tasks::spawn("test", {
 		let app = app.clone();
 		async move { woken(&app, Some(TERMINAL), "sess-1", "respond", &format!(r#"{{"work_id":"{work_id}","text":"Cells are small.","wait_seconds":5}}"#)).await }
@@ -267,12 +223,6 @@ async fn open_page_opens_from_any_terminal_every_time_it_is_asked() {
 	assert!(body.contains(r#""isError":true"#), "{body}");
 }
 
-/// The teacher's round of work as GET /api/teacher-work sends it: its step words, or None.
-fn round(app: &App) -> Option<Vec<String>> {
-	let round = app.bridge.teacher_work(gs_base::clock::now_ms());
-	(round["live"] == gs_json::Json::Bool(true)).then(|| round["steps"].items().iter().map(|s| s["text"].str_or_empty().to_owned()).collect())
-}
-
 #[tokio::test]
 async fn the_teacher_terminal_s_reads_are_its_round_s_steps_and_only_its_own_wait_ends_it() {
 	let app = app();
@@ -318,7 +268,7 @@ async fn an_outside_agent_s_calls_count_unless_it_is_the_helper_or_holds_backgro
 	});
 	gs_base::clock::sleep(20).await;
 	let (_, body) = call(&app, None, Some("bg-1"), "wait_for_work", r#"{"timeout_seconds":1}"#).await;
-	let work_id = body.split(r#"workId\":\""#).nth(1).and_then(|rest| rest.split('\\').next()).unwrap_or_else(|| panic!("no work: {body}")).to_owned();
+	let work_id = work_id(&body);
 	call(&app, None, Some("bg-1"), "list_spaces", "{}").await;
 	assert_eq!(round(&app), Some(Vec::new()), "held background work is no step");
 	call(&app, None, Some("bg-1"), "respond", &format!(r#"{{"work_id":"{work_id}","text":"Limits.","wait_seconds":0}}"#)).await;
@@ -345,12 +295,6 @@ async fn the_window_reads_the_round_at_its_route() {
 	call(&app, None, None, "list_spaces", "{}").await;
 	let live = get().await;
 	assert_eq!((live["live"].as_bool(), live["steps"][0]["text"].as_str()), (Some(true), Some("Looking at your spaces")), "{live:?}");
-}
-
-/// The folder's hook in `terminal` says the agent uses one of its own tools: the answer's status.
-fn own_tool(app: &App, terminal: Option<&str>, tool: &str, subject: &str) -> u16 {
-	let body = gs_json::json!({ "event": "tool", "tool": tool, "subject": subject });
-	gs_server::mcp::handle_agent_event(app, &headers(terminal), Some(body)).status().as_u16()
 }
 
 /// Whether `text` is in any file under the app's data folder.
@@ -400,7 +344,7 @@ async fn the_teacher_s_own_tools_make_no_step_while_it_holds_background_work() {
 	});
 	gs_base::clock::sleep(20).await;
 	let (_, body) = call(&app, Some(TERMINAL), Some("sess-1"), "wait_for_work", r#"{"timeout_seconds":1}"#).await;
-	let work_id = body.split(r#"workId\":\""#).nth(1).and_then(|rest| rest.split('\\').next()).unwrap_or_else(|| panic!("no work: {body}")).to_owned();
+	let work_id = work_id(&body);
 	own_tool(&app, Some(TERMINAL), "Read", "HW6.pdf");
 	assert_eq!(round(&app), Some(Vec::new()), "held background work is no step");
 	call(&app, Some(TERMINAL), Some("sess-1"), "respond", &format!(r#"{{"work_id":"{work_id}","text":"Done.","wait_seconds":0}}"#)).await;

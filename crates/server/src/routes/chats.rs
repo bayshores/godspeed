@@ -42,6 +42,7 @@ use gs_services::turns::lessons::{CreateLessonInput, LessonStart, create_lesson}
 use gs_services::turns::review::{ReviewReply, answer_review, next_review, skip_review};
 use gs_services::turns::turn_liveness::is_turn_running;
 use gs_services::turns::turn_runs::{attach_turn, settled_turn_frames, turn_failure};
+use gs_services::turns::turn_work::lesson_work;
 
 use crate::http::paths::{param, query};
 use crate::http::reply::{self, Unhandled, error, fields, json_body};
@@ -63,6 +64,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/chats/{id}/review", ApiRoute::new().post(review).into_route())
 		.route("/api/chats/{id}/steer", ApiRoute::new().post(steer).into_route())
 		.route("/api/chats/{id}/stream", ApiRoute::new().get(stream).into_route())
+		.route("/api/chats/{id}/work", ApiRoute::new().get(work).into_route())
 }
 
 fn chat_reply(r: ChatReply) -> Response {
@@ -190,6 +192,15 @@ async fn problems(State(app): State<Arc<App>>, Path(id): Path<String>) -> Respon
 async fn documents(State(app): State<Arc<App>>, Path(id): Path<String>) -> Response {
 	match app.stores.chats.get_chat(&id) {
 		Some(chat) => reply::json(200, &documents_view(&app, &chat).await),
+		None => error(404, "Not found"),
+	}
+}
+
+/// GET /api/chats/{id}/work: what the teacher does in the lesson's running turn, and the files on
+/// its desk.
+async fn work(State(app): State<Arc<App>>, Path(id): Path<String>) -> Response {
+	match lesson_work(&app, &id) {
+		Some(work) => reply::json_no_store(200, &work),
 		None => error(404, "Not found"),
 	}
 }

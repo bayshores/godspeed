@@ -153,7 +153,7 @@ const pdf = pdfNote("Week 3 notes.pdf", "/data/chats/chat_1/abc-Week 3 notes.pdf
 
 function row(message: Parameters<typeof projectView>[0][number]) {
 	const view = projectView([message]).at(-1)!;
-	return <MessageRow message={view} spaceId={undefined} index={0} echo={false} teachSeam={false} streamingLast={false} hideSteps={false} pageMarks={new Map()} arrive={() => undefined} />;
+	return <MessageRow message={view} spaceId={undefined} index={0} echo={false} teachSeam={false} streamingLast={false} hiddenCalls={null} pageMarks={new Map()} arrive={() => undefined} />;
 }
 
 describe("the learner's message with files", () => {
@@ -184,7 +184,7 @@ describe("the learner's message with files", () => {
 		} as unknown as LhMessage;
 		const answer = { kind: "explain", questionText: "Show your work.", dontKnow: false, answers: [], text: "see it" } as never;
 		const view = projectView([call, newAnswerResult("q1", "explain", answer, [image])])[0]!;
-		const html = renderToStaticMarkup(<MessageRow message={view} spaceId={undefined} index={0} echo={false} teachSeam={false} streamingLast={false} hideSteps={false} pageMarks={new Map()} arrive={() => undefined} />);
+		const html = renderToStaticMarkup(<MessageRow message={view} spaceId={undefined} index={0} echo={false} teachSeam={false} streamingLast={false} hiddenCalls={null} pageMarks={new Map()} arrive={() => undefined} />);
 		assert.match(html, /data-testid="answered-card"[\s\S]*data-testid="message-image"/);
 	});
 

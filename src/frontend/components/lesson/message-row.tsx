@@ -29,7 +29,6 @@ import {
 	type LhViewPart,
 	type QuestionAnswerData,
 } from "@/shared/core";
-import { STEP_TOOLS } from "./agent-at-work-model";
 import type { Arrive } from "./arrivals";
 import { isSubagentSteer } from "./chat-helpers";
 import { MessageAttachments } from "./message-attachments";
@@ -50,8 +49,8 @@ interface MessageRowProps {
 	teachSeam: boolean;
 	/** This is the last message and its turn is streaming right now. */
 	streamingLast: boolean;
-	/** The desk stands in for this message's step cards. */
-	hideSteps: boolean;
+	/** While the desk shows, the calls its steps stand for, whose cards it hides; null with no desk. */
+	hiddenCalls: ReadonlySet<string> | null;
 	/** Each Study topic's stored page mark, by the text it sits in (topicPageMarks). */
 	pageMarks: ReadonlyMap<string, string>;
 	arrive: Arrive;
@@ -71,7 +70,7 @@ const UNDRAWN: ReadonlySet<string> = new Set(["data-graph-context", "data-space-
  * which is drawn there only.
  */
 export function messageShows(m: LhViewMessage, echo: boolean, inTurn: string | null): boolean {
-	if (m.role !== "user") return m.parts.some((p) => partShows(p, false) && (inTurn === null || p.toolCallId !== inTurn));
+	if (m.role !== "user") return m.parts.some((p) => partShows(p, null) && (inTurn === null || p.toolCallId !== inTurn));
 	if (m.parts.every((p) => UNDRAWN.has(p.type))) return false;
 	return !(echo && m.parts.every((p) => p.type === "text"));
 }
@@ -81,7 +80,7 @@ export function messageShows(m: LhViewMessage, echo: boolean, inTurn: string | n
  * streams only the message being written redraws — every other row keeps
  * its previous message object (reuseUnchangedMessages) and skips.
  */
-export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, echo, teachSeam, streamingLast, hideSteps, pageMarks, arrive, from = 0, to = m.parts.length }: MessageRowProps) {
+export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, echo, teachSeam, streamingLast, hiddenCalls, pageMarks, arrive, from = 0, to = m.parts.length }: MessageRowProps) {
 	if (m.role === "user" && isSubagentSteer(m)) {
 		// Sub-agent delivery: no bubble — the artifact card sits in the column.
 		return (
@@ -121,7 +120,7 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 	// A native message lives in exactly one view group, so the row can pick
 	// its anchors alone.
 	const anchors = new Set(firstSourceTextParts([m]).values());
-	const separators = drawnSeparators(m.parts, (part) => partShows(part, hideSteps));
+	const separators = drawnSeparators(m.parts, (part) => partShows(part, hiddenCalls));
 	const pages = excerptParts(m.parts, pageMarks);
 	return (
 		<Fragment>
@@ -138,7 +137,7 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 						anchor={part.type === "text" && part.id && anchors.has(part.id) ? part.id : undefined}
 						page={pages.get(pi)}
 						streaming={streamingLast && pi === m.parts.length - 1}
-						hideSteps={hideSteps}
+						hiddenCalls={hiddenCalls}
 						arrive={arrive}
 					/>
 				))}
@@ -183,12 +182,15 @@ function MarkerPart({ part }: { part: LhViewPart }) {
 	}
 }
 
+/** The desk shows this tool call as one of its steps. */
+const onDesk = (part: LhViewPart, hiddenCalls: ReadonlySet<string> | null): boolean => !!hiddenCalls && !!part.toolCallId && hiddenCalls.has(part.toolCallId);
+
 /** Whether AssistantPart draws anything for this part (kept in step with it). */
-function partShows(part: LhViewPart, hideSteps: boolean): boolean {
+function partShows(part: LhViewPart, hiddenCalls: ReadonlySet<string> | null): boolean {
 	if (part.type === "text" || part.type === "reasoning") return true;
 	if (!part.type.startsWith("tool-")) return false;
 	const tool = part.type.slice("tool-".length);
-	if (hideSteps && STEP_TOOLS.has(tool)) return false;
+	if (onDesk(part, hiddenCalls)) return false;
 	if (part.state === "output-error" && part.errorText !== "Operation aborted") return true;
 	if (isQuestionTool(tool)) return part.state === "output-available";
 	return part.state === "input-streaming" || tool in artifactRenderers;
@@ -202,7 +204,7 @@ function AssistantPart({
 	anchor,
 	page,
 	streaming,
-	hideSteps,
+	hiddenCalls,
 	arrive,
 }: {
 	part: LhViewPart;
@@ -214,11 +216,11 @@ function AssistantPart({
 	/** The topic's stored page mark this text draws the page of. */
 	page?: string;
 	streaming: boolean;
-	hideSteps: boolean;
+	hiddenCalls: ReadonlySet<string> | null;
 	arrive: Arrive;
 }) {
 	const inTurn = useContext(ChatActionsContext)?.inTurn ?? null;
-	if (hideSteps && STEP_TOOLS.has(part.type.slice("tool-".length))) return null;
+	if (onDesk(part, hiddenCalls)) return null;
 	// A tool call that errored back to the agent is the agent's own work: it
 	// reads the error and tries again, so the lesson shows nothing for it.
 	if (part.state === "output-error" && part.type.startsWith("tool-")) return null;
@@ -241,7 +243,7 @@ function AssistantPart({
 						<PhaseDivider phase="teach" />
 					</div>
 				);
-			return separator && !hideSteps ? <div aria-hidden className="h-3" /> : null;
+			return separator && !hiddenCalls ? <div aria-hidden className="h-3" /> : null;
 		case "tool-quiz":
 		case "tool-probe":
 		case "tool-ask_user_question":

@@ -2065,6 +2065,28 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 .dark .lh-paper {
 	filter: brightness(0.82);
 }
+/* The stack's sheets (desk-stack.tsx): each a strip of paper whose top edge shows its file's name,
+   lying over the one behind it; the front one sits on its pages. Before the teacher reads a file
+   its pages lie still and dim, and brighten when it does. */
+.lh-desk-edge {
+	height: 34px;
+	margin-bottom: -8px;
+	padding: 0 12px;
+	font-size: 12px;
+	line-height: 26px;
+	display: flex;
+	min-width: 0;
+}
+.lh-desk-edge-front {
+	margin-bottom: 0;
+	border-bottom-width: 0;
+}
+.lh-desk-pages {
+	transition: opacity var(--lh-dur) var(--lh-ease-out);
+}
+.lh-desk-pages[data-still] {
+	opacity: 0.55;
+}
 .lh-read-mark {
 	background: linear-gradient(var(--lh-highlight), var(--lh-highlight)) no-repeat 0 0 / 6px 100%;
 	animation: lh-mark-in 900ms var(--lh-ease-out) backwards;
@@ -2121,6 +2143,16 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 .lh-pencil[data-state="waiting"] .lh-pencil-tip {
 	color: var(--lh-ink-3);
 	animation: none;
+}
+/* The current step's mark: the same pencil, writing a few short strokes in its own square. */
+.lh-pencil.lh-pencil-mark {
+	--lh-pencil-w: 6px;
+	--lh-pencil-steps: 3;
+	width: 20px;
+	height: 20px;
+}
+.lh-pencil-mark .lh-pencil-tip {
+	bottom: 0;
 }
 @keyframes lh-pencil-ink {
 	0% {

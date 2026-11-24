@@ -1,15 +1,16 @@
-import { memo, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import { memo, useLayoutEffect, useMemo, useRef } from "react";
+import type { DeskReading } from "@/shared/core";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
-import { textPages, type ReadingTarget } from "./agent-at-work-model";
+import { textPages } from "./page-stage-model";
 import { pdfPageUrl, useReadingDoc, type ReadingDoc } from "./use-reading-doc";
 
 /**
- * THE PAPER ON THE DESK: the file the teacher opened in this reply, as sheets of
- * paper in a well (globals.css .lh-desk-well) cut at its stepped corners. The
- * view drifts down through all of it once, then settles on the part being read,
- * whose lines the highlighter marks. The paper itself lies still. The plan
- * beside it names the file and the place, so the paper carries no label.
+ * THE PAPER ON THE DESK: the front file of the desk's stack as sheets of paper, cut by the
+ * stack's well (desk-stack.tsx). While the teacher reads it, the view drifts down through all of
+ * it once, then settles on the part being read, whose lines the highlighter marks; before that it
+ * lies still on its first page (`still`). The paper itself lies still. The step beside it names
+ * the file and the place, so the paper carries no label.
  */
 
 /** PDFs longer than this show only their first pages. */
@@ -18,26 +19,17 @@ const MAX_PDF_PAGES = 80;
 /** A short text file is a US letter page. */
 const LETTER = 8.5 / 11;
 
-/** The paper sits in the middle of the well, as tall as its pages are, and the well cuts it.
+/** The paper sits under the front sheet's edge, as wide as the edges, and the well cuts it.
  *  It is a picture of the file, so screen readers skip it. */
-const INSET = "px-6 pt-8";
+const INSET = "px-6";
 
 /** A page is never wider than this, so its type keeps the size of a printed page. */
 const PAGE = "mx-auto w-full max-w-[560px]";
 
-/** The paper lies over the well, so however long the file is, the well is only as tall as the desk. */
-function PaperWell({ children }: { children: ReactNode }) {
-	return (
-		<div className="lh-desk-well lh-sheet relative min-h-0 flex-1">
-			<div className="absolute inset-0 overflow-hidden">{children}</div>
-		</div>
-	);
-}
-
 /** The file the teacher has open: its pages, which drift through the whole file the first time
  *  and then move to each new place it reads. The highlighter waits while the pages drift, so one
  *  thing moves at a time. */
-export function PageStage({ reading, className }: { reading: ReadingTarget; className?: string }) {
+export function PageStage({ reading, still }: { reading: DeskReading; still: boolean }) {
 	const doc = useReadingDoc(reading.path);
 	const scrollerRef = useRef<HTMLDivElement>(null);
 	const stageRef = useRef<HTMLDivElement>(null);
@@ -49,7 +41,7 @@ export function PageStage({ reading, className }: { reading: ReadingTarget; clas
 	useLayoutEffect(() => {
 		const scroller = scrollerRef.current;
 		const stage = stageRef.current;
-		if (!doc || !scroller || !stage) return;
+		if (!doc || !scroller || !stage || still) return;
 		const target = scroller.querySelector<HTMLElement>("[data-reading-here]");
 		const room = Math.max(0, scroller.scrollHeight - stage.clientHeight);
 		const goal = target ? Math.min(room, Math.max(0, target.offsetTop - stage.clientHeight / 3)) : 0;
@@ -78,21 +70,17 @@ export function PageStage({ reading, className }: { reading: ReadingTarget; clas
 			if (!scroller.getAnimations().some((a) => a !== drift && a.playState === "running")) delete stage.dataset.drifting;
 		};
 		drift.finished.then(settle, settle);
-	}, [doc, anchor]);
+	}, [doc, anchor, still]);
 
 	return (
 		// The file is not lesson text, and Find could never scroll into this stage.
-		<div data-session-find-exclude="" className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}>
-			<PaperWell>
-				<div ref={stageRef} className="h-full overflow-hidden">
-					<div aria-hidden className={INSET}>
-						<div ref={scrollerRef} className={cn("relative flex flex-col gap-4 will-change-transform", PAGE)}>
-							{doc?.kind === "text" && <TextPages text={doc.text} from={from} to={to} />}
-							{doc?.kind === "pdf" && reading.kind === "pdf" && <PdfPages path={reading.path} doc={doc} page={reading.page} />}
-						</div>
-					</div>
+		<div ref={stageRef} data-session-find-exclude="" data-still={still || undefined} className="lh-desk-pages absolute inset-0 overflow-hidden">
+			<div aria-hidden className={INSET}>
+				<div ref={scrollerRef} className={cn("relative flex flex-col gap-4 will-change-transform", PAGE)}>
+					{doc?.kind === "text" && <TextPages text={doc.text} from={from} to={to} />}
+					{doc?.kind === "pdf" && reading.kind === "pdf" && <PdfPages path={reading.path} doc={doc} page={reading.page} />}
 				</div>
-			</PaperWell>
+			</div>
 		</div>
 	);
 }

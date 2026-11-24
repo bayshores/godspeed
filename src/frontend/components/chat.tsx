@@ -56,6 +56,7 @@ import { LessonScroll } from "@/frontend/components/lesson/lesson-scroll";
 import { problemStartLabel } from "@/frontend/components/lesson/plan-row-model";
 import { messageShows } from "@/frontend/components/lesson/message-row";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
+import { useLessonWork } from "@/frontend/components/lesson/use-lesson-work";
 import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
 import { TurnSheet } from "@/frontend/components/lesson/turn-sheet";
 import { useLessonNotes } from "@/frontend/components/vault/use-lesson-notes";
@@ -108,6 +109,7 @@ export function Chat({
 	initiallyInFlight,
 	initialStats,
 	initialJobs = null,
+	initialWork,
 	plugins: loadedPlugins,
 	openedReview = null,
 	kind = "teach",
@@ -145,6 +147,8 @@ export function Chat({
 	initialStats: LessonStats;
 	/** The lesson's jobs as the page's loader read them (null: the read failed). */
 	initialJobs?: JobRecord[] | null;
+	/** What the teacher does in a running turn, as the page's loader read it (null: the read failed). */
+	initialWork?: unknown;
 	/** The installed plugins as the page's loader read them (null: the read failed). */
 	plugins?: InstalledPlugin[] | null;
 	/** The question from earlier the page's loader was served, if one shows now. */
@@ -165,9 +169,12 @@ export function Chat({
 
 	const sessionFindScopeRef = useRef<HTMLDivElement | null>(null);
 	const scrollContextRef = useRef<StickToBottomContext | null>(null);
-	const arrive = useArrivals();
+	// A lesson that sends its first message as it opens draws that turn's desk at rest, as part of
+	// its opening: arrivals start once the desk is up, or the send has failed.
+	const [opened, setOpened] = useState(() => !(initialPromptOwed(initialMessages, initialPrompt) && new URLSearchParams(window.location.search).has("prompt")));
+	const arrive = useArrivals(opened);
 	const [arrivalsLive, setArrivalsLive] = useState(false);
-	useEffect(() => setArrivalsLive(true), []);
+	useEffect(() => setArrivalsLive(opened), [opened]);
 
 	// A new lesson with a topic sends its first message exactly once, with
 	// any files added on the start page. The topic then leaves the address,
@@ -213,6 +220,7 @@ export function Chat({
 	const teacher = useTeacher();
 	const teacherName = teacher?.name ?? DEFAULT_TEACHER_NAME;
 	const waitingForAgent = busy && agentWaiting(agentStatus);
+	const work = useLessonWork(chatId, initialWork);
 	const noAgent = lessonAgentWaiting(agentStatus);
 	const busyRef = useRef(busy);
 	busyRef.current = busy;
@@ -293,7 +301,7 @@ export function Chat({
 	const draftHeld = holdsDraft(drafts.draft, pendingQuestionId ?? activeProblem?.toolCallId ?? null);
 	// The teacher's status in a lesson: Talking while it writes, Thinking
 	// while the turn runs.
-	useTeacherLesson(status === "streaming", busy, draftHeld);
+	useTeacherLesson(busy, draftHeld);
 	const attachments = useAttachmentDraft(chatId);
 
 	// A line sent to the teacher while it writes STEERS the reply (text
@@ -547,6 +555,9 @@ export function Chat({
 	const opens = bookOpen({ question: pending ? (pending.appPosed?.kind === "review" ? "review" : "teacher") : null, problem: problem !== null, held: held !== null });
 	// The desk in the lesson text, also while it leaves: the book waits for it.
 	const [deskUp, setDeskUp] = useState(false);
+	useEffect(() => {
+		if (deskUp || error !== null) setOpened(true);
+	}, [deskUp, error]);
 	const book = useBook(opens, heldTurn, busy, deskUp);
 	const { open } = book;
 	const sheetGlide = useSheetGlide(book.turning);
@@ -633,6 +644,7 @@ export function Chat({
 											busy={busy}
 											stoppedEmpty={stoppedEmpty}
 											waitingForAgent={waitingForAgent}
+											work={work}
 											onStop={atStop ? null : abortInFlightTurn}
 											queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
 											arrivalsLive={arrivalsLive}

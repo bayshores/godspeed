@@ -30,7 +30,7 @@ import { ServerEventsProvider } from "../../src/frontend/components/server-event
 import { call, CONCLUDE_SOLVED, result, userText } from "../stop-fixtures.ts";
 import { PIECE_DETAILS } from "../piece-fixtures.ts";
 import { problemPieceOf } from "../../src/shared/core/problem-piece.ts";
-import { activeProblemOf, buildAnswer, CONFIDENCE_STOPS, dismissedAnswer, normalizeOptions, resolveCorrect, type QuestionData, emptyDockSelection, type DockSelection, findPendingToolCall, newUserMessage, projectView, reuseUnchangedMessages, type LhMessage, type QuestionAnswerData, type QuestionFormDraft, type SpaceSummary } from "../../src/shared/core/index.ts";
+import { NO_LESSON_WORK, activeProblemOf, buildAnswer, CONFIDENCE_STOPS, dismissedAnswer, normalizeOptions, resolveCorrect, type QuestionData, emptyDockSelection, type DockSelection, findPendingToolCall, newUserMessage, projectView, reuseUnchangedMessages, type LhMessage, type QuestionAnswerData, type QuestionFormDraft, type SpaceSummary } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 const store = new Map<string, string>();
@@ -167,7 +167,7 @@ describe("Your turn in each state", () => {
 			assert.match(out, /<h2[^>]*>Your turn<\/h2>[\s\S]*data-testid="turn-next"[\s\S]*data-testid="turn-next-line" class="[^"]*text-ink"[^>]*>Cross-validation is next\.<[\s\S]*data-testid="next-problem-button"/);
 			assert.match(out, /data-testid="next-problem-button" data-action="keep-going" class="lh-btn lh-btn-main ml-auto shrink-0">Continue</);
 			assert.equal(out.split("lh-btn-main").length - 1, 1, "one bright key");
-			assert.match(out, /data-testid="turn-next"[\s\S]*data-testid="composer"[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Ask Teacher</);
+			assert.match(out, busy ? /data-testid="turn-next"[\s\S]*Tell Teacher what to focus on[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Send</ : /data-testid="turn-next"[\s\S]*data-testid="composer"[\s\S]*data-testid="composer-send"[^>]*disabled[^>]*>Ask Teacher</);
 			assert.doesNotMatch(out, /skip-question|discard-problem|stop-turn|Stop here|Keep going/);
 		}
 		const plain = html({ shown: shown(between) });
@@ -650,7 +650,7 @@ describe("Your turn in each state", () => {
 		};
 		const out = html({ problem, attachments: files });
 		assert.match(out, /data-testid="attachment-tray"[\s\S]*data-testid="draft-image"[\s\S]*data-testid="draft-pdf"[\s\S]*data-testid="math-box"/);
-		assert.match(out, /class="lh-answer-lines[\s\S]*data-testid="math-box"[\s\S]*data-testid="attach-button"[^>]*>[\s\S]*?Add pictures or PDFs<\/button><div[^>]*><button[^>]*data-testid="composer-send"/);
+		assert.match(out, /class="lh-answer-lines[\s\S]*data-testid="math-box"[\s\S]*data-testid="attach-button"[^>]*>[\s\S]*?Add pictures or PDFs<\/button><\/span><div[^>]*><button[^>]*data-testid="composer-send"/);
 		assert.equal(out.split('data-testid="attach-button"').length - 1, 1, "one attach button");
 		const ask = html({ pending: choice });
 		assert.match(ask, /class="lh-answer-line [\s\S]*data-testid="attach-button"[\s\S]*data-testid="question-submit"/, "beside Submit when the box is one line");
@@ -958,7 +958,7 @@ describe("the turn sheet", () => {
 			assert.equal(picked.length, 1);
 			assert.match(picked[0]!.textContent!, /Venus[\s\S]*Wrong/, "the verdict sits beside the pick");
 			assert.equal(host.querySelectorAll('[data-testid="answer-result"]').length, 1);
-			assert.equal(host.querySelector('[data-testid="composer-send"]')!.textContent, "Ask marco", "the box stays, to ask");
+			assert.equal(host.querySelector('[data-testid="composer-send"]')!.textContent, "Send", "the box stays, to steer what the teacher writes");
 			assert.match(host.querySelector('[data-testid="turn-foot"]')!.textContent!, /^Try asking/, "no Stuck? keys with nothing to answer");
 			assert.ok(host.querySelector('[data-testid="turn-next"]') === null);
 			await show(named(column({ pending: { ...quiz, toolCallId: "q2" } })));
@@ -1063,6 +1063,7 @@ describe("the reading pane", () => {
 		busy: true,
 		stoppedEmpty: false,
 		waitingForAgent: false,
+		work: NO_LESSON_WORK,
 		onStop: () => {},
 		queuedSteers: [],
 		arrivalsLive: false,
@@ -1076,9 +1077,9 @@ describe("the reading pane", () => {
 
 	const planned: React.ComponentProps<typeof ReadingPane>["messages"] = [{ id: "a1", role: "assistant", parts: [{ type: "tool-work_plan", toolCallId: "p", state: "output-available", input: { items: ["Read"], done: 0 } }] }];
 
-	it("the desk once the working teacher has a plan", () => {
-		assert.doesNotMatch(pane(), /data-testid="agent-at-work"/);
-		assert.match(pane({ messages: planned }), /data-testid="agent-at-work" data-state="working"/);
+	it("the desk while the teacher works, from the start", () => {
+		assert.match(pane(), /data-testid="agent-at-work" data-state="working"/);
+		assert.doesNotMatch(pane({ busy: false, status: "ready" }), /data-testid="agent-at-work"/);
 	});
 
 	it("while the teacher writes: Stop and the lines waiting for it under the desk; none when idle or at a stop", () => {
@@ -1095,10 +1096,10 @@ describe("the reading pane", () => {
 		}
 	});
 
-	it("no desk while no agent takes the turn; the strip says it instead", () => {
+	it("a still desk while no agent takes the turn, which says so", () => {
 		const out = pane({ waitingForAgent: true });
-		assert.doesNotMatch(out, /data-testid="agent-at-work"/);
-		assert.ok(!out.includes("Thinking"), "no words while nothing works");
+		assert.match(out, /data-testid="agent-at-work" data-state="waiting"[\s\S]*Waiting for Teacher to start\./);
+		assert.ok(!out.includes("Thinking"));
 	});
 
 	it("an empty lesson says it is new, with no promise of a probe", () => {

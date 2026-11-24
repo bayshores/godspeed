@@ -6,6 +6,7 @@ use gs_base::events::EventKind;
 use gs_json::json;
 
 use super::turn_runs::clear_turn_failure;
+use super::turn_work;
 use crate::App;
 
 /// Marks a turn as starting; false when one already runs for the chat (one turn per chat). The
@@ -24,12 +25,14 @@ pub fn turn_started(app: &App, chat_id: &str) {
 	app.events.emit(EventKind::TurnStarted, json!({ "chatId": chat_id }));
 }
 
-/// Marks the chat's turn as finished; "turn-settled" only when one was marked.
+/// Marks the chat's turn as finished; "turn-settled" only when one was marked. Its desk's work
+/// goes with it.
 pub fn end_turn(app: &App, chat_id: &str) {
 	if app.turns.in_flight.lock().remove(chat_id) {
 		app.turns.attachable.notify_waiters();
 		app.events.emit(EventKind::TurnSettled, json!({ "chatId": chat_id }));
 	}
+	turn_work::end(app, chat_id);
 }
 
 pub fn is_turn_running(app: &App, chat_id: &str) -> bool {

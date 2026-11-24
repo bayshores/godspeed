@@ -7,6 +7,7 @@ pub mod chat_handler;
 pub mod chats;
 pub mod compaction;
 pub mod deadline_lesson;
+mod desk_files;
 pub mod dismissal_park;
 pub mod files_lesson;
 pub mod homework;
@@ -18,9 +19,11 @@ pub mod lessons;
 mod problem_pages;
 pub mod reply_nudges;
 pub mod review;
+pub mod step_names;
 pub mod turn_liveness;
 pub mod turn_runs;
 pub mod turn_service;
+pub mod turn_work;
 
 use std::collections::{HashMap, HashSet};
 
@@ -46,6 +49,8 @@ pub struct TurnsState {
 	in_flight: Mutex<HashSet<String>>,
 	/// The running turn of each chat (turn-runs).
 	runs: Mutex<HashMap<String, TurnHandle>>,
+	/// What the teacher does in each chat's running turn (turn-work).
+	work: Mutex<HashMap<String, turn_work::TurnWork>>,
 	/// A turn's handle was registered or its turn ended: `attach_turn` looks again.
 	attachable: Notify,
 	/// The kept notice of a turn whose settlement failed (turn-runs).
