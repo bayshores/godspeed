@@ -5,7 +5,7 @@ import { useSessionMermaid } from "@/frontend/components/session-overlay";
 import { useAppearance } from "@/frontend/components/settings/appearance";
 import { saveText } from "@/frontend/components/artifacts/download";
 import { SvgImage } from "@/frontend/components/artifacts/svg-image";
-import { figureWidth, themedFigure } from "@/frontend/components/artifacts/figure-model";
+import { figureSize, themedFigure } from "@/frontend/components/artifacts/figure-model";
 import type { ArtifactPartProps, VisualResult } from "@/shared/core";
 
 /**
@@ -18,13 +18,13 @@ function Figure({ svg }: { svg: string }) {
 	const overlay = useSessionMermaid();
 	const themed = themedFigure(svg, figureInks);
 	const shown = themed ?? svg;
-	const width = figureWidth(shown);
+	const size = figureSize(shown);
 	const key = cn(SMALL_BTN, "opacity-0 focus-visible:opacity-100 group-hover/md:opacity-100");
 	return (
 		<div className="group/md relative my-4" data-testid="visual-card">
 			{/* A figure with its own colors was drawn for a white page. */}
-			<div className={cn("mx-auto max-w-full overflow-hidden", width !== null ? "w-fit" : "w-full", themed === null && "bg-white")} data-testid="visual-svg">
-				<SvgImage svg={shown} width={width ?? undefined} className={width !== null ? "block h-auto max-w-full" : "block h-auto w-full"} />
+			<div className={cn("mx-auto max-w-full overflow-hidden", size ? "w-fit" : "w-full", themed === null && "bg-white")} data-testid="visual-svg">
+				<SvgImage svg={shown} width={size?.width} height={size?.height} className={size ? "block h-auto max-w-full" : "block h-auto w-full"} />
 			</div>
 			<div className="absolute top-0 right-0 flex items-start gap-1.5">
 				<button type="button" data-testid="visual-download" className={key} onClick={() => saveText("figure.svg", shown, "image/svg+xml")}>
