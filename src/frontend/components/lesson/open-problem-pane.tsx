@@ -2,23 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toggleOption, type DockSelection, type ProblemChoices, type ProblemPieceText } from "@/shared/core";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { PagePiece } from "@/frontend/components/citations/page-piece";
-import { prefersReducedMotion } from "@/frontend/components/presence";
 import { ChoiceRows, SelectAllHint } from "./choice-rows";
 import { useChoiceKeys } from "./use-choice-keys";
 import { partMarks, toggled, type PartMarks } from "./problem-parts";
 import { proseVars } from "./question-parts";
-
-/** Room kept above the part, so the fade at the top of the box does not cover its first line. */
-const LEAD = 32;
-
-/** Brings the start of the part the learner is on to the top of the box "Your turn" scrolls in:
- *  glided to when he moves on to it (`moved`), there at once when the problem is first drawn on it.
- *  Under the lesson text there is no such box, and the page itself rests on the part. */
-function restAt(start: HTMLElement, moved: boolean) {
-	const box = start.closest<HTMLElement>(".lh-turn-scroll");
-	if (!box || box.scrollHeight <= box.clientHeight) return;
-	box.scrollTo({ top: box.scrollTop + start.getBoundingClientRect().top - box.getBoundingClientRect().top - LEAD, behavior: moved && !prefersReducedMotion() ? "smooth" : "auto" });
-}
+import { restOnPart } from "./turn-scroll";
 
 const MARKED = "[data-part-current], [data-part-head], [data-part-fold]";
 const NAMES = ["data-part-current", "data-part-head", "data-part-fold", "role", "tabindex", "aria-expanded"];
@@ -134,7 +122,7 @@ export function OpenProblemPane({
 			{/* Holds a last-line fraction's denominator, which hangs 6px below its line box. */}
 			{piece ? (
 				<div data-testid="problem-piece" style={proseVars(18, 28)}>
-					<PagePiece piece={piece.piece} text={piece.text} part={part} printed={printed} onPlace={restAt} onFail={onPieceFail} />
+					<PagePiece piece={piece.piece} text={piece.text} part={part} printed={printed} onPlace={restOnPart} onFail={onPieceFail} />
 				</div>
 			) : (
 				<div ref={statementRef} data-testid="problem-statement" className="pb-1.5" style={proseVars(18, 28)}>

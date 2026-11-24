@@ -59,13 +59,13 @@ describe("the lesson text as sheets", () => {
 		{ id: "a2", role: "assistant", parts: [step, text("a2-t0", "It starts a new program.")] },
 	];
 
-	it("draws a sheet per step, each with its number on the tab, and the same reply half on each", () => {
+	it("draws a section per step, each headed by its number on a block and its name, and the same reply half on each", () => {
 		const [one, two, ...more] = sheets(pane(twoSteps));
 		assert.equal(more.length, 0);
-		assert.match(one!, /data-testid="sheet-step"[^>]*><span class="sr-only">Step <\/span>1</);
+		assert.match(one!, /data-testid="sheet-step"[^>]*><span[^>]*><span class="sr-only">Step <\/span>1<\/span>Fork</);
 		assert.match(one!, /Fork copies the process\.[\s\S]*Right, both run on\./);
 		assert.doesNotMatch(one!, /Now exec\./);
-		assert.match(two!, /data-testid="sheet-step"[^>]*><span class="sr-only">Step <\/span>2</);
+		assert.match(two!, /data-testid="sheet-step"[^>]*><span[^>]*><span class="sr-only">Step <\/span>2<\/span>Exec</);
 		assert.match(two!, /Now exec\.[\s\S]*What is exec\?[\s\S]*It starts a new program\./);
 	});
 
@@ -77,11 +77,11 @@ describe("the lesson text as sheets", () => {
 		assert.match(two!, /data-testid="stop-turn"/);
 	});
 
-	it("a step whose first question still waits has no sheet yet", () => {
+	it("a step whose first question still waits has no section yet, and one section alone has no heading", () => {
 		const waiting: LhViewMessage[] = [{ id: "a1", role: "assistant", parts: [step, quiz("q1", "fork", true), step, text("a1-t1", "Right."), quiz("q2", "exec", false)] }];
 		const drawn = sheets(pane(waiting));
 		assert.equal(drawn.length, 1);
-		assert.match(drawn[0]!, /data-testid="sheet-step"[^>]*><span class="sr-only">Step <\/span>1</);
+		assert.doesNotMatch(drawn[0]!, /data-testid="sheet-step"/, "the step line already says which step it is");
 		const answered: LhViewMessage[] = [{ id: "a1", role: "assistant", parts: [step, quiz("q1", "fork", true), step, text("a1-t1", "Right."), quiz("q2", "exec", true)] }];
 		assert.equal(sheets(pane(answered)).length, 2, "his answer starts it");
 	});

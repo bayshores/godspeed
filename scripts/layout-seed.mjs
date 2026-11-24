@@ -663,7 +663,7 @@ export async function seed(dataDir, page, log) {
 		const quiz = await lastCall(chatId, "quiz");
 		const { question, options, correctAnswer } = quiz.arguments;
 		const index = options.findIndex((option) => (option.value ?? option.label) === correctAnswer) + 1;
-		const answer = { kind: "quiz", tool: "quiz", questionText: question, dontKnow: false, options: options.map((option, at) => ({ index: at + 1, label: option.label })), answers: [{ label: correctAnswer, value: correctAnswer, index }], correct: true, answeredAt: new Date().toISOString() };
+		const answer = { kind: "quiz", tool: "quiz", questionText: question, dontKnow: false, options: options.map((option, at) => ({ index: at + 1, label: option.label })), answers: [{ label: correctAnswer, value: correctAnswer, index }], correctIndices: [index], correct: true, answeredAt: new Date().toISOString() };
 		await say(chatId, { type: "answer", toolCallId: quiz.id, answer });
 	};
 	// The learner answers the concluded lesson's problem, skips the skipped one's quiz, answers the last-topic one's quiz right and drops the discarded one's problem, as the window's Skip and Discard do.

@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { prefersReducedMotion } from "@/frontend/components/presence";
 import { glideSheetAround } from "@/frontend/components/use-sheet-glide";
 import { cn } from "@/frontend/lib/utils";
 import { foldRoom } from "./turn-fold-model";
@@ -32,6 +33,18 @@ function partSpan(el: HTMLElement): { top: number; height: number } | null {
 
 /** A last-line fraction's denominator hangs this far below its line box. */
 const HANG = 6;
+
+/** Room kept above the part, so the fade at the top of the box does not cover its first line. */
+const LEAD = 32;
+
+/** Brings the start of the part the learner is on to the top of the box the task scrolls in:
+ *  glided to when he moves on to it (`moved`), there at once otherwise. Where the box is not cut,
+ *  the page itself rests on the part. */
+export function restOnPart(start: HTMLElement, moved: boolean) {
+	const box = start.closest<HTMLElement>(".lh-turn-scroll");
+	if (!box || box.scrollHeight <= box.clientHeight) return;
+	box.scrollTo({ top: box.scrollTop + start.getBoundingClientRect().top - box.getBoundingClientRect().top - LEAD, behavior: moved && !prefersReducedMotion() ? "smooth" : "auto" });
+}
 
 /**
  * The question or problem in the turn's task: beside the lesson text, or
@@ -88,6 +101,12 @@ export function TurnScroll({ className, folded, onLong, children }: { className?
 		if (wasFolded.current !== folded && ref.current) glideSheetAround(ref.current);
 		wasFolded.current = folded;
 	}, [folded]);
+	// A problem is first drawn whole and cut after, so the cut box takes its place on the part itself.
+	const cutFolded = folded === true && foldedRoom !== null && partRoom === null;
+	useLayoutEffect(() => {
+		const start = cutFolded ? ref.current?.querySelector<HTMLElement>("[data-part-current]") : null;
+		if (start) restOnPart(start, false);
+	}, [cutFolded]);
 	// A part shown alone is whole, so nothing of it fades.
 	const fade = partRoom !== null ? undefined : cut.start && cut.end ? CUT.both : cut.end ? CUT.end : cut.start ? CUT.start : undefined;
 	const max = partRoom ?? (folded ? foldedRoom : null);

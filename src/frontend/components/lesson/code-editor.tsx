@@ -67,7 +67,7 @@ export function CodeEditor({
 
 	return (
 		<div data-testid="code-editor" className="flex min-h-0 flex-1 flex-col lh-well">
-			<div className="flex items-center justify-between gap-3 border-b border-tone-2 px-3.5 py-2">
+			<div className="flex items-center justify-between gap-3 px-3.5 pt-2.5 pb-1">
 				{tools ?? (
 					<span data-testid="code-language" className="font-mono text-[12.5px] text-ink-3">
 						{languageLabel(language)}

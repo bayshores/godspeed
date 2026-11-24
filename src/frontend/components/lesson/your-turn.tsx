@@ -251,40 +251,40 @@ export function YourTurn({
 							)}
 
 							<div className={cn("lh-turn-body", corner && "lh-turn-cornered")}>
-							<TurnScroll folded={folded} onLong={setLong}>
-								{pending && (
-									<QuestionDock
-										ref={questionRef}
-										toolName={pending.tool as QuestionDockProps["toolName"]}
-										toolCallId={pending.toolCallId}
-										tag={questionTag}
-										onSkip={onSkipQuestion}
-										input={pending.input}
-										onSubmit={onSubmitAnswer}
-										initialDraft={initialQuestionDraft}
-										onSaveDraft={onSaveQuestionDraft}
-										onReady={setPicked}
-										boxText={value}
-										onLeaveRows={() => boxRef.current?.focus()}
-										busy={busy && !fromEarlier}
-									/>
-								)}
-								{/* One element while the problem is open and after it closes, so its page is not drawn anew. */}
-								{!pending && shownProblem && (
-									<div data-testid={keptProblem ? "kept-problem" : undefined} inert={keptProblem !== null} className={cn("flex flex-col gap-7", keptProblem && "opacity-60")}>
-										<OpenProblemPane statement={shownProblem.statement} piece={shownProblem.piece} printed={printed} onPieceFail={() => setPieceFailed(shownProblem.toolCallId)} part={shownPart} picks={problem ? picks : null} />
-										{keptProblem?.discarded && (
-											<p data-testid="kept-problem-discarded" className="text-[18px] leading-[28px]">
-												Discarded
-											</p>
-										)}
-									</div>
-								)}
-								{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} />}
-								{!kept && nextRow}
-								{notes && <EndNotes notes={notes} />}
-							</TurnScroll>
-							{corner && keys}
+								<TurnScroll folded={folded} onLong={setLong}>
+									{pending && (
+										<QuestionDock
+											ref={questionRef}
+											toolName={pending.tool as QuestionDockProps["toolName"]}
+											toolCallId={pending.toolCallId}
+											tag={questionTag}
+											onSkip={onSkipQuestion}
+											input={pending.input}
+											onSubmit={onSubmitAnswer}
+											initialDraft={initialQuestionDraft}
+											onSaveDraft={onSaveQuestionDraft}
+											onReady={setPicked}
+											boxText={value}
+											onLeaveRows={() => boxRef.current?.focus()}
+											busy={busy && !fromEarlier}
+										/>
+									)}
+									{/* One element while the problem is open and after it closes, so its page is not drawn anew. */}
+									{!pending && shownProblem && (
+										<div data-testid={keptProblem ? "kept-problem" : undefined} inert={keptProblem !== null} className={cn("flex flex-col gap-7", keptProblem && "opacity-60")}>
+											<OpenProblemPane statement={shownProblem.statement} piece={shownProblem.piece} printed={printed} onPieceFail={() => setPieceFailed(shownProblem.toolCallId)} part={shownPart} picks={problem ? picks : null} />
+											{keptProblem?.discarded && (
+												<p data-testid="kept-problem-discarded" className="text-[18px] leading-[28px]">
+													Discarded
+												</p>
+											)}
+										</div>
+									)}
+									{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} />}
+									{!kept && nextRow}
+									{notes && <EndNotes notes={notes} />}
+								</TurnScroll>
+								{corner && keys}
 							</div>
 							{/* Under a kept task the line stays in sight however long the task is. */}
 							{kept && nextRow}
