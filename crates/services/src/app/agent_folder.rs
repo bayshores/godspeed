@@ -3,7 +3,8 @@
 //! shortcuts to the space files; the app refreshes them once per start, so an update reaches
 //! them. Which folder is used, the learner's own start commands, whether the one-time
 //! "godspeed has its own folder now" notice was seen, whether the old Talk chat was exported
-//! there, and which agent runs the lessons live in <data>/agent-folder.json.
+//! there, which agent runs the lessons, and the model each agent's new lessons start on live in
+//! <data>/agent-folder.json.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -16,6 +17,7 @@ use gs_core::spaces::agent_folder::{FolderAgent, Platform, StartCommands, copy_c
 use gs_core::spaces::space_shortcuts::space_dirs;
 use gs_json::{Json, Obj, json, stringify_pretty};
 
+use super::agent_health::check_health;
 use super::disk::write_file_atomic;
 use super::folder_files::write_folder;
 use super::old_setup::{OldSetup, old_setup, remove_old_setup};
@@ -48,7 +50,7 @@ fn state_file(app: &App) -> PathBuf {
 }
 
 /// The usable parts of the state file, in this order: `folder`, `noticeSeen`, `startCommands`,
-/// `talkExported`, `agent`.
+/// `talkExported`, `agent`, `model`.
 /// Writes spread it and set keys on top, so the file keeps that order with new keys last.
 fn read_state(app: &App) -> Obj {
 	let mut state = Obj::new();
@@ -69,7 +71,29 @@ fn read_state(app: &App) -> Obj {
 	if let Some(agent) = raw["agent"].as_str().and_then(FolderAgent::from_name) {
 		state.insert("agent", agent.name());
 	}
+	let models = saved_models(&raw["model"]);
+	if !models.is_empty() {
+		state.insert("model", Json::Obj(models));
+	}
 	state
+}
+
+/// The longest model name kept; the agents' own are far shorter.
+const MODEL_MAX: usize = 200;
+
+fn usable_model(model: &str) -> bool {
+	!model.is_empty() && model.len() <= MODEL_MAX && !model.contains(['\n', '\r'])
+}
+
+/// The saved model of each agent that has one, by agent name.
+fn saved_models(raw: &Json) -> Obj {
+	let mut models = Obj::new();
+	for agent in [FolderAgent::Claude, FolderAgent::Codex] {
+		if let Some(model) = raw[agent.name()].as_str().filter(|model| usable_model(model)) {
+			models.insert(agent.name(), model);
+		}
+	}
+	models
 }
 
 fn write_state(app: &App, state: Obj) -> Result<(), String> {
@@ -99,16 +123,62 @@ pub fn folder_agent(app: &App) -> FolderAgent {
 	picked_agent(app).unwrap_or(FolderAgent::Claude)
 }
 
-/// The learner picked the agent that runs the lessons and jobs; the folder as it is now.
-pub fn set_folder_agent(app: &App, agent: FolderAgent) -> Result<Json, String> {
+/// The learner picked the agent that runs the lessons and jobs, which is checked at once; the
+/// folder as it is now.
+pub fn set_folder_agent(app: &Arc<App>, agent: FolderAgent) -> Result<Json, String> {
 	{
 		let _held = app.locks.lock(STATE);
 		let mut state = read_state(app);
 		state.insert("agent", agent.name());
 		write_state(app, state)?;
 	}
+	check_health(app);
 	Ok(agent_folder_view(app))
 }
+
+/// The model `agent`'s new lessons start on, if the learner picked one; none is the agent's own
+/// default.
+pub(crate) fn start_model(app: &App, agent: FolderAgent) -> Option<String> {
+	read_state(app).get("model").and_then(|models| models[agent.name()].as_str().map(str::to_owned))
+}
+
+/// PATCH /api/agent-folder `{model: {claude?, codex?}}`: each agent named gets its model, and
+/// null clears one. Agents not named keep theirs.
+pub fn set_agent_models(app: &App, models: &Json) -> Result<Json, SetUpError> {
+	let Some(given) = models.as_obj().filter(|given| !given.is_empty()) else { return Err(SetUpError::Folder(MODEL_SHAPE.to_owned())) };
+	let mut changes = Vec::new();
+	for (name, model) in given.iter() {
+		let agent = FolderAgent::from_name(name).ok_or_else(|| SetUpError::Folder(MODEL_SHAPE.to_owned()))?;
+		match model {
+			Json::Null => changes.push((agent, None)),
+			Json::Str(model) if usable_model(model) => changes.push((agent, Some(model.clone()))),
+			_ => return Err(SetUpError::Folder(MODEL_SHAPE.to_owned())),
+		}
+	}
+	{
+		let _held = app.locks.lock(STATE);
+		let mut state = read_state(app);
+		let mut saved = match state.get("model") {
+			Some(Json::Obj(saved)) => saved.clone(),
+			_ => Obj::new(),
+		};
+		for (agent, model) in changes {
+			match model {
+				Some(model) => saved.insert(agent.name(), model),
+				None => saved.remove(agent.name()),
+			};
+		}
+		if saved.is_empty() {
+			state.remove("model");
+		} else {
+			state.insert("model", Json::Obj(saved));
+		}
+		write_state(app, state).map_err(SetUpError::Disk)?;
+	}
+	Ok(agent_folder_view(app))
+}
+
+const MODEL_SHAPE: &str = "model must name \"claude\" or \"codex\", each with a model's name or null";
 
 pub(crate) fn agent_folder(app: &App) -> String {
 	folder_of(&read_state(app)).unwrap_or_else(|| app.paths.default_agent_folder.to_string_lossy().into_owned())
@@ -169,6 +239,7 @@ fn view_of(app: &App, folder: &str) -> Json {
 		"oldSetup": old.to_json(),
 		// Null until the learner picks one: the window starts no agent by itself before that.
 		"agent": picked_agent(app).map(FolderAgent::name),
+		"model": read_state(app).get("model").cloned().unwrap_or_else(|| Json::Obj(Obj::new())),
 	})
 }
 
@@ -215,8 +286,9 @@ pub fn set_up_agent_folder(app: &Arc<App>, folder: Option<&str>) -> Result<Json,
 }
 
 /// Start an agent with the learner's own command (empty: the usual one again), and put it in the
-/// start scripts of a folder that's set up.
-pub fn set_start_command(app: &App, agent: FolderAgent, command: &str) -> Result<Json, SetUpError> {
+/// start scripts of a folder that's set up. The agent is checked again, since its own command is
+/// asked nothing.
+pub fn set_start_command(app: &Arc<App>, agent: FolderAgent, command: &str) -> Result<Json, SetUpError> {
 	let own = gs_base::text::trim(command);
 	if !usable_start_command(own) {
 		return Err(SetUpError::Folder("Keep the command on one line, 300 characters at most.".to_owned()));
@@ -236,6 +308,7 @@ pub fn set_start_command(app: &App, agent: FolderAgent, command: &str) -> Result
 		state.insert("startCommands", Json::Obj(commands));
 		write_state(app, state).map_err(SetUpError::Disk)?;
 	}
+	check_health(app);
 	let folder = agent_folder(app);
 	if is_set_up(&folder) {
 		write_folder_or_explain(app, &folder)?;
@@ -387,6 +460,27 @@ mod tests {
 		let view = set_folder_agent(&app, FolderAgent::Codex).unwrap();
 		assert_eq!((folder_agent(&app), view["agent"].as_str()), (FolderAgent::Codex, Some("codex")));
 		assert_eq!(std::fs::read_to_string(state_file(&app)).unwrap(), "{\n\t\"noticeSeen\": true,\n\t\"agent\": \"codex\"\n}\n");
+	}
+
+	#[test]
+	fn each_agent_keeps_its_own_picked_model_and_null_brings_its_default_back() {
+		let root = scratch_dir("folder-model");
+		let app = test_app(&root);
+		assert_eq!(stringify(&agent_folder_view(&app)["model"]), "{}");
+		let view = set_agent_models(&app, &json!({ "claude": "sonnet" })).unwrap();
+		assert_eq!(stringify(&view["model"]), r#"{"claude":"sonnet"}"#);
+		let view = set_agent_models(&app, &json!({ "codex": "gpt-6-luna" })).unwrap();
+		assert_eq!(stringify(&view["model"]), r#"{"claude":"sonnet","codex":"gpt-6-luna"}"#, "one agent's pick leaves the other's");
+		assert_eq!((start_model(&app, FolderAgent::Claude).as_deref(), start_model(&app, FolderAgent::Codex).as_deref()), (Some("sonnet"), Some("gpt-6-luna")));
+		set_agent_models(&app, &json!({ "claude": null })).unwrap();
+		assert_eq!(start_model(&app, FolderAgent::Claude), None);
+		set_agent_models(&app, &json!({ "codex": null })).unwrap();
+		assert_eq!(std::fs::read_to_string(state_file(&app)).unwrap(), "{}\n", "no picks, no model key");
+		for bad in [json!({}), json!({ "gemini": "x" }), json!({ "claude": 3 }), json!({ "claude": "" }), json!({ "claude": "a\nb" }), json!("sonnet")] {
+			assert!(matches!(set_agent_models(&app, &bad), Err(SetUpError::Folder(_))), "{}", stringify(&bad));
+		}
+		write_file_atomic(&state_file(&app), r#"{"model":{"claude":"opus","codex":7,"gemini":"x"}}"#).unwrap();
+		assert_eq!(stringify(&agent_folder_view(&app)["model"]), r#"{"claude":"opus"}"#, "only usable picks are read");
 	}
 
 	#[test]

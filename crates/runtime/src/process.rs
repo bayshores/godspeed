@@ -11,7 +11,7 @@ use gs_base::child_env::{app_variable, login_shell};
 use gs_base::{clock, tasks};
 use gs_transcribe::programs::{HOMEBREW_BIN_DIRS, find_in};
 use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::process::{Child, ChildStdin, ChildStdout, Command};
+use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command};
 use tokio::sync::OnceCell;
 
 /// API keys the agents would bill instead of the learner's plan; godspeed runs on plans only.
@@ -64,16 +64,16 @@ pub struct Launch {
 }
 
 impl Launch {
-	/// The learner's own start command (such as `standardcompute launch codex --`) with `word`
-	/// after it, run by the system's shell as a terminal would run it. `word` is one plain word,
-	/// so it needs no quoting.
-	pub fn own_command(command: &str, word: &str) -> Launch {
+	/// A command line run by the system's shell as a terminal would run it: the learner's own
+	/// start command (such as `standardcompute launch codex -- app-server`), or an update, whose
+	/// npm is on Windows a `.cmd` file only cmd can run.
+	pub fn shell(line: &str) -> Launch {
 		if cfg!(windows) {
 			let cmd = std::env::var_os("ComSpec").unwrap_or_else(|| "cmd.exe".into());
 			// `/s` takes the outer quotes off and runs the rest as written.
-			return Launch { program: cmd.into(), args: vec!["/d".into(), "/s".into(), "/c".into(), format!("\"{command} {word}\"").into()] };
+			return Launch { program: cmd.into(), args: vec!["/d".into(), "/s".into(), "/c".into(), format!("\"{line}\"").into()] };
 		}
-		Launch { program: "/bin/sh".into(), args: vec!["-c".into(), format!("{command} \"$@\"").into(), "sh".into(), word.into()] }
+		Launch { program: "/bin/sh".into(), args: vec!["-c".into(), line.into()] }
 	}
 }
 
@@ -127,6 +127,19 @@ impl AgentEnv {
 	}
 }
 
+/// What a program prints with `args`, whatever its exit code, within `ms`. Its input is closed.
+pub(crate) async fn printed(launch: &Launch, args: &[&str], vars: &[(OsString, OsString)], ms: i64) -> Result<String, String> {
+	let mut command = Command::new(&launch.program);
+	add_args(&mut command, launch);
+	command.args(args).env_clear().envs(vars.iter().map(|(key, value)| (key, value)));
+	command.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null()).kill_on_drop(true);
+	hide_window(&mut command);
+	let name = Path::new(&launch.program).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+	let said = format!("{name} {}", args.join(" "));
+	let output = clock::within(ms, command.output()).await.ok_or_else(|| format!("{said} took too long"))?.map_err(|err| format!("{said}: {err}"))?;
+	Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
 /// The program an npm `.cmd` shim runs. npm's cmd-shim names it last, as `"%dp0%\<path>"`, a
 /// path from the shim's own folder.
 fn shim_target(text: &str, dir: &Path) -> Option<PathBuf> {
@@ -152,28 +165,22 @@ pub struct AgentProcess {
 }
 
 impl AgentProcess {
-	/// Starts `launch` with `vars` as its whole environment; what it writes to stderr is logged
-	/// under `label`.
-	pub fn start(label: &'static str, launch: &Launch, vars: &[(OsString, OsString)]) -> Result<(AgentProcess, ChildStdin, ChildStdout), String> {
+	/// Starts `launch` with `vars` as its whole environment, its output piped and its input piped
+	/// or closed.
+	fn spawn(launch: &Launch, vars: &[(OsString, OsString)], stdin: Stdio) -> Result<(AgentProcess, Option<ChildStdin>, ChildStdout, ChildStderr), String> {
 		let mut command = Command::new(&launch.program);
 		add_args(&mut command, launch);
 		command.env_clear().envs(vars.iter().map(|(key, value)| (key, value)));
-		command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true);
+		command.stdin(stdin).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true);
 		#[cfg(unix)]
 		command.process_group(0);
 		hide_window(&mut command);
 		let mut child = command.spawn().map_err(|err| format!("cannot start {}: {err}", launch.program.display()))?;
 		#[cfg(windows)]
 		let job = hold(&child)?;
-		let (Some(stdin), Some(stdout), Some(stderr)) = (child.stdin.take(), child.stdout.take(), child.stderr.take()) else {
-			return Err(format!("{label} started without its pipes"));
+		let (stdin, Some(stdout), Some(stderr)) = (child.stdin.take(), child.stdout.take(), child.stderr.take()) else {
+			return Err(format!("{} started without its pipes", launch.program.display()));
 		};
-		tasks::detach(label, async move {
-			let mut lines = BufReader::new(stderr).lines();
-			while let Ok(Some(line)) = lines.next_line().await {
-				eprintln!("[{label}] {line}");
-			}
-		});
 		let process = AgentProcess {
 			#[cfg(unix)]
 			pid: child.id(),
@@ -181,15 +188,40 @@ impl AgentProcess {
 			#[cfg(windows)]
 			_job: job,
 		};
+		Ok((process, stdin, stdout, stderr))
+	}
+
+	/// Starts `launch` with `vars` as its whole environment; what it writes to stderr is logged
+	/// under `label`.
+	pub fn start(label: &'static str, launch: &Launch, vars: &[(OsString, OsString)]) -> Result<(AgentProcess, ChildStdin, ChildStdout), String> {
+		let (process, stdin, stdout, stderr) = AgentProcess::spawn(launch, vars, Stdio::piped())?;
+		let stdin = stdin.ok_or_else(|| format!("{label} started without its input"))?;
+		tasks::detach(label, async move {
+			let mut lines = BufReader::new(stderr).lines();
+			while let Ok(Some(line)) = lines.next_line().await {
+				eprintln!("[{label}] {line}");
+			}
+		});
 		Ok((process, stdin, stdout))
+	}
+
+	/// Starts `launch` with its input closed, and gives both its outputs.
+	pub fn start_reading(launch: &Launch, vars: &[(OsString, OsString)]) -> Result<(AgentProcess, ChildStdout, ChildStderr), String> {
+		let (process, _, stdout, stderr) = AgentProcess::spawn(launch, vars, Stdio::null())?;
+		Ok((process, stdout, stderr))
 	}
 
 	/// Waits for the program to end, and says how it ended.
 	pub async fn ended(&mut self) -> String {
-		match self.child.wait().await {
+		match self.status().await {
 			Ok(status) => status.to_string(),
-			Err(err) => format!("its end could not be read: {err}"),
+			Err(err) => err,
 		}
+	}
+
+	/// Waits for the program to end.
+	pub async fn status(&mut self) -> Result<std::process::ExitStatus, String> {
+		self.child.wait().await.map_err(|err| format!("its end could not be read: {err}"))
 	}
 }
 
@@ -205,7 +237,7 @@ impl Drop for AgentProcess {
 }
 
 /// cmd does not split its command line the way other Windows programs do, so it gets its
-/// arguments as written (see `Launch::own_command`).
+/// arguments as written (see `Launch::shell`).
 #[cfg(windows)]
 fn add_args(command: &mut Command, launch: &Launch) {
 	let cmd = launch.program.file_name().is_some_and(|name| name.eq_ignore_ascii_case("cmd.exe"));
@@ -243,10 +275,10 @@ fn hold(child: &Child) -> Result<win32job::Job, String> {
 	Ok(job)
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "fake"))]
 impl AgentEnv {
-	/// An environment that is not read from the app's.
-	pub(crate) fn fixed(vars: Vec<(OsString, OsString)>) -> AgentEnv {
+	/// An environment that is not read from the app's, for tests with stand-in programs.
+	pub fn fixed(vars: Vec<(OsString, OsString)>) -> AgentEnv {
 		AgentEnv { vars: OnceCell::new_with(Some(vars)) }
 	}
 }
@@ -310,8 +342,8 @@ mod tests {
 
 	#[cfg(unix)]
 	#[tokio::test]
-	async fn the_learners_own_command_runs_with_the_word_after_its_own() {
-		let launch = Launch::own_command("printf '%s|' launch codex --", "app-server");
+	async fn a_command_line_runs_as_a_terminal_runs_it() {
+		let launch = Launch::shell("printf '%s|' launch codex -- app-server");
 		let (_process, _stdin, stdout) = AgentProcess::start("test launcher", &launch, &vars(&[("PATH", "/usr/bin:/bin")])).unwrap();
 		let printed = BufReader::new(stdout).lines().next_line().await.unwrap().unwrap();
 		assert_eq!(printed, "launch|codex|--|app-server|");

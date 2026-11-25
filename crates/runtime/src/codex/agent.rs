@@ -14,8 +14,9 @@ use tokio::sync::{mpsc, oneshot};
 use super::wire::{self, Item, Note, ServerRequest, TurnStatus};
 use crate::event::{End, Part, REFUSED, SessionEvent, TOOL_DROPPED, ToolReply, Verdict};
 use crate::jsonrpc::{Incoming, Rpc, UNKNOWN_METHOD};
+use crate::models::Model;
 use crate::pipes::{self, Reader, Started};
-use crate::session::{Session, SessionSpec};
+use crate::session::{Session, SessionSpec, Trouble};
 
 const LABEL: &str = "codex app-server";
 
@@ -30,10 +31,11 @@ struct State {
 	/// Sign-ins waiting to end, by login id.
 	logins: Mutex<HashMap<String, oneshot::Sender<Result<(), String>>>>,
 	alive: AtomicBool,
+	trouble: Trouble,
 }
 
 /// A ChatGPT sign-in started in godspeed's own Codex folder: the learner finishes it on `url`.
-pub struct CodexLogin {
+pub(crate) struct CodexLogin {
 	pub id: String,
 	pub url: String,
 	/// How it ended; an error says why (cancelled, failed, or Codex stopped).
@@ -61,9 +63,10 @@ struct Turn {
 }
 
 impl Connection {
-	/// Starts talking to an app-server on `started`'s pipes and waits for its handshake.
-	pub async fn start(started: Started) -> Result<Arc<Connection>, String> {
-		let state = Arc::new(State { rpc: Rpc::new(pipes::writer(LABEL, started.writer)), threads: Mutex::new(HashMap::new()), logins: Mutex::new(HashMap::new()), alive: AtomicBool::new(true) });
+	/// Starts talking to an app-server on `started`'s pipes and waits for its handshake. A refused
+	/// sign-in is told to `trouble`.
+	pub async fn start(started: Started, trouble: Trouble) -> Result<Arc<Connection>, String> {
+		let state = Arc::new(State { rpc: Rpc::new(pipes::writer(LABEL, started.writer)), threads: Mutex::new(HashMap::new()), logins: Mutex::new(HashMap::new()), alive: AtomicBool::new(true), trouble });
 		let reading = state.clone();
 		let reader = tasks::spawn(LABEL, async move {
 			let why = pipes::read(started.reader, started.process, |line| reading.take(&line)).await;
@@ -107,6 +110,20 @@ impl Connection {
 	/// Ends the sign-in; its `ended` then says it was cancelled.
 	pub async fn login_cancel(&self, login: &str) -> Result<(), String> {
 		self.state.rpc.request(wire::LOGIN_CANCEL, wire::login_cancel(login)).await.map(drop)
+	}
+
+	/// Every model the picker lists, page by page.
+	pub async fn models(&self) -> Result<Vec<Model>, String> {
+		let (mut all, mut cursor) = (Vec::new(), None);
+		loop {
+			let result = self.state.rpc.request(wire::MODEL_LIST, wire::model_list(cursor.as_deref())).await?;
+			let (page, next) = wire::models(&result);
+			all.extend(page);
+			match next {
+				Some(next) => cursor = Some(next),
+				None => return Ok(all),
+			}
+		}
 	}
 }
 
@@ -175,6 +192,9 @@ impl State {
 	}
 
 	fn on_note(self: &Arc<Self>, note: Note) {
+		if matches!(note, Note::TurnCompleted { signed_out: true, .. } | Note::Error { signed_out: true, .. }) {
+			self.trouble.tell();
+		}
 		let thread_id = match &note {
 			Note::TurnStarted { thread, .. } | Note::TextDelta { thread, .. } | Note::Item { thread, .. } | Note::Usage { thread, .. } | Note::Compacted { thread } | Note::TurnCompleted { thread, .. } | Note::Error { thread, .. } => thread.clone(),
 			Note::LoginEnded { login, result } => {

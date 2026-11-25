@@ -167,6 +167,10 @@ impl Player {
 				self.threads.remove(&thread);
 				self.respond(id, json!({})).await
 			}
+			wire::MODEL_LIST => {
+				let model = |id: &str, name: &str, default: bool| json!({ "id": id, "model": id, "displayName": name, "description": "", "hidden": false, "isDefault": default });
+				self.respond(id, json!({ "data": [model("gpt-6.1-sol", "GPT-6.1-Sol", true), model("gpt-6-luna", "GPT-6-Luna", false)], "nextCursor": null })).await
+			}
 			_ if message.get("id").is_some() => self.write(json!({ "id": id, "error": { "code": UNKNOWN_METHOD, "message": "the stand-in agent does not handle this request" } })).await,
 			_ => Ok(()),
 		}

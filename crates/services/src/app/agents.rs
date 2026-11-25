@@ -12,6 +12,9 @@ use gs_runtime::process::AgentEnv;
 use parking_lot::Mutex;
 
 use super::agent_folder::{folder_agent, start_command};
+use super::agent_health::{HealthState, check_health};
+use super::agent_login::LoginState;
+use super::agent_update::UpdateState;
 use crate::App;
 
 /// The runtime in use, with the agent and the start command it was made for.
@@ -22,11 +25,14 @@ pub struct AgentsState {
 	#[cfg(not(any(test, feature = "stand-in")))]
 	env: Arc<AgentEnv>,
 	runtime: Mutex<Option<Made>>,
+	pub(super) health: HealthState,
+	pub(super) login: LoginState,
+	pub(super) update: UpdateState,
 }
 
 /// The runtime of the agent picked now. A new pick or start command makes a new one; a session
 /// opened on the old one keeps it until the session closes.
-pub fn runtime(app: &App) -> Arc<Runtime> {
+pub fn runtime(app: &Arc<App>) -> Arc<Runtime> {
 	let agent = folder_agent(app);
 	let own = start_command(app, agent);
 	let mut held = app.agents.runtime.lock();
@@ -36,9 +42,20 @@ pub fn runtime(app: &App) -> Arc<Runtime> {
 	{
 		return runtime.clone();
 	}
-	let runtime = Arc::new(start(app, agent, own.clone()));
+	let runtime = watched(app, start(app, agent, own.clone()));
 	*held = Some((agent, own, runtime.clone()));
 	runtime
+}
+
+/// A session that could not start, or a sign-in the agent refused, checks the agent again.
+fn watched(app: &Arc<App>, runtime: Runtime) -> Arc<Runtime> {
+	let app = Arc::downgrade(app);
+	runtime.on_trouble(move || {
+		if let Some(app) = app.upgrade() {
+			check_health(&app);
+		}
+	});
+	Arc::new(runtime)
 }
 
 #[cfg(not(any(test, feature = "stand-in")))]
@@ -51,15 +68,18 @@ fn start(app: &App, agent: FolderAgent, own: Option<String>) -> Runtime {
 }
 
 #[cfg(any(test, feature = "stand-in"))]
-fn start(_app: &App, _agent: FolderAgent, _own: Option<String>) -> Runtime {
-	gs_runtime::fake::FakeAgent::default().runtime()
+fn start(_app: &App, agent: FolderAgent, _own: Option<String>) -> Runtime {
+	let fake = gs_runtime::fake::FakeAgent::default();
+	match agent {
+		FolderAgent::Claude => fake.runtime(),
+		FolderAgent::Codex => fake.codex_runtime(),
+	}
 }
 
 /// Lessons and jobs run on `runtime` (a stand-in agent) while the agent and start command stay as
 /// they are.
 #[cfg(any(test, feature = "stand-in"))]
-pub fn use_runtime(app: &App, runtime: Runtime) {
+pub fn use_runtime(app: &Arc<App>, runtime: Runtime) {
 	let agent = runtime.agent();
-	*app.agents.runtime.lock() = Some((agent, start_command(app, agent), Arc::new(runtime)));
+	*app.agents.runtime.lock() = Some((agent, start_command(app, agent), watched(app, runtime)));
 }
-

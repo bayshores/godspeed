@@ -73,6 +73,7 @@ async fn main() -> ExitCode {
 	gs_services::mocks::mocks::ask_waiting_mocks(&app);
 	start_deadline_reminders(&app);
 	start_menu_bar_countdown(&app);
+	gs_services::app::agent_health::check_health(&app);
 	gs_services::turns::catch_up(&app);
 	let router = http::server(app, &access);
 	let service = axum::middleware::from_fn_with_state(access, http::front).layer(router);

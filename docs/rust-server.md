@@ -19,7 +19,7 @@ All Rust lives in `crates/`, a Cargo workspace (`Cargo.toml` at repo root, toolc
 | `search` | embedding model (ort), MiniSearch BM25+, fusion, index tables |
 | `web` | web page to markdown, PDF downloads, plugin zips, godspeed's plugin list from GitHub |
 | `transcribe` | recordings to captions with brew's ffmpeg and whisper |
-| `runtime` | the learner's Claude Code and Codex as child processes: environment and login-shell PATH, process groups and job objects, `codex app-server`'s JSON-RPC (in godspeed's own Codex settings folder, with its own ChatGPT sign-in), the bundled Claude helper's JSON lines, one event stream for both, health checks; knows nothing about lessons |
+| `runtime` | the learner's Claude Code and Codex as child processes: environment and login-shell PATH, process groups and job objects, `codex app-server`'s JSON-RPC (in godspeed's own Codex settings folder, with its own ChatGPT sign-in), the bundled Claude helper's JSON lines, one event stream for both, the setup card's checks, signing in with no terminal, updating the agent the way it was installed, the model lists; knows nothing about lessons |
 | `engine` | a lesson's turn and a background job on the learner's agent: the session, godspeed's tools, the record |
 | `agent` | prompts, lesson tools, file tools, background jobs, extraction |
 | `services` | `App` (all server state) and the services |

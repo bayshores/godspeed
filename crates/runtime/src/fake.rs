@@ -208,6 +208,10 @@ impl Player {
 				self.keys.remove(&session);
 				self.write(json!({ "type": "closed", "session": session })).await
 			}
+			Some("models") => {
+				let model = |value: &str, name: &str| json!({ "value": value, "displayName": name, "description": "" });
+				self.write(json!({ "type": "models", "id": message["id"], "models": [model("default", "Default (recommended)"), model("sonnet", "Sonnet 5.5")] })).await
+			}
 			_ => Ok(()),
 		}
 	}
@@ -434,5 +438,14 @@ mod tests {
 		assert_eq!(events_until_end(&session).await.1, End::Completed);
 		session.send(&[Part::Text("again".into())]).await.unwrap();
 		assert_eq!(events_until_end(&session).await.1, End::Failed("overloaded".into()));
+	}
+
+	#[tokio::test]
+	async fn the_fake_lists_a_default_model_and_one_more_for_each_agent() {
+		let agent = FakeAgent::default();
+		for runtime in [agent.runtime(), agent.codex_runtime()] {
+			let models = runtime.models().await.unwrap();
+			assert_eq!(models.iter().map(|model| model.default).collect::<Vec<_>>(), [true, false]);
+		}
 	}
 }

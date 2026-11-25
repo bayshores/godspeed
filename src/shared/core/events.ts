@@ -86,6 +86,10 @@ export interface ServerEvents {
 	"teacher-work": Record<string, never>;
 	/** A lesson's running turn began, gained a step, a plan or a question to allow, or ended (GET /api/chats/{id}/work). `asking`: a question to allow waits. */
 	"lesson-work": { chatId: string; asking: boolean };
+	/** A check of the picked agent (GET /api/agent/health) began or ended, or its sign-in started, ended or failed. */
+	"agent-health": Record<string, never>;
+	/** The picked agent's update (POST /api/agent/update) started, printed a line, finished or failed. `command` is what it runs, which the learner can run themselves. */
+	"agent-update": { state: "running" | "done" | "failed"; line: string | null; command: string };
 	/** The teacher in godspeed's terminal finished answering the learner there ("done") or stopped to ask them something ("needs"). */
 	"agent-event": { kind: "done" | "needs" };
 	/** A deadline's cheat sheet or its agent request changed. */
@@ -127,5 +131,7 @@ export const SERVER_EVENT_TYPES = [
 	"vault-notes-changed",
 	"teacher-work",
 	"lesson-work",
+	"agent-health",
+	"agent-update",
 ] as const satisfies readonly ServerEventType[];
 

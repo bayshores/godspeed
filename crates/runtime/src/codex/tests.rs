@@ -227,7 +227,7 @@ async fn app_server_runs_through_the_learners_own_command_in_godspeeds_codex_fol
 #[tokio::test]
 async fn a_sign_in_gives_its_page_and_says_how_it_ended() {
 	let (runtime, mut peers) = runtime(FolderAgent::Codex);
-	let (login, mut peer) = tokio::join!(runtime.codex_login_start(), async {
+	let (login, mut peer) = tokio::join!(runtime.login(), async {
 		let mut peer = peers.recv().await.unwrap();
 		peer.answer("initialize", json!({})).await;
 		peer.recv().await;
@@ -236,12 +236,67 @@ async fn a_sign_in_gives_its_page_and_says_how_it_ended() {
 		peer
 	});
 	let login = login.unwrap();
-	assert_eq!((login.id.as_str(), login.url.as_str()), ("l1", "https://auth.openai.com/oauth/authorize?state=s"));
-	let (cancelled, ()) = tokio::join!(runtime.codex_login_cancel("l1"), async {
+	assert_eq!((login.url.as_str(), login.takes_code), ("https://auth.openai.com/oauth/authorize?state=s", false));
+	assert_eq!(login.control.send_code("123").await, Err("Codex's sign-in takes no code".into()));
+	let (cancelled, ()) = tokio::join!(login.control.cancel(), async {
 		assert_eq!(peer.answer("account/login/cancel", json!({ "status": "canceled" })).await, json!({ "loginId": "l1" }));
 		// What Codex sends then, as recorded on the real CLI.
 		peer.send(&note("account/login/completed", json!({ "loginId": "l1", "success": false, "error": "Login server error: Login was not completed", "onboardingEntrypoint": null }))).await;
 	});
 	cancelled.unwrap();
 	assert_eq!(login.ended.await.unwrap(), Err("Login server error: Login was not completed".into()));
+}
+
+#[tokio::test]
+async fn a_finished_sign_in_ends_well() {
+	let (runtime, mut peers) = runtime(FolderAgent::Codex);
+	let (login, mut peer) = tokio::join!(runtime.login(), async {
+		let mut peer = peers.recv().await.unwrap();
+		peer.answer("initialize", json!({})).await;
+		peer.recv().await;
+		peer.answer("account/login/start", json!({ "type": "chatgpt", "loginId": "l2", "authUrl": "https://auth.openai.com/oauth/authorize?state=t" })).await;
+		peer
+	});
+	let login = login.unwrap();
+	peer.send(&note("account/login/completed", json!({ "loginId": "l2", "success": true, "error": null }))).await;
+	assert_eq!(login.ended.await.unwrap(), Ok(()));
+}
+
+#[tokio::test]
+async fn the_models_are_listed_page_by_page() {
+	let (runtime, mut peers) = runtime(FolderAgent::Codex);
+	let model = |id: &str, default: bool| json!({ "id": id, "model": id, "displayName": id.to_uppercase(), "description": "", "hidden": false, "isDefault": default });
+	let (models, ()) = tokio::join!(runtime.models(), async {
+		let mut peer = peers.recv().await.unwrap();
+		peer.answer("initialize", json!({})).await;
+		peer.recv().await;
+		assert_eq!(peer.answer("model/list", json!({ "data": [model("gpt-6.1-sol", true)], "nextCursor": "p2" })).await, json!({ "cursor": null }));
+		assert_eq!(peer.answer("model/list", json!({ "data": [model("gpt-6-luna", false)], "nextCursor": null })).await, json!({ "cursor": "p2" }));
+	});
+	let ids: Vec<(String, bool)> = models.unwrap().into_iter().map(|model| (model.id, model.default)).collect();
+	assert_eq!(ids, [("gpt-6.1-sol".to_owned(), true), ("gpt-6-luna".to_owned(), false)]);
+}
+
+#[tokio::test]
+async fn a_refused_sign_in_in_a_turn_and_a_session_that_cannot_open_are_told() {
+	let (runtime, mut peers) = runtime(FolderAgent::Codex);
+	let told = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+	let count = told.clone();
+	runtime.on_trouble(move || {
+		count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+	});
+	let (session, mut peer, _) = open(&runtime, &mut peers, None).await;
+	send(&session, &mut peer, "turn_1").await;
+	let error = json!({ "message": "unexpected status 401 Unauthorized", "codexErrorInfo": "unauthorized", "additionalDetails": null });
+	peer.send(&note("turn/completed", json!({ "threadId": "thr_1", "turn": { "id": "turn_1", "items": [], "status": "failed", "error": error } }))).await;
+	let (_, end) = crate::test_peer::events_until_end(&session).await;
+	assert_eq!(end, End::Failed("unexpected status 401 Unauthorized".into()));
+	assert_eq!(told.load(std::sync::atomic::Ordering::SeqCst), 1);
+	let (opened, ()) = tokio::join!(runtime.open(spec(None)), async {
+		let request = peer.recv().await;
+		assert_eq!(request["method"].as_str(), Some("thread/start"));
+		peer.send(&json!({ "id": request["id"], "error": { "code": -32000, "message": "not signed in" } })).await;
+	});
+	assert!(opened.is_err());
+	assert_eq!(told.load(std::sync::atomic::Ordering::SeqCst), 2);
 }

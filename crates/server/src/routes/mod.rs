@@ -1,6 +1,7 @@
 //! Every /api route, one module per area. Each
 //! route is an `ApiRoute` (crate::http::route), so OPTIONS and wrong methods answer like Next.
 
+mod agent;
 mod app;
 mod chats;
 mod cheat_sheets;
@@ -22,6 +23,7 @@ use gs_services::App;
 
 pub fn api() -> Router<Arc<App>> {
 	Router::new()
+		.merge(agent::routes())
 		.merge(app::routes())
 		.merge(chats::routes())
 		.merge(jobs::routes())

@@ -12,7 +12,7 @@ use gs_core::records::agent_rules::parse_where;
 use gs_json::{Json, json};
 use gs_services::App;
 use gs_core::spaces::agent_folder::FolderAgent;
-use gs_services::app::agent_folder::{SetUpError, agent_folder_view, dismiss_folder_notice, set_folder_agent, set_start_command, set_up_agent_folder};
+use gs_services::app::agent_folder::{SetUpError, agent_folder_view, dismiss_folder_notice, set_agent_models, set_folder_agent, set_start_command, set_up_agent_folder};
 use gs_services::app::agent_memory::agent_notes_view;
 use gs_services::app::agent_rules::{RuleFailure, agent_saved_rules, edit_rule, remove_rule};
 use gs_services::app::boot::boot_info;
@@ -112,9 +112,14 @@ async fn change_agent_folder(State(app): State<Arc<App>>, body: Body) -> Result<
 	}
 }
 
-/// PATCH /api/agent-folder `{agent}`: the agent that runs the lessons, "claude" or "codex".
+/// PATCH /api/agent-folder, one field: `{agent}`, the agent that runs the lessons ("claude" or
+/// "codex"), or `{model: {claude?, codex?}}`, the model each named agent's new lessons start on
+/// (null: the agent's own default).
 async fn pick_agent(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
 	let body = fields(body).await?;
+	if let Some(models) = body.get("model") {
+		return changed(set_agent_models(&app, models));
+	}
 	let Some(agent) = body["agent"].as_str().and_then(FolderAgent::from_name) else { return Ok(error(400, "agent must be \"claude\" or \"codex\"")) };
 	Ok(reply::json_no_store(200, &set_folder_agent(&app, agent)?))
 }

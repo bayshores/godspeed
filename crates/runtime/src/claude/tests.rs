@@ -205,3 +205,53 @@ async fn when_the_helper_stops_its_sessions_end_and_the_next_open_starts_it_agai
 	assert_eq!(again.native_id(), "sess-1");
 }
 
+
+#[tokio::test]
+async fn the_models_come_from_claude_code_through_the_helper() {
+	let (runtime, mut peers) = runtime(FolderAgent::Claude);
+	let (models, ()) = tokio::join!(runtime.models(), async {
+		let mut peer = peers.recv().await.unwrap();
+		let asked = peer.recv().await;
+		assert_eq!(asked, json!({ "type": "models", "id": "m1", "claudePath": "claude" }));
+		// What the SDK's supportedModels() gives, trimmed.
+		let models = json!([
+			{ "value": "default", "resolvedModel": "claude-opus-5-5", "displayName": "Default (recommended)", "description": "Opus 5.5 · Best for everyday, complex tasks", "supportsEffort": true },
+			{ "value": "sonnet", "resolvedModel": "claude-sonnet-5-5", "displayName": "Sonnet 5.5", "description": "Most efficient for simpler tasks" },
+		]);
+		peer.send(&json!({ "type": "models", "id": "m1", "models": models })).await;
+	});
+	let listed: Vec<(String, String, bool)> = models.unwrap().into_iter().map(|model| (model.id, model.name, model.default)).collect();
+	assert_eq!(listed, [("default".to_owned(), "Default (recommended)".to_owned(), true), ("sonnet".to_owned(), "Sonnet 5.5".to_owned(), false)]);
+}
+
+#[tokio::test]
+async fn a_models_question_claude_code_cannot_answer_says_why() {
+	let (runtime, mut peers) = runtime(FolderAgent::Claude);
+	let (models, ()) = tokio::join!(runtime.models(), async {
+		let mut peer = peers.recv().await.unwrap();
+		let asked = peer.recv().await;
+		peer.send(&json!({ "type": "models", "id": asked["id"], "error": "Claude Code process exited with code 1" })).await;
+	});
+	assert_eq!(models, Err("Claude Code process exited with code 1".into()));
+}
+
+#[tokio::test]
+async fn a_refused_sign_in_in_a_turn_is_told() {
+	let (runtime, mut peers) = runtime(FolderAgent::Claude);
+	let told = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+	let count = told.clone();
+	runtime.on_trouble(move || {
+		count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+	});
+	let mut peer = None;
+	let session = open(&runtime, &mut peer, &mut peers, None).await;
+	let mut peer = peer.unwrap();
+	send(&session, &mut peer).await;
+	// What the SDK sends when Claude Code is not signed in.
+	let refused = json!({ "type": "assistant", "message": { "content": [{ "type": "text", "text": "Not logged in · Please run /login" }] }, "parent_tool_use_id": null, "error": "authentication_failed" });
+	peer.send(&json!({ "type": "sdk", "session": "s1", "message": refused })).await;
+	peer.send(&json!({ "type": "sdk", "session": "s1", "message": { "type": "result", "subtype": "success", "is_error": true, "result": "Not logged in · Please run /login", "parent_tool_use_id": null } })).await;
+	let (_, end) = crate::test_peer::events_until_end(&session).await;
+	assert_eq!(end, End::Failed("Not logged in · Please run /login".into()));
+	assert_eq!(told.load(std::sync::atomic::Ordering::SeqCst), 1);
+}

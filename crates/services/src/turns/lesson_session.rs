@@ -38,7 +38,8 @@ pub(super) struct SessionPlan {
 	pub runtime: Arc<Runtime>,
 	/// The folder the agent works in.
 	pub cwd: PathBuf,
-	/// None is the agent's own default.
+	/// The chat's own model, else the one the learner picked for new chats and lessons; None is the
+	/// agent's own default.
 	pub model: Option<String>,
 	pub prompt: String,
 	pub tools: Vec<ToolSpec>,
