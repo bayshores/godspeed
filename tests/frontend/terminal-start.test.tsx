@@ -1,8 +1,8 @@
 /**
  * Starting the agent: the web version keeps the copy-command path, the
  * desktop app starts the teacher's terminal and shows its screen in
- * onboarding's step, and Start lesson or a lesson's send start the agent last
- * started here, hidden.
+ * onboarding's step, and Start lesson or a lesson's send start the agent the
+ * server keeps, hidden.
  */
 import { dom, fakeShell } from "../terminal-dom.ts";
 import React, { act } from "react";
@@ -32,18 +32,29 @@ const FOLDER = {
 	commands: { claude: "claude", codex: "codex" },
 	startCommands: {},
 	oldSetup: { plugin: false, codex: false },
+	agent: "claude",
 };
 const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [], terminals: [], outsideHere: false, ...over });
 
 const stored = new Map<string, string>();
 const realFetch = globalThis.fetch;
+/** The agent the server keeps for the next test's folder; null before a pick. */
+let serverAgent: string | null = "claude";
+/** What the page asked the server to change. */
+const changes: string[] = [];
 beforeEach(() => {
 	stored.clear();
+	changes.length = 0;
+	serverAgent = "claude";
 	Object.defineProperty(globalThis, "localStorage", {
 		configurable: true,
 		value: { getItem: (k: string) => stored.get(k) ?? null, setItem: (k: string, v: string) => void stored.set(k, v), removeItem: (k: string) => void stored.delete(k) },
 	});
-	globalThis.fetch = (async () => Response.json(FOLDER)) as unknown as typeof fetch;
+	globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+		if (init?.method) changes.push(`${init.method} ${String(init.body)}`);
+		if (init?.method === "PATCH") serverAgent = (JSON.parse(String(init.body)) as { agent: string }).agent;
+		return Response.json({ ...FOLDER, agent: serverAgent });
+	}) as unknown as typeof fetch;
 });
 afterEach(() => {
 	globalThis.fetch = realFetch;
@@ -78,6 +89,7 @@ async function mounted(render: (root: Root) => Promise<void>, run: () => Promise
 
 describe("Start Claude Code", () => {
 	it("in the web version, makes the folder and asks the learner to run the command, as before", async () => {
+		serverAgent = null;
 		assert.ok(!(dom.window as { lh?: unknown }).lh, "no desktop shell");
 		await mounted(
 			(root) => act(async () => root.render(<AgentLauncher />)),
@@ -89,7 +101,7 @@ describe("Start Claude Code", () => {
 				assert.match(log, /Made ~\/godspeed/);
 				assert.match(log, /Copy the command and run it in your terminal/);
 				assert.ok(q("first-run-screen") === null, "no screen in a browser");
-				assert.equal(stored.get("lh-folder-agent"), "claude");
+				assert.ok(changes.includes('PATCH {"agent":"claude"}'), "the agent it started is the learner's pick from now on");
 			},
 		);
 	});
@@ -202,7 +214,7 @@ describe("the shell's list", () => {
 });
 
 describe("Start lesson and a lesson's send", () => {
-	it("start the agent last started here, hidden, only when no agent is here", async () => {
+	it("start the server's agent, hidden, only when no agent is here", async () => {
 		const shell = fakeShell();
 		let api: Api | null = null;
 		let seen: Access = null;
@@ -218,6 +230,7 @@ describe("Start lesson and a lesson's send", () => {
 			</TerminalsProvider>
 		);
 		let root: Root | null = null;
+		serverAgent = "codex";
 		try {
 			await mounted(
 				async (r) => {
@@ -225,7 +238,6 @@ describe("Start lesson and a lesson's send", () => {
 					await act(async () => r.render(page(access({ connected: true, teaching: true, outsideHere: true }))));
 				},
 				async () => {
-					stored.set("lh-folder-agent", "codex");
 					await act(async () => api!.wake());
 					assert.ok(!shell.calls.some((c) => c.startsWith("start")), "an agent outside godspeed is here");
 					// The server still says connected for a while after the learner stopped godspeed's teacher.
@@ -265,7 +277,6 @@ describe("Start lesson and a lesson's send", () => {
 				}
 				return Response.json(FOLDER);
 			}) as unknown as typeof fetch;
-			stored.set("lh-folder-agent", "claude");
 			let session: ReturnType<typeof useChatSession> | null = null;
 			function Lesson() {
 				session = useChatSession({ chatId: "c1", initialMessages: [] });
@@ -300,31 +311,36 @@ describe("Start lesson and a lesson's send", () => {
 		globalThis.CustomEvent = realEvent;
 	});
 
-	it("leave it to the no-agent line when no agent was ever started here", async () => {
-		const shell = fakeShell();
+	it("leave it to the no-agent line when no agent was ever picked, or before the folder is read", async () => {
 		let api: Api | null = null;
 		function Probe() {
 			api = useTerminals();
 			return null;
 		}
-		try {
-			await mounted(
-				(r) =>
-					act(async () =>
-						r.render(
-							<TerminalsProvider status={access()}>
-								<Probe />
-							</TerminalsProvider>,
+		const neverPending = (() => new Promise(() => {})) as unknown as typeof fetch;
+		for (const [why, folderRead] of [["never picked", true], ["not read yet", false]] as const) {
+			const shell = fakeShell();
+			serverAgent = null;
+			if (!folderRead) globalThis.fetch = neverPending;
+			try {
+				await mounted(
+					(r) =>
+						act(async () =>
+							r.render(
+								<TerminalsProvider status={access()}>
+									<Probe />
+								</TerminalsProvider>,
+							),
 						),
-					),
-				async () => {
-					await act(async () => api!.wake());
-					await settle();
-					assert.ok(!shell.calls.some((c) => c.startsWith("start")), shell.calls.join(", "));
-				},
-			);
-		} finally {
-			shell.remove();
+					async () => {
+						await act(async () => api!.wake());
+						await settle();
+						assert.ok(!shell.calls.some((c) => c.startsWith("start")), `${why}: ${shell.calls.join(", ")}`);
+					},
+				);
+			} finally {
+				shell.remove();
+			}
 		}
 	});
 });
@@ -353,7 +369,7 @@ describe("after godspeed's teacher ended, though the server still says connected
 			const doing = agentDoing({ agent, round: null, lesson: { working: true }, extractions: [], jobs: [] });
 			const facts = api!.facts.teacher;
 			return {
-				strip: stripView({ agent, terminal: teacherTerminalState(facts), working: !!doing?.working, background: false, work: null, ready: [], panelOpen: false }).square,
+				strip: stripView({ agent, terminal: teacherTerminalState(facts), working: !!doing?.working, background: false, work: null, ready: [], asking: [], panelOpen: false }).square,
 				panel: agentLine(agent, "Teacher", doing),
 				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null, teacher: "Teacher" }).chip,
 				lessonWaits: lessonAgentWaiting(agent),
@@ -484,7 +500,6 @@ describe("the records", () => {
 						),
 					),
 				async () => {
-					stored.set("lh-folder-agent", "claude");
 					assert.equal(agentHereNow(status, api), null, "no flash of the no-agent line");
 					await act(async () => api!.wake());
 					assert.ok(!shell.calls.some((c) => c.startsWith("start")), shell.calls.join(", "));

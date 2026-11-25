@@ -2,7 +2,7 @@ import { useContext, useLayoutEffect, useMemo, type Ref } from "react";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { ConversationEmptyState } from "@/frontend/components/ai-elements/conversation";
-import { prefersReducedMotion } from "@/frontend/components/presence";
+import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
@@ -17,9 +17,9 @@ import { AgentAtWork } from "./agent-at-work";
 import { ArrivalRow, type Arrive } from "./arrivals";
 import { MessageRow, messageShows } from "./message-row";
 import { stepSheets, type SheetRow } from "./step-sheets-model";
-import { PrintWaitContext } from "./use-print-in";
 import { useReplyHold } from "./use-reply-hold";
-import { deskCalls, deskHead, deskMark, heldBack, replyArrived, type DeskState } from "./wait-model";
+import { useTeacherWriting } from "./use-teacher-writing";
+import { deskCalls, deskHead, deskMark, heldBack, type DeskState } from "./wait-model";
 
 /**
  * THE READING PANE: the lesson text in the reading type, answered cards
@@ -28,9 +28,11 @@ import { deskCalls, deskHead, deskMark, heldBack, replyArrived, type DeskState }
  * window; the page around them scrolls (LessonScroll).
  * While the teacher works, the newest sheet holds the desk (AgentAtWork): what the teacher does,
  * its steps and the files it reads, grown to the sheet's foot, with Stop under it; the keys that
- * move the lesson on are in "Your turn". A reply's words wait under the desk for their turn to end
- * (useReplyHold), then the desk fades out and the reply is held back until it has gone, so the
- * two never stack and the words take the desk's place in one step.
+ * move the lesson on are in "Your turn". When it writes (useTeacherWriting), its words wait under
+ * the desk a moment for a turn that ends at once (useReplyHold), then the desk fades out and the
+ * words are held back until it has gone, so the two never stack and the words take the desk's
+ * place in one step. They grow as they are written, with Stop under them; a step after them brings
+ * the desk back under the words.
  * Each message is a memoized row, so streaming redraws only the message
  * being written.
  */
@@ -50,7 +52,6 @@ export function ReadingPane({
 	arrivalsLive,
 	pageMarks,
 	arrive,
-	bookTurns,
 	onDesk,
 	sheetRef,
 }: {
@@ -79,22 +80,18 @@ export function ReadingPane({
 	/** Each Study topic's stored page mark, by the text it sits in. */
 	pageMarks: ReadonlyMap<string, string>;
 	arrive: Arrive;
-	/** The book's pages are on their way (useBook's `turning`): a reply that landed prints once they stand still. */
-	bookTurns: boolean;
 	/** Told whether the desk is in the text, also while it leaves. */
 	onDesk: (up: boolean) => void;
 	/** The newest sheet, for the lesson page's glide (useSheetGlide). */
 	sheetRef?: Ref<HTMLElement>;
 }) {
 	const last = messages.length - 1;
-	// The reply being worked on, until its words land.
-	const replying = busy && messages[last]?.role === "assistant" ? messages[last] : undefined;
-	const arrived = replyArrived(replying);
-	// Its words wait a moment under the desk for the turn to end.
-	const held = useReplyHold(busy && arrived, deskMark(messages));
+	const { wrote, writing } = useTeacherWriting(messages, busy, work);
+	// Its words wait a moment under the desk for a turn that ends at once.
+	const held = useReplyHold(busy && writing, deskMark(messages));
 	const state: DeskState = waitingForAgent ? "waiting" : "working";
 	const head = deskHead({ name: useTeacher()?.name ?? DEFAULT_TEACHER_NAME, waiting: waitingForAgent, work });
-	const open = useMemo(() => (busy && (!arrived || held) ? { state, head, work, calls: deskCalls(work), mark: held ?? deskMark(messages) } : null), [busy, arrived, held, state, head, work, messages]);
+	const open = useMemo(() => (busy && (!writing || held) ? { state, head, work, calls: deskCalls(work), mark: held ?? deskMark(messages) } : null), [busy, writing, held, state, head, work, messages]);
 	const desk = useLastWhileClosing(open);
 	const closing = desk.mounted && desk.state === "closed" && !prefersReducedMotion();
 	const shownDesk = open || (closing ? desk.shown : null);
@@ -102,7 +99,7 @@ export function ReadingPane({
 	const shown = mark ? heldBack(messages, mark) : messages;
 	const deskUp = shownDesk !== null;
 	useLayoutEffect(() => onDesk(deskUp), [deskUp, onDesk]);
-	const foot = (busy || closing) && onStop && (
+	const foot = onStop && (
 		<div className="flex flex-col gap-2 font-ui">
 			<QueuedSteersBody steers={queuedSteers} />
 			<div className="flex flex-wrap items-center justify-end gap-3">
@@ -113,6 +110,8 @@ export function ReadingPane({
 			</div>
 		</div>
 	);
+	// Under the words as they are written; it fades out when the turn ends, and goes at once when the desk comes back.
+	const stopUnder = usePresence(busy && !shownDesk && onStop !== null);
 	const inTurn = useContext(ChatActionsContext)?.inTurn ?? null;
 	const spaceColor = useSpaceColor(spaceId);
 	// A row or a sheet with nothing drawn on it is left out; with no sheet drawn, the newest still stands for the desk.
@@ -127,8 +126,7 @@ export function ReadingPane({
 		return drawn.length > 0 ? drawn : all.slice(-1);
 	}, [shown, stepNumbers, phases, echo, inTurn]);
 	return (
-		<PrintWaitContext.Provider value={bookTurns}>
-		<div data-testid="lesson-reading" data-session-find-root="" className="lh-text-sheets flex min-w-0 flex-col gap-(--lh-gap)">
+		<div data-testid="lesson-reading" data-session-find-root="" data-turn-wrote={(busy && wrote) || undefined} className="lh-text-sheets flex min-w-0 flex-col gap-(--lh-gap)">
 			{sheets.map((sheet, si) => {
 				const newest = si === sheets.length - 1;
 				const first = sheet.rows[0];
@@ -164,7 +162,7 @@ export function ReadingPane({
 							{newest && shownDesk && (
 								<ArrivalRow live={arrivalsLive} className="flex flex-1 flex-col">
 									<div data-state={closing ? "closed" : "open"} data-desk-closing={closing || undefined} inert={closing} className={cn("flex flex-1 flex-col", closing && "lh-fade")}>
-										<AgentAtWork state={shownDesk.state} head={shownDesk.head} work={shownDesk.work} arrive={arrive} foot={foot} />
+										<AgentAtWork state={shownDesk.state} head={shownDesk.head} work={shownDesk.work} arrive={arrive} foot={(busy || closing) && foot} />
 									</div>
 								</ArrivalRow>
 							)}
@@ -173,13 +171,16 @@ export function ReadingPane({
 									The reply was stopped before anything was written.
 								</p>
 							)}
-							{newest && !shownDesk && foot}
+							{newest && !shownDesk && stopUnder.mounted && foot && (
+								<div data-state={stopUnder.state} className={cn(stopUnder.state === "closed" && "lh-fade")}>
+									{foot}
+								</div>
+							)}
 						</div>
 					</Pane>
 				);
 			})}
 		</div>
-		</PrintWaitContext.Provider>
 	);
 }
 

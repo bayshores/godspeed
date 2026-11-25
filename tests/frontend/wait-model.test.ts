@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { deskCalls, deskHead, deskMark, deskReading, deskRows, deskStack, heldBack, nothingWritten, replyArrived, titleEcho } from "../../src/frontend/components/lesson/wait-model.ts";
+import { deskCalls, deskHead, deskMark, deskReading, deskRows, deskStack, heldBack, nothingWritten, titleEcho, wordsSince } from "../../src/frontend/components/lesson/wait-model.ts";
 import { NO_LESSON_WORK, type DeskFile, type LessonWork, type LhViewMessage } from "../../src/shared/core/index.ts";
 
 type DeskStep = LessonWork["steps"][number];
@@ -34,13 +34,32 @@ describe("deskHead", () => {
 	});
 });
 
-describe("replyArrived", () => {
-	it("is true once the reply ends in words or the agent's reasoning", () => {
-		assert.equal(replyArrived(undefined), false);
-		assert.equal(replyArrived(teacher({ type: "tool-read", state: "output-available" })), false);
-		assert.equal(replyArrived(teacher({ type: "text", text: " " })), false);
-		assert.equal(replyArrived(teacher({ type: "text", text: "Here is the idea." })), true);
-		assert.equal(replyArrived(teacher({ type: "reasoning", text: "" })), true);
+describe("wordsSince", () => {
+	const quiz = { type: "tool-quiz", toolCallId: "q", state: "output-available", input: {}, output: { kind: "quiz" } };
+
+	it("counts the teacher's words written since the turn began, not before it, not the learner's, not a blank", () => {
+		const start = [user("Hi"), teacher({ type: "text", text: "Old words." }), user("Go on")];
+		const mark = deskMark(start);
+		assert.equal(wordsSince(start, mark), 0);
+		assert.equal(wordsSince([...start, teacher({ type: "tool-read", state: "output-available" })], mark), 0, "a step is no words");
+		assert.equal(wordsSince([...start, teacher({ type: "text", text: " " })], mark), 0);
+		assert.equal(wordsSince([...start, teacher({ type: "text", text: "Here" })], mark), 4);
+		assert.equal(wordsSince([...start, teacher({ type: "text", text: "Here is" })], mark), 7, "and grows as they are written");
+		assert.equal(wordsSince([...start, user("And?")], mark), 0);
+	});
+
+	it("counts the agent's thinking, even empty", () => {
+		const start = [user("Hi")];
+		assert.equal(wordsSince([...start, teacher({ type: "reasoning", text: "" })], deskMark(start)), 1);
+	});
+
+	it("counts a reply that grows the message an answered question is in, from where it stood", () => {
+		const asked = [user("Hi"), teacher({ type: "text", text: "Try this." }, quiz)];
+		const mark = deskMark(asked);
+		assert.equal(wordsSince(asked, mark), 0, "the question's own lead is older");
+		assert.equal(wordsSince([user("Hi"), teacher({ type: "text", text: "Try this." }, quiz, { type: "step-start" }, { type: "text", text: "Right." })], mark), 6);
+		const growing = [user("Hi"), teacher({ type: "text", text: "Lead" })];
+		assert.equal(wordsSince([user("Hi"), teacher({ type: "text", text: "Lead and more" })], deskMark(growing)), 9, "a text that grows counts only what is new");
 	});
 });
 

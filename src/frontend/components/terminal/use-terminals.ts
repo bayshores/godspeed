@@ -10,7 +10,6 @@
  */
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import type { FolderAgent } from "@/shared/core";
-import { savedAgent } from "@/frontend/components/agent-folder/agent-folder-api";
 import { useAgentFolderView } from "@/frontend/components/agent-folder/agent-folder-context";
 import { AgentStatusContext, type AgentStatus } from "@/frontend/components/agent-status";
 import { useServerEvent } from "@/frontend/components/server-events";
@@ -373,7 +372,7 @@ function useTerminalsState(status: AgentStatus | null, inTerminalWindow: boolean
 	const waking = useRef(false);
 	const [wakingShown, setWaking] = useState(false);
 	const wake = useCallback(() => {
-		const agent = lh && !inTerminalWindow && loaded && !waking.current && wakeAgent({ teacher, agentHere, outsideHere, saved: savedAgent() });
+		const agent = lh && !inTerminalWindow && loaded && !waking.current && wakeAgent({ teacher, agentHere, outsideHere, picked: folderView?.agent ?? null });
 		if (!agent) return false;
 		// With earlier chats the learner picks which one teaches.
 		if (chats.length > 0) return true;
@@ -384,7 +383,7 @@ function useTerminalsState(status: AgentStatus | null, inTerminalWindow: boolean
 			setWaking(false);
 		});
 		return false;
-	}, [lh, inTerminalWindow, loaded, teacher, agentHere, outsideHere, chats, start]);
+	}, [lh, inTerminalWindow, loaded, teacher, agentHere, outsideHere, folderView?.agent, chats, start]);
 
 	return useMemo(
 		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, chats, start: startRole, changeChat, stop, answer, paste, send, addFile, wake, waking: wakingShown, popped, popOut, focusWindow, putBack, putBacks }),

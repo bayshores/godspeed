@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { DEFAULT_TEACHER_NAME, type FolderAgent } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import type { TerminalRole } from "@/frontend/components/terminal/terminal-model";
-import { logLines, rememberedAgent, type Launch, type LaunchChoice } from "./agent-folder-model";
-import { saveAgent, savedAgent } from "./agent-folder-api";
+import { logLines, type Launch, type LaunchChoice } from "./agent-folder-model";
 import { useAgentFolderView } from "./agent-folder-context";
+
+/** A pick the server did not take shows as the agent it still has; this says where it failed. */
+const logPickFailure = (err: unknown) => console.error("[agent folder] the picked agent could not be saved:", err);
 
 /**
  * The godspeed folder and its "Start Claude Code" button: open(agent)
@@ -19,7 +21,7 @@ import { useAgentFolderView } from "./agent-folder-context";
  * when it failed.
  */
 export function useAgentFolder() {
-	const { view, reload, post } = useAgentFolderView();
+	const { view, reload, post, pick } = useAgentFolderView();
 	const [launch, setLaunch] = useState<Launch | null>(null);
 	const [starting, setStarting] = useState(false);
 	const [failed, setFailed] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function useAgentFolder() {
 	 *  `resume`: the teacher's chat to go back to. `change`: a running teacher leaves its chat for it. */
 	const start = useCallback(
 		async (role: TerminalRole, agent: FolderAgent, resume?: string, change = false): Promise<boolean> => {
-			saveAgent(agent);
+			if (view?.agent !== agent) void pick(agent).catch(logPickFailure);
 			if (terminals?.available) {
 				setStarting(true);
 				setFailed(null);
@@ -53,7 +55,7 @@ export function useAgentFolder() {
 				return false;
 			}
 		},
-		[terminals, reload, post, showTerminal],
+		[terminals, reload, post, pick, view?.agent, showTerminal],
 	);
 
 	const open = useCallback((agent: FolderAgent, resume?: string) => start("teacher", agent, resume), [start]);
@@ -94,22 +96,28 @@ export function useAgentFolder() {
 	return { view, lines, busy, error, manual, open, changeChat, openHelper, change, setStartCommand };
 }
 
-/** The agent picked beside "Use another agent": the one last started
- *  here (Claude Code when none) until the learner picks another. */
+/** The agent picked beside "Use another agent": the server's (Claude Code before a pick), which a
+ *  pick of another agent changes. "Other app" is a pick of this window only. */
 export function useAgentChoice() {
-	const [choice, setChoice] = useState<LaunchChoice>("claude");
-	useEffect(() => setChoice(rememberedAgent(savedAgent())), []);
+	const { view, pick } = useAgentFolderView();
+	const [other, setOther] = useState(false);
+	const choice: LaunchChoice = other ? "other" : (view?.agent ?? "claude");
+	const setChoice = useCallback(
+		(next: LaunchChoice) => {
+			setOther(next === "other");
+			if (next !== "other" && next !== view?.agent) void pick(next).catch(logPickFailure);
+		},
+		[pick, view?.agent],
+	);
 	return [choice, setChoice] as const;
 }
 
-/** "Turn on Teacher": starts the agent last started here (Claude Code
- *  when none), the button on the "Teacher is off" lines. `starting` while
- *  godspeed's own teacher runs but has not connected: the teacher's status
- *  line says so, and the lines show nothing. */
+/** "Turn on Teacher": starts the server's agent (Claude Code before a pick), the button on
+ *  the "Teacher is off" lines. `starting` while godspeed's own teacher runs but has not connected:
+ *  the teacher's status line says so, and the lines show nothing. */
 export function useStartAgent() {
-	const { busy, error, manual, open } = useAgentFolder();
-	const [agent, setAgent] = useState<FolderAgent>("claude");
-	useEffect(() => setAgent(rememberedAgent(savedAgent())), []);
+	const { view, busy, error, manual, open } = useAgentFolder();
+	const agent = view?.agent ?? "claude";
 	const teacher = useTerminals()?.teacher;
 	const name = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	return { label: `Turn on ${name}`, start: () => void open(agent), busy, error, manual, starting: !!teacher && !teacher.ended };

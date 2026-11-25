@@ -260,14 +260,15 @@ export function firstRunFooter(f: TerminalFacts, folder: string): TerminalFooter
 	return footer(f.checkedIn ? `${agent} is connected.` : `${agent} is starting in ${folder}. If it asks you something, answer it here.`);
 }
 
-/** Start lesson and a lesson's send start the teacher hidden, with the agent
- *  last started in godspeed, when no agent is here and none runs or
- *  starts. Null leaves it to the no-agent line. */
-export function wakeAgent(i: { teacher: TerminalRecord | null; agentHere: boolean; outsideHere: boolean; saved: string | null }): FolderAgent | null {
+/** Start lesson and a lesson's send start the teacher hidden, with the
+ *  agent the learner picked (null before a pick, or before the folder is
+ *  read), when no agent is here and none runs or starts. Null leaves it to
+ *  the no-agent line. */
+export function wakeAgent(i: { teacher: TerminalRecord | null; agentHere: boolean; outsideHere: boolean; picked: FolderAgent | null }): FolderAgent | null {
 	if (i.agentHere || teacherStartRefused(i.teacher, i.outsideHere)) return null;
 	// A crash or a missing program waits for the learner's Start again.
 	if (crashed(i.teacher?.ended ?? null)) return null;
-	return i.saved === "claude" || i.saved === "codex" ? i.saved : null;
+	return i.picked;
 }
 
 /** The server counts an agent (and the helper) here for 3 minutes after

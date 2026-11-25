@@ -88,16 +88,20 @@ const FOLDER = {
 	commands: { claude: 'cd ~/godspeed && claude --settings .godspeed/claude-settings.json "Start teaching"', codex: "cd ~/godspeed && codex" },
 	startCommands: {},
 	oldSetup: { plugin: false, codex: false },
+	agent: "claude",
 };
 
 const NO_KEY = { keyEnd: null, used: null, limit: null, error: null };
 
 /** The Connection section's reads: the access view, the saved notes, the godspeed folder and the search key. */
 function connectionFetch(access: object, { notes = [], search = NO_KEY }: { notes?: object[]; search?: object } = {}) {
-	return (async (url: string) => {
+	// The agent the server keeps, as a pick (PATCH) changes it.
+	let folder = FOLDER;
+	return (async (url: string, init?: RequestInit) => {
 		const path = String(url);
 		if (path.startsWith("/api/web-search")) return Response.json(search);
-		return Response.json(path.startsWith("/api/agent-notes") ? { notes } : path.startsWith("/api/agent-folder") ? FOLDER : access);
+		if (path.startsWith("/api/agent-folder") && init?.method === "PATCH") folder = { ...folder, agent: JSON.parse(String(init.body)).agent };
+		return Response.json(path.startsWith("/api/agent-notes") ? { notes } : path.startsWith("/api/agent-folder") ? folder : access);
 	}) as unknown as typeof fetch;
 }
 

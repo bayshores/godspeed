@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
+import { createInterface } from "node:readline";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent } from "../../scripts/layout.mjs";
 import { boxMoved, carried, cross, cutOf, emptyBand, hollow, inkOf, lineBox, linesOf, meet, movedSince, offGap, offInset, outside, probes, roomUnder, scrollerClip, sticksOut, tightPad, tooWide } from "../../scripts/layout-page.mjs";
-import { PLAN_ORDER_SENT_BACK, workOf } from "../../scripts/layout-seed.mjs";
+import { PLAN_ORDER_SENT_BACK, WAITING_TOPIC, WRITTEN_TOPIC } from "../../scripts/layout-lessons.mjs";
+import { workOf } from "../../scripts/layout-seed.mjs";
 import { SCREENS, widthsOf } from "../../scripts/layout-screens.mjs";
 
 const box = (left: number, top: number, right: number, bottom: number) => ({ left, top, right, bottom });
@@ -273,14 +275,66 @@ describe("the screens", () => {
 
 describe("the stand-in agent", () => {
 	it("reads what a work item is for off its text, even when cut, and keeps the text", () => {
-		const text = '{"status":"work","workId":"work_1","lessonId":"chat_lab","lessonTitle":"Slope","kind":"lesson","tools":[{"name":"x"';
-		assert.deepEqual(workOf(text), { lessonId: "chat_lab", task: undefined, text });
-		assert.equal(workOf('{"status":"work","workId":"w","kind":"background task","task":"Graph extraction: a.md"}').task, "Graph extraction: a.md");
+		const text = '{"status":"work","workId":"work_1","kind":"background task","task":"Graph extraction: a.md","tools":[{"name":"x"';
+		assert.deepEqual(workOf(text), { task: "Graph extraction: a.md", text });
 	});
 
 	it("knows the server's words for a card it sends back for plan order", () => {
 		const server = fs.readFileSync(new URL("../../crates/agent/src/tools/questions.rs", import.meta.url), "utf-8");
 		assert.ok(server.includes(PLAN_ORDER_SENT_BACK));
+	});
+});
+
+describe("the stand-in helper", () => {
+	it("plays a lesson's reply through the lesson tools and ends the turn on the question", async () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "layout-helper-"));
+		const helper = spawn(process.execPath, [path.join(import.meta.dirname, "../../scripts/layout-helper.mjs")], { env: { ...process.env, LAYOUT_HELPER_DIR: dir }, stdio: ["pipe", "pipe", "inherit"] });
+		const lines = createInterface({ input: helper.stdout })[Symbol.asyncIterator]();
+		const say = (message: object) => helper.stdin.write(`${JSON.stringify(message)}\n`);
+		const next = async () => JSON.parse((await lines.next()).value as string) as { type: string; message?: { type: string; subtype?: string }; name?: string; id?: string };
+		try {
+			say({ type: "open", session: "s1" });
+			assert.equal((await next()).type, "opened");
+			say({ type: "send", session: "s1", content: [{ type: "text", text: WRITTEN_TOPIC }] });
+			let message = await next();
+			while (message.type === "sdk") message = await next();
+			assert.equal(message.type, "tool_call");
+			assert.equal(message.name, "ask_user_question");
+			say({ type: "tool_result", id: message.id, content: [{ type: "text", text: "Shown." }], isError: false, endTurn: true });
+			message = await next();
+			assert.deepEqual([message.type, message.message?.type, message.message?.subtype], ["sdk", "result", "success"]);
+		} finally {
+			helper.kill();
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+	it("asks to run a command once and streams half a reply, when a screen asks a held lesson", async () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "layout-helper-"));
+		const helper = spawn(process.execPath, [path.join(import.meta.dirname, "../../scripts/layout-helper.mjs")], { env: { ...process.env, LAYOUT_HELPER_DIR: dir }, stdio: ["pipe", "pipe", "inherit"] });
+		const lines = createInterface({ input: helper.stdout })[Symbol.asyncIterator]();
+		const say = (message: object) => helper.stdin.write(`${JSON.stringify(message)}\n`);
+		const next = async () => JSON.parse((await lines.next()).value as string) as { type: string; tool?: string; input?: { command: string }; message?: { type: string; event?: { delta: { text: string } } } };
+		const ask = async (request: string) => {
+			fs.writeFileSync(path.join(dir, "desk"), request);
+			while (fs.existsSync(path.join(dir, "desk"))) await new Promise((done) => setTimeout(done, 20));
+		};
+		try {
+			say({ type: "open", session: "s1" });
+			await next();
+			say({ type: "send", session: "s1", content: [{ type: "text", text: WAITING_TOPIC }] });
+			assert.equal((await next()).message?.type, "system");
+			await ask("approve");
+			await ask("approve");
+			await ask("stream");
+			const seen = [];
+			for (let message = await next(); message.type !== "sdk" || message.message?.type !== "stream_event"; message = await next()) seen.push(message);
+			const approvals = seen.filter((message) => message.type === "approval");
+			assert.equal(approvals.length, 1);
+			assert.deepEqual([approvals[0]!.tool, approvals[0]!.input], ["Bash", { command: "ls notes" }]);
+		} finally {
+			helper.kill();
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });
 

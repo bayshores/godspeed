@@ -1,13 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useActivity } from "@/frontend/components/activity-dock";
-import { AGENT_LABEL, rememberedAgent, type LaunchChoice } from "@/frontend/components/agent-folder/agent-folder-model";
+import { AGENT_LABEL } from "@/frontend/components/agent-folder/agent-folder-model";
 import { Log, OtherAppSetup } from "@/frontend/components/agent-folder/agent-launcher";
 import { FolderLine } from "@/frontend/components/agent-folder/folder-line";
 import { OldSetupWarning } from "@/frontend/components/agent-folder/old-setup";
 import { AgentMenu } from "@/frontend/components/agent-folder/start-agent-button";
-import { savedAgent } from "@/frontend/components/agent-folder/agent-folder-api";
-import { useAgentFolder } from "@/frontend/components/agent-folder/use-agent-folder";
+import { useAgentChoice, useAgentFolder } from "@/frontend/components/agent-folder/use-agent-folder";
 import type { AgentStatus } from "@/frontend/components/agent-status";
 import { backgroundLine } from "@/frontend/components/teacher/follow-status";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
@@ -33,9 +32,8 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	const panel = useTeacher();
 	const { spaces } = useSpaces();
 	const { feed } = useActivity();
-	const [choice, setChoice] = useState<LaunchChoice>("claude");
+	const [choice, setChoice] = useAgentChoice();
 	const [error, setError] = useState<string | null>(null);
-	useEffect(() => setChoice(rememberedAgent(savedAgent())), []);
 
 	const folderAgent = choice === "other" ? null : choice;
 	const teacherName = panel?.name ?? DEFAULT_TEACHER_NAME;

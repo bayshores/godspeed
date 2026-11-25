@@ -17,6 +17,8 @@ const MOVE_SLACK_MS = 250;
  *  now rests: longer than the fade (110 ms) after which "Your turn" swaps what it holds, so a
  *  reply's sheets come to rest before the page moves, once. */
 const HOLD_MS = 140;
+/** Room left under a permission card the page glides into view. */
+const ASK_ROOM = 24;
 
 /** Text blocks whose lines the window's top edge may cut. */
 const LINES = "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th";
@@ -54,10 +56,13 @@ function linesAt(root: Element, y: number, origin: number): { top: number; botto
 /**
  * Where the lesson's page stands in its window, and how it gets there. The page rests where
  * restingTop says: on open, when the teacher asks (`restKey` changes) and while the teacher
- * writes. When a reply lands it holds still while the desk leaves and the sheets glide to their
- * new sizes, then glides to its rest once. When the book opens or shuts (useBookMove) the page
- * takes its rest in the new layout at once and the pages are moved to it. Gives the follower its
- * target and the text's cards the way to say they open (FilingContext).
+ * writes, where its reply will rest once the turn ends. When the desk leaves or a reply lands it
+ * holds still while the sheets glide to their new sizes, then glides to its rest once. When the
+ * book opens or shuts (useBookMove) the page takes its rest in the new layout at once and the
+ * pages are moved to it. A permission card that arrives under the window is glided into view once,
+ * unless the learner scrolled away, and the page rests no higher until the next turn or question.
+ * Gives the follower its target, the text's cards the way to say they open (FilingContext) and the
+ * desk's cards the way to say they came (`onAsk`).
  */
 export function usePageRest({
 	contextRef,
@@ -89,7 +94,7 @@ export function usePageRest({
 	shutting: boolean;
 	onShut: () => void;
 	onRest: () => void;
-}): { target: GetTargetScrollTop; onFile: ReturnType<typeof useFiledCardHold>["onFile"] } {
+}): { target: GetTargetScrollTop; onFile: ReturnType<typeof useFiledCardHold>["onFile"]; onAsk: (card: HTMLElement) => void } {
 	/** Following the page only moves it down; this brings it up to where it now rests. */
 	const settleUp = useCallback(() => {
 		const context = contextRef.current;
@@ -103,6 +108,8 @@ export function usePageRest({
 	// Lines keep their place while the teacher writes; the page only settles on a whole line at rest.
 	const busyRef = useRef(busy);
 	busyRef.current = busy;
+	// Where a permission card that came under the window was shown: the page rests no higher until the next turn or question.
+	const askFloor = useRef<number | null>(null);
 	// The sheets' height as the page last saw it, in the window it saw it in, and until when it holds still for a change.
 	const sized = useRef<{ view: string; height: number } | null>(null);
 	const hold = useRef({ until: 0, timer: 0 });
@@ -112,9 +119,9 @@ export function usePageRest({
 		const sheetEl = contentElement.querySelector("[data-testid=turn-sheet]");
 		const sheetBox = sheetEl?.getBoundingClientRect();
 		const partBox = contentElement.querySelector("[data-part-current]")?.getBoundingClientRect();
-		// With nothing waiting, a reply is read from its start once it has landed; while it is worked on, the desk shows.
+		// With nothing waiting, a reply is read from its start from its first words on; before them, the desk shows.
 		const reply =
-			replyRef.current && (sheetEl || !busyRef.current)
+			replyRef.current && (sheetEl || !busyRef.current || contentElement.querySelector("[data-turn-wrote]"))
 				? ([...contentElement.querySelectorAll(LEARNER)].at(-1) ?? contentElement.querySelector("[data-testid=lesson-reading]"))
 				: null;
 		const rest = restingTop(end, {
@@ -125,8 +132,10 @@ export function usePageRest({
 			reply: reply ? reply.getBoundingClientRect().top - origin : null,
 		});
 		const text = contentElement.querySelector("[data-testid=lesson-reading]");
+		const lined = busyRef.current || !text ? rest : wholeLineTop(rest, linesAt(text, rest, origin));
+		const floor = askFloor.current;
 		// A scroll position is a whole number: a rest with parts of a point would be reached, then left again.
-		return Math.round(busyRef.current || !text ? rest : wholeLineTop(rest, linesAt(text, rest, origin)));
+		return Math.round(floor === null ? lined : Math.max(lined, Math.min(end, floor)));
 	}, []);
 	// Until when the book's pages move (useBookMove), and where the page last stood by its own or the learner's doing.
 	const moveEnd = useRef(0);
@@ -152,6 +161,19 @@ export function usePageRest({
 		[holdThenGlide],
 	);
 	const filing = useFiledCardHold(contextRef);
+	const onAsk = useCallback(
+		(card: HTMLElement) => {
+			const context = contextRef.current;
+			const scroller = context?.scrollRef.current;
+			if (!context || !scroller || context.state.escapedFromLock) return;
+			// The card's own box has its whole height while its room still opens.
+			const under = card.getBoundingClientRect().bottom + ASK_ROOM - scroller.getBoundingClientRect().bottom;
+			if (under <= 0) return;
+			askFloor.current = Math.round(scroller.scrollTop + under);
+			holdThenGlide();
+		},
+		[contextRef, holdThenGlide],
+	);
 	// The column keeps room for the book's move (`spare`), given up when the pages stand.
 	const spared = useRef(false);
 	/** The page takes its rest in the layout the book now has, at once: the pages are moved to it from where they stood. */
@@ -224,6 +246,7 @@ export function usePageRest({
 		if (was && !busy) landing.current = performance.now() + LANDING_MS;
 		if (!busy || was) return;
 		replyRef.current = true;
+		askFloor.current = null;
 		const frame = requestAnimationFrame(settleUp);
 		return () => cancelAnimationFrame(frame);
 	}, [busy, settleUp]);
@@ -325,6 +348,7 @@ export function usePageRest({
 		replyRef.current = false;
 		if (restKey === firstKey.current) return;
 		firstKey.current = restKey;
+		askFloor.current = null;
 		// What arrives with a landing reply is placed with it, not glided to.
 		const landed = performance.now() < landing.current;
 		void contextRef.current?.scrollToBottom(landed || prefersReducedMotion() ? "instant" : "smooth");
@@ -332,5 +356,5 @@ export function usePageRest({
 		return () => cancelAnimationFrame(frame);
 	}, [restKey, contextRef, settleUp]);
 
-	return { target, onFile: filing.onFile };
+	return { target, onFile: filing.onFile, onAsk };
 }

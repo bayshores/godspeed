@@ -1069,7 +1069,6 @@ describe("the reading pane", () => {
 		arrivalsLive: false,
 		pageMarks: new Map(),
 		arrive: () => undefined,
-		bookTurns: false,
 		onDesk: () => {},
 		...over,
 	});

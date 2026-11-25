@@ -9,6 +9,8 @@ use std::sync::Arc;
 
 use gs_base::clock;
 use gs_base::events::EventKind;
+use gs_core::records::settings::DEFAULT_TEACHER_NAME;
+use gs_core::session::approval_card::approval_card;
 use gs_core::session::lesson_steps::{LessonCall, base_name, lesson_call, pdf_progress};
 use gs_core::session::teacher_steps::{TeacherStep, keep_step, own_tool_input_step, step_head};
 use gs_core::session::turn_cause::TurnCause;
@@ -27,12 +29,15 @@ pub(super) struct TurnWork {
 	plan: Option<Json>,
 	/// Oldest first.
 	steps: VecDeque<Json>,
-	/// `{id, ask}`, oldest first.
+	/// `{id, text, subject}`, oldest first.
 	approvals: Vec<Json>,
 }
 
+/// Tells the window the lesson's work changed, and whether it waits for the learner to allow
+/// something, which lights the strip's "needs you" on any page.
 fn changed(app: &App, chat_id: &str) {
-	app.events.emit(EventKind::LessonWork, json!({ "chatId": chat_id }));
+	let asking = app.turns.work.lock().get(chat_id).is_some_and(|work| !work.approvals.is_empty());
+	app.events.emit(EventKind::LessonWork, json!({ "chatId": chat_id, "asking": asking }));
 }
 
 /// Changes the running turn's work; the window hears when `change` says it changed anything.
@@ -93,6 +98,19 @@ pub(super) fn listener(app: &Arc<App>, chat_id: &str, space_id: Option<&str>) ->
 	})
 }
 
+/// The teacher's name, as the learner set it. Settings that cannot be read leave the usual name:
+/// the card still asks.
+fn teacher_name(app: &App) -> String {
+	let settings = app.stores.settings.effective_settings();
+	settings.ok().and_then(|s| s["general"]["teacherName"].as_str().map(str::to_owned)).unwrap_or_else(|| DEFAULT_TEACHER_NAME.to_owned())
+}
+
+/// A permission question as the desk's card shows it: its id, its sentence and its subject.
+fn approval_view(app: &App, id: &str, ask: &Json) -> Json {
+	let card = approval_card(ask, &teacher_name(app));
+	json!({ "id": id, "text": card["text"].clone(), "subject": card["subject"].clone() })
+}
+
 /// Hears what the turn's agent does besides godspeed's tools: it took the turn, it runs one of its
 /// own tools (a step; a file it reads shows on the desk), a permission question waits or was
 /// answered.
@@ -107,10 +125,13 @@ pub(super) fn desk_listener(app: &Arc<App>, chat_id: &str) -> DeskListener {
 				let reads = (name == "Read").then(|| input["file_path"].as_str().and_then(|path| path_reading(path, None, None, None))).flatten();
 				note_step(&app, &chat_id, step, None, reads);
 			}
-			DeskEvent::Approval { id, ask } => update(&app, &chat_id, |work| {
-				work.approvals.push(json!({ "id": id, "ask": ask }));
-				true
-			}),
+			DeskEvent::Approval { id, ask } => {
+				let card = approval_view(&app, id, ask);
+				update(&app, &chat_id, |work| {
+					work.approvals.push(card);
+					true
+				});
+			}
 			DeskEvent::ApprovalDone { id } => update(&app, &chat_id, |work| {
 				let before = work.approvals.len();
 				work.approvals.retain(|a| a["id"].as_str() != Some(id.as_str()));
@@ -174,7 +195,8 @@ mod tests {
 		taken(&app, &a);
 		taken(&app, &a);
 		note_step(&app, &a, step("Looking at CSE 29"), Some("agent_1"), None);
-		assert_eq!(told(&mut events), [json!({ "chatId": a }), json!({ "chatId": b }), json!({ "chatId": a }), json!({ "chatId": a })], "begun twice, taken once, one step");
+		let not_asking = |chat: &str| json!({ "chatId": chat, "asking": false });
+		assert_eq!(told(&mut events), [not_asking(&a), not_asking(&b), not_asking(&a), not_asking(&a)], "begun twice, taken once, one step");
 		let work = lesson_work(&app, &a).unwrap();
 		assert_eq!((work["live"].as_bool(), work["cause"].as_str(), work["taken"].as_bool()), (Some(true), Some("first"), Some(true)));
 		assert_eq!(work["steps"][0]["text"], json!("Looking at CSE 29"));
@@ -184,10 +206,28 @@ mod tests {
 
 		end_turn(&app, &a);
 		assert_eq!(lesson_work(&app, &a).unwrap()["live"], json!(false));
-		assert!(told(&mut events).contains(&json!({ "chatId": a })), "its end is told");
+		assert!(told(&mut events).contains(&not_asking(&a)), "its end is told");
 		note_step(&app, &a, step("Late"), None, None);
 		assert_eq!(lesson_work(&app, &a).unwrap()["steps"], json!([]), "a step after the turn is dropped");
 		end_turn(&app, &b);
+	}
+
+	#[test]
+	fn a_permission_question_is_a_card_in_the_teacher_s_name_until_it_is_answered() {
+		let root = scratch_dir("turn-work-approval");
+		let app = test_app(&root);
+		app.stores.settings.write_settings(&json!({ "version": 2, "general": { "teacherName": "Zed" } })).unwrap();
+		let chat = app.stores.chats.create_chat("Files", Some("study"), None, None, &[]).unwrap()["id"].str_or_empty().to_owned();
+		assert!(begin_turn(&app, &chat));
+		begin(&app, &chat, TurnCause::Ask);
+		let mut events = app.events.subscribe();
+		let desk = desk_listener(&app, &chat);
+		desk(&DeskEvent::Approval { id: "ap_1".to_owned(), ask: json!({ "kind": "tool", "name": "Read", "input": { "file_path": "/h/notes/week 3.md" } }) });
+		assert_eq!(lesson_work(&app, &chat).unwrap()["approvals"], json!([{ "id": "ap_1", "text": "Zed wants to read this file.", "subject": { "kind": "file", "text": "week 3.md" } }]));
+		desk(&DeskEvent::ApprovalDone { id: "ap_1".to_owned() });
+		assert_eq!(lesson_work(&app, &chat).unwrap()["approvals"], json!([]));
+		assert_eq!(told(&mut events), [json!({ "chatId": chat, "asking": true }), json!({ "chatId": chat, "asking": false })], "the strip hears it wait and go");
+		end_turn(&app, &chat);
 	}
 
 	#[test]

@@ -650,7 +650,6 @@ export function Chat({
 											arrivalsLive={arrivalsLive}
 											pageMarks={pageMarks}
 											arrive={arrive}
-											bookTurns={book.turning}
 											onDesk={setDeskUp}
 											sheetRef={sheetGlide}
 										/>

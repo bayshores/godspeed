@@ -5,7 +5,9 @@
  * Chromium and WebKit lay some CSS out differently, and the Mac app draws with WebKit. This
  * builds the debug shell with its `screens` control channel (crates/shell/src/screens.rs), starts
  * it on a throwaway home and data folder, and has a stand-in agent write made-up data
- * (layout-seed.mjs). It then starts the app again with no agent connected and walks the screens
+ * (layout-seed.mjs). Lessons play on a stand-in for the Claude helper (layout-helper.mjs, named
+ * by LH_CLAUDE_HELPER), so no agent runs. It then starts the app again with no agent in its
+ * terminal and walks the screens
  * in layout-screens.mjs, two passes for each:
  *
  * | Pass | When | What |
@@ -166,6 +168,9 @@ function freePort() {
 /** Where a screen hands the stand-in teacher a line, as if typed in its terminal (layout-agent.mjs). */
 const typedFile = (home) => path.join(home, "typed");
 
+/** The folder the stand-in helper keeps its state in, and takes a screen's request from (layout-helper.mjs). */
+const HELPER_DIR = path.join(RUN, "helper");
+
 /** A Start in the check runs layout-agent.mjs, never a real agent: its `claude` and `codex` are
  *  first on the throwaway home's PATH. The start script asks for the version first: that is
  *  answered and done, or a second stand-in would run in the terminal, outside the helper's mark,
@@ -185,6 +190,16 @@ async function tellTeacher(line) {
 	fs.writeFileSync(file, line);
 	for (const end = Date.now() + READY_MS; fs.existsSync(file); await sleep(100)) {
 		if (Date.now() > end) throw new Error(`the stand-in teacher never did "${line}"`);
+	}
+}
+
+/** Asks the stand-in helper, holding a lesson's reply, for one of its requests (`read`, `approve`
+ *  or `stream`, layout-helper.mjs), and waits until it has done it. */
+async function tellHelper(request) {
+	const file = path.join(HELPER_DIR, "desk");
+	fs.writeFileSync(file, request);
+	for (const end = Date.now() + READY_MS; fs.existsSync(file); await sleep(100)) {
+		if (Date.now() > end) throw new Error(`the stand-in helper never did "${request}"`);
 	}
 }
 
@@ -211,6 +226,9 @@ async function startApp(port, name) {
 			// The agent's start script runs in zsh, which reads the home's .zshrc (standInAgent).
 			SHELL: "/bin/zsh",
 			TMPDIR: path.join(RUN, "tmp"),
+			// Lessons play on a stand-in for the Claude helper, a debug build only.
+			LH_CLAUDE_HELPER: path.join(import.meta.dirname, "layout-helper.mjs"),
+			LAYOUT_HELPER_DIR: HELPER_DIR,
 			LH_SCREENS_CTL: ctl,
 			LH_SCREENS_OUT: out,
 			// godspeed's plugin list, made up, so the run never reads GitHub's.
@@ -351,7 +369,7 @@ async function main() {
 	const built = Date.now();
 
 	fs.rmSync(RUN, { recursive: true, force: true });
-	for (const dir of ["data", "home", "tmp"]) fs.mkdirSync(path.join(RUN, dir), { recursive: true });
+	for (const dir of ["data", "home", "tmp", "helper"]) fs.mkdirSync(path.join(RUN, dir), { recursive: true });
 	// Silent from the first page load: the run's windows are hidden, but their sounds are heard. The menu bar item stays
 	// off so a check never adds one to the owner's menu bar.
 	fs.writeFileSync(path.join(RUN, "data", "settings.json"), JSON.stringify({ version: 3, general: { startupSound: false, sounds: false, menuBarCountdown: false } }));
@@ -415,6 +433,7 @@ async function main() {
 				await app.ready(fill(screen.ready, ids));
 				if (screen.setup) await app.run(fill(screen.setup, ids));
 				if (screen.teacher) await tellTeacher(fill(screen.teacher, ids));
+				if (screen.helper) await tellHelper(screen.helper);
 				if (screen.shows) await app.ready(fill(screen.shows, ids));
 			} catch (err) {
 				const snap = path.join(RUN, snapName(`${screen.name} not shown`, widths[0]));

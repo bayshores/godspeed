@@ -9,6 +9,7 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import { TurnPlaceContext, type TurnPlace } from "./turn-place";
 import { FilingContext } from "@/frontend/components/filed-card";
+import { AskShownContext } from "./approval-card";
 import { usePageRest } from "./use-page-rest";
 
 /**
@@ -223,7 +224,9 @@ export function LessonScroll({
 						{/* With "Your turn" beside it or pinned under its window, the text's sheet ends at the window's foot. */}
 						<div className={cn("lh-page", pinned ? "pb-0" : "pb-(--lh-page-end)", (beside || alone) && "@min-[1280px]/room:pb-0")}>
 							<div ref={columnRef} data-testid="lesson-column" className={cn("lh-lesson-column @container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, reading !== null && PAIR, beside && PAIR_GRID, alone && ALONE)}>
-								<FilingContext.Provider value={rest.onFile}>{reading}</FilingContext.Provider>
+								<FilingContext.Provider value={rest.onFile}>
+									<AskShownContext.Provider value={rest.onAsk}>{reading}</AskShownContext.Provider>
+								</FilingContext.Provider>
 								{hasTurn && (
 									<div ref={pageSlot} className="contents">
 										{!turnBox && turnSheet}

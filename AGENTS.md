@@ -83,7 +83,7 @@ Keep godspeed small, tidy and easy to read. The checks below enforce these rules
 **Done means clean**
 - `npm run check` passes: typecheck (unused variables and parameters are errors), tests, lint, `npm run deadcode` (knip) and `npm run rust:check` (cargo test, clippy, cargo machete). CI runs the same.
 - The Mac check does not build Rust code behind a Windows or Linux condition (`#[cfg(windows)]`, `demo_webview.rs`, `crates/shell/src/linux/`). After touching such a file, the change is finished only when CI's check job is green, or the same lint passed on the build box.
-- `npm run check` does not run `npm run layout`, whose stand-in teacher (`scripts/layout-seed.mjs`) plays every lesson. After changing what the teacher is sent or refused (a tool refusal, a reply sent back, a work item), run `npm run layout` on the Mac before merging.
+- `npm run check` does not run `npm run layout`, whose stand-in helper (`scripts/layout-helper.mjs`, started through `LH_CLAUDE_HELPER` in a debug build) plays every lesson. After changing what the teacher is sent or refused (a tool refusal, a reply sent back, a work item, a lesson tool), run `npm run layout` on the Mac before merging.
 - Before calling a change finished, reread the diff and cut anything unused, duplicated or over-built. Ask of each new piece: is this data already loaded somewhere, does a helper already do this, does the server already know this, can two copies disagree?
 - A new class of mistake gets a rule here or, better, a check in `npm run check`, in the same change that fixes it.
 

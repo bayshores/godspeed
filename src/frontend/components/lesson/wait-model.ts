@@ -9,11 +9,6 @@ import { isQuestionTool, PRACTICE_PROBLEM_TOOL, type DeskFile, type DeskReading,
 /** "waiting": no agent is at the desk; "working": one is. */
 export type DeskState = "waiting" | "working";
 
-/** The reply being worked on has its words: the desk gives way to them. */
-export function replyArrived(reply: LhViewMessage | undefined): boolean {
-	const last = reply?.parts.at(-1);
-	return last?.type === "reasoning" || (last?.type === "text" && typeof last.text === "string" && last.text.trim().length > 0);
-}
 
 /** The desk's one sentence: what the teacher does, by why the turn runs. Null for the moment
  *  between the learner's send and the server's first word on the turn. */
@@ -125,6 +120,25 @@ export type DeskMark = { count: number; parts: number; text: number | null };
 export function deskMark(messages: readonly LhViewMessage[]): DeskMark {
 	const last = messages.at(-1)?.parts.at(-1);
 	return { count: messages.length, parts: messages.at(-1)?.parts.length ?? 0, text: last?.type === "text" ? (last.text ?? "").length : null };
+}
+
+/** How much the teacher has written since `mark` (the lesson as it stood when the turn began),
+ *  in letters: its words, and its thinking, which counts even while empty. 0 while it has written
+ *  nothing. It grows as the reply is written, also when the reply grows the message an answered
+ *  question is in. */
+export function wordsSince(messages: readonly LhViewMessage[], mark: DeskMark): number {
+	let letters = 0;
+	messages.forEach((m, i) => {
+		if (m.role !== "assistant" || i < mark.count - 1) return;
+		m.parts.forEach((part, pi) => {
+			const old = i === mark.count - 1 && pi < mark.parts;
+			if (old && !(pi === mark.parts - 1 && mark.text !== null)) return;
+			const text = part.text ?? "";
+			if (part.type === "reasoning") letters += 1 + text.length;
+			else if (part.type === "text" && text.trim() !== "") letters += old ? Math.max(0, text.length - (mark.text ?? 0)) : text.length;
+		});
+	});
+	return letters;
 }
 
 /** The messages as they stood at `mark`, so a reply that just landed stays out of the page while

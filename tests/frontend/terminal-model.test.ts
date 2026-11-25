@@ -221,11 +221,10 @@ describe("onboarding's first start", () => {
 });
 
 describe("starting the teacher hidden, and restarting", () => {
-	it("Start lesson and a lesson's send start the agent last started here, only when nothing is here, runs or starts", () => {
-		const base = { teacher: null, agentHere: false, outsideHere: false, saved: "codex" };
+	it("Start lesson and a lesson's send start the picked agent, only when nothing is here, runs or starts", () => {
+		const base = { teacher: null, agentHere: false, outsideHere: false, picked: "codex" as const };
 		assert.equal(wakeAgent(base), "codex");
-		assert.equal(wakeAgent({ ...base, saved: null }), null, "never started in godspeed: the no-agent line offers Start");
-		assert.equal(wakeAgent({ ...base, saved: "other" }), null);
+		assert.equal(wakeAgent({ ...base, picked: null }), null, "never picked: the no-agent line offers Start");
 		assert.equal(wakeAgent({ ...base, agentHere: true }), null);
 		assert.equal(wakeAgent({ ...base, outsideHere: true }), null);
 		assert.equal(wakeAgent({ ...base, teacher: term() }), null, "one already runs or starts");

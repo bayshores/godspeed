@@ -50,6 +50,12 @@ describe("why a lesson's turn runs", () => {
 	});
 });
 
+describe("what a permission question is about", () => {
+	it("is the same kinds in the same order", () => {
+		assert.deepEqual(strings(ts("contracts/lesson-work"), "APPROVAL_SUBJECTS"), strings(rust("session/approval_card"), "APPROVAL_SUBJECTS"));
+	});
+});
+
 describe("a lesson title cut short", () => {
 	it("ends with the mark the lesson page looks for", () => {
 		assert.ok(rust("contracts/graph").includes(`format!("{}${TITLE_CUT}"`));

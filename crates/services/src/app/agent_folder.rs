@@ -92,9 +92,14 @@ pub(crate) fn start_command(app: &App, agent: FolderAgent) -> Option<String> {
 	start_commands(app).get(agent).map(str::to_owned)
 }
 
+/// The agent the learner picked to run the lessons, if they picked one.
+fn picked_agent(app: &App) -> Option<FolderAgent> {
+	read_state(app).get("agent").and_then(Json::as_str).and_then(FolderAgent::from_name)
+}
+
 /// The agent that runs the lessons: Claude Code until the learner picks Codex.
 pub fn folder_agent(app: &App) -> FolderAgent {
-	read_state(app).get("agent").and_then(Json::as_str).and_then(FolderAgent::from_name).unwrap_or(FolderAgent::Claude)
+	picked_agent(app).unwrap_or(FolderAgent::Claude)
 }
 
 /// The learner picked the agent that runs the lessons; the folder as it is now.
@@ -165,7 +170,8 @@ fn view_of(app: &App, folder: &str) -> Json {
 		"commands": { "claude": command(FolderAgent::Claude), "codex": command(FolderAgent::Codex) },
 		"startCommands": start_commands.to_json(),
 		"oldSetup": old.to_json(),
-		"agent": folder_agent(app).name(),
+		// Null until the learner picks one: the window starts no agent by itself before that.
+		"agent": picked_agent(app).map(FolderAgent::name),
 	})
 }
 
@@ -380,7 +386,7 @@ mod tests {
 		let root = scratch_dir("folder-agent");
 		let app = test_app(&root);
 		write_file_atomic(&state_file(&app), r#"{"agent":"gemini","noticeSeen":true}"#).unwrap();
-		assert_eq!((folder_agent(&app), agent_folder_view(&app)["agent"].as_str()), (FolderAgent::Claude, Some("claude")), "an agent godspeed can't run is Claude Code");
+		assert_eq!((folder_agent(&app), &agent_folder_view(&app)["agent"]), (FolderAgent::Claude, &Json::Null), "an agent godspeed can't run is Claude Code, and no pick to the window");
 		let view = set_folder_agent(&app, FolderAgent::Codex).unwrap();
 		assert_eq!((folder_agent(&app), view["agent"].as_str()), (FolderAgent::Codex, Some("codex")));
 		assert_eq!(std::fs::read_to_string(state_file(&app)).unwrap(), "{\n\t\"noticeSeen\": true,\n\t\"agent\": \"codex\"\n}\n");

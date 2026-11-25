@@ -84,8 +84,8 @@ export interface ServerEvents {
 	"vault-notes-changed": Record<string, never>;
 	/** The teacher's round of work began, gained a step or ended (GET /api/teacher-work). */
 	"teacher-work": Record<string, never>;
-	/** A lesson's running turn began, was taken, gained a step or a plan, or ended (GET /api/chats/{id}/work). */
-	"lesson-work": { chatId: string };
+	/** A lesson's running turn began, was taken, gained a step, a plan or a question to allow, or ended (GET /api/chats/{id}/work). `asking`: a question to allow waits. */
+	"lesson-work": { chatId: string; asking: boolean };
 	/** The teacher in godspeed's terminal finished answering the learner there ("done") or stopped to ask them something ("needs"). */
 	"agent-event": { kind: "done" | "needs" };
 	/** A deadline's cheat sheet or its agent request changed. */

@@ -1,7 +1,7 @@
 /**
  * What the teacher does in a lesson's running turn (GET /api/chats/{id}/work), for the lesson's
  * desk: why the turn runs, whether an agent took it, its plan, its steps in the server's words,
- * and the files on the desk.
+ * what it waits for the learner to allow, and the files on the desk.
  */
 import { isRecord } from "../is-record.ts";
 
@@ -39,6 +39,18 @@ interface DeskStep {
 	reads: DeskReading | null;
 }
 
+/** What a permission question is about, by name (`APPROVAL_SUBJECTS` in crates/core/src/session/approval_card.rs). */
+const APPROVAL_SUBJECTS = ["command", "file", "site", "search", "tool", "words"] as const;
+type ApprovalSubjectKind = (typeof APPROVAL_SUBJECTS)[number];
+
+/** A permission question the agent waits on, in the server's words: one sentence, and what it is
+ *  about as its own object. `id` is what the answer is posted to. */
+export interface WorkApproval {
+	id: string;
+	text: string;
+	subject: { kind: ApprovalSubjectKind; text: string } | null;
+}
+
 interface WorkPlan {
 	items: string[];
 	done: number;
@@ -53,11 +65,13 @@ export interface LessonWork {
 	plan: WorkPlan | null;
 	/** Oldest first. */
 	steps: DeskStep[];
+	/** Oldest first; gone once answered, or denied by Stop or the turn's end. */
+	approvals: WorkApproval[];
 	/** The stack, front first; sent with no turn too, so it is ready when one starts. */
 	files: DeskFile[];
 }
 
-export const NO_LESSON_WORK: LessonWork = { live: false, cause: null, taken: false, plan: null, steps: [], files: [] };
+export const NO_LESSON_WORK: LessonWork = { live: false, cause: null, taken: false, plan: null, steps: [], approvals: [], files: [] };
 
 const str = (v: unknown): v is string => typeof v === "string" && v !== "";
 const count = (v: unknown): number | null => (typeof v === "number" && Number.isInteger(v) && v > 0 ? v : null);
@@ -80,6 +94,14 @@ function readPlan(raw: unknown): WorkPlan | null {
 	return { items: raw.items, done: Math.max(0, Math.min(Math.trunc(raw.done), raw.items.length)) };
 }
 
+const isSubjectKind = (v: unknown): v is ApprovalSubjectKind => APPROVAL_SUBJECTS.includes(v as ApprovalSubjectKind);
+
+function readApproval(raw: unknown): WorkApproval | null {
+	if (!isRecord(raw) || !str(raw.id) || !str(raw.text)) return null;
+	const subject = isRecord(raw.subject) && isSubjectKind(raw.subject.kind) && str(raw.subject.text) ? { kind: raw.subject.kind, text: raw.subject.text } : null;
+	return { id: raw.id, text: raw.text, subject };
+}
+
 /** The answer made safe to use. */
 export function readLessonWork(raw: unknown): LessonWork {
 	if (!isRecord(raw)) return NO_LESSON_WORK;
@@ -88,5 +110,6 @@ export function readLessonWork(raw: unknown): LessonWork {
 	const steps = Array.isArray(raw.steps)
 		? raw.steps.flatMap((s): DeskStep[] => (isRecord(s) && str(s.id) && str(s.at) && str(s.text) ? [{ id: s.id, at: s.at, text: s.text, call: str(s.call) ? s.call : null, reads: readReading(s.reads) }] : []))
 		: [];
-	return { live: true, cause: isCause(raw.cause) ? raw.cause : null, taken: raw.taken === true, plan: readPlan(raw.plan), steps, files };
+	const approvals = Array.isArray(raw.approvals) ? raw.approvals.flatMap((a) => readApproval(a) ?? []) : [];
+	return { live: true, cause: isCause(raw.cause) ? raw.cause : null, taken: raw.taken === true, plan: readPlan(raw.plan), steps, approvals, files };
 }

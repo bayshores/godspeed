@@ -227,7 +227,7 @@ function AssistantPart({
 	switch (part.type) {
 		case "text": {
 			const sourceId = textPartMessageId(part.id);
-			return <ReplyPassage id={anchor && sourceId ? messageAnchorId(sourceId) : undefined} sourceId={sourceId ?? undefined} text={part.text ?? ""} page={page} streaming={streaming} landed={!!arrive(slot)} />;
+			return <ReplyPassage id={anchor && sourceId ? messageAnchorId(sourceId) : undefined} sourceId={sourceId ?? undefined} text={part.text ?? ""} page={page} streaming={streaming} />;
 		}
 		case "reasoning":
 			return (

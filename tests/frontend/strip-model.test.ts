@@ -9,13 +9,13 @@ import { dueSoon, keepReady, noticeCount, stripClick, stripView } from "../../sr
 
 const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [] };
 const teaching = { ...off, connected: true, teaching: true, name: "Claude Code" };
-const nothing = { agent: teaching, terminal: null, working: false, background: false, work: null, ready: [], panelOpen: false };
+const nothing = { agent: teaching, terminal: null, working: false, background: false, work: null, ready: [], asking: [], panelOpen: false };
 const helper = { doing: "Reading files", count: "6 of 17" };
 const counting = { id: "l1", title: "Counting" };
 
 describe("the strip at rest", () => {
 	it("marks nothing while nothing is live: a still square", () => {
-		assert.deepEqual(stripView(nothing), { square: "still", need: null, flag: null, rows: [] });
+		assert.deepEqual(stripView(nothing), { square: "still", need: null, ask: null, flag: null, rows: [] });
 	});
 
 	it("its square breathes while the teacher works, and is hollow while the teacher is off", () => {
@@ -37,11 +37,17 @@ describe("the strip at rest", () => {
 		assert.equal(stripView({ ...nothing, work: helper, working: true }).flag, null, "work under way waits for nobody");
 	});
 
+	it("says needs you while a lesson's teacher waits for the learner to allow something, also beside the open panel", () => {
+		const asks = stripView({ ...nothing, working: true, asking: ["l1", "l2"], ready: [counting] });
+		assert.deepEqual([asks.flag, asks.ask, asks.need, asks.square], ["needs you", "l1", null, "still"], "the oldest, and the teacher waits");
+		assert.equal(stripView({ ...nothing, asking: ["l1"], panelOpen: true }).flag, "needs you", "the panel's head does not say it");
+	});
+
 	it("beside the open panel it leaves out what the panel's head says", () => {
 		const open = stripView({ ...nothing, terminal: "needsYou", background: true, ready: [counting], panelOpen: true });
 		assert.deepEqual([open.need, open.flag], [null, "your turn"]);
 		assert.deepEqual(open.rows, [{ kind: "ready", lesson: counting }]);
-		assert.deepEqual(stripView({ ...nothing, background: true, panelOpen: true }), { square: "still", need: null, flag: null, rows: [] });
+		assert.deepEqual(stripView({ ...nothing, background: true, panelOpen: true }), { square: "still", need: null, ask: null, flag: null, rows: [] });
 	});
 });
 
@@ -68,12 +74,17 @@ describe("the peek's rows", () => {
 
 describe("a click on the strip", () => {
 	it("opens the teacher's panel, or closes it", () => {
-		assert.equal(stripClick(null, false), "open");
-		assert.equal(stripClick(null, true), "close");
+		assert.equal(stripClick(null, null, false), "open");
+		assert.equal(stripClick(null, null, true), "close");
 	});
 	it("shows the agent's screen that needs the learner", () => {
-		assert.deepEqual(stripClick("teacher", false), { show: "teacher" });
-		assert.deepEqual(stripClick("helper", false), { show: "helper" });
+		assert.deepEqual(stripClick("teacher", null, false), { show: "teacher" });
+		assert.deepEqual(stripClick("helper", null, false), { show: "helper" });
+	});
+	it("goes to the lesson that waits for the learner to allow something, after the teacher's own screen", () => {
+		assert.deepEqual(stripClick(null, "l1", true), { lesson: "l1" });
+		assert.deepEqual(stripClick("helper", "l1", false), { lesson: "l1" });
+		assert.deepEqual(stripClick("teacher", "l1", false), { show: "teacher" });
 	});
 });
 

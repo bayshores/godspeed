@@ -1,14 +1,14 @@
 /**
- * The godspeed folder as the server sees it (GET /api/agent-folder), read
- * once for the window. Every change goes through `post`, whose answer is
+ * The godspeed folder as the server sees it (GET /api/agent-folder), with the agent that runs the
+ * lessons, read once for the window. Every change goes through `post` or `pick`, whose answer is
  * the view every reader then shows.
  */
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import type { OldSetup } from "@/shared/core";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import type { FolderAgent, OldSetup } from "@/shared/core";
 import { useServerResource } from "@/frontend/components/use-server-resource";
 import type { FolderView } from "./agent-folder-model";
-import { postAgentFolder } from "./agent-folder-api";
+import { pickAgent, postAgentFolder, sendOldAgent } from "./agent-folder-api";
 
 interface FolderState {
 	/** null until read. */
@@ -17,6 +17,8 @@ interface FolderState {
 	reload: () => Promise<void>;
 	/** One action; its answer becomes the view. Throws the line to show. */
 	post: (body: object) => Promise<FolderView>;
+	/** The agent that runs the lessons, picked. Throws the line to show. */
+	pick: (agent: FolderAgent) => Promise<FolderView>;
 	/** What Remove took away, for the restart note; null until then. */
 	removed: OldSetup | null;
 	setRemoved: (setup: OldSetup) => void;
@@ -35,13 +37,24 @@ export function AgentFolderProvider({ children }: { children: ReactNode }) {
 		},
 		[update],
 	);
-	const value = useMemo(() => ({ view, reload, post, removed, setRemoved }), [view, reload, post, removed]);
+	const pick = useCallback(
+		async (agent: FolderAgent) => {
+			const next = await pickAgent(agent);
+			update(() => next);
+			return next;
+		},
+		[update],
+	);
+	useEffect(() => {
+		sendOldAgent(pick).catch((err: unknown) => console.error("[agent folder] the agent this window kept could not be sent:", err));
+	}, [pick]);
+	const value = useMemo(() => ({ view, reload, post, pick, removed, setRemoved }), [view, reload, post, pick, removed]);
 	return <FolderContext.Provider value={value}>{children}</FolderContext.Provider>;
 }
 
 /** Outside a provider (isolated renders, tests): nothing read, and posts
  *  that still reach the server. */
-const OUTSIDE: FolderState = { view: null, reload: async () => {}, post: postAgentFolder, removed: null, setRemoved: () => {} };
+const OUTSIDE: FolderState = { view: null, reload: async () => {}, post: postAgentFolder, pick: pickAgent, removed: null, setRemoved: () => {} };
 
 export function useAgentFolderView(): FolderState {
 	return useContext(FolderContext) ?? OUTSIDE;

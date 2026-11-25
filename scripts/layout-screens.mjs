@@ -1,4 +1,4 @@
-import { WAITING_TOPIC } from "./layout-seed.mjs";
+import { WAITING_TOPIC } from "./layout-lessons.mjs";
 
 /**
  * layout-screens.mjs — the screens `npm run layout` checks, in order.
@@ -6,7 +6,7 @@ import { WAITING_TOPIC } from "./layout-seed.mjs";
  * Every screen is checked at 1440, 1100 and 800 points wide, a lesson ("/chat/") at 1320 too
  * (widthsOf). A screen opens at `url`, waits for `ready`, runs `setup` in the page (clicks), then waits for
  * `shows`; a `teacher` line is handed to the stand-in teacher before `shows`, as if typed in its terminal
- * (layout-agent.mjs). `ready` and `shows` name something drawn from the screen's data, not its frame, so the
+ * (layout-agent.mjs), and `helper` asks the stand-in helper, holding a lesson's reply, to `read` files, `approve` a command it asks to run, or `stream` half a reply (layout-helper.mjs). `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `height` gives it a window higher than the
  * check's own. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
@@ -547,13 +547,30 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]").click()`,
 		shows: ".lh-reading:not(:has([data-testid=work-frame-open])) [data-testid=stop-turn]",
 	},
-	// The stand-in, holding that reply, reads a file of its own and a passage of the space's: the desk lists the steps and lifts the file.
+	// The stand-in helper, holding that reply, reads a file of its own and a passage of the space's: the desk lists the steps and lifts the file.
 	{
 		name: "Lesson whose reply the teacher works on, a file lifted",
 		url: "/chat/{pending}",
 		ready: deskUp,
-		teacher: "desk {space}",
+		helper: "read",
 		shows: "[data-testid=desk-stack] [data-lifted]",
+	},
+	// The helper asks to run a command: its card, with the command on a slip, waits under the desk's steps for Deny or Allow.
+	{
+		name: "Lesson whose turn waits for the learner to allow a command",
+		url: "/chat/{pending}",
+		ready: deskUp,
+		helper: "approve",
+		shows: "[data-testid=desk-approvals] [data-testid=approval-subject]",
+	},
+	// Allow is pressed, so the card goes; the helper then streams half a reply, and the desk stays under the words.
+	{
+		name: "Lesson whose reply is half written, the desk under it",
+		url: "/chat/{pending}",
+		ready: deskUp,
+		setup: `${whenThere("[data-testid=approval-allow]")}; document.querySelector("[data-testid=approval-allow]")?.click(); for (let n = 0; n < 100 && document.querySelector("[data-testid=approval-card]"); n++) ${pause}`,
+		helper: "stream",
+		shows: "[data-turn-wrote] [data-testid=agent-at-work]",
 	},
 	// Stop is pressed at the first width; the widths after it open the lesson already stopped.
 	{

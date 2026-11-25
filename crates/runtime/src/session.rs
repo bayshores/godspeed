@@ -183,11 +183,12 @@ impl Runtime {
 					Some(command) => ClaudeProgram::Command(command.clone()),
 					None => ClaudeProgram::Path(env.find("claude").await.ok_or(NO_CLAUDE)?.to_string_lossy().into_owned()),
 				};
+				let helper = helper_to_run(helper, debug_helper());
 				if !helper.is_file() {
 					return Err(format!("godspeed's Claude helper is missing: {}", helper.display()));
 				}
 				let node = env.find("node").await.ok_or(NO_NODE)?;
-				let started = spawn("claude helper", &Launch { program: node, args: vec![helper.into()] }, env.vars().await)?;
+				let started = spawn("claude helper", &Launch { program: node, args: vec![helper.into_os_string()] }, env.vars().await)?;
 				Ok(Connection::Claude(ClaudeConnection::start(started, program)))
 			}
 			#[cfg(any(test, feature = "fake"))]
@@ -197,6 +198,24 @@ impl Runtime {
 			}),
 		}
 	}
+}
+
+/// The helper `npm run layout` names in `LH_CLAUDE_HELPER`, so lessons play on a stand-in with no
+/// real agent. A release build never reads it: a variable in the learner's environment must not
+/// swap the helper that runs their agent.
+fn debug_helper() -> Option<OsString> {
+	#[cfg(debug_assertions)]
+	{
+		std::env::var_os("LH_CLAUDE_HELPER")
+	}
+	#[cfg(not(debug_assertions))]
+	{
+		None
+	}
+}
+
+fn helper_to_run(bundled: &Path, named: Option<OsString>) -> PathBuf {
+	named.filter(|file| !file.is_empty()).map_or_else(|| bundled.to_path_buf(), PathBuf::from)
 }
 
 const NO_CODEX: &str = "godspeed couldn't find Codex on this computer.";
@@ -286,5 +305,18 @@ impl Drop for Session {
 			Link::Codex(thread) => thread.close(),
 			Link::Claude(session) => session.close(),
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn a_named_helper_replaces_the_bundled_one() {
+		let bundled = Path::new("/app/agent/claude-helper.mjs");
+		assert_eq!(helper_to_run(bundled, None), bundled);
+		assert_eq!(helper_to_run(bundled, Some(OsString::new())), bundled);
+		assert_eq!(helper_to_run(bundled, Some("/lab/layout-helper.mjs".into())), Path::new("/lab/layout-helper.mjs"));
 	}
 }

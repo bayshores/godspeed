@@ -93,7 +93,7 @@ async fn the_agent_takes_its_lesson_s_desk_and_what_it_does_is_the_lesson_s_step
 	let words: Vec<&str> = now["steps"].items().iter().map(|s| s["text"].str_or_empty()).collect();
 	assert_eq!(words, ["Looking at CSE 29", "Searching the web for “pointers in c”"], "a read and its own tool are steps, a change is none");
 	assert_eq!(now["plan"], plan);
-	assert_eq!(now["approvals"], json!([{ "id": asked, "ask": { "kind": "tool", "name": "Bash", "input": { "command": "ls" } } }]));
+	assert_eq!(now["approvals"], json!([{ "id": asked, "text": "Teacher wants to run this command.", "subject": { "kind": "command", "text": "ls" } }]), "the card's words come from the server");
 	let read = now["steps"][0].clone();
 	assert_eq!(read["reads"], Json::Null);
 	assert!(!round_live(&app), "a lesson's turn starts no round");

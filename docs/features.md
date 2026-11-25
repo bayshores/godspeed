@@ -76,7 +76,9 @@ To add a row:
 | Open a cheat sheet | Deadline, a lesson | `deadline-cheat-sheet` | | learner | `space/deadline/:id/cheat-sheet` |
 | Cheat sheet beside a lesson | Lesson | `lesson-cheat-sheet` | Lesson with a quiz and the cheat sheet docked | learner | |
 | Write to the teacher in a lesson: a question, or while it writes, what to focus on | Lesson | `composer` | | learner | |
-| The desk: while the teacher writes, one sentence on what it does, its steps (its own web searches and file reads too) and the files it works from as a stack of paper | Lesson | `agent-at-work` | Lesson whose first reply waits for an agent | learner | |
+| The desk: while the teacher works on a reply, one sentence on what it does, its steps (its own web searches and file reads too) and the files it works from as a stack of paper | Lesson | `agent-at-work` | Lesson whose first reply waits for an agent | learner | |
+| The teacher's reply, written into the lesson as it comes, with Stop under it | Lesson | `composer` | | learner | |
+| Allow or Deny what the teacher wants to run (a command, a file change, a web page), on a card on the desk | Lesson | `agent-at-work` | Lesson whose first reply waits for an agent | teacher | |
 | Stuck keys | Lesson | `help-hint` | | learner | |
 | Answer a question with the keyboard | Lesson | `question-option` | | learner | `question-focus`, `question-next-row`, `question-prev-row`, `question-pick-row`, `question-submit`, `question-pick-number` |
 | Rename a lesson | Lesson | `lesson-title` | Lesson with a 40-letter title among five open spaces | learner | `rename-session` |

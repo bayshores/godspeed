@@ -21,6 +21,8 @@ export interface FolderView {
 	commands: Record<FolderAgent, string>;
 	startCommands: StartCommands;
 	oldSetup: OldSetup;
+	/** The agent the learner picked to run the lessons; null until they pick one (lessons run on Claude Code then). */
+	agent: FolderAgent | null;
 }
 
 /** A click on the button outside the desktop app: the folder is made,
@@ -56,11 +58,6 @@ export function logLines(launch: Launch, status: { connected: boolean; teaching:
 	lines.push({ text: `Started ${name}`, state: "done" });
 	lines.push(status.teaching ? { text: `${name} is teaching`, state: "done" } : { text: `Waiting for ${name} to start teaching…`, state: "wait" });
 	return lines;
-}
-
-/** The agent "Start Claude Code" starts: the last one started here, else Claude Code. */
-export function rememberedAgent(saved: string | null): FolderAgent {
-	return saved === "codex" ? "codex" : "claude";
 }
 
 /** What is left of the old setup, one entry each: `short` for Settings,

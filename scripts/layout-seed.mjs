@@ -3,20 +3,9 @@
  *
  * A small stand-in agent talks to the app over MCP, as Claude Code would: it makes the space
  * "Lab Algebra" with a deadline and one file, reads the file into ten facts that the stand-in sorts
- * into five linked topics, starts a lesson and
- * answers it with a plan, then a sourced reply and an open quiz. Four homework deadlines get a homework lesson
- * each: one has its problems posted and a problem open at part (b), one has its problems posted and a
- * teaching reply with no problem open, one has fourteen problems with the first done and none open, and
- * one has a printed worksheet as its assignment, with a problem open as the piece of its pages, at part (b).
- * A lesson on files works from a practice quiz of two pages and its answer key, which no deadline
- * has as its assignment: its problems are posted from their pages, the first is done and the second open.
- * Eight more lessons are studied (a plan of two steps, a quiz on the last one, answered) and two are
- * left open (a quiz on the first step, unanswered), so the Lessons block on Progress has both groups
- * and a Show all. Five more each stop at one state of "Your turn" with nothing to answer: the
- * teacher explained and asked nothing; a problem was concluded, which ended its topic; a quiz was
- * skipped and worked through; a problem was discarded; the plan's one topic ended, the last.
- * One more poses a practice problem longer than the window, still open. Their titles are of mixed length, one very long. One more lesson is made and
- * never sent: the window sends its first message, whose reply waits for an agent.
+ * into five linked topics, and starts the lessons. The lessons play on the stand-in helper
+ * (layout-helper.mjs, the lessons in layout-lessons.mjs); the seed starts them, says what the
+ * learner says to them and waits for their turns to end.
  * Four more deadlines, far off, carry the cheat sheet and mock pages: the midterm has a sheet of two
  * pages with its chat and one saved rule, and a graded mock followed by a ready one; the quiz has a
  * sheet with two versions and a paused mock; the review quiz has a mock being taken against the
@@ -30,16 +19,42 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
+import {
+	ASKED_FIRST,
+	ASKED_FIRST_TOPIC,
+	CODE_CHOICES_TOPIC,
+	CONCLUDED_TOPIC,
+	DISCARDED_TOPIC,
+	EXPLAINED_TOPIC,
+	FIRST_TOPIC,
+	HOMEWORK_FIRST,
+	HOMEWORK_MANY,
+	HOMEWORK_OPEN,
+	HOMEWORK_PRINTED,
+	LAST_TOPIC,
+	LONG_PROBLEM_TOPIC,
+	OPEN_TOPICS,
+	PROBLEM_FIRST_TOPIC,
+	QUIZ_FILE_NAMES,
+	SHEETLESS_TOPIC,
+	SKIPPED_TOPIC,
+	STUDIED_TOPICS,
+	TWO_SHEETS_TOPIC,
+	WAITING_TOPIC,
+	WRITTEN_TOPIC,
+} from "./layout-lessons.mjs";
 
 /** The made-up plugin that shows in a lesson and in a space, installed from this folder. */
 const PLUGIN_FOLDER = path.resolve(import.meta.dirname, "..", "tests", "fixtures", "plugins", "layout");
 
 const FIXTURES = path.resolve(import.meta.dirname, "..", "tests", "fixtures");
 
-const WEB_SOURCE = "[[https://example.com/lab-algebra/linear-equations]]";
 /** Every made-up name has letters that hang below the line (g, j, p, q, y), so the check for
  *  cut-off letters has something to catch. */
 const DEADLINE = "Pop quiz: graphing";
+/** The most work items a drain answers, and the most 250 ms waits for the lessons to end their turns. */
+const MOST_ITEMS = 80;
+const LESSON_POLLS = 480;
 /** Lab Algebra's facts by topic, so the Graph has topics that need and lead to others: Solving
  *  linear equations needs the first two and leads to the last two. */
 const LAB_TOPICS = [
@@ -65,117 +80,8 @@ const BACKEND_FACTS = [
 	["Status codes", "A 4xx status means the request was wrong; a 5xx status means the server failed."],
 	["Idempotent methods", "Sending a PUT or DELETE twice leaves the server as sending it once does."],
 ];
-/** Three homework deadlines, each worked in its own lesson ("Work on <name>"). */
-const HOMEWORK_OPEN = "Homework 3: graphing lines";
-const HOMEWORK_FIRST = "Homework 4: solving equations";
-const HOMEWORK_MANY = "Homework 5: graphing systems";
-/** A homework whose assignment is a printed worksheet: its problems show as pieces of its pages. */
-const HOMEWORK_PRINTED = "Homework 6: a printed worksheet";
+/** The printed worksheet that is Homework 6's assignment. */
 const WORKSHEET = path.resolve(import.meta.dirname, "..", "crates", "pdf", "tests", "fixtures", "worksheet.pdf");
-/** The worksheet's problems, pointed at by their first words; the second runs onto page 2. */
-const PRINTED_PROBLEMS = [
-	{ number: "1", title: "Flipping a coin", source: { page: 1, starts: "1. First problem" } },
-	{ number: "2", title: "A queue of lists", source: { page: 1, starts: "2. Second problem" } },
-	{ number: "3", title: "Counting handshakes", source: { page: 2, starts: "3. Third problem" } },
-];
-/** The lesson on files: a practice quiz and its answer key, its problems pointed at by their first
- *  words. Problem 2 ends where page 2's running title starts, so its cut leaves that title out. */
-const QUIZ_FILES = ["Graphing practice quiz.pdf", "Graphing practice quiz key.pdf"].map((name) => path.join(FIXTURES, name));
-const QUIZ_PROBLEMS = [
-	{ number: "1", title: "Slope through two points", source: { page: 1, starts: "1. Find the slope" } },
-	{ number: "2", title: "Graphing y = 2x - 3", source: { page: 1, starts: "2. Graph the line", ends: "Graphing practice quiz, continued" } },
-	{ number: "3", title: "Solve and check", source: { page: 2, starts: "3. Solve" } },
-	{ number: "4", title: "Taxi fares", source: { page: 2, starts: "4. A taxi" } },
-];
-
-/** More problems than a row names, numbered as an assignment might ("2a"). */
-const MANY_NUMBERS = ["1", "2a", "2b", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"];
-
-/** Lessons the Lessons block lists besides the first lesson and the homework ones. */
-const STUDIED_TOPICS = [
-	"Slope",
-	"Intercepts of a line",
-	"Solving two-step equations",
-	"Graphing systems of equations",
-	"Parallel and perpendicular lines",
-	"Word problems with one unknown, the kind that hides the equation in a story about trains",
-	"Absolute value",
-	"Reading a graph",
-];
-/** The lesson whose first reply waits for an agent; its address sends it (layout-screens.mjs). */
-export const WAITING_TOPIC = "Graphing two lines to find where they cross";
-/** A lesson whose question is answered in words, so "Your turn" holds a three-line box. */
-const WRITTEN_TOPIC = "Why undo in reverse";
-const WRITTEN_REPLY = {
-	text: "An equation is a balance: whatever you do to one side, you do to the other, so it stays true.\n\nTo solve 3x - 5 = 10, look at what was done to x: first it was multiplied by 3, then 5 was taken away. Undo those in reverse. Add 5 to both sides to get 3x = 15, then divide both sides by 3 to get x = 5.",
-	tool_calls: [{ name: "ask_user_question", arguments: { question: "In your own words, why do we undo the steps in reverse order?" } }],
-};
-const OPEN_TOPICS = ["Inequalities on a number line", "Slope-intercept form, with every kind of mistake people make while plotting by hand and reading the result back"];
-/** A lesson whose open practice problem is one part longer than the window. */
-/** A lesson whose first reply is a problem and no words, so "Your turn" stands alone. */
-const PROBLEM_FIRST_TOPIC = "Slope from two points";
-const PROBLEM_FIRST = "A line passes through $(1, 2)$ and $(4, 11)$.\n\n(a) Find its slope.\n\n(b) Write its equation in the form $y = mx + b$.";
-const LONG_PROBLEM_TOPIC = "Equations from a story";
-const LONG_PROBLEM = [
-	"Two trains leave stations 300 miles apart at noon and run toward each other on the same line. The first runs at a steady $x$ miles an hour. The second runs 15 miles an hour faster than the first, but it stops for half an hour at a town halfway along before it goes on at the same speed.",
-	"A dispatcher sees them pass each other at a quarter to three. She writes one equation for the distance the first train covers, one for the second, and sets their sum equal to the distance between the stations:",
-	"$$x \\cdot 2.75 + (x + 15)(2.75 - 0.5) = 300$$",
-	"Say what each piece of her equation stands for, in words, and why the second train's time is shorter than the first train's. Then solve for $x$, and give both trains' speeds.",
-	"Last, check your answer: put both speeds back into the story and work out how far each train has gone when they pass. Do the two distances add up to 300 miles? If they do not, find the step where the equation and the story stopped agreeing, and fix it.",
-].join("\n\n");
-
-/** Two lessons whose two steps each have a sheet in the lesson text. In the first both steps'
- *  questions are answered; in the second the learner asks something of their own while the last
- *  step's question is still open. */
-const TWO_SHEETS_TOPIC = "Two-step equations";
-const ASKED_FIRST_TOPIC = "Checking a solution";
-const ASKED_FIRST = "Why do I check it at all?";
-const SHEET_STEPS = [
-	{
-		text: "To solve $2x + 3 = 11$, undo what was done to $x$, last step first. Adding 3 came last, so subtract 3 from both sides: $2x = 8$.",
-		quiz: { type: "predict", nodeId: "first-step", question: "What is left to undo in $2x = 8$?", options: ["The multiplying by 2", "The adding of 3"], correctAnswer: "The multiplying by 2", explanation: "The 3 is gone, so only the 2 is left on $x$." },
-	},
-	{
-		text: "Your pick, the multiplying by 2, holds. Divide both sides by 2 and $x = 4$.\n\nNow the last step, the check: put the answer back into the equation you started from.",
-		quiz: { type: "check", nodeId: "last-step", question: "Which line checks $x = 4$ in $2x + 3 = 11$?", options: ["$2 \\cdot 4 + 3 = 11$", "$4 + 3 = 11$"], correctAnswer: "$2 \\cdot 4 + 3 = 11$", explanation: "The 4 goes where $x$ was, so it is still multiplied by 2." },
-	},
-];
-const SHEET_ENDS = {
-	answered: "Your pick, $2 \\cdot 4 + 3 = 11$, holds: 8 and 3 make 11, so $x = 4$ solves it.",
-	asked: "A check catches a slip in the steps. If the two sides do not come out equal, one of the steps was wrong, and you find it before anyone else does.",
-};
-/** A lesson whose question shows code and whose four choices are code blocks: more than the window holds. */
-const CODE_CHOICES_TOPIC = "A function that solves it";
-const fenced = (body) => "```js\nfunction solveLinear(a, b, c) {\n" + body + "\n}\n```";
-const CODE_CHOICES = [
-	fenced("\tconst left = c - b;\n\treturn left / a;"),
-	fenced("\tconst left = c + b;\n\treturn left / a;"),
-	fenced("\tconst left = c - b;\n\treturn left * a;"),
-	fenced("\tconst left = c / a;\n\treturn left - b;"),
-];
-const CODE_QUIZ = {
-	type: "check",
-	nodeId: "first-step",
-	question: "`solveLinear(a, b, c)` returns the number that solves the equation. It is called like this:\n\n```js\nsolveLinear(2, 3, 11); // 4\n```\n\nWhich version is correct?",
-	options: CODE_CHOICES.map((label) => ({ label, value: label })),
-	correctAnswer: CODE_CHOICES[0],
-	explanation: "Subtract b first, then divide by a.",
-};
-
-/** Lessons that each stop at one state of "Your turn" with nothing to answer: the teacher
- *  explained and asked nothing; a problem concluded, which ends its topic; a question skipped
- *  and answered; a problem discarded; the last topic ended. A quiz answered and its reply is a
- *  studied lesson's state. */
-const EXPLAINED_TOPIC = "Isolating the variable";
-const EXPLAINED = "To get $x$ alone in $4x - 1 = 7$, undo the subtraction first: add 1 to both sides to get $4x = 8$. Then undo the multiplying: divide both sides by 4, and $x = 2$.";
-const CONCLUDED_TOPIC = "Slope from a graph";
-const SKIPPED_TOPIC = "Equations with fractions";
-const DISCARDED_TOPIC = "Equations with variables on both sides";
-const LAST_TOPIC = "Checking by substitution";
-/** A plan of one step, so the topic its quiz ends is the last. */
-const ONE_STEP = "graph TD\n  only-step[Put it back]";
-/** The problem the concluded and the discarded lessons pose. */
-const STEP_PROBLEM = { nodeId: "first-step", statement: "Solve $3x + 2 = x + 10$ and check your answer.", mode: "recall", modelSolution: "2x = 8, so x = 4; 3(4) + 2 = 14 = 4 + 10." };
 
 /** Deadlines for the cheat sheet and mock pages, far off so Home stays as it was. */
 const MIDTERM = "Midterm: graphing and systems";
@@ -223,23 +129,6 @@ const MOCK_GRADES = [
 	{ question: "q2", verdict: "partly", feedback: "The formula is right, but it returns a decimal when $c - b$ is not a multiple of $a$, for example `solveLinear(2, 1, 4)`. Say what your function should do then, or round on purpose." },
 ];
 
-const HOMEWORK_PROBLEMS = {
-	[HOMEWORK_OPEN]: [
-		{
-			number: "1",
-			title: "Solve three equations",
-			text: "Solve each equation.\n\n(a) $2x + 3 = 11$, then put your answer back into the equation and say why both sides now agree\n\n(b) $\\frac{x}{3} - 4 = 2$\n\n(c) Solve for $x$ and graph both sides as lines:\n\n$$5 - 2x = -7$$",
-			page: 1,
-		},
-		{ number: "2", title: "Graph a line", text: "Graph $y = 2x + 3$ and mark where it crosses the axes.", page: 2 },
-	],
-	[HOMEWORK_FIRST]: [
-		{ number: "1", title: "Undo each step", text: "Solve $5x - 7 = 18$ and say what you undid first.", page: 1 },
-		{ number: "2", title: "Check by graphing", text: "Graph $y = 5x - 7$ and $y = 18$ and read off the crossing.", page: 1 },
-	],
-	[HOMEWORK_MANY]: MANY_NUMBERS.map((number) => ({ number, title: `Graph system ${number}`, text: `Graph the pair of lines in system ${number} and say where they cross.`, page: 1 })),
-};
-
 /** The stand-in agent: tool calls to the app's MCP endpoint, each logged when sent and answered. */
 function standIn(dataDir, log) {
 	const { url } = JSON.parse(fs.readFileSync(path.join(dataDir, "mcp-endpoint.json"), "utf8"));
@@ -269,121 +158,17 @@ function standIn(dataDir, log) {
 	return { init: () => rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "layout-stand-in", version: "1" } }), call, json };
 }
 
-/** How the server's refusal of a card tagged past an unasked plan step reads. */
-export const PLAN_ORDER_SENT_BACK = "comes first and nothing in this lesson asked it";
-
 /** What a work item is for. A long item comes in pages and its first page is cut text, but its
- *  JSON starts with these fields, so they are read off the text. `text` is the whole item. */
+ *  JSON starts with this field, so it is read off the text. `text` is the whole item. */
 export function workOf(text) {
 	const field = (name) => new RegExp(`"${name}":"([^"\\\\]+)"`).exec(text)?.[1];
-	return { lessonId: field("lessonId"), task: field("task"), text };
+	return { task: field("task"), text };
 }
 
 /** The day `days` from now on this computer's calendar, as YYYY-MM-DD. */
 function inDays(days) {
 	const day = new Date(Date.now() + days * 86_400_000);
 	return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
-}
-
-/** The homework lessons' replies; a tool that does not end the turn is followed by a turn with its
- *  result. The first lesson posts its problems and opens problem 1; after the learner says which
- *  part they start, it marks part (b) and says so. The second posts its problems, then teaches the
- *  method first, with no problem open. */
-function homeworkAnswer(work, ids, lessonTurn) {
-	if (work.lessonId === ids.homeworkOpen) {
-		if (lessonTurn === 0) {
-			return {
-				tool_calls: [
-					{ name: "post_problems", arguments: { problems: HOMEWORK_PROBLEMS[HOMEWORK_OPEN] } },
-					{ name: "problem", arguments: { number: "1", statement: HOMEWORK_PROBLEMS[HOMEWORK_OPEN][0].text } },
-				],
-			};
-		}
-		if (lessonTurn === 1) return { tool_calls: [{ name: "part", arguments: { part: "b" } }] };
-		return { text: "Part (b) it is. Undo the subtraction first." };
-	}
-	if (work.lessonId === ids.homeworkFirst) {
-		if (lessonTurn === 0) return { tool_calls: [{ name: "post_problems", arguments: { problems: HOMEWORK_PROBLEMS[HOMEWORK_FIRST] } }] };
-		return { text: "Before problem 1, here is the method. To solve $3x + 4 = 19$, undo each step in reverse: subtract 4 from both sides to get $3x = 15$, then divide both sides by 3 to get $x = 5$." };
-	}
-	// Posts the worksheet's problems by where they are printed and opens the second; after the
-	// learner says which part they start, marks part (b).
-	if (work.lessonId === ids.homeworkPrinted) {
-		if (lessonTurn === 0) return { tool_calls: [{ name: "post_problems", arguments: { problems: PRINTED_PROBLEMS } }, { name: "problem", arguments: { number: "2" } }] };
-		if (lessonTurn === 1) return { tool_calls: [{ name: "part", arguments: { part: "b" } }] };
-		return { text: "Part (b) it is. What does the loop change each time around?" };
-	}
-	// The lesson on files writes its plan and posts the quiz's problems from its pages, then opens
-	// the first; after the learner's answer it closes it solved, then opens the second.
-	if (work.lessonId === ids.filesLesson) {
-		const pose = (number, nodeId, modelSolution) => ({ name: "problem", arguments: { number, nodeId, mode: "recall", modelSolution } });
-		if (lessonTurn === 0) return { text: "Here is the plan.", tool_calls: [{ name: "plan_init", arguments: { mermaid: "graph TD\n  slope[Slope] --> graph-a-line[Graph a line]" } }, { name: "post_problems", arguments: { problems: QUIZ_PROBLEMS } }] };
-		if (lessonTurn === 1) return { tool_calls: [pose("1", "slope", "(11 - 2) / (4 - 1) = 3.")] };
-		if (lessonTurn === 2) return { tool_calls: [{ name: "conclude", arguments: { outcome: "solved", verdict: "Slope 3: up 9 over 3 steps, as you found.", rung: null, missClass: null, retest: false } }] };
-		if (lessonTurn === 3) return { tool_calls: [pose("2", "graph-a-line", "(a) (0, -3). (b) (2, 1). (c) No: 2 times 3 minus 3 is 3.")] };
-		return null;
-	}
-	// Posts its problems and opens the first; after the learner's answer, closes it solved.
-	if (work.lessonId === ids.homeworkMany) {
-		if (lessonTurn === 0) {
-			return {
-				tool_calls: [
-					{ name: "post_problems", arguments: { problems: HOMEWORK_PROBLEMS[HOMEWORK_MANY] } },
-					{ name: "problem", arguments: { number: "1", statement: HOMEWORK_PROBLEMS[HOMEWORK_MANY][0].text } },
-				],
-			};
-		}
-		if (lessonTurn === 1) return { tool_calls: [{ name: "conclude", arguments: { outcome: "solved", verdict: "Both lines cross at (2, 7), as you found." } }] };
-		return { text: "That's the crossing. Pick any problem next." };
-	}
-	return null;
-}
-
-/** The two-step lessons: turn 0 writes the plan, turn 1 quizzes a step (the last for a studied
- *  lesson, the first for an open one), and turn 2, after the learner answered, is a closing line. */
-function shortLessonAnswer(lessonTurn, studied) {
-	if (lessonTurn === 0) return { text: "Here is the plan.", tool_calls: [{ name: "plan_init", arguments: { mermaid: "graph TD\n  first-step[First step] --> last-step[Last step]" } }] };
-	if (lessonTurn === 1) {
-		const options = [{ label: "4", value: "4" }, { label: "7", value: "7" }];
-		const quiz = { type: "check", nodeId: studied ? "last-step" : "first-step", question: "What is x when x + 3 = 7?", options, explanation: "Subtract 3 from both sides.", correctAnswer: "4" };
-		return { text: "Try this one.", tool_calls: [{ name: "quiz", arguments: quiz }] };
-	}
-	return { text: "That is right." };
-}
-
-
-/** The sheet lessons: turn 0 writes the plan, turn 1 teaches the first step and asks about it,
- *  turn 2, after that answer, asks about the last step. Turn 3 closes it: after the last answer,
- *  or, where the learner asked something first (`asked`), with that question's answer. */
-function sheetLessonAnswer(lessonTurn, asked) {
-	if (lessonTurn === 0) return shortLessonAnswer(0, false);
-	const step = SHEET_STEPS[lessonTurn - 1];
-	if (!step) return { text: asked ? SHEET_ENDS.asked : SHEET_ENDS.answered };
-	return { text: step.text, tool_calls: [{ name: "quiz", arguments: { ...step.quiz, options: step.quiz.options.map((label) => ({ label, value: label })) } }] };
-}
-
-/** The lessons that stop at a state of "Your turn". Each writes the plan first; then the
- *  explained one only teaches; the concluded one poses a problem, concludes it solved after the
- *  learner's answer and ends the topic; the skipped one asks a quiz and, after the skip, works it
- *  through; the discarded one poses a problem the learner drops; the last-topic one quizzes its one
- *  step and, after the right answer, ends it. */
-function turnStateAnswer(work, ids, lessonTurn) {
-	const plan = (mermaid) => ({ text: "Here is the plan.", tool_calls: [{ name: "plan_init", arguments: { mermaid } }] });
-	const twoSteps = "graph TD\n  first-step[First step] --> last-step[Last step]";
-	const quiz = (nodeId) => ({ type: "check", nodeId, question: "What is x when 3x = 12?", options: [{ label: "4", value: "4" }, { label: "9", value: "9" }], explanation: "Divide both sides by 3.", correctAnswer: "4" });
-	const turns = {
-		[ids.explained]: [plan(twoSteps), { text: EXPLAINED }],
-		[ids.concluded]: [
-			plan(twoSteps),
-			{ text: "Try this one.", tool_calls: [{ name: "problem", arguments: STEP_PROBLEM }] },
-			{ tool_calls: [{ name: "conclude", arguments: { outcome: "solved", verdict: "x = 4, and your check holds: both sides are 14.", rung: null, missClass: null, retest: false } }] },
-			{ tool_calls: [{ name: "topic_done", arguments: { nodeId: "first-step" } }] },
-		],
-		[ids.skipped]: [plan(twoSteps), { text: "Try this one.", tool_calls: [{ name: "quiz", arguments: quiz("first-step") }] }, { text: "Here it is worked through: divide both sides of $3x = 12$ by 3, and $x = 4$." }],
-		[ids.discarded]: [plan(twoSteps), { text: "Try this one.", tool_calls: [{ name: "problem", arguments: STEP_PROBLEM }] }],
-		[ids.lastTopic]: [plan(ONE_STEP), { text: "Put your answer back into the equation to check it.", tool_calls: [{ name: "quiz", arguments: quiz("only-step") }] }, { tool_calls: [{ name: "topic_done", arguments: { nodeId: "only-step" } }] }],
-	};
-	return turns[work.lessonId]?.[lessonTurn] ?? null;
 }
 
 /** The answer to a cheat sheet request. The PDF is copied into the sheet's working folder, which
@@ -399,34 +184,8 @@ function sheetAnswer(work, ids) {
 	return { tool_calls: [{ name: "sheet_reply", arguments: { ...reply, text: reply.text.replace("PASSAGE", ids.passage), pdf_path: "sheet.pdf" } }] };
 }
 
-/** The stand-in's answer to a work item, or null for one it does not expect. The lesson's first
- *  turn presents the plan; its second, after the plan's result, is the sourced reply with an open
- *  quiz, so the reply ends the reading pane. */
-function answerFor(work, ids, lessonTurn) {
-	const scripted = homeworkAnswer(work, ids, lessonTurn) ?? turnStateAnswer(work, ids, lessonTurn);
-	if (scripted) return scripted;
-	if (work.lessonId === ids.written) return WRITTEN_REPLY;
-	// The lesson is made last, so until then no id is here to match work that has no lesson.
-	if (ids.sheetless && work.lessonId === ids.sheetless) return { text: "A pull request asks to merge one branch into another." };
-	if (ids.studied.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, true);
-	if (ids.open.includes(work.lessonId)) return shortLessonAnswer(lessonTurn, false);
-	if (work.lessonId === ids.twoSheets) return sheetLessonAnswer(lessonTurn, false);
-	if (work.lessonId === ids.askedFirst) return sheetLessonAnswer(lessonTurn, true);
-	if (work.lessonId === ids.codeChoices) {
-		if (lessonTurn === 0) return shortLessonAnswer(0, false);
-		if (lessonTurn === 1) return { text: "Here is the function from your notes, written four ways.", tool_calls: [{ name: "quiz", arguments: CODE_QUIZ }] };
-	}
-	if (work.lessonId === ids.problemFirst) {
-		if (lessonTurn === 0) return { tool_calls: [{ name: "plan_init", arguments: { mermaid: "graph TD\n  first-step[First step] --> last-step[Last step]" } }] };
-		if (lessonTurn === 1) return { tool_calls: [{ name: "problem", arguments: { nodeId: "first-step", statement: PROBLEM_FIRST, mode: "recall", modelSolution: "(a) (11 - 2) / (4 - 1) = 3. (b) 2 = 3(1) + b, so b = -1: y = 3x - 1." } }] };
-	}
-	if (work.lessonId === ids.longProblem) {
-		if (lessonTurn === 0) return shortLessonAnswer(0, false);
-		if (lessonTurn === 1) {
-			const problem = { nodeId: "first-step", statement: LONG_PROBLEM, mode: "composition", modelSolution: "2.75x + 2.25(x + 15) = 300, so 5x = 266.25 and x = 53.25: 53.25 and 68.25 miles an hour." };
-			return { text: "Try this one.", tool_calls: [{ name: "problem", arguments: problem }] };
-		}
-	}
+/** The stand-in's answer to a work item, or null for one it does not expect. */
+function answerFor(work, ids) {
 	if (work.task?.startsWith("Cheat sheet: ")) return sheetAnswer(work, ids);
 	if (/^Mock \d+: questions$/.test(work.task ?? "")) return { tool_calls: [{ name: "write_mock_questions", arguments: { questions: MOCK_QUESTIONS } }] };
 	if (/^Mock \d+: grading$/.test(work.task ?? "")) return { tool_calls: [{ name: "grade_mock", arguments: { grades: MOCK_GRADES } }] };
@@ -440,30 +199,6 @@ function answerFor(work, ids, lessonTurn) {
 		const ids = new Map([...work.text.matchAll(/(n_[0-9a-z]+) \| ([^|]+?) \|/g)].map((m) => [m[2], m[1]]));
 		const topics = LAB_TOPICS.map((t) => ({ name: t.name, material: t.material, members: t.facts.map(([name]) => ids.get(name)).filter(Boolean) }));
 		return { tool_calls: [{ name: "submit_topics", arguments: { topics } }] };
-	}
-	if (work.lessonId === ids.lesson && lessonTurn === 0) {
-		return {
-			text: "Here is the plan.",
-			tool_calls: [{ name: "plan_init", arguments: { mermaid: "graph TD\n  read-equation[Read the equation] --> undo-adding[Undo adding] --> undo-multiplying[Undo multiplying] --> check-by-graphing[Check by graphing] --> word-problems[Word problems]" } }],
-		};
-	}
-	if (work.lessonId === ids.lesson && lessonTurn === 1) {
-		return {
-			text: `To solve 2x + 3 = 11, undo each step in reverse: subtract 3 from both sides, then divide by 2. [[${ids.passage}]] Graphing y = 2x + 3 shows the same answer. ${WEB_SOURCE}`,
-			tool_calls: [
-				{
-					name: "quiz",
-					arguments: {
-						type: "predict",
-						nodeId: "undo-adding",
-						question: "What is x when 2x + 3 = 11?",
-						options: [{ label: "4", value: "4" }, { label: "7", value: "7" }, { label: "5.5", value: "5.5" }],
-						explanation: "Subtract 3 to get 2x = 8, then divide by 2.",
-						correctAnswer: "4",
-					},
-				},
-			],
-		};
 	}
 	// godspeed's own check of the space, a background job: it links the file to the deadline.
 	if (work.task?.startsWith("Check: ")) {
@@ -498,6 +233,7 @@ export async function seed(dataDir, page, log) {
 	const vault = listVaults(dataDir);
 	const agent = standIn(dataDir, log);
 	await agent.init();
+	const helperDir = path.join(dataDir, "..", "helper");
 	const date = inDays(3);
 	const { space } = await agent.json("create_space", {
 		name: "Lab Algebra",
@@ -520,7 +256,6 @@ export async function seed(dataDir, page, log) {
 		],
 	});
 	await agent.call("add_space_file", { space_id: space.id, kind: "study", name: "Graphing quiz prep.md", text: "# Solving by graphing\n\nTo solve ax + b = c, subtract b from both sides, then divide by a. Graphing y = ax + b and y = c gives the same x where the lines cross." });
-	const { lessonId } = await agent.json("start_lesson", { topic: "Solving linear equations by graphing", space_id: space.id });
 	await page.fetch("/api/plugins", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ from: "folder", folder: PLUGIN_FOLDER }) });
 	fs.writeFileSync(path.join(dataDir, "plugins", "flashcards", ".source.json"), JSON.stringify({ repo: "example/flashcards", tag: "v1.0.0" }));
 
@@ -532,6 +267,9 @@ export async function seed(dataDir, page, log) {
 		if (!passage) await new Promise((done) => setTimeout(done, 300));
 	}
 	await agent.call("read_passage", { space_id: space.id, passage_id: passage });
+	// The first lesson cites it, so the stand-in helper is told it before any lesson starts.
+	fs.writeFileSync(path.join(helperDir, "passage"), passage);
+	const { lessonId } = await agent.json("start_lesson", { topic: FIRST_TOPIC, space_id: space.id });
 
 	// Each homework deadline gets a lesson, as Work on does, and the window's own Continue wakes the teacher.
 	const { deadlines: all } = await agent.json("read_space", { space_id: space.id });
@@ -563,7 +301,7 @@ export async function seed(dataDir, page, log) {
 	const homeworkMany = await homeworkLesson(HOMEWORK_MANY);
 	// The lesson on files starts as the teacher's start_lesson starts one, on the quiz with its key.
 	const quizFiles = [];
-	for (const file of QUIZ_FILES) quizFiles.push((await agent.json("add_space_file", { space_id: space.id, kind: "info", path: file })).file.id);
+	for (const name of QUIZ_FILE_NAMES) quizFiles.push((await agent.json("add_space_file", { space_id: space.id, kind: "info", path: path.join(FIXTURES, name) })).file.id);
 	const filesLesson = (await agent.json("start_lesson", { space_id: space.id, file_ids: quizFiles })).lessonId;
 	const written = (await agent.json("start_lesson", { topic: WRITTEN_TOPIC, space_id: space.id })).lessonId;
 	const startLesson = async (topic) => (await agent.json("start_lesson", { topic, space_id: space.id })).lessonId;
@@ -578,22 +316,19 @@ export async function seed(dataDir, page, log) {
 	const codeChoices = await startLesson(CODE_CHOICES_TOPIC);
 	const turnStates = { explained: await startLesson(EXPLAINED_TOPIC), concluded: await startLesson(CONCLUDED_TOPIC), skipped: await startLesson(SKIPPED_TOPIC), discarded: await startLesson(DISCARDED_TOPIC), lastTopic: await startLesson(LAST_TOPIC) };
 
-	// Answer every item until the queue stays empty for two teacher and two helper waits in a row. A respond answers with the
-	// next item when one waits. godspeed's own jobs (the space check) go to a helper, so an empty
-	// wait hands over to the other kind; a wait that brought work asks as the same kind again, so
-	// a row of lessons never sits behind a helper's empty wait.
+	/** Every lesson made, so the seed can wait for their turns to end. */
+	const lessonIds = [lessonId, homeworkOpen, homeworkPrinted, homeworkFirst, homeworkMany, filesLesson, written, ...studied, ...open, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, ...Object.values(turnStates)];
+
+	// Answer every item until the queue stays empty for two teacher and two helper waits in a row.
+	// godspeed's own jobs (the graph, the space check, sheets and mocks) are work items; an empty
+	// wait hands over to the other kind, and a wait that brought work asks as the same kind again.
 	let helper = false;
 	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(helper ? { helper: true } : {}) });
-	const turns = new Map();
-	const asked = new Map();
-	const resent = new Map();
-	const ids = { lesson: lessonId, passage, space: space.id, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, studied, open, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, ...turnStates };
+	const ids = { passage, space: space.id, deadline: deadlineNamed(DEADLINE) };
 	const drain = async () => {
 		let reply = await wait();
 		for (let idle = 0, tries = 0; idle < 4; tries++) {
-			// Each added lesson is two items, a study lesson three (its card is sent back once), and an
-			// item is two passes: the work, then its "turn done".
-			if (tries > 20 + 4 * (open.length + 7) + 6 * (studied.length + Object.keys(turnStates).length)) throw new Error("the stand-in agent never ran out of work");
+			if (tries > MOST_ITEMS) throw new Error("the stand-in agent never ran out of work");
 			const header = JSON.parse(reply[0]);
 			if (header.status !== "work") {
 				if (header.status === "idle") helper = !helper;
@@ -605,21 +340,28 @@ export async function seed(dataDir, page, log) {
 			const texts = [...reply];
 			for (let n = 2; n <= (header.pages ?? 1); n++) texts.push(...(await agent.call("read_work", { work_id: header.workId, page: n })));
 			const work = workOf(texts.slice(header.pages > 1 ? 1 : 0).join(""));
-			const turn = turns.get(work.lessonId) ?? 0;
-			// A card tagged past a plan step the lesson never asked comes back once; the same card
-			// sent again goes through, so the stand-in sends it again, without its text.
-			const sentBack = work.text.includes(PLAN_ORDER_SENT_BACK) && resent.get(work.lessonId) !== turn ? asked.get(work.lessonId) : undefined;
-			if (sentBack) resent.set(work.lessonId, turn);
-			const answer = sentBack ? { tool_calls: sentBack.tool_calls } : answerFor(work, ids, turn);
-			if (work.lessonId && !sentBack) {
-				turns.set(work.lessonId, turn + 1);
-				asked.set(work.lessonId, answer);
-			}
-			if (!answer) throw new Error(`the stand-in agent got work it does not expect: ${work.task ?? work.lessonId}`);
+			const answer = answerFor(work, ids);
+			if (!answer) throw new Error(`the stand-in agent got work it does not expect: ${work.task}`);
 			reply = await agent.call("respond", { work_id: header.workId, ...answer, wait_seconds: 0 });
 		}
 	};
-	await drain();
+	/** Waits until no lesson's turn runs. A turn that failed is an error here, not a lesson that stays blank. */
+	const lessonsIdle = async () => {
+		for (let tries = 0, quiet = 0; quiet < 2; tries++) {
+			if (tries > LESSON_POLLS) throw new Error("a lesson's turn never ended");
+			const chats = await Promise.all(lessonIds.map((id) => page.json(`/api/chats/${id}`)));
+			const failed = chats.find((chat) => chat.turnError);
+			if (failed) throw new Error(`a lesson's turn failed: ${failed.turnError}`);
+			quiet = chats.some((chat) => chat.turnInFlight) ? 0 : quiet + 1;
+			await new Promise((done) => setTimeout(done, 250));
+		}
+	};
+	/** The jobs and the lessons run side by side; both are done when this returns. */
+	const settle = async () => {
+		await drain();
+		await lessonsIdle();
+	};
+	await settle();
 	// The learner says which part they start; the teacher marks it.
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkOpen, input: { type: "text", text: "I am starting part (b)." } }) });
 	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkMany, input: { type: "text", text: "They cross at (2, 7)." } }) });
@@ -649,7 +391,7 @@ export async function seed(dataDir, page, log) {
 	// The learner answers each studied lesson's quiz right, and the teacher closes the lesson. The
 	// sheet lessons' first step is answered too, and their teacher asks about the last.
 	for (const chatId of [...studied, twoSheets, askedFirst]) await answerQuiz(chatId);
-	await drain();
+	await settle();
 	const send = (url, body) => page.fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 	const midterm = deadlineNamed(MIDTERM);
 	const quiz = deadlineNamed(QUIZ);
@@ -666,7 +408,7 @@ export async function seed(dataDir, page, log) {
 	// One sheet lesson's last step is answered; in the other the learner asks first and its question stays open.
 	await answerQuiz(twoSheets);
 	await say(askedFirst, { type: "side", text: ASKED_FIRST });
-	await drain();
+	await settle();
 	// The quiz's sheet is changed once, so it has two versions.
 	await send(sheetOf(quiz), { action: "ask", text: SHEET_ASKS.short });
 	// The midterm's mock is taken (paused once), ended with one question left blank, and graded.
@@ -697,9 +439,9 @@ export async function seed(dataDir, page, log) {
 	const goal = await agent.json("create_space", { name: "Backend jobs", icon: "code", path: { goal: "backend developer jobs", topics: steps.map((name) => ({ name, covers: covers(name) })) } });
 	await agent.call("add_space_file", { space_id: goal.space.id, kind: "study", name: BACKEND_FILE, text: "# HTTP basics\n\nA 4xx status means the request was wrong; a 5xx status means the server failed. PUT and DELETE are idempotent." });
 	// A lesson in the space with no deadline: its cheat sheet column has no sheet to show.
-	const sheetless = (await agent.json("start_lesson", { topic: "Git and pull requests", space_id: goal.space.id })).lessonId;
-	ids.sheetless = sheetless;
-	await drain();
+	const sheetless = (await agent.json("start_lesson", { topic: SHEETLESS_TOPIC, space_id: goal.space.id })).lessonId;
+	lessonIds.push(sheetless);
+	await settle();
 	// Lab Algebra's facts are sorted into topics a while after the last file is read; the stand-in answers that too.
 	for (let tries = 0; ; tries++) {
 		const { topics } = await page.json(`/api/progress?space=${space.id}&today=${inDays(0)}`);

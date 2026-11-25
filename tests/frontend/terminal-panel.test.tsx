@@ -28,13 +28,14 @@ const { useTeacherPanel } = await import("../../src/frontend/components/teacher/
 const { panelBody, shownScreen } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { NoAgentLine } = await import("../../src/frontend/components/agent-folder/no-agent-line.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
+const { AgentFolderProvider } = await import("../../src/frontend/components/agent-folder/agent-folder-context.tsx");
 const { TerminalWindow } = await import("../../src/frontend/components/terminal/terminal-window.tsx");
 const { FirstRunScreen } = await import("../../src/frontend/components/terminal/first-run-screen.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 
 const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [], terminals: [], outsideHere: false, ...over });
 const teacher = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", role: "teacher", agent: "claude", startedAt: Date.now(), ended: null, prompt: null, url: false, ...over });
-const FOLDER = { folder: "/home/ada/godspeed", short: "~/godspeed", exists: true, commands: { claude: "claude", codex: "codex" }, startCommands: {}, oldSetup: { plugin: false, codex: false } };
+const FOLDER = { folder: "/home/ada/godspeed", short: "~/godspeed", exists: true, commands: { claude: "claude", codex: "codex" }, startCommands: {}, oldSetup: { plugin: false, codex: false }, agent: "claude" as string | null };
 
 const realFetch = globalThis.fetch;
 const stored = new Map<string, string>();
@@ -44,8 +45,13 @@ beforeEach(() => {
 		configurable: true,
 		value: { getItem: (k: string) => stored.get(k) ?? null, setItem: (k: string, v: string) => void stored.set(k, v), removeItem: (k: string) => void stored.delete(k) },
 	});
-	// The Activity list asks for the open space's graph costs: none here.
-	globalThis.fetch = (async (url: string) => (url.startsWith("/api/graph/costs") ? new Response(null, { status: 404 }) : Response.json(FOLDER))) as unknown as typeof fetch;
+	// The Activity list asks for the open space's graph costs: none here. The folder keeps the agent a pick (PATCH) sends.
+	let folder = FOLDER;
+	globalThis.fetch = (async (url: string, init?: RequestInit) => {
+		if (url.startsWith("/api/graph/costs")) return new Response(null, { status: 404 });
+		if (init?.method === "PATCH") folder = { ...folder, agent: JSON.parse(String(init.body)).agent };
+		return Response.json(folder);
+	}) as unknown as typeof fetch;
 });
 afterEach(() => {
 	globalThis.fetch = realFetch;
@@ -145,9 +151,11 @@ async function mounted(status: Access, run: (render: (s: Access, extra?: React.R
 			root.render(
 				<MemoryRouter>
 					<ServerEventsProvider connect={noEvents as never}>
-						<TerminalsProvider status={s}>
-							<PanelHost>{more}</PanelHost>
-						</TerminalsProvider>
+						<AgentFolderProvider>
+							<TerminalsProvider status={s}>
+								<PanelHost>{more}</PanelHost>
+							</TerminalsProvider>
+						</AgentFolderProvider>
 					</ServerEventsProvider>
 				</MemoryRouter>,
 			),
@@ -487,13 +495,15 @@ describe("the screens", () => {
 		const wasWidth = dom.window.innerWidth;
 		Object.assign(dom.window, { innerWidth: 1440 });
 		try {
+			// An older godspeed kept it in the window: it goes to the server, which keeps it from then on.
 			stored.set("lh-folder-agent", "codex");
 			await mounted(access(), async () => {
+				assert.equal(stored.get("lh-folder-agent"), undefined, "the window no longer keeps it");
 				await click("open-terminal");
 				assert.equal(text("terminal-none"), "Ada's screen shows here.Start CodexUse another agent");
 				assert.ok(!/not connected/i.test(text("terminal-none") ?? ""), "the status line says that");
 				assert.equal(q("teacher-panel")?.style.width, "620px");
-				assert.equal(q("open-agent")?.textContent, "Start Codex", "the agent last started here");
+				assert.equal(q("open-agent")?.textContent, "Start Codex", "the server's agent");
 				await click("open-agent");
 				assert.ok(shell.calls.includes("start teacher codex"));
 				assert.equal(q("teacher-panel")?.style.width, "620px", "its screen shows in the same panel");
@@ -544,7 +554,6 @@ describe("the screens", () => {
 			await mounted(
 				access(),
 				async () => {
-					stored.set("lh-folder-agent", "claude");
 					await act(async () => wake!());
 					await settle();
 					assert.ok(shell.calls.includes("start teacher claude"), "woke the teacher");

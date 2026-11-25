@@ -72,6 +72,8 @@ interface StripView {
 	square: Square;
 	/** The agent's screen that waits for the learner, the teacher's first. */
 	need: TerminalRole | null;
+	/** The lesson whose teacher waits for the learner to allow something. */
+	ask: string | null;
 	/** What waits for the learner first, on the highlighter. */
 	flag: Flag | null;
 	/** First what waits for the learner, then what works. */
@@ -92,9 +94,12 @@ export function stripView(i: {
 	background: boolean;
 	work: WorkProgress | null;
 	ready: readonly ReadyLesson[];
+	/** The lessons whose teacher waits for the learner to allow something, oldest first. */
+	asking: readonly string[];
 	panelOpen: boolean;
 }): StripView {
 	const teacherNeeds = i.terminal === "needsYou";
+	const ask = i.asking[0] ?? null;
 	const need: TerminalRole | null = i.panelOpen ? null : teacherNeeds ? "teacher" : i.background ? "helper" : null;
 	const here = i.terminal !== null || !!i.agent?.connected || !!i.agent?.teaching;
 	const rows: PeekRow[] = [
@@ -103,19 +108,23 @@ export function stripView(i: {
 		...(i.work ? [{ kind: "work", work: i.work } as const] : []),
 	];
 	return {
-		square: !here ? "off" : i.working && !!i.agent && !teacherNeeds ? "working" : "still",
+		square: !here ? "off" : i.working && !!i.agent && !teacherNeeds && !ask ? "working" : "still",
 		need,
-		flag: need ? "needs you" : i.ready.length > 0 ? "your turn" : null,
+		ask,
+		flag: need || ask ? "needs you" : i.ready.length > 0 ? "your turn" : null,
 		rows,
 	};
 }
 
 /**
- * What a click on the strip does: an agent's screen that needs the learner
- * shows (the teacher's wherever it is, its own window too); else the open
- * panel closes; else it opens.
+ * What a click on the strip does: the teacher's screen that needs the
+ * learner shows (wherever it is, its own window too); else the lesson whose
+ * teacher waits for the learner to allow something; else the helper's screen
+ * that needs the learner; else the open panel closes; else it opens.
  */
-export function stripClick(need: TerminalRole | null, panelOpen: boolean): { show: TerminalRole } | "open" | "close" {
+export function stripClick(need: TerminalRole | null, ask: string | null, panelOpen: boolean): { show: TerminalRole } | { lesson: string } | "open" | "close" {
+	if (need === "teacher") return { show: need };
+	if (ask) return { lesson: ask };
 	if (need) return { show: need };
 	return panelOpen ? "close" : "open";
 }

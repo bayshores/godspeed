@@ -1,9 +1,9 @@
 /**
  * The lesson while the teacher works: the desk from the start, with its sentence, its steps and
  * the files as a stack, the title's bubble left out, the start key while no agent is here, no
- * Start again at the foot of the text, and the landing: the reply's words wait under the desk for
- * the turn's end, the desk leaves before the reply shows, which then prints line by line, also
- * when an answered question's reply grows the same message.
+ * Start again at the foot of the text, and the reply as it is written: its words wait a moment
+ * under the desk, the desk leaves before they show, then they grow in place with Stop under them,
+ * a step after them brings the desk back, and Stop fades out when the turn ends.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -32,19 +32,12 @@ Object.assign(globalThis, {
 	},
 });
 
-// The page here lays nothing out: every line is 28 high and the reply's first paragraph is two lines.
-const printed: { tag: string; delay: number; duration: number; easing: string }[] = [];
-// The blocks whose printing is paused.
-const held: string[] = [];
-Object.assign(globalThis, { getComputedStyle: () => ({ lineHeight: "28px" }) });
+// Anything that would animate from code says so: the reply's words never do.
+const animated: string[] = [];
 Object.assign(dom.window.HTMLElement.prototype, {
-	getBoundingClientRect(this: HTMLElement) {
-		return { height: this.textContent?.startsWith("First.") ? 56 : 28 };
-	},
-	animate(this: HTMLElement, _frames: unknown, timing: { delay: number; duration: number; easing: string }) {
-		printed.push({ tag: this.tagName, delay: timing.delay, duration: timing.duration, easing: timing.easing });
-		const tag = this.tagName;
-		return { pause: () => held.push(tag), play: () => held.splice(held.indexOf(tag), 1) };
+	animate(this: HTMLElement) {
+		animated.push(this.tagName);
+		return { finished: new Promise(() => {}), cancel() {}, pause() {}, play() {} };
 	},
 });
 
@@ -75,7 +68,6 @@ const props = (over: Partial<Props> = {}): Props => ({
 	arrivalsLive: false,
 	pageMarks: new Map(),
 	arrive: () => undefined,
-	bookTurns: false,
 	onDesk: () => {},
 	...over,
 });
@@ -231,63 +223,73 @@ describe("Start again", () => {
 	});
 });
 
-describe("the reply landing", () => {
-	it("waits for the desk to fade out, then prints line by line", async () => {
-		printed.length = 0;
+describe("the reply as it is written", () => {
+	const wait = (ms: number) => act(async () => void (await new Promise((done) => setTimeout(done, ms))));
+	type DeskStep = LessonWork["steps"][number];
+	const step = (id: string, text: string): DeskStep => ({ id, at: "2026-11-23T22:20:33.000Z", text, call: null, reads: null });
+	const working = (steps: DeskStep[]): LessonWork => ({ ...NO_LESSON_WORK, live: true, cause: "ask", taken: true, steps });
+
+	it("waits for the desk to fade out, then grows in place as the words come, with Stop under them, never printed", async () => {
+		animated.length = 0;
 		const host = document.createElement("div");
 		document.body.append(host);
 		const root = createRoot(host);
-		const working = props({ messages: [card(1), first, teacher(read("r1", "/h/a.md"))], status: "streaming", arrive: () => "lh-rise" });
-		const landed = { ...working, busy: false, status: "ready" as const, messages: [card(1), first, teacher(read("r1", "/h/a.md"), { type: "text", text: "First.\n\nSecond. [[https://example.com/a]]" })] };
+		const at = (text: string) => props({ messages: [card(1), first, teacher({ type: "text", text })], status: "streaming", arrive: () => "lh-rise" });
 		try {
-			await act(async () => root.render(<ReadingPane {...working} />));
-			await act(async () => root.render(<ReadingPane {...landed} />));
+			await act(async () => root.render(<ReadingPane {...props({ messages: [card(1), first], arrive: () => "lh-rise" })} />));
+			await act(async () => root.render(<ReadingPane {...at("First")} />));
+			await wait(450);
 			assert.ok(host.querySelector("[data-desk-closing]") !== null, "the desk fades out");
-			assert.ok(host.querySelector(".lh-source-passage") === null, "the reply waits until it has gone");
-			await act(async () => {
-				await new Promise((done) => setTimeout(done, 200));
-			});
+			assert.ok(host.querySelector(".lh-source-passage") === null, "the words wait until it has gone");
+			await wait(200);
 			assert.ok(host.querySelector("[data-testid=agent-at-work]") === null);
-			assert.deepEqual(
-				printed.map((print) => print.tag),
-				["P", "P", "DIV"],
-				"the reply prints block by block, Sources after the text",
-			);
-			assert.deepEqual(
-				printed.map((print) => [print.delay, print.duration, print.easing]),
-				[
-					[0, 120, "steps(2, jump-start)"],
-					[120, 60, "steps(1, jump-start)"],
-					[180, 60, "steps(1, jump-start)"],
-				],
-				"a line at a time, each block when the one before it ends",
-			);
-			assert.ok(host.querySelector(".lh-set") === null);
-			assert.match(host.textContent ?? "", /First\.[\s\S]*Second\./);
+			const passage = host.querySelector(".lh-source-passage");
+			assert.match(passage?.textContent ?? "", /First/);
+			assert.ok(passage?.querySelector(".lh-streaming") !== null, "the writing mark at the words' end");
+			const stop = host.querySelector("[data-testid=stop-turn]");
+			assert.ok(stop !== null, "Stop under the words");
+			await act(async () => root.render(<ReadingPane {...at("First words, and more.")} />));
+			assert.ok(host.querySelector(".lh-source-passage") === passage, "the same passage grows");
+			assert.match(passage?.textContent ?? "", /First words, and more\./);
+			assert.ok(host.querySelector("[data-testid=stop-turn]") === stop, "Stop stays where it was");
+			assert.deepEqual(animated, [], "nothing prints");
+			await act(async () => root.render(<ReadingPane {...at("First words, and more.")} busy={false} status="ready" />));
+			assert.equal(host.querySelector("[data-testid=stop-turn]")?.closest("[data-state]")?.getAttribute("data-state"), "closed", "Stop fades out when the turn ends");
+			assert.ok(host.querySelector(".lh-source-passage .lh-streaming") === null);
+			await wait(200);
+			assert.ok(host.querySelector("[data-testid=stop-turn]") === null, "and goes");
+			assert.ok(host.querySelector(".lh-source-passage") === passage, "the words stay as they were drawn");
 		} finally {
 			await act(async () => root.unmount());
 			host.remove();
 		}
 	});
 
-	it("stays covered while the book's pages are on their way, and prints once they rest", async () => {
-		printed.length = 0;
+	it("brings the desk back under the words for a step after them, and sends it away when words come again", async () => {
 		const host = document.createElement("div");
 		document.body.append(host);
 		const root = createRoot(host);
-		const working = props({ messages: [card(1), first, teacher()], status: "streaming", arrive: () => "lh-rise" });
-		const landed = { ...working, busy: false, status: "ready" as const, bookTurns: true, messages: [card(1), first, teacher({ type: "text", text: "First.\n\nSecond." })] };
+		const at = (text: string, steps: DeskStep[]) => props({ messages: [card(1), first, teacher({ type: "text", text })], status: "streaming", work: working(steps), arrive: () => "lh-rise" });
+		const desk = () => host.querySelector("[data-testid=agent-at-work]");
 		try {
-			await act(async () => root.render(<ReadingPane {...working} />));
-			await act(async () => root.render(<ReadingPane {...landed} />));
-			await act(async () => {
-				await new Promise((done) => setTimeout(done, 200));
-			});
-			assert.match(host.textContent ?? "", /First\.[\s\S]*Second\./, "the reply is in the page at its full height");
-			assert.deepEqual(held, ["P", "P"], "and waits to print");
-			await act(async () => root.render(<ReadingPane {...landed} bookTurns={false} />));
-			assert.deepEqual(held, []);
-			assert.equal(printed.length, 2, "printed once");
+			await act(async () => root.render(<ReadingPane {...props({ messages: [card(1), first], work: working([step("1", "Looking at Calculus")]) })} />));
+			await act(async () => root.render(<ReadingPane {...at("Let me look at your notes.", [step("1", "Looking at Calculus")])} />));
+			await wait(450);
+			await wait(200);
+			assert.ok(desk() === null, "the words took the desk's place");
+			const passage = host.querySelector(".lh-source-passage");
+			await act(async () => root.render(<ReadingPane {...at("Let me look at your notes.", [step("1", "Looking at Calculus"), step("2", "Reading notes.md")])} />));
+			assert.ok(desk() !== null, "a step after the words brings the desk back");
+			assert.match(desk()?.textContent ?? "", /Reading notes\.md/);
+			assert.ok(host.querySelector(".lh-source-passage") === passage, "under the words, which stay");
+			assert.equal(host.querySelectorAll("[data-testid=stop-turn]").length, 1, "one Stop, on the desk");
+			await act(async () => root.render(<ReadingPane {...at("Let me look at your notes. Found it.", [step("1", "Looking at Calculus"), step("2", "Reading notes.md")])} />));
+			assert.ok(desk() !== null, "new words wait a moment under the desk");
+			assert.doesNotMatch(host.textContent ?? "", /Found it/);
+			await wait(450);
+			await wait(200);
+			assert.ok(desk() === null);
+			assert.match(host.querySelector(".lh-source-passage")?.textContent ?? "", /Found it\./);
 		} finally {
 			await act(async () => root.unmount());
 			host.remove();

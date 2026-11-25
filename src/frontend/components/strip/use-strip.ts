@@ -13,10 +13,12 @@ import { needsYou, teacherTerminalState } from "@/frontend/components/terminal/t
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { goLabel } from "@/frontend/components/top-bar/top-bar-model";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
+import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useWorker } from "@/frontend/components/work/use-worker";
 import { workProgress } from "@/frontend/components/work/work-model";
 import { tuckPeek } from "./peek-store";
 import { dueSoon, stripClick, stripView } from "./strip-model";
+import { useAskingLessons } from "./use-asking-lessons";
 import { useReadyLessons } from "./use-ready-lessons";
 
 /**
@@ -34,6 +36,7 @@ export function useStrip() {
 	const { deadlines } = useOpenDeadlines();
 	const minute = useMinute();
 	const ready = useReadyLessons();
+	const asking = useAskingLessons();
 	const notices = useNotices();
 	const navigate = useNavigate();
 	const { pathname } = useLocation();
@@ -49,8 +52,8 @@ export function useStrip() {
 	const requests = useMemo(() => (feed.requests ?? []).map((r) => r.title), [feed.requests]);
 	const work = useMemo(() => workProgress({ worker, spaces, extractions: feed.extractions, jobs: feed.jobs, requests }), [worker, spaces, feed.extractions, feed.jobs, requests]);
 	const view = useMemo(
-		() => stripView({ agent, terminal, working: !!doing?.working, background, work, ready, panelOpen }),
-		[agent, terminal, doing, background, work, ready, panelOpen],
+		() => stripView({ agent, terminal, working: !!doing?.working, background, work, ready, asking, panelOpen }),
+		[agent, terminal, doing, background, work, ready, asking, panelOpen],
 	);
 	// The open panel's head says the teacher's status: the peek leaves it out.
 	const status = useMemo(() => (panelOpen ? null : teacherHead({ agent, name, doing, facts: teacherFacts })), [panelOpen, agent, name, doing, teacherFacts]);
@@ -73,12 +76,19 @@ export function useStrip() {
 	const setPanelOpen = teacher?.setPanelOpen;
 	const showTerminal = teacher?.showTerminal;
 	const need = view.need;
+	const ask = view.ask;
 	const click = useCallback(() => {
 		setNoticesOpen(false);
-		const does = stripClick(need, panelOpen);
+		const does = stripClick(need, ask, panelOpen);
 		if (does === "open" || does === "close") setPanelOpen?.(does === "open");
-		else showTerminal?.(does.show);
-	}, [need, panelOpen, setPanelOpen, showTerminal]);
+		else if ("show" in does) showTerminal?.(does.show);
+		else {
+			const href = `/chat/${encodeURIComponent(does.lesson)}`;
+			// On its lesson, the card is brought into view; elsewhere the lesson opens, where its desk shows it.
+			if (pathname === href) document.querySelector("[data-testid=approval-card]")?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "instant" : "smooth" });
+			else void navigate(href);
+		}
+	}, [need, ask, panelOpen, setPanelOpen, showTerminal, pathname, navigate]);
 	const leave = useCallback(() => {
 		tuckPeek();
 		setNoticesOpen(false);

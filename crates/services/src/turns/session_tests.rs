@@ -149,7 +149,7 @@ async fn an_allowed_permission_question_lets_the_turn_go_on() {
 	let fx = lesson("session-allow", None, vec![vec![bash(), text("Listed.")]]);
 	fx.say("Look at my folder").await;
 	let id = fx.approval().await;
-	assert_eq!(lesson_work(&fx.app, &fx.chat_id).unwrap()["approvals"][0]["ask"], json!({ "kind": "tool", "name": "Bash", "input": { "command": "ls" } }));
+	assert_eq!(lesson_work(&fx.app, &fx.chat_id).unwrap()["approvals"][0], json!({ "id": id, "text": "Teacher wants to run this command.", "subject": { "kind": "command", "text": "ls" } }));
 	assert!(answer_approval(&fx.app, &fx.chat_id, &id, true));
 	assert!(!answer_approval(&fx.app, &fx.chat_id, &id, true), "answered once");
 	fx.settled().await;
