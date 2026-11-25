@@ -2,11 +2,11 @@
  * FIRST-LAUNCH ONBOARDING. Rendered by src/frontend/routes/root.tsx INSTEAD of
  * the app frame while the server says it is needed:
  *
- *   intro → 1 Turn on your teacher → 2 Add your first space → You're all set
+ *   intro → 1 Your teacher → 2 Add your first space → You're all set
  *
- * The agent step opens the agent in the godspeed folder and follows it
- * live (src/frontend/components/agent-folder); "I'll do this later" skips
- * it. The space step is optional. Without an agent, the done step's
+ * The agent step is the setup card (src/frontend/components/agent-setup);
+ * "I'll do this later" skips it. The space step is optional. While the agent
+ * can't teach, the done step's
  * "Turn on Teacher" goes back to step 1, whose Continue then returns to
  * the done step. Finishing writes general.onboarded and re-reads
  * /api/boot, which then shows Home; if that save fails, the done step stays
@@ -15,7 +15,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { useAgentStatus } from "@/frontend/components/agent-status";
+import { ready } from "@/frontend/components/agent-setup/agent-card-model";
+import { useAgentSetup } from "@/frontend/components/agent-setup/agent-setup-context";
 import { useBoot } from "@/frontend/components/boot";
 import { useSettings } from "@/frontend/components/settings-context";
 import { showFocusRingAfterTab } from "@/frontend/components/focus-hygiene";
@@ -43,7 +44,7 @@ export function Onboarding() {
 	const [spaceStepDone, setSpaceStepDone] = useState(false);
 	// Saving "onboarded" failed: stay on the done step (leaving would show the intro again).
 	const [saveFailed, setSaveFailed] = useState(false);
-	const status = useAgentStatus();
+	const canTeach = ready(useAgentSetup().health);
 	// The app shell's keyboard listener isn't mounted here yet.
 	useEffect(() => showFocusRingAfterTab(document), []);
 
@@ -74,7 +75,7 @@ export function Onboarding() {
 			<Constellation mode={sky} />
 			<div className={cn("relative flex min-h-0 flex-1 overflow-y-auto", leaving && "ob-leave")}>
 				{step === "intro" && <Intro skipped={introSkipped} onSkip={() => setIntroSkipped(true)} onDone={() => setStep("agent")} />}
-				{step === "agent" && <AgentStep connected={!!status?.connected} onNext={() => setStep(spaceStepDone ? "done" : "space")} />}
+				{step === "agent" && <AgentStep ready={canTeach} onNext={() => setStep(spaceStepDone ? "done" : "space")} />}
 				{step === "space" && (
 					<SpaceStep
 						onDone={(id) => {
@@ -86,7 +87,7 @@ export function Onboarding() {
 				)}
 				{step === "done" && (
 					<DoneStep
-						connected={!!status?.connected}
+						ready={canTeach}
 						onStart={() => void finish()}
 						onConnect={() => setStep("agent")}
 						disabled={leaving}

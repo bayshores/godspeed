@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
 	CHECK_IN_WAIT_MS,
-	firstRunFooter,
 	gridSize,
 	needsYou,
 	statusFromTerminals,
@@ -163,19 +162,6 @@ describe("the screen's size", () => {
 		assert.deepEqual(gridSize(9000, 9000, { width: 8, height: 22 }), { cols: 200, rows: 100 });
 		// Before xterm has drawn a cell: 13 px type.
 		assert.deepEqual(gridSize(404, 700), { cols: 50, rows: 31 });
-	});
-});
-
-describe("onboarding's first start", () => {
-	it("says the agent is starting, then connected; a question or an end uses the panel's full words", () => {
-		const first = (over: Partial<TerminalFacts>, t: Partial<TerminalRecord> = {}) => firstRunFooter(facts(over, t), "~/godspeed");
-		assert.equal(first({ checkedIn: false }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
-		assert.equal(first({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS + 1 }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.", "no timer words here");
-		assert.equal(first({ checkedIn: true }).text, "Claude Code is connected.");
-		const trust = first({ checkedIn: false }, { prompt: "trust" });
-		assert.equal(trust.assist?.label, "Trust folder");
-		assert.match(first({ checkedIn: false }, { url: true }).text ?? "", /^Finish signing in to Claude Code/);
-		assert.equal(first({}, { ended: { stopped: true, code: null } }).text, "You stopped Claude Code.");
 	});
 });
 

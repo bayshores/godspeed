@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
-import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { AGENT_LABEL, startLabel, type LaunchChoice } from "./agent-folder-model";
@@ -12,31 +11,14 @@ const CHOICES: { id: LaunchChoice; label: string }[] = [
 	{ id: "other", label: "Other app" },
 ];
 
-/** "Start Claude Code", the bright key, and beside it "Use another agent".
- *  `quiet` once the agent's screen has ended: its Start again leads then.
- *  `big` on a full-page step; the teacher's panel keeps the pair on one row. */
-export function StartAgentButton({
-	choice,
-	onChoose,
-	onStart,
-	busy = false,
-	quiet = false,
-	big = false,
-}: {
-	choice: LaunchChoice;
-	onChoose: (choice: LaunchChoice) => void;
-	onStart: () => void;
-	busy?: boolean;
-	quiet?: boolean;
-	big?: boolean;
-}) {
-	const size = big ? BIG_BUTTON : "text-[15px]";
+/** "Start Claude Code", the bright key, and beside it "Use another agent", on one row. */
+export function StartAgentButton({ choice, onChoose, onStart, busy = false }: { choice: LaunchChoice; onChoose: (choice: LaunchChoice) => void; onStart: () => void; busy?: boolean }) {
 	return (
 		<div className="flex flex-wrap items-center gap-2.5">
-			<button type="button" data-testid="open-agent" disabled={busy} onClick={onStart} className={cn("lh-btn", !quiet && "lh-btn-main", size)}>
+			<button type="button" data-testid="open-agent" disabled={busy} onClick={onStart} className="lh-btn lh-btn-main text-[15px]">
 				{startLabel(choice)}
 			</button>
-			<AgentMenu choice={choice} onChoose={onChoose} className={size} />
+			<AgentMenu choice={choice} onChoose={onChoose} className="text-[15px]" />
 		</div>
 	);
 }

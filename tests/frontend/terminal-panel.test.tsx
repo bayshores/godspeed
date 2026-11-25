@@ -21,7 +21,6 @@ const { MemoryRouter } = await import("react-router");
 const { TerminalsProvider, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
 const { TeacherStatus } = await import("../../src/frontend/components/terminal/teacher-status.tsx");
 const { RestartDialog } = await import("../../src/frontend/components/terminal/restart-dialog.tsx");
-const { AgentNeed } = await import("../../src/frontend/components/onboarding/agent-need.tsx");
 const { TeacherPanel } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 const { useTeacherPanel } = await import("../../src/frontend/components/teacher/use-teacher-panel.ts");
@@ -29,7 +28,6 @@ const { panelBody } = await import("../../src/frontend/components/teacher/dock-m
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { AgentFolderProvider } = await import("../../src/frontend/components/agent-folder/agent-folder-context.tsx");
 const { TerminalWindow } = await import("../../src/frontend/components/terminal/terminal-window.tsx");
-const { FirstRunScreen } = await import("../../src/frontend/components/terminal/first-run-screen.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 
 const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, turnsRunning: 0, terminals: [], outsideHere: false, ...over });
@@ -543,52 +541,6 @@ describe("the keyboard", () => {
 	});
 });
 
-describe("onboarding", () => {
-	it("a step after the agent step says what the teacher needs, and its button shows the screen there without the keyboard", async () => {
-		const shell = fakeShell([teacher()]);
-		const proto = dom.window.HTMLElement.prototype as { focus: () => void };
-		const realFocus = proto.focus;
-		let focused = 0;
-		proto.focus = () => void focused++;
-		const host = document.createElement("div");
-		document.body.append(host);
-		const root = createRoot(host);
-		const status = access({ terminals: [{ id: "t1", here: true }] });
-		function Step() {
-			const [open, setOpen] = React.useState(false);
-			return <AgentNeed open={open} onOpen={() => setOpen(true)} />;
-		}
-		const page = (done: boolean) => (
-			<MemoryRouter>
-				<ServerEventsProvider connect={noEvents as never}>
-					<TerminalsProvider status={status}>{done ? <PanelHost /> : <Step />}</TerminalsProvider>
-				</ServerEventsProvider>
-			</MemoryRouter>
-		);
-		try {
-			await act(async () => root.render(page(false)));
-			await settle();
-			assert.ok(q("onboarding-agent-need") === null, "nothing while it needs nothing");
-			await act(async () => shell.push({ id: "t1", ended: null, prompt: "trust", url: false }));
-			await settle();
-			assert.equal(text("onboarding-agent-need"), "Claude Code asks to trust its folder.Show its screen");
-			await click("onboarding-agent-need-show");
-			for (let i = 0; i < 10 && !document.querySelector("[data-terminal-screen] textarea"); i++) await settle();
-			assert.ok(q("first-run-screen") !== null, "the screen shows in the step");
-			assert.ok(focused === 0, "no focus until a click in it");
-			await act(async () => root.render(page(true)));
-			await settle();
-			assert.ok(q("teacher-panel") === null, "the panel stays shut after onboarding");
-		} finally {
-			proto.focus = realFocus;
-			await act(async () => root.unmount());
-			await settle();
-			host.remove();
-			shell.remove();
-		}
-	});
-});
-
 describe("the footer", () => {
 	it("shows only keys that act now: Stop while starting, Paste once asked, Attach once running, Start again once ended", async () => {
 		const shell = fakeShell([teacher()]);
@@ -946,33 +898,6 @@ describe("the starter keys", () => {
 				assert.equal(text("terminal-ideas-key"), "Ideas");
 			});
 		} finally {
-			shell.remove();
-		}
-	});
-
-	it("none in onboarding", async () => {
-		const shell = fakeShell([teacher()]);
-		const host = document.createElement("div");
-		document.body.append(host);
-		const root = createRoot(host);
-		try {
-			await act(async () =>
-				root.render(
-					<ServerEventsProvider connect={noEvents as never}>
-						<TerminalsProvider status={running}>
-							<FirstRunScreen />
-						</TerminalsProvider>
-					</ServerEventsProvider>,
-				),
-			);
-			await settle();
-			assert.ok(q("first-run-screen") !== null);
-			assert.ok(q("terminal-starters") === null);
-			assert.ok(q("terminal-ideas-key") === null);
-		} finally {
-			await act(async () => root.unmount());
-			await settle();
-			host.remove();
 			shell.remove();
 		}
 	});

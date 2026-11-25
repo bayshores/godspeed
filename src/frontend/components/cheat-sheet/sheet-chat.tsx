@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 import type { ChatAttachment, CheatSheetView, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
+import { AgentCompact, useCompactShown } from "@/frontend/components/agent-setup/agent-card";
 import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { ApprovalCards } from "@/frontend/components/lesson/approval-card";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
@@ -70,6 +71,8 @@ export function SheetChat({
 	const attachments = useAttachmentDraft(`cheat-sheet:${deadlineId}`);
 	const boxRef = useRef<{ focus(): void }>(null);
 	const busy = view.running !== null;
+	// A send failed because the agent can't run: the setup card's compact form says why.
+	const compactShown = useCompactShown();
 	const messages = view.sheet.messages;
 	const endRef = useRef<HTMLDivElement>(null);
 	useEffect(() => {
@@ -171,16 +174,20 @@ export function SheetChat({
 								</p>
 							)}
 							{view.running?.messageId === m.id && <ApprovalCards approvals={view.approvals} slot={slot} arrive={arrive} answer={answer} />}
-							{!busy && view.error?.messageId === m.id && (
-								<p data-testid="sheet-failed" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
-									<span>
-										<span className="text-ans-wrong">{agentName} couldn&apos;t finish that.</span> {view.error.text}
-									</span>
-									<button type="button" data-testid="sheet-retry" onClick={() => post({ action: "retry" })} className="lh-btn">
-										Try again
-									</button>
-								</p>
-							)}
+							{!busy &&
+								view.error?.messageId === m.id &&
+								(compactShown ? (
+									<AgentCompact />
+								) : (
+									<p data-testid="sheet-failed" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
+										<span>
+											<span className="text-ans-wrong">{agentName} couldn&apos;t finish that.</span> {view.error.text}
+										</span>
+										<button type="button" data-testid="sheet-retry" onClick={() => post({ action: "retry" })} className="lh-btn">
+											Try again
+										</button>
+									</p>
+								))}
 						</Fragment>
 					);
 				})}

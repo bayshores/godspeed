@@ -21,6 +21,7 @@ import { useSettings } from "@/frontend/components/settings-context";
 import { PluginsSection } from "./plugins-section.tsx";
 import { AppearanceSection } from "./appearance-section.tsx";
 import { ConnectionSection, CONNECTION_HINT } from "./connection-section.tsx";
+import { TeacherSection } from "./teacher-section.tsx";
 
 /** The tabs. A section's hint is the quiet line under it. */
 const SECTIONS = [
@@ -28,6 +29,7 @@ const SECTIONS = [
 	{ id: "appearance", label: "Appearance" },
 	{ id: "teaching", label: "Teaching" },
 	{ id: "plugins", label: "Plugins" },
+	{ id: "teacher", label: "Teacher" },
 	{ id: "connection", label: "Connection", hint: CONNECTION_HINT },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -152,6 +154,11 @@ export function SettingsPage({ section }: { section?: string }) {
 						</p>
 					) : (
 						<Travel place={{ key: active, depth: 0, column: SECTIONS.indexOf(current) }}>
+							{active === "teacher" && (
+								<SettingsSection title="Teacher" testid="section-teacher">
+									<TeacherSection record={record} onGeneralChange={(fields) => void shown(patchGeneral(fields))} />
+								</SettingsSection>
+							)}
 							{active === "connection" && (
 								<SettingsSection title="Connection" testid="section-connection">
 									<ConnectionSection />

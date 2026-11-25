@@ -106,7 +106,11 @@ To add a row:
 | Notes in Obsidian or a notes folder | Settings, General; Progress; lesson end; Graph | `vault-pick` | Settings, General | teacher | `write_vault_note`, `search_vault` |
 | Add a remembered note | Settings, Teaching | none: only the teacher adds one; you can only delete | | teacher | `remember` |
 | Settings | Menu | `settings-entry` | | learner | `settings`, `open-settings` |
-| Teacher name and sounds | Settings, General | `teacher-name-row` | Settings, General | learner | |
+| Pick the teacher's agent and model, and see whether it can teach | Settings, Teacher; onboarding; the teacher's panel while the agent can't run | `agent-card` | Settings, Teacher | learner | |
+| Log in to the agent | Settings, Teacher, and the card wherever it shows | `agent-row-account` | Settings, Teacher, logged out | learner | |
+| Update the agent | Settings, Teacher, and the card wherever it shows | `agent-row-version` | Settings, Teacher, too old | learner | |
+| Teacher name | Settings, Teacher | `teacher-name-row` | Settings, Teacher | learner | |
+| Sounds | Settings, General | `group-sounds` | Settings, General | learner | |
 | Noise: soft brown noise to study to, on and off with one word, hidden while Sounds is off | Top bar | `noise-word` | Home with Sounds on, Noise in the top bar | learner | |
 | Deadline reminders | Settings, General | `deadline-reminders-row` | | learner | |
 | Menu bar countdown | Settings, General | `menu-bar-countdown-row` | | learner | |

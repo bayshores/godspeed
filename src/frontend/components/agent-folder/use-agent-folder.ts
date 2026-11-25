@@ -13,8 +13,8 @@ const logPickFailure = (err: unknown) => console.error("[agent folder] the picke
  * The godspeed folder and its "Start Claude Code" button: open(agent)
  * makes or updates the folder and starts the agent in a terminal inside
  * the desktop app (terminal/use-terminals.ts), and the teacher's start
- * opens the teacher's panel on Terminal, so the learner sees it start
- * (onboarding has no panel: its step shows the screen). Outside the desktop app the
+ * opens the teacher's panel on Terminal, so the learner sees it start.
+ * Outside the desktop app the
  * learner runs the command, and `lines` is the live log of that launch.
  * `busy` while a start runs, `error` when it failed.
  */

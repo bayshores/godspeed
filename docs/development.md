@@ -128,7 +128,7 @@ Component folders:
 | `top-bar/`, `home-page/`, `study-page/` | Top bar, Home, the Study page. |
 | `space-page/`, `overview/`, `lessons/`, `files/`, `graph/`, `deadline/`, `cheat-sheet/`, `mock/` | Space pages, deadlines, cheat sheets, mocks. |
 | `lesson/`, `work/`, `teacher/`, `terminal/` | Lesson screen, work frame, teacher panel, the agent's terminal screen. |
-| `settings/`, `agent-folder/`, `onboarding/`, `welcome/`, `plugins/` | Settings, agent launcher, onboarding, welcome screen, a plugin's sandboxed frame. |
+| `settings/`, `agent-folder/`, `agent-setup/`, `onboarding/`, `welcome/`, `plugins/` | Settings, the godspeed folder and its start keys, the agent's setup card, onboarding, welcome screen, a plugin's sandboxed frame. |
 | `citations/`, `artifacts/` | Source marks; renderers for job results (registry in `artifacts/`). |
 | `ai-elements/`, `ui/` | Shared message and UI pieces. |
 

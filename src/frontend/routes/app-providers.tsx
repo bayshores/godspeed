@@ -9,20 +9,24 @@ import { SpaceProvider } from "@/frontend/components/space-context";
 import { TerminalsProvider } from "@/frontend/components/terminal/use-terminals";
 import { VaultProvider } from "@/frontend/components/vault/vault-context";
 import { AgentFolderProvider } from "@/frontend/components/agent-folder/agent-folder-context";
+import { AgentSetupProvider } from "@/frontend/components/agent-setup/agent-setup-context";
 
-/** The agents' terminals follow the agent's live status, in the godspeed folder. */
+/** The agents' terminals follow the agent's live status, in the godspeed folder; beside them, the
+ *  picked agent's setup. */
 function Terminals({ inTerminalWindow, children }: { inTerminalWindow: boolean; children: ReactNode }) {
 	return (
 		<AgentFolderProvider>
-			<TerminalsProvider status={useAgentStatus()} inTerminalWindow={inTerminalWindow}>
-				{children}
-			</TerminalsProvider>
+			<AgentSetupProvider>
+				<TerminalsProvider status={useAgentStatus()} inTerminalWindow={inTerminalWindow}>
+					{children}
+				</TerminalsProvider>
+			</AgentSetupProvider>
 		</AgentFolderProvider>
 	);
 }
 
 /** What every window of the app stands on: the desktop marks, the server's events (the top bar,
- *  dock and pages all subscribe), settings, the agent's status and terminals, spaces, the
+ *  dock and pages all subscribe), settings, the agent's status, setup and terminals, spaces, the
  *  look and the notes folder. The main window (root.tsx) and the terminal window (terminal-window.tsx) share it. */
 export function AppProviders({ boot, inTerminalWindow = false, children }: { boot: BootInfo; inTerminalWindow?: boolean; children: ReactNode }) {
 	return (

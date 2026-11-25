@@ -1,29 +1,15 @@
-import { useEffect } from "react";
-import { AgentLauncher } from "@/frontend/components/agent-folder/agent-launcher";
-import { useSound } from "@/frontend/components/sounds";
-import { useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { AgentCard } from "@/frontend/components/agent-setup/agent-card";
 import { StepSheet } from "./step-sheet";
 import { useReturn } from "./use-return";
 
-/** Step 1: start the agent in the godspeed folder and watch its screen;
- *  "I'll do this later" skips it, Continue shows once it is connected. */
-export function AgentStep({ connected, onNext }: { connected: boolean; onNext: () => void }) {
-	const play = useSound();
-	useEffect(() => {
-		if (connected) play("connected");
-	}, [connected, play]);
-	useReturn(connected ? onNext : null);
-	const started = !!useTerminals()?.teacher;
+/** Step 1: the setup card. "I'll do this later" skips it; Continue shows once the agent can teach. */
+export function AgentStep({ ready, onNext }: { ready: boolean; onNext: () => void }) {
+	useReturn(ready ? onNext : null);
 	return (
-		<StepSheet
-			at={1}
-			wide={started}
-			title="Turn on your teacher"
-			sub="godspeed uses Claude Code or Codex as your teacher, on the plan you already have."
-		>
-			<AgentLauncher />
+		<StepSheet at={1} title="Your teacher" sub="godspeed teaches through Claude Code or Codex, on the plan you already have.">
+			<AgentCard />
 			<div className="flex items-center pt-2">
-				{connected ? (
+				{ready ? (
 					<button type="button" data-testid="onboarding-agent-continue" className="lh-btn lh-btn-main ml-auto" onClick={onNext}>
 						Continue
 					</button>

@@ -40,21 +40,21 @@ describe("onboarding screen helpers", () => {
 		assert.equal(pickedLabel({ kind: "files", files: files.slice(0, 1) }), "1 file: a.pdf");
 		assert.equal(pickedLabel({ kind: "files", files }), "4 files: a.pdf, b.md, c.txt, …");
 	});
-	it("the done step without an agent: teaching waits for one, and a button goes back to step 1", () => {
+	it("the done step while the agent can't teach: teaching waits for it, and a button goes back to step 1", () => {
 		const done = (over: Partial<React.ComponentProps<typeof DoneStep>> = {}) =>
-			renderToStaticMarkup(<DoneStep connected={false} onStart={() => {}} onConnect={() => {}} disabled={false} failed={false} {...over} />);
+			renderToStaticMarkup(<DoneStep ready={false} onStart={() => {}} onConnect={() => {}} disabled={false} failed={false} {...over} />);
 		const none = done();
 		assert.ok(none.includes("Teaching starts once Teacher is on."));
 		assert.ok(none.includes('data-testid="onboarding-connect"'));
 		assert.ok(none.includes("Turn on Teacher"));
 		assert.ok(!none.includes("You’re all set."));
-		const set = done({ connected: true });
+		const set = done({ ready: true });
 		assert.ok(set.includes("You’re all set."));
 		assert.ok(set.includes("Ask Teacher to teach you anything"));
 		assert.ok(!set.includes("onboarding-connect"));
 	});
 	it("the done step after a failed save: an error and Try again", () => {
-		const html = renderToStaticMarkup(<DoneStep connected onStart={() => {}} onConnect={() => {}} disabled={false} failed />);
+		const html = renderToStaticMarkup(<DoneStep ready onStart={() => {}} onConnect={() => {}} disabled={false} failed />);
 		assert.ok(html.includes('data-testid="onboarding-save-error"'));
 		assert.match(html, /data-testid="onboarding-finish"[^>]*>Try again</);
 	});

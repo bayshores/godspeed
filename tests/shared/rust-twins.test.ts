@@ -238,3 +238,24 @@ describe("the Claude helper's tool server", () => {
 		assert.deepEqual(strings(helper, "TOOL_SERVER"), strings(protocol, "TOOL_SERVER"));
 	});
 });
+
+/** The text each `Type::Variant => "text"` arm gives, in order: a variant may hold data, and the
+ *  text may lead a tuple (`=> ("text", …)`). */
+const arms = (source: string, type: string) => [...source.matchAll(new RegExp(`${type}::\\w+(?:\\([^)]*\\))? => \\(?"([^"]+)"`, "g"))].map((m) => m[1]!);
+
+describe("the agent's setup", () => {
+	const contract = ts("contracts/agent-health");
+	const health = read("crates/runtime/src/health.rs");
+	it("names the same checks, in the card's order", () => {
+		assert.deepEqual(strings(contract, "AGENT_CHECKS"), arms(health, "Check"));
+	});
+	it("names the same problems", () => {
+		assert.deepEqual(strings(contract, "AGENT_PROBLEMS"), arms(health, "Problem"));
+	});
+	it("names the same states of a check", () => {
+		assert.deepEqual(strings(contract, "CHECK_STATES"), arms(read("crates/services/src/app/agent_health.rs"), "Outcome"));
+	});
+	it("names the same states of an update", () => {
+		assert.deepEqual(strings(contract, "UPDATE_STATES"), arms(read("crates/services/src/app/agent_update.rs"), "Stage"));
+	});
+});

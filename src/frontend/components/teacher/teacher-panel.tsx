@@ -6,12 +6,17 @@
  * drags its left edge. One head row (panel-head.tsx), then
  * the agent's screen (panel-screen.tsx), or Activity (teacher-activity.tsx)
  * in a browser and while the teacher's screen is in a window of its own.
+ * While the agent can't run, the setup card stands in for both.
  */
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
 import { BarWindow, observeBar } from "@/frontend/components/ui/bar-window";
 import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import type { AgentStatus } from "@/frontend/components/agent-status";
+import { AgentCard } from "@/frontend/components/agent-setup/agent-card";
+import { cantRun } from "@/frontend/components/agent-setup/agent-card-model";
+import { useAgentSetup } from "@/frontend/components/agent-setup/agent-setup-context";
+import { usePresence } from "@/frontend/components/presence";
 import { screenStatusLine, teacherTerminalState, type TerminalFacts } from "@/frontend/components/terminal/terminal-model";
 import { stripWidth } from "@/frontend/components/strip/strip-dom";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
@@ -75,6 +80,12 @@ export function TeacherPanel({
 	const onScreenView = view === "terminal";
 	const teacherFacts = terminals?.facts ?? null;
 	const head = teacherHead({ agent, name, doing: teacher?.doing ?? null, facts: teacherFacts });
+	// The card arrives at rest and fades out (110 ms) once the agent can run; what it stood for fades in.
+	const blocked = cantRun(useAgentSetup().health);
+	const card = usePresence(blocked);
+	const cardLeft = useRef(false);
+	if (card.mounted && !blocked) cardLeft.current = true;
+	const setup = card.mounted;
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
 	const [{ width, whole }, setLayout] = useState({ width: wanted, whole: false });
 	const putBack = view === "popped" ? () => terminals?.putBack() : null;
@@ -112,18 +123,29 @@ export function TeacherPanel({
 		<BarWindow right={stripWidth()} width={width} height={null} state={state} data-teacher-panel="" data-whole={whole || undefined} data-testid="teacher-panel" aria-label={name}>
 			{/* Nothing to drag while it takes the whole window. */}
 			{!whole && <ResizeHandle paneKey="teacher" width={width} bounds={PANEL_WIDTH} onWidth={setWanted} label={`Resize ${name}'s panel`} />}
-			<PanelHead status={head.status} lit={head.lit} working={head.working} list={onScreenView ? { open: list, onOpen: onList } : null} putBack={putBack} />
+			<PanelHead
+				status={setup ? null : head.status}
+				lit={!setup && head.lit}
+				working={!setup && head.working}
+				list={onScreenView && !setup ? { open: list, onOpen: onList } : null}
+				putBack={putBack}
+			/>
 
 			<div
 				data-testid="teacher-panel-body"
 				className={cn(
 					"flex min-h-0 flex-1 flex-col motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)",
-					!onScreenView && "gap-[18px] px-[18px] pt-1.5 pb-[18px]",
+					(!onScreenView || setup) && "gap-[18px] px-[18px] pt-1.5 pb-[18px]",
 					// A list dropped from the head lies over the screen: the screen steps back under it.
-					onScreenView && "peer-data-[hang]:opacity-40",
+					onScreenView && !setup && "peer-data-[hang]:opacity-40",
+					!setup && cardLeft.current && "lh-fade",
 				)}
 			>
-				{onScreenView ? (
+				{setup ? (
+					<div data-testid="panel-setup" data-state={card.state} className={cn("overflow-y-auto", card.state === "closed" && "lh-fade")}>
+						<AgentCard />
+					</div>
+				) : onScreenView ? (
 					<PanelScreen name={name} focus={focus} />
 				) : (
 					<>

@@ -222,8 +222,16 @@ function open(message) {
 	write({ type: "opened", session: key, nativeId: native });
 }
 
+/** Claude Code's models, as its SDK lists them, for the setup card's Model select. */
+const MODELS = [
+	{ value: "default", displayName: "Default (recommended)" },
+	{ value: "sonnet", displayName: "Sonnet" },
+	{ value: "haiku", displayName: "Haiku" },
+];
+
 function take(message) {
 	if (message.type === "open") return open(message);
+	if (message.type === "models") return write({ type: "models", id: message.id, models: MODELS });
 	if (message.type === "tool_result" || message.type === "approval") {
 		const done = waiting.get(message.id);
 		waiting.delete(message.id);

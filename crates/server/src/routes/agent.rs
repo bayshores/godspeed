@@ -9,7 +9,7 @@ use axum::extract::State;
 use axum::response::Response;
 use gs_json::json;
 use gs_services::App;
-use gs_services::app::agent_health::health_view;
+use gs_services::app::agent_health::{check_health, health_view};
 use gs_services::app::agent_login::{LoginError, cancel_login, send_login_code, start_login};
 use gs_services::app::agent_models::agent_models;
 use gs_services::app::agent_update::start_update;
@@ -19,7 +19,7 @@ use crate::http::route::ApiRoute;
 
 pub fn routes() -> Router<Arc<App>> {
 	Router::new()
-		.route("/api/agent/health", ApiRoute::new().get(health).into_route())
+		.route("/api/agent/health", ApiRoute::new().get(health).post(check_again).into_route())
 		.route("/api/agent/login", ApiRoute::new().post(login).into_route())
 		.route("/api/agent/login/code", ApiRoute::new().post(login_code).into_route())
 		.route("/api/agent/login/cancel", ApiRoute::new().post(login_cancel).into_route())
@@ -28,6 +28,13 @@ pub fn routes() -> Router<Arc<App>> {
 }
 
 async fn health(State(app): State<Arc<App>>) -> Response {
+	reply::json_no_store(200, &health_view(&app))
+}
+
+/// Checks the agent again ("Check again", or the window back in front while a check fails) and
+/// gives the view, which says the check runs.
+async fn check_again(State(app): State<Arc<App>>) -> Response {
+	check_health(&app);
 	reply::json_no_store(200, &health_view(&app))
 }
 

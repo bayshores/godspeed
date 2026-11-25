@@ -213,15 +213,6 @@ export function teacherStartRefused(teacher: TerminalRecord | null, outsideHere:
 	return outsideHere ? "outside" : null;
 }
 
-/** Onboarding's footer under the screen: the panel's words while the
- *  agent asks something or has ended, else whether it has connected. */
-export function firstRunFooter(f: TerminalFacts, folder: string): TerminalFooter {
-	const { term } = f;
-	const agent = AGENT_LABEL[term.agent];
-	if (term.ended || term.prompt || (!f.checkedIn && term.url)) return terminalFooter(f, agent, false);
-	return footer(f.checkedIn ? `${agent} is connected.` : `${agent} is starting in ${folder}. If it asks you something, answer it here.`);
-}
-
 /** The server counts an agent here for 3 minutes after its last request,
  *  so after godspeed's teacher ended, or before a new one checked in, it
  *  still says so. The terminals know: once godspeed has started a teacher,

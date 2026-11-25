@@ -1,6 +1,7 @@
 import { useContext, useRef, useState, type CSSProperties, type Ref, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { answeredKindLabel } from "@/frontend/components/answered-card-model";
+import { AgentCompact, useCompactShown } from "@/frontend/components/agent-setup/agent-card";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
 import { DEFAULT_TEACHER_NAME, DONT_KNOW, normalizeQuizType, questionKindLabel, type DockSelection, type findPendingToolCall, type ProblemChoices, type ProblemPieceText, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
@@ -131,6 +132,8 @@ export function YourTurn({
 	pale,
 }: YourTurnProps) {
 	// Whether the question above the box has an answer picked.
+	// A send failed because the agent can't run: the setup card's compact form says why.
+	const compactShown = useCompactShown();
 	const [picked, setPicked] = useState(false);
 	// The open problem's page in the theme's ink, or on white as its file prints it.
 	const [printed, setPrinted] = useState(false);
@@ -298,16 +301,19 @@ export function YourTurn({
 
 	const row = (
 		<div data-testid="turn-row" {...stood} className={cn("lh-turn-row flex min-w-0 shrink-0 flex-col gap-3", stand)}>
-			{error && (
-				<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well px-4 py-3 text-base">
-					<span data-testid="lesson-error" title={error.detail} className="text-ans-wrong">
-						{error.text}
-					</span>
-					<button type="button" data-testid="lesson-error-retry" onClick={error.onRetry} className="lh-btn lh-btn-main lh-btn-small shrink-0">
-						Try again
-					</button>
-				</div>
-			)}
+			{error &&
+				(compactShown ? (
+					<AgentCompact />
+				) : (
+					<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well px-4 py-3 text-base">
+						<span data-testid="lesson-error" title={error.detail} className="text-ans-wrong">
+							{error.text}
+						</span>
+						<button type="button" data-testid="lesson-error-retry" onClick={error.onRetry} className="lh-btn lh-btn-main lh-btn-small shrink-0">
+							Try again
+						</button>
+					</div>
+				))}
 			{askError && (
 				<p role="alert" data-testid="notes-ask-error" className="text-[15px] text-ans-wrong">
 					{askError}

@@ -88,8 +88,8 @@ export interface ServerEvents {
 	"lesson-work": { chatId: string; asking: boolean };
 	/** A check of the picked agent (GET /api/agent/health) began or ended, or its sign-in started, ended or failed. */
 	"agent-health": Record<string, never>;
-	/** The picked agent's update (POST /api/agent/update) started, printed a line, finished or failed. `command` is what it runs, which the learner can run themselves. */
-	"agent-update": { state: "running" | "done" | "failed"; line: string | null; command: string };
+	/** The picked agent's update (POST /api/agent/update) started, printed a line, finished or failed: `{state, line, command}`, read with readAgentUpdate (contracts/agent-health.ts). */
+	"agent-update": Record<string, unknown>;
 	/** The teacher in godspeed's terminal finished answering the learner there ("done") or stopped to ask them something ("needs"). */
 	"agent-event": { kind: "done" | "needs" };
 	/** A deadline's cheat sheet or its agent request changed. */

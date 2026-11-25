@@ -1,8 +1,8 @@
 /**
- * Starting the agent: the web version keeps the copy-command path, the
- * desktop app starts the teacher's terminal and shows its screen in
- * onboarding's step, and a lesson's send starts no terminal: lessons run on
- * the picked agent in sessions of their own.
+ * Starting the agent from the teacher's panel: the web version keeps the
+ * copy-command path, the desktop app starts the teacher's terminal, and a
+ * lesson's send starts no terminal: lessons run on the picked agent in
+ * sessions of their own.
  */
 import { dom, fakeShell } from "../terminal-dom.ts";
 import React, { act } from "react";
@@ -11,7 +11,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-const { AgentLauncher } = await import("../../src/frontend/components/agent-folder/agent-launcher.tsx");
+const { StartTeacher } = await import("../../src/frontend/components/teacher/start-teacher.tsx");
 const { TerminalsProvider, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
 const { useAgentStatus } = await import("../../src/frontend/components/agent-status.tsx");
 const { agentDoing } = await import("../../src/frontend/components/teacher/follow-status.ts");
@@ -92,52 +92,36 @@ describe("Start Claude Code", () => {
 		serverAgent = null;
 		assert.ok(!(dom.window as { lh?: unknown }).lh, "no desktop shell");
 		await mounted(
-			(root) => act(async () => root.render(<AgentLauncher />)),
+			(root) => act(async () => root.render(<StartTeacher />)),
 			async () => {
 				assert.equal(q("open-agent")!.textContent, "Start Claude Code");
 				await act(async () => q("open-agent")!.click());
 				await settle();
-				const log = q("agent-launch-log")?.textContent ?? "";
-				assert.match(log, /Made ~\/godspeed/);
-				assert.match(log, /Copy the command and run it in your terminal/);
-				assert.ok(q("first-run-screen") === null, "no screen in a browser");
+				assert.match(document.body.textContent!, /Run the command from Settings, Connection in your terminal\./);
+				assert.ok(changes.some((c) => c.startsWith("POST") && c.includes('"setup"')), "the folder was made");
 				assert.ok(changes.includes('PATCH {"agent":"claude"}'), "the agent it started is the learner's pick from now on");
 			},
 		);
 	});
 
-	it("in the desktop app, starts the teacher's terminal and shows its screen in the step until it connects", async () => {
+	it("in the desktop app, starts the teacher's terminal", async () => {
 		const shell = fakeShell();
-		const page = (status: Access) => (
-			<TerminalsProvider status={status}>
-				<AgentLauncher />
-			</TerminalsProvider>
-		);
-		let root: Root | null = null;
 		try {
 			await mounted(
-				async (r) => {
-					root = r;
-					await act(async () => r.render(page(access())));
-				},
+				(r) =>
+					act(async () =>
+						r.render(
+							<TerminalsProvider status={access()}>
+								<StartTeacher />
+							</TerminalsProvider>,
+						),
+					),
 				async () => {
-					assert.ok(q("open-agent")!.classList.contains("lh-btn-main"), "Start Claude Code leads before any start");
+					assert.ok(q("open-agent")!.classList.contains("lh-btn-main"), "Start Claude Code leads");
 					assert.ok(!q("open-agent-menu")!.classList.contains("lh-btn-main"));
 					await act(async () => q("open-agent")!.click());
 					await settle();
 					assert.ok(shell.calls.includes("start claude"), shell.calls.join(", "));
-					assert.ok(q("open-agent") === null && q("open-agent-menu") === null, "no start buttons while the agent runs");
-					assert.ok(q("agent-launch-log") === null, "no copy-command log");
-					assert.ok(q("first-run-screen") !== null, "the screen shows in the step");
-					assert.equal(q("terminal-footer")!.textContent, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
-					await act(async () => root!.render(page(access({ connected: true, terminals: [{ id: "teacher-new", here: true }] }))));
-					await settle();
-					assert.equal(q("terminal-footer")!.textContent, "Claude Code is connected.");
-					await act(async () => shell.push({ id: "teacher-new", ended: { stopped: true, code: null }, prompt: null, url: false }));
-					await act(async () => root!.render(page(access())));
-					await settle();
-					assert.ok(q("open-agent") !== null, "the start buttons return once it ended");
-					assert.ok(!q("open-agent")!.classList.contains("lh-btn-main"), "Start again in the footer leads then");
 				},
 			);
 		} finally {
@@ -160,7 +144,7 @@ describe("Start with an agent outside godspeed connected", () => {
 					act(async () =>
 						r.render(
 							<TerminalsProvider status={access({ connected: true, outsideHere: true })}>
-								<AgentLauncher />
+								<StartTeacher />
 							</TerminalsProvider>,
 						),
 					),

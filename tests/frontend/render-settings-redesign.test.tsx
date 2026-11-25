@@ -137,7 +137,7 @@ describe("settings restyle", () => {
 			if (init?.method) saves.push(String(url));
 			return Response.json({ settings: { version: 1 } });
 		}) as typeof fetch;
-		await mount(<Settings section="general" />);
+		await mount(<Settings section="teacher" />);
 		const input = q("teacher-name") as HTMLInputElement;
 		await act(async () => {
 			Object.defineProperty(input, "value", { configurable: true, writable: true, value: "Ada" });
