@@ -21,7 +21,7 @@ Where the feature touches the app, the teacher's block and what it costs, the to
 
 ## Sending the notes and what it costs
 
-A notes block is self-contained: it never carries the lesson, so any agent writes it at the same cost. It rides in the space's next topic grouping job, so it pays no session of its own; when no grouping takes it within 3 minutes, it is a job of its own once no lesson turn runs. The steps are in 08.1.6.
+A notes block is self-contained: it never carries the lesson, so any agent writes it at the same cost. It rides in the space's next topic grouping job while one is on its way, so it pays no session of its own; when none is, it is a job of its own once no lesson turn runs. The steps are in 08.1.6.
 
 Cost for a lesson with three topics:
 

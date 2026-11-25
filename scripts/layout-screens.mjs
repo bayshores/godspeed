@@ -132,11 +132,11 @@ await fetch("/api/settings/general", { method: "PUT", headers: { "content-type":
 await fetch("/api/spaces/{pathSpace}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ closed: true }) })${HTTP_OK};`;
 
 /** The lesson made and never sent: opened at this address, the window sends its first message once,
- *  as Study does, and with no agent connected its reply waits. */
+ *  as Study does, and the stand-in helper holds its reply. */
 const waitingLesson = `/chat/{pending}?prompt=${encodeURIComponent(WAITING_TOPIC)}`;
 /** A lesson turn running: Stop in the writing row. */
 const turnRuns = "[data-testid=stop-turn]";
-/** The desk in that lesson's text, still while no agent takes the reply, at work once one does. */
+/** The desk in that lesson's text while the teacher works on its reply. */
 const deskUp = "[data-testid=agent-at-work]";
 /** That lesson's reply stopped (a screen before may have stopped it already) and the lesson deleted, so the screens after it are as before. A
  *  lesson can't be deleted while its turn runs, so the delete is tried until the stop has ended it. */
@@ -547,22 +547,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	// The two screens below leave requests waiting for an agent; the lesson that follows them ends them.
 	{ name: "Cheat sheet being made", before: `${sounds(false)}; ${askSheet}`, url: sheetPage("{waitingDeadline}"), ready: "[data-testid=sheet-working]" },
 	{ name: "Mock being written", before: askMock, url: "/space/deadline/{waitingDeadline}", ready: "[data-testid=deadline-mock-continue]", setup: `document.querySelector("[data-testid=deadline-mock-continue]").click()`, shows: "[data-testid=mock-writing]" },
-	{ name: "Lesson whose first reply waits for an agent", before: dropAskedRequests, url: waitingLesson, ready: deskUp },
-	{
-		name: "Lesson whose first reply waits for an agent, beside the teacher's panel",
-		url: "/chat/{pending}",
-		ready: turnRuns,
-		setup: openTeacher,
-		shows: "[data-testid=terminal-none] [data-testid=open-agent]",
-	},
-	// The stand-in agent is started from the waiting lesson's teacher window, and the lesson's start key goes.
-	{
-		name: "Lesson whose first reply an agent took",
-		url: "/chat/{pending}",
-		ready: turnRuns,
-		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]").click()`,
-		shows: "[data-testid=turn-row]:not(:has([data-testid=work-frame-open])) [data-testid=stop-turn]",
-	},
+	{ name: "Lesson whose first reply the teacher works on", before: dropAskedRequests, url: waitingLesson, ready: deskUp },
 	// The stand-in helper, holding that reply, reads a file of its own and a passage of the space's: the desk lists the steps and lifts the file.
 	{
 		name: "Lesson whose reply the teacher works on, a file lifted",
@@ -596,7 +581,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `document.querySelector("${turnRuns}")?.click()`,
 		shows: "[data-testid=nothing-written]",
 	},
-	// Starter keys show only while no lesson turn waits, so the waiting lesson goes first. The stand-in agent may already run.
+	// Starter keys show only while no lesson turn waits, so the waiting lesson goes first.
 	{
 		name: "The agent's screen",
 		before: dropWaitingLesson,

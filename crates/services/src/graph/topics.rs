@@ -56,6 +56,12 @@ pub fn topic_grouping_running(app: &App, space_id: &str) -> bool {
 	app.graph.topics.0.lock().running.contains(space_id)
 }
 
+/// True while a grouping run for the space waits to start or is going.
+pub fn topic_grouping_pending(app: &App, space_id: &str) -> bool {
+	let inner = app.graph.topics.0.lock();
+	inner.timers.contains_key(space_id) || inner.running.contains(space_id)
+}
+
 /// Asks for a grouping run 20 s from now; a later request starts the wait over.
 pub fn schedule_topic_grouping(app: &Arc<App>, space_id: &str) {
 	let timer = gs_base::tasks::spawn("topics", {
@@ -116,6 +122,9 @@ fn run_single_flight(app: &Arc<App>, space_id: &str) {
 		};
 		if again {
 			run_single_flight(&app, &space_id);
+		} else {
+			// A notes block this run did not carry goes on its own now.
+			crate::vault::send_waiting(&app);
 		}
 	});
 }

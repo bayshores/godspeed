@@ -308,6 +308,15 @@ mod tests {
 	use super::*;
 
 	#[test]
+	fn a_jobs_thread_started_or_resumed_reads_no_agents_md_from_its_folder() {
+		// A cheat sheet works in a folder inside the godspeed folder, which has an AGENTS.md.
+		let job = SessionSpec { persist: false, ..crate::test_peer::spec(None) };
+		let started = thread_start(&job);
+		assert_eq!((started["config"]["project_doc_max_bytes"].as_i64(), started["ephemeral"].as_bool()), (Some(0), Some(true)));
+		assert_eq!(thread_resume("thr_1", &job)["config"]["project_doc_max_bytes"].as_i64(), Some(0));
+	}
+
+	#[test]
 	fn a_sign_in_is_read_from_its_answer_and_its_end() {
 		let started = json!({ "type": "chatgpt", "loginId": "l1", "authUrl": "https://auth.openai.com/oauth/authorize?state=s" });
 		assert_eq!(login_started(&started), Some(("l1".into(), "https://auth.openai.com/oauth/authorize?state=s".into())));

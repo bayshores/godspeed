@@ -309,7 +309,7 @@ export async function seed(dataDir, page, log) {
 	await send(`/api/spaces/${space.id}/mocks`, { deadlineId: midterm, questions: 3 });
 	await jobsIdle();
 	const ready = await mockOf(midterm, 2);
-	// A lesson made as the window's Study does, whose first message the window sends when it opens: its reply waits for an agent.
+	// A lesson made as the window's Study does, whose first message the window sends when it opens: the stand-in helper holds its reply.
 	await page.fetch("/api/chats", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: WAITING_TOPIC, spaceId: space.id }) });
 	const pending = (await agent.json("list_lessons", { space_id: space.id })).lessons.find((lesson) => lesson.title === WAITING_TOPIC).id;
 	const covers = (topic) => `Enough ${topic} to get a junior job by spring, with typing practice daily.`;

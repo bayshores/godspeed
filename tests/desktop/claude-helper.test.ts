@@ -2,10 +2,15 @@
  * godspeed's Claude helper (crates/runtime/src/claude/claude-helper.mjs) on a stand-in for the
  * Agent SDK's `query`: the JSON lines it speaks with the server, two sessions at once, a resume,
  * godspeed's tools through its in-process MCP server, a question that ends the turn, a permission
- * question, web search without one, and the learner's own launch command.
+ * question, web search without one, and the learner's own launch command. One test runs the real
+ * SDK on a stand-in Claude Code, to see what a job working in a folder with a CLAUDE.md is started
+ * with and sent.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { PassThrough } from "node:stream";
 import { createInterface } from "node:readline";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -184,4 +189,36 @@ test("the learner's own command starts Claude Code with the SDK's arguments afte
 	child.stdout.on("data", (data: Buffer) => (out += data));
 	await new Promise<void>((resolve) => child.once("exit", resolve));
 	assert.equal(out, "launched --model a b\n");
+});
+
+test("a job in a folder that holds a CLAUDE.md and an AGENTS.md starts Claude Code with no setting sources, and sends neither", { skip: process.platform === "win32" }, async () => {
+	// A cheat sheet works in a folder inside the godspeed folder, which has a CLAUDE.md of its own.
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gs-helper-job-"));
+	const folder = path.join(dir, "cheat-sheets", "sheet");
+	fs.mkdirSync(folder, { recursive: true });
+	const RULE = "Folder rule: answer in French.";
+	for (const file of [path.join(dir, "CLAUDE.md"), path.join(folder, "CLAUDE.md"), path.join(folder, "AGENTS.md")]) fs.writeFileSync(file, RULE);
+	// The stand-in Claude Code keeps its arguments and what it was sent for half a second, then quits.
+	const seenFile = path.join(dir, "seen.json");
+	const standIn = path.join(dir, "claude.mjs");
+	fs.writeFileSync(standIn, `import * as fs from "node:fs";\nlet sent = "";\nprocess.stdin.on("data", (data) => (sent += data));\nsetTimeout(() => { fs.writeFileSync(${JSON.stringify(seenFile)}, JSON.stringify({ args: process.argv.slice(2), sent })); process.exit(0); }, 500);\n`);
+	const input = new PassThrough();
+	const output = new PassThrough();
+	serve({ input, output });
+	const say = (message: Json) => input.write(`${JSON.stringify(message)}\n`);
+	try {
+		say(open("j1", { cwd: folder, persist: false, launcher: `"${process.execPath}" "${standIn}"` }));
+		say({ type: "send", session: "j1", content: [{ type: "text", text: "Make the sheet." }] });
+		for (let tries = 0; !fs.existsSync(seenFile); tries++) {
+			assert.ok(tries < 200, "the stand-in Claude Code never started");
+			await new Promise((done) => setTimeout(done, 50));
+		}
+		const seen = JSON.parse(fs.readFileSync(seenFile, "utf8")) as { args: string[]; sent: string };
+		assert.ok(seen.args.includes("--setting-sources="), `no setting sources, so no CLAUDE.md is read: ${seen.args.join(" ")}`);
+		assert.ok(seen.sent.includes("Make the sheet."), "the job's request was sent");
+		assert.ok(!JSON.stringify(seen).includes(RULE), "nothing of the folder's files is sent");
+	} finally {
+		say({ type: "close", session: "j1" });
+		fs.rmSync(dir, { recursive: true, force: true });
+	}
 });

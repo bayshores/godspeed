@@ -1,7 +1,7 @@
 //! The pass that turns a lesson's answers into notes. A lesson end, leaving a lesson that has new
 //! answers, and the start of the app (for a lesson left when it quit) each queue the lesson here.
 //! The queued answers go to the teacher once, as a notes block: on the space's next topic
-//! grouping when an agent is picked, else as a job of its own once no lesson turn runs.
+//! grouping while one is on its way, else as a job of its own once no lesson turn runs.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::Path;
@@ -31,12 +31,12 @@ use super::topic_data::{TopicFacts, space_topics};
 use super::write::{picked_vault, write_vault_note, write_vault_words};
 use super::{notes_changed, setup, with_reader};
 use crate::App;
+use crate::graph::extraction_runs::runs;
 use crate::graph::progress::{lesson_answered_topics, progress_for, space_mistakes};
+use crate::graph::topics::topic_grouping_pending;
 use crate::jobs::job_agent::job_agent;
 use crate::turns::turn_liveness::turns_running;
 
-/// A queued pass waits this long for a space's topic grouping before it is sent on its own.
-const GROUPING_WAIT_MS: i64 = 3 * 60_000;
 /// After a failed run, the same pass is not sent again for this long.
 const RETRY_AFTER_MS: i64 = 10 * 60_000;
 /// Mistakes sent for one topic in one pass.
@@ -52,7 +52,6 @@ const INSTRUCTIONS: &str = "You write notes for a learner in godspeed, a learnin
 #[derive(Default)]
 struct Waiting {
 	lessons: BTreeSet<String>,
-	since: i64,
 	not_before: i64,
 }
 
@@ -115,7 +114,6 @@ fn requeue(app: &App, space_id: &str, lessons: Vec<String>, not_before: i64) {
 	let mut waiting = app.vault.pass.waiting.lock();
 	let entry = waiting.entry(space_id.to_owned()).or_default();
 	entry.lessons.extend(lessons);
-	entry.since = entry.since.max(clock::now_ms());
 	entry.not_before = not_before;
 }
 
@@ -135,17 +133,13 @@ fn earning_space(app: &App, chat_id: &str) -> Result<Option<String>, String> {
 	Ok((!topics.is_empty()).then(|| space_id.to_owned()))
 }
 
-/// Queues the lesson's new answers for a pass, and sends them now when no agent is picked.
+/// Queues the lesson's new answers for a pass, and sends them now when no grouping is on its way.
 pub fn queue_lesson(app: &Arc<App>, chat_id: &str) {
 	match earning_space(app, chat_id) {
 		Ok(Some(space_id)) => {
 			{
 				let mut waiting = app.vault.pass.waiting.lock();
-				let entry = waiting.entry(space_id).or_default();
-				if entry.lessons.is_empty() {
-					entry.since = clock::now_ms();
-				}
-				entry.lessons.insert(chat_id.to_owned());
+				waiting.entry(space_id).or_default().lessons.insert(chat_id.to_owned());
 			}
 			notes_changed(app);
 			send_waiting(app);
@@ -176,15 +170,16 @@ pub fn catch_up(app: &Arc<App>) {
 	}
 }
 
-/// Sends each waiting space's pass on its own when it may: no lesson turn runs, and the grouping
-/// that would have carried it never came.
+/// Sends each waiting space's pass on its own when it may: no lesson turn runs, and no grouping
+/// that could carry it is on its way.
 pub fn send_waiting(app: &Arc<App>) {
 	let now = clock::now_ms();
-	let ready: Vec<String> = {
+	let candidates: Vec<(String, Vec<String>)> = {
 		let waiting = app.vault.pass.waiting.lock();
 		let busy = app.vault.pass.sending.lock();
-		waiting.iter().filter(|(space, w)| !busy.contains_key(*space) && now >= w.not_before && now - w.since >= GROUPING_WAIT_MS).map(|(space, _)| space.clone()).collect()
+		waiting.iter().filter(|(space, w)| !busy.contains_key(*space) && now >= w.not_before).map(|(space, w)| (space.clone(), w.lessons.iter().cloned().collect())).collect()
 	};
+	let ready: Vec<String> = candidates.into_iter().filter(|(space, lessons)| !grouping_on_its_way(app, space, lessons)).map(|(space, _)| space).collect();
 	if ready.is_empty() || turns_running(app) > 0 {
 		return;
 	}
@@ -196,6 +191,12 @@ pub fn send_waiting(app: &Arc<App>) {
 			taken.done(&app, ok);
 		});
 	}
+}
+
+/// Whether a topic grouping that would carry the space's block is on its way: one waits or runs
+/// for the space, or one of the block's lessons is being read into the graph, which asks for one.
+fn grouping_on_its_way(app: &App, space_id: &str, lessons: &[String]) -> bool {
+	topic_grouping_pending(app, space_id) || lessons.iter().any(|id| runs(app).in_flight(id))
 }
 
 /// The space's waiting block, taken once: by its next topic grouping, or to send on its own.

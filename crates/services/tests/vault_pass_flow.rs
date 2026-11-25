@@ -1,5 +1,5 @@
 //! The pass that writes a lesson's notes, end to end against a stand-in agent: the block rides the
-//! topic grouping, or goes as a job of its own when no grouping took it in time, a lesson that is
+//! topic grouping on its way, or goes as a job of its own at once when none is, a lesson that is
 //! left or found at the start is sent once, the keys follow the record once a day, and the
 //! "My words" asks stop at three and at two skips.
 
@@ -12,15 +12,13 @@ use gs_json::{Json, json};
 use gs_runtime::fake::{FakeAgent, FakeStep};
 use gs_services::App;
 use gs_services::app::agents::use_runtime;
+use gs_services::graph::extraction_runs::runs;
+use gs_services::graph::topics::schedule_topic_grouping;
 use gs_services::turns::catch_up;
 use gs_services::vault::{Ask, AskReply, answer_ask, change_vault, lesson_left, lesson_vault_notes, minute_check, queue_lesson, reviewed, send_waiting, take_block};
 use gs_store::graph::Ledger;
 
-/// The tests move the app clock, which every test in this file shares, so they run one at a time.
-static ONE_AT_A_TIME: parking_lot::Mutex<()> = parking_lot::Mutex::new(());
-
 struct Fixture {
-	_one_at_a_time: parking_lot::MutexGuard<'static, ()>,
 	app: Arc<App>,
 	/// The learner's agent.
 	agent: FakeAgent,
@@ -32,7 +30,6 @@ struct Fixture {
 impl Fixture {
 	/// A space "CSE 21" with the `(id, name)` topics and an empty vault picked.
 	fn new(topics: &[(&str, &str)]) -> Fixture {
-		let one_at_a_time = ONE_AT_A_TIME.lock();
 		let dir = std::env::temp_dir().join(format!("gs-vault-pass-{}", ids::uuid()));
 		for name in ["data", "home", "tmp", "res", "Notes"] {
 			std::fs::create_dir_all(dir.join(name)).unwrap();
@@ -51,13 +48,12 @@ impl Fixture {
 		change_vault(&app, &json!({ "path": vault.to_string_lossy() })).unwrap();
 		let agent = FakeAgent::default();
 		use_runtime(&app, agent.runtime());
-		Fixture { _one_at_a_time: one_at_a_time, app, agent, dir, vault, space_id }
+		Fixture { app, agent, dir, vault, space_id }
 	}
 
-	/// No topic grouping came for the space's waiting block in time, so it goes on its own.
-	fn grouping_wait_over(&self) {
-		clock::advance(GROUPING_WAIT_MS);
-		send_waiting(&self.app);
+	/// A topic grouping of the space waits to start, so a queued block waits to ride it.
+	fn grouping_on_its_way(&self) {
+		schedule_topic_grouping(&self.app, &self.space_id);
 	}
 
 	/// A lesson of this space in which each topic's question was answered wrong.
@@ -116,9 +112,6 @@ impl Drop for Fixture {
 	}
 }
 
-/// How long a waiting block waits for a topic grouping.
-const GROUPING_WAIT_MS: i64 = 3 * 60_000;
-
 /// Gives any job started a moment to run.
 async fn settle() {
 	clock::sleep(100).await;
@@ -136,14 +129,11 @@ async fn sent(f: &Fixture, chat_id: &str) {
 }
 
 #[tokio::test]
-async fn a_block_no_grouping_took_goes_as_a_job_of_its_own() {
+async fn a_block_with_no_grouping_on_its_way_goes_as_a_job_of_its_own_at_once() {
 	let f = Fixture::new(&[("t1", "Binary search"), ("t2", "Pigeonhole")]);
 	let chat = f.lesson(&["t1", "t2"]);
 	f.will_write(&["t1", "t2"]);
 	queue_lesson(&f.app, &chat);
-	settle().await;
-	assert!(f.jobs().is_empty() && f.passes()[chat.as_str()].is_null(), "the block waits for the grouping");
-	f.grouping_wait_over();
 	sent(&f, &chat).await;
 	let (tools, block) = f.jobs().remove(0);
 	assert_eq!(tools, ["write_vault_note"]);
@@ -158,9 +148,25 @@ async fn a_block_no_grouping_took_goes_as_a_job_of_its_own() {
 }
 
 #[tokio::test]
+async fn a_block_waits_while_its_lesson_is_read_into_the_graph() {
+	let f = Fixture::new(&[("t1", "Binary search")]);
+	let chat = f.lesson(&["t1"]);
+	f.will_write(&[]);
+	assert!(runs(&f.app).claim(&chat));
+	queue_lesson(&f.app, &chat);
+	settle().await;
+	assert!(f.jobs().is_empty(), "the reading asks for a grouping, which the block rides");
+	runs(&f.app).release(&chat);
+	send_waiting(&f.app);
+	sent(&f, &chat).await;
+	assert_eq!(f.jobs().len(), 1, "the reading wrote nothing, so no grouping came and the block went on its own");
+}
+
+#[tokio::test]
 async fn the_grouping_takes_the_block_and_a_failed_run_waits_before_it_is_offered_again() {
 	let f = Fixture::new(&[("t1", "Binary search")]);
 	let chat = f.lesson(&["t1"]);
+	f.grouping_on_its_way();
 	queue_lesson(&f.app, &chat);
 	send_waiting(&f.app);
 	settle().await;
@@ -178,6 +184,7 @@ async fn the_grouping_takes_the_block_and_a_failed_run_waits_before_it_is_offere
 async fn a_grouping_that_carried_the_block_marks_the_lesson_sent() {
 	let f = Fixture::new(&[("t1", "Binary search")]);
 	let chat = f.lesson(&["t1"]);
+	f.grouping_on_its_way();
 	queue_lesson(&f.app, &chat);
 	take_block(&f.app, &f.space_id).await.unwrap().done(&f.app, true);
 	assert!(f.passes()[chat.as_str()].as_str().is_some());
@@ -193,7 +200,6 @@ async fn leaving_a_lesson_sends_it_once() {
 	settle().await;
 	assert!(f.passes()[chat.as_str()].is_null(), "still in the lesson, or never in one");
 	lesson_left(&f.app, Some(&format!("/chat/{chat}")), Some("/progress"));
-	f.grouping_wait_over();
 	sent(&f, &chat).await;
 	assert_eq!(f.jobs().len(), 1);
 }
@@ -204,7 +210,6 @@ async fn a_lesson_found_at_the_start_is_sent_once() {
 	let found = g.lesson(&["t1"]);
 	g.will_write(&[]);
 	catch_up(&g.app);
-	g.grouping_wait_over();
 	sent(&g, &found).await;
 	catch_up(&g.app);
 	settle().await;
@@ -217,7 +222,6 @@ async fn no_vault_means_no_pass() {
 	change_vault(&f.app, &json!({ "path": null })).unwrap();
 	let chat = f.lesson(&["t1"]);
 	queue_lesson(&f.app, &chat);
-	f.grouping_wait_over();
 	settle().await;
 	assert!(f.jobs().is_empty());
 }
@@ -228,7 +232,6 @@ async fn the_keys_follow_the_record_once_a_day_and_again_after_a_review() {
 	let chat = f.lesson(&["t1"]);
 	f.will_write(&["t1"]);
 	queue_lesson(&f.app, &chat);
-	f.grouping_wait_over();
 	sent(&f, &chat).await;
 	minute_check(&f.app);
 	assert!(f.note_file("Binary search.md").contains("answered: 0 of 1 right"));
@@ -247,7 +250,6 @@ async fn the_asks_stop_at_three_and_a_skipped_note_is_asked_once_more_then_never
 	let chat = f.lesson(&["t1", "t2", "t3", "t4"]);
 	f.will_write(&["t1", "t2", "t3", "t4"]);
 	queue_lesson(&f.app, &chat);
-	f.grouping_wait_over();
 	sent(&f, &chat).await;
 	assert!(f.jobs()[0].1.contains("Mode: learner adds My words"));
 
@@ -265,6 +267,7 @@ async fn the_asks_stop_at_three_and_a_skipped_note_is_asked_once_more_then_never
 	assert!(matches!(answer_ask(&f.app, &chat, &asked[1], Ask::Skip).unwrap(), AskReply::Done));
 
 	// The next passes ride the topic grouping.
+	f.grouping_on_its_way();
 	f.answer_wrong(&chat, &[asked[1].as_str()], "b");
 	queue_lesson(&f.app, &chat);
 	take_block(&f.app, &f.space_id).await.expect("the grouping takes the block").done(&f.app, true);
