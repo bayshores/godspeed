@@ -128,6 +128,18 @@ describe("pieceSheet", () => {
 		assert.deepEqual(pieceSheet(edge, null).piece.parts[0]!.crop, [0, 0, 1, 1]);
 	});
 
+	it("names the line over the first part and the line under the last as the sheet's edges", () => {
+		const { edges } = pieceSheet(PIECE, null);
+		assert.equal(edges[0]![1], null);
+		assert.equal(edges[1]![0], null);
+		bandsAre([edges[0]![0]!, edges[1]![1]!], [
+			[0, 0.0789],
+			[0.9375, 0.0625],
+		]);
+		const whole: ProblemPiece = { fileId: "f", parts: [{ page: 1, crop: [0, 0, 1, 1], aspect: 0.75 }] };
+		assert.deepEqual(pieceSheet(whole, null).edges, [[null, null]]);
+	});
+
 	it("veils the lines around the problem and bars the rest", () => {
 		const { veiled, lit, current } = pieceSheet(SINGLE_PIECE, null);
 		bandsAre(veiled[0]!, [

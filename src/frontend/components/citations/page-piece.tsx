@@ -47,7 +47,7 @@ export function PagePiece({
 	// A failure belongs to the piece that had it, not to the next one this component draws.
 	const key = JSON.stringify(piece);
 	const [failedKey, setFailedKey] = useState<string | null>(null);
-	const { piece: sheet, veiled, lit, current } = useMemo(() => pieceSheet(piece, part), [piece, part]);
+	const { piece: sheet, veiled, lit, edges, current } = useMemo(() => pieceSheet(piece, part), [piece, part]);
 	const anchorRef = useRef<HTMLSpanElement>(null);
 	// Keyed on the place, not the object: a caller that rebuilds the piece must not scroll again.
 	const place = current && `${current.part}:${current.at}`;
@@ -92,6 +92,10 @@ export function PagePiece({
 						{veiled[i]!.map((band, k) => (
 							<span key={k} aria-hidden data-testid="piece-veil" className={cn("absolute inset-x-0 opacity-55", printed ? "bg-white" : "bg-(--lh-sheet)")} style={{ top: pct(band.top), height: pct(band.height) }} />
 						))}
+						{edges[i]!.map(
+							(band, k) =>
+								band && <span key={k} aria-hidden data-testid="piece-edge" className={cn("absolute inset-x-0 from-(--lh-edge) to-transparent", k === 0 ? "bg-linear-to-b" : "bg-linear-to-t", printed ? "[--lh-edge:white]" : "[--lh-edge:var(--lh-sheet)]")} style={{ top: pct(band.top), height: pct(band.height) }} />,
+						)}
 						{lit[i]!.map((band, k) => (
 							<span key={k} aria-hidden data-testid="piece-bar" className="lh-read-mark lh-read-mark-still absolute left-0 w-1.5" style={{ top: pct(band.top), height: pct(band.height) }} />
 						))}
