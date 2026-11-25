@@ -584,14 +584,14 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		shows: "[data-testid=nothing-written]",
 	},
 	// Start again runs that reply again. The stand-in helper, holding it, reads a file of its own and a passage of the space's: the desk lists
-	// the steps and lifts the file.
+	// the steps and its sheet shows the file.
 	{
-		name: "Lesson whose reply the teacher works on, a file lifted",
+		name: "Lesson whose reply the teacher works on, reading a file",
 		url: "/chat/{pending}",
 		ready: `${deskUp}, [data-testid=nothing-written]`,
 		setup: `document.querySelector("[data-testid=nothing-written]") && document.querySelector("[data-testid=next-problem-button]")?.click(); ${whenThere(deskUp)}`,
 		helper: "read",
-		shows: "[data-testid=desk-stack] [data-lifted]",
+		shows: "[data-testid=desk-paper][data-open]",
 	},
 	// The helper asks to run a command: its card, with the command on a slip, waits under the desk's steps for Deny or Allow.
 	{

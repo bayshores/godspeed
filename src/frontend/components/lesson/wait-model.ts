@@ -1,4 +1,4 @@
-import { isQuestionTool, PRACTICE_PROBLEM_TOOL, type DeskFile, type DeskReading, type LessonWork, type LhViewMessage } from "@/shared/core";
+import { isQuestionTool, PRACTICE_PROBLEM_TOOL, type DeskReading, type LessonWork, type LhViewMessage } from "@/shared/core";
 
 /**
  * The lesson while the teacher works on a reply: the desk in the lesson text's newest sheet, which
@@ -90,25 +90,19 @@ export function deskRows({ plan, steps }: Pick<LessonWork, "plan" | "steps">): {
 	return { rows: [{ key: "done", count: rows.length - shown.length, state: "folded" }, ...shown], under: null };
 }
 
-/** The place the teacher read last, if it read a file. */
-export function deskReading(work: Pick<LessonWork, "steps">): DeskReading | null {
-	return work.steps.findLast((step) => step.reads !== null)?.reads ?? null;
+/** The page on the desk: the place the teacher read last in a file that has pages to show, or
+ *  before that the first of its files that has them, lying still (Word, PowerPoint and EPUB files
+ *  have none). */
+export function deskPaper(work: Pick<LessonWork, "steps" | "files">): { reading: DeskReading; still: boolean } | null {
+	const read = work.steps.findLast((step) => step.reads !== null && step.reads.kind !== "other")?.reads;
+	if (read) return { reading: read, still: false };
+	const first = work.files.find((file) => file.kind !== "other");
+	return first ? { reading: { ...first, from: null, to: null, page: null }, still: true } : null;
 }
 
 /** The tool calls the desk's steps stand for: their cards stay out of the lesson text while it shows. */
 export function deskCalls(work: Pick<LessonWork, "steps">): ReadonlySet<string> {
 	return new Set(work.steps.flatMap((step) => (step.call ? [step.call] : [])));
-}
-
-/** The most files on the desk. */
-const DESK_FILES = 5;
-
-/** The files on the desk, front first: the one being read in front, the rest in the server's
- *  order. A file read from outside them joins in front and the back one leaves. */
-export function deskStack(files: readonly DeskFile[], reading: DeskReading | null): DeskFile[] {
-	if (!reading) return files.slice(0, DESK_FILES);
-	const front: DeskFile = { name: reading.name, path: reading.path, kind: reading.kind };
-	return [front, ...files.filter((file) => file.path !== reading.path)].slice(0, DESK_FILES);
 }
 
 /** Where a desk that is leaving held the lesson: its message count, the newest message's part

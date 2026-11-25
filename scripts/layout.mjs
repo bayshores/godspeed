@@ -34,6 +34,8 @@ import { HTTP_OK, SCREENS, widthsOf } from "./layout-screens.mjs";
 const ROOT = path.resolve(import.meta.dirname, "..");
 const RUN = path.join(ROOT, "target", "layout");
 const APP = path.join(ROOT, "target", "debug", "godspeed");
+// Inside the throwaway home: the desk reads a file only from under home, and a file it cannot read leaves its paper blank.
+const DATA = path.join(RUN, "home", "data");
 // Short enough for the screen of GitHub's Mac runner, so the laptop and CI judge the same window.
 const HEIGHT = 680;
 const POLL_MS = 20;
@@ -225,7 +227,7 @@ async function startApp(port, name) {
 		env: {
 			...process.env,
 			LH_PORT: String(port),
-			LH_DATA_DIR: path.join(RUN, "data"),
+			LH_DATA_DIR: DATA,
 			HOME: path.join(RUN, "home"),
 			// The agent's start script runs in zsh, which reads the home's .zshrc (standInAgent).
 			SHELL: "/bin/zsh",
@@ -373,10 +375,10 @@ async function main() {
 	const built = Date.now();
 
 	fs.rmSync(RUN, { recursive: true, force: true });
-	for (const dir of ["data", "home", "tmp", "helper"]) fs.mkdirSync(path.join(RUN, dir), { recursive: true });
+	for (const dir of ["home/data", "tmp", "helper"]) fs.mkdirSync(path.join(RUN, dir), { recursive: true });
 	// Silent from the first page load: the run's windows are hidden, but their sounds are heard. The menu bar item stays
 	// off so a check never adds one to the owner's menu bar.
-	fs.writeFileSync(path.join(RUN, "data", "settings.json"), JSON.stringify({ version: 3, general: { startupSound: false, sounds: false, menuBarCountdown: false } }));
+	fs.writeFileSync(path.join(DATA, "settings.json"), JSON.stringify({ version: 3, general: { startupSound: false, sounds: false, menuBarCountdown: false } }));
 	standInAgent(path.join(RUN, "home"));
 	const port = await freePort();
 	const pageSource = fs.readFileSync(path.join(import.meta.dirname, "layout-page.mjs"), "utf8").replace(/^export /gm, "");
@@ -400,7 +402,7 @@ async function main() {
 			},
 			json: async (url) => JSON.parse(await app.run(`return fetch(${JSON.stringify(url)})${HTTP_OK}.then((r) => r.text())`)),
 		};
-		ids = await seed(path.join(RUN, "data"), page, log).catch((err) => {
+		ids = await seed(DATA, page, log).catch((err) => {
 			throw new Error(`${err.message}; steps: ${seedLog}`);
 		});
 		const { settings } = JSON.parse(await app.run(`return fetch("/api/settings")${HTTP_OK}.then((r) => r.text())`));

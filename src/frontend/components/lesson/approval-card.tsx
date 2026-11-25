@@ -66,7 +66,7 @@ function ApprovalCard({ approval, leaving, live }: { approval: WorkApproval; lea
 					data-testid="approval-card"
 					data-state={leaving ? "closed" : "open"}
 					inert={leaving}
-					className={cn("lh-desk-well lh-sheet mt-3 flex flex-col gap-3 px-3 py-2.5", (arrived || leaving) && "lh-fade")}
+					className={cn("lh-sheet mt-3 flex flex-col gap-3 px-3 py-2.5", (arrived || leaving) && "lh-fade")}
 				>
 					<p className="text-[15px] leading-5 text-ink">{approval.text}</p>
 					{subject && (

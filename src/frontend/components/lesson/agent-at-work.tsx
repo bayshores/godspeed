@@ -5,23 +5,24 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { ApprovalCards } from "./approval-card";
 import type { Arrive } from "./arrivals";
-import { DeskStack } from "./desk-stack";
+import { PageStage } from "./page-stage";
 import { PencilLine } from "./pencil-line";
-import { deskReading, deskRows, deskStack, type DeskRow, type DeskState } from "./wait-model";
+import { deskPaper, deskRows, type DeskRow, type DeskState } from "./wait-model";
 
 /**
  * THE DESK: the lesson text's newest sheet while the teacher works on a reply. One sentence says
  * what the teacher does; under it, its plan or its steps in the server's words, the current one on
  * a tile where the pencil writes, and under them a card for each thing it waits for the learner to
- * allow; beside them, the files it works from as a stack of paper, the one it reads in front.
- * `foot` rests under it: the lines typed to the teacher that wait for it. With no files the rows
- * stand alone in the middle of the sheet.
+ * allow; beside them, one sheet of paper with the page of the file it reads. The desk takes the
+ * page's blank room, so the sheet is whole where the window lets it. `foot` rests under it: the
+ * lines typed to the teacher that wait for it.
  */
 export function AgentAtWork({ state, head, work, arrive, foot }: { state: DeskState; head: string | null; work: LessonWork; arrive: Arrive; foot: ReactNode }) {
 	// Each desk's own arrival slots, so the next turn's desk steps in again.
 	const slot = useId();
-	const reading = deskReading(work);
-	const stack = deskStack(work.files, reading);
+	const paper = deskPaper(work);
+	// The file the desk opened on lies there at once; one the teacher turns to later steps in.
+	const opened = useRef(paper?.reading.path);
 	const { rows, under } = deskRows(work);
 	return (
 		<div data-testid="agent-at-work" data-state={state} className="lh-desk @container/desk flex flex-1 flex-col gap-6">
@@ -33,14 +34,17 @@ export function AgentAtWork({ state, head, work, arrive, foot }: { state: DeskSt
 					</span>
 				)}
 			</p>
-			<div className={cn("flex flex-1 gap-(--lh-gap) @max-[440px]/desk:flex-col", stack.length > 0 ? "min-h-[320px] @max-[440px]/desk:min-h-0" : "items-center justify-center")}>
-				<div className={cn("flex min-w-0 flex-col", stack.length > 0 ? "flex-1" : "w-full max-w-[420px]")}>
+			<div className={cn("flex flex-1 gap-8 @max-[440px]/desk:flex-col", paper && "min-h-[320px] @max-[440px]/desk:min-h-0")}>
+				<div className="-ml-3 flex min-w-0 flex-1 flex-col @max-[440px]/desk:flex-none">
 					<DeskRows rows={rows} under={under} state={state} slot={slot} arrive={arrive} />
 					<ApprovalCards approvals={work.approvals} slot={slot} arrive={arrive} />
 				</div>
-				{stack.length > 0 && (
-					<div className="flex w-[44%] max-w-[300px] shrink-0 flex-col @max-[440px]/desk:h-[220px] @max-[440px]/desk:w-full @max-[440px]/desk:max-w-none @max-[360px]/desk:hidden">
-						<DeskStack files={stack} reading={reading} />
+				{paper && (
+					<div className="relative w-[48%] max-w-[340px] shrink-0 @max-[440px]/desk:min-h-[180px] @max-[440px]/desk:w-full @max-[440px]/desk:flex-1 @max-[440px]/desk:max-w-none @max-[360px]/desk:hidden">
+						{/* Out of the flow, so the sheet takes the room its place has and never makes it taller. */}
+						<div className="absolute inset-0 flex flex-col">
+							<PageStage key={paper.reading.path} reading={paper.reading} still={paper.still} arrives={paper.reading.path !== opened.current} />
+						</div>
 					</div>
 				)}
 			</div>
@@ -51,14 +55,15 @@ export function AgentAtWork({ state, head, work, arrive, foot }: { state: DeskSt
 
 /** The rows, each stepping in after the one above it. One tile lies under the current row and
  *  slides to the next one when the teacher moves on (useLitMarker); the newest step stands under
- *  the current plan item. */
+ *  the current plan item. The tile hangs out past the rows' marks, which stand under the sentence's
+ *  first letter. */
 function DeskRows({ rows, under, state, slot, arrive }: { rows: DeskRow[]; under: string | null; state: DeskState; slot: string; arrive: Arrive }) {
 	const list = useRef<HTMLOListElement>(null);
 	const now = rows.find((row) => row.state === "now")?.key ?? null;
 	const tile = useLitMarker(list, "[data-now]", now);
 	return (
 		<ol ref={list} data-testid="desk-plan" className="relative isolate flex min-w-0 flex-col gap-1">
-			<div ref={tile} aria-hidden className="lh-lit-marker lh-desk-well lh-sheet" />
+			<div ref={tile} aria-hidden className="lh-lit-marker lh-sheet" />
 			{rows.map((row, i) => (
 				<li key={row.key} data-now={row.state === "now" || undefined} className={cn("flex gap-3 px-3 py-2.5", arrive(`${slot}:row:${row.key}`) && "lh-block-in")} style={{ "--lh-block-delay": `${i * 40}ms` } as CSSProperties}>
 					{row.state === "now" && row.text === null ? (
