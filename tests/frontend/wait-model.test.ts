@@ -17,7 +17,7 @@ const card = (files: number): LhViewMessage => ({ id: "c", role: "user", parts: 
 
 describe("deskHead", () => {
 	it("says what the teacher does, by why the turn runs", () => {
-		const said = (cause: LessonWork["cause"]) => deskHead({ name: "Claude", waiting: false, work: live({ cause }) });
+		const said = (cause: LessonWork["cause"]) => deskHead({ name: "Claude", off: false, work: live({ cause }) });
 		assert.equal(said("first"), "Claude is getting your first step ready.");
 		assert.equal(said("answer"), "Claude is reading your answer.");
 		assert.equal(said("problem"), "Claude is checking your work.");
@@ -28,10 +28,11 @@ describe("deskHead", () => {
 		assert.equal(said("open_problem"), "Claude is getting the problem ready.");
 	});
 
-	it("waits while no agent runs or none took the turn, and says nothing before the server's first word", () => {
-		assert.equal(deskHead({ name: "Claude", waiting: true, work: NO_LESSON_WORK }), "Waiting for Claude to start.");
-		assert.equal(deskHead({ name: "Claude", waiting: false, work: live({ taken: false }) }), "Waiting for Claude to start.");
-		assert.equal(deskHead({ name: "Claude", waiting: false, work: NO_LESSON_WORK }), null);
+	it("is off while no agent is here or starting, waits while one is and has not taken the turn, and says nothing before the server's first word", () => {
+		assert.equal(deskHead({ name: "Claude", off: true, work: NO_LESSON_WORK }), "Claude is off.");
+		assert.equal(deskHead({ name: "Claude", off: true, work: live({ taken: false }) }), "Claude is off.");
+		assert.equal(deskHead({ name: "Claude", off: false, work: live({ taken: false }) }), "Waiting for Claude to start.");
+		assert.equal(deskHead({ name: "Claude", off: false, work: NO_LESSON_WORK }), null);
 	});
 });
 
@@ -89,15 +90,16 @@ describe("deskPaper and deskCalls", () => {
 		const reads = { ...file("PA4.pdf"), from: null, to: null, page: 2 };
 		const slides = { name: "Week 8.pptx", path: "/h/Week 8.pptx", kind: "other" as const, from: null, to: null, page: null };
 		const work = live({ steps: [step("1", "Reading PA4.pdf, page 2", { reads, call: "c1" }), step("2", "Reading Week 8.pptx", { reads: slides }), step("3", "Searching the web for “malloc”")] });
-		assert.deepEqual(deskPaper(work), { reading: reads, still: false });
+		assert.deepEqual(deskPaper(work, false), { reading: reads, still: false });
+		assert.equal(deskPaper(work, true), null, "none while the page shows the open problem's sheet");
 		assert.deepEqual([...deskCalls(work)], ["c1"]);
 	});
 
 	it("before any read is the first file with pages, still, and nothing with no such file", () => {
 		const slides = { name: "Week 8.pptx", path: "/h/Week 8.pptx", kind: "other" as const };
-		assert.deepEqual(deskPaper(live({ files: [slides, file("a.pdf"), file("b.md")] })), { reading: { ...file("a.pdf"), from: null, to: null, page: null }, still: true });
-		assert.equal(deskPaper(live({ files: [slides] })), null);
-		assert.equal(deskPaper(live()), null);
+		assert.deepEqual(deskPaper(live({ files: [slides, file("a.pdf"), file("b.md")] }), false), { reading: { ...file("a.pdf"), from: null, to: null, page: null }, still: true });
+		assert.equal(deskPaper(live({ files: [slides] }), false), null);
+		assert.equal(deskPaper(live(), false), null);
 	});
 });
 

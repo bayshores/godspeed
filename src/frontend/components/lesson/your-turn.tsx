@@ -7,6 +7,7 @@ import { DEFAULT_TEACHER_NAME, DONT_KNOW, normalizeQuizType, questionKindLabel, 
 import { useSettings } from "@/frontend/components/settings-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { KEY_HELD } from "@/frontend/components/terminal/screen-key";
+import { StartAgentAction } from "@/frontend/components/work/start-agent-action";
 import { cn } from "@/frontend/lib/utils";
 import type { AttachmentDraft } from "./attachment-tray";
 import { wordsOver } from "@/frontend/components/vault/note-pages-model";
@@ -19,7 +20,7 @@ import { TurnScroll } from "./turn-scroll";
 import { TurnPlaceContext, TurnSlotsContext } from "./turn-place";
 import { TurnSwap } from "./turn-swap";
 import { AnsweredTurn } from "./answered-turn";
-import { StartKey } from "./start-key";
+import { useStartKey } from "./use-start-key";
 import type { NextAction, TurnShown } from "./turn-next-model";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
@@ -161,7 +162,9 @@ export function YourTurn({
 			: ask
 				? ({ kind: "words", ready: value.trim().length > 0 && over <= 0, leave: nextKey?.label ?? null } as const)
 				: ({ kind: "ask", nextKey: nextKey !== null } as const);
-	const view = lessonBox({ teacher, busy, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
+	// While the turn waits for an agent: the key that turns the teacher on, in place of Send and Stop.
+	const starts = useStartKey() && onStop !== null && waitingForAgent;
+	const view = lessonBox({ teacher, busy, off: starts, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
 	// Nothing waits: the foot row offers what any lesson can be asked for.
 	const ideas = lessonIdeas(useSettings().record?.agent?.tools ?? NO_SWITCHES);
 
@@ -363,8 +366,8 @@ export function YourTurn({
 				// With a "My words" ask, the key that ends the day sits among the box's own keys.
 				end={
 					<>
-						{onStop && waitingForAgent && <StartKey />}
-						{onStop && (
+						{starts && <StartAgentAction />}
+						{onStop && !starts && (
 							<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet shrink-0">
 								Stop
 							</button>

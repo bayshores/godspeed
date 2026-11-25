@@ -1057,6 +1057,7 @@ describe("the reading pane", () => {
 		stoppedEmpty: false,
 		waitingForAgent: false,
 		work: NO_LESSON_WORK,
+		problemSheet: false,
 		queuedSteers: [],
 		arrivalsLive: false,
 		pageMarks: new Map(),
@@ -1083,11 +1084,16 @@ describe("the reading pane", () => {
 		assert.doesNotMatch(html({ busy: true }), /stop-turn/, "the teacher reading ahead at a stop is not stopped");
 	});
 
-	it("the key that turns the teacher on leads Stop only while the turn waits for an agent", () => {
+	it("the key that turns the teacher on stands alone at the row's end while the turn waits for an agent: no Send and no Stop", () => {
 		const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 1, helperWork: 0, claimedLessons: [] } as AgentStatus;
-		const row = (waitingForAgent: boolean) => html({ busy: true, onStop: () => {}, waitingForAgent }, (n) => <AgentStatusContext.Provider value={off}>{named(n)}</AgentStatusContext.Provider>);
-		assert.match(row(true), /lh-btn-main[^>]*>Turn on marco<\/button><button[^>]*data-testid="stop-turn"/);
-		assert.doesNotMatch(row(false), /Turn on/);
+		const row = (waitingForAgent: boolean) => html({ busy: true, onStop: () => {}, waitingForAgent, problem, value: "x" }, (n) => <AgentStatusContext.Provider value={off}>{named(n)}</AgentStatusContext.Provider>);
+		const waiting = row(true);
+		assert.match(waiting, /lh-btn-main[^>]*>Turn on marco<\/button>/);
+		assert.doesNotMatch(waiting, /composer-send|stop-turn/);
+		assert.match(waiting, /data-testid="help-hint"/, "the Stuck? keys stay");
+		const taken = row(false);
+		assert.doesNotMatch(taken, /Turn on/);
+		assert.match(taken, /composer-send[\s\S]*stop-turn/);
 	});
 
 	it("Stop sends the stop once", async () => {
@@ -1105,10 +1111,15 @@ describe("the reading pane", () => {
 		}
 	});
 
-	it("a still desk while no agent takes the turn, which says so", () => {
-		const out = pane({ waitingForAgent: true });
-		assert.match(out, /data-testid="agent-at-work" data-state="waiting"[\s\S]*Waiting for Teacher to start\./);
-		assert.ok(!out.includes("Thinking"));
+	it("while no agent is here or starting, the desk is one line that says the teacher is off", () => {
+		const none = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 1, helperWork: 0, claimedLessons: [] } as AgentStatus;
+		const out = renderToStaticMarkup(
+			<AgentStatusContext.Provider value={none}>
+				<ReadingPane {...readingProps({ waitingForAgent: true })} />
+			</AgentStatusContext.Provider>,
+		);
+		assert.match(out, /data-testid="agent-at-work" data-state="off"[\s\S]*Teacher is off\./);
+		assert.doesNotMatch(out, /desk-plan|pencil|desk-paper|Thinking/);
 	});
 
 	it("an empty lesson says it is new, with no promise of a probe", () => {

@@ -7,7 +7,7 @@ import { projectView, withOpenReview } from "../../src/shared/core/view.ts";
 import type { ReviewQuestion } from "../../src/shared/core/contracts/chat.ts";
 import { call } from "../stop-fixtures.ts";
 
-const box = (turn: BoxTurn, over: Partial<Parameters<typeof lessonBox>[0]> = {}) => lessonBox({ teacher: "Teacher", busy: false, hasText: false, hasFiles: false, turn, ...over });
+const box = (turn: BoxTurn, over: Partial<Parameters<typeof lessonBox>[0]> = {}) => lessonBox({ teacher: "Teacher", busy: false, off: false, hasText: false, hasFiles: false, turn, ...over });
 type Box = ReturnType<typeof box>;
 /** The key that answers (Submit answer), and the key that sends the box's words (Send, or the ask key). */
 const submit = (view: Box) => view.keys.find((k) => k.action === "submit")!;
@@ -239,6 +239,23 @@ describe("lessonBox, the Stuck? keys", () => {
 		assert.deepEqual(box(questionTurn("quiz", quiz, false), { busy: true }).help, { dontKnow: "answer", dontKnowDisabled: true, linesDisabled: true });
 		assert.deepEqual(box(questionTurn("quiz", quiz, false, "opener"), { busy: true }).help, { dontKnow: "answer", dontKnowDisabled: true, linesDisabled: true });
 		assert.deepEqual(box(questionTurn("quiz", quiz, false, "review"), { busy: true }).help, { dontKnow: "answer", dontKnowDisabled: false, linesDisabled: true });
+	});
+});
+
+describe("lessonBox, the teacher off", () => {
+	it("no key and no Enter sends while the key that turns the teacher on stands in the row", () => {
+		const problem = box({ kind: "problem", picked: false }, { busy: true, off: true, hasText: true });
+		assert.deepEqual(problem.keys, []);
+		assert.equal(problem.enter, null);
+		assert.equal(problem.placeholder, "Your work or a question", "the box still takes work");
+		assert.ok(problem.help, "and the Stuck? keys stay");
+		assert.deepEqual(box({ kind: "ask", nextKey: false }, { busy: true, off: true, hasText: true }).keys, []);
+	});
+
+	it("keeps an answer's own key", () => {
+		const review = box(questionTurn("quiz", { question: "q", options: [{ label: "a" }, { label: "b" }], correctAnswer: "a", explanation: "e" }, true, "review"), { busy: true, off: true });
+		assert.deepEqual(review.keys.map((k) => k.action), ["submit"]);
+		assert.equal(review.enter, "submit");
 	});
 });
 

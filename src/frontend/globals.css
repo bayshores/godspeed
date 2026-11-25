@@ -2149,16 +2149,11 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
    the file the teacher reads, as paper lying on the page. The paper stands
    straight and still, so its type stays sharp. The lines being read get the
    lesson's highlighter as a bar in the margin, drawn down once the pages
-   stop drifting (data-drifting), and the lines around them fade. With no
-   agent at the desk the paper is pale. On a dark background the paper is
-   dimmed, so it never glares. */
+   stop drifting (data-drifting), and the lines around them fade. On a dark
+   background the paper is dimmed, so it never glares. */
 .lh-desk {
 	--lh-paper: #e9e9e7;
 	--lh-paper-lip: #bdbdb8;
-}
-.lh-desk[data-state="waiting"] {
-	--lh-paper: color-mix(in srgb, #e9e9e7 50%, var(--lh-sheet));
-	--lh-paper-lip: color-mix(in srgb, #bdbdb8 50%, var(--lh-sheet));
 }
 .lh-paper {
 	--lh-sheet: var(--lh-paper);
@@ -2229,10 +2224,6 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	color: var(--lh-tint);
 	animation: lh-pencil-move var(--lh-pencil-ms) steps(var(--lh-pencil-steps), end) infinite;
 }
-.lh-pencil[data-state="waiting"] .lh-pencil-tip {
-	color: var(--lh-ink-3);
-	animation: none;
-}
 /* The current step's mark: the same pencil, writing a few short strokes in its own square. */
 .lh-pencil.lh-pencil-mark {
 	--lh-pencil-w: 6px;
@@ -2283,7 +2274,7 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	.lh-pencil-ghost {
 		display: none;
 	}
-	.lh-pencil[data-state="working"] .lh-pencil-tip {
+	.lh-pencil:not(.lh-pencil-mark) .lh-pencil-tip {
 		transform: translate(var(--lh-pencil-w), 0);
 	}
 }

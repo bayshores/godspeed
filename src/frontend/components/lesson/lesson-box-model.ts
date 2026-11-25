@@ -91,10 +91,19 @@ export function lessonBox(s: {
 	teacher: string;
 	/** A reply is being written (or waits for an agent). */
 	busy: boolean;
+	/** No agent is on, and the key that turns the teacher on stands in the row: nothing goes to
+	 *  the teacher, so no key and no Enter sends. */
+	off: boolean;
 	hasText: boolean;
 	hasFiles: boolean;
 	turn: BoxTurn;
 }): BoxView {
+	const view = boxFor(s);
+	if (!s.off) return view;
+	return { ...view, keys: view.keys.filter((k) => k.action !== "send"), enter: view.enter === "send" ? null : view.enter };
+}
+
+function boxFor(s: { teacher: string; busy: boolean; hasText: boolean; hasFiles: boolean; turn: BoxTurn }): BoxView {
 	const { turn } = s;
 	// A line sent while the teacher writes steers the reply, and a steer carries no files.
 	const steers = !(s.busy && s.hasFiles);

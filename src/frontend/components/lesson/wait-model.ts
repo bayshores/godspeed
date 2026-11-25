@@ -6,8 +6,8 @@ import { isQuestionTool, PRACTICE_PROBLEM_TOOL, type DeskReading, type LessonWor
  * the files it works from on the desk as paper. Pure.
  */
 
-/** "waiting": no agent is at the desk; "working": one is. */
-export type DeskState = "waiting" | "working";
+/** "off": no agent is here and none is starting, and the desk only says so; "working": one is. */
+export type DeskState = "off" | "working";
 
 /** The reply being worked on has its words: the desk gives way to them. */
 export function replyArrived(reply: LhViewMessage | undefined): boolean {
@@ -15,10 +15,12 @@ export function replyArrived(reply: LhViewMessage | undefined): boolean {
 	return last?.type === "reasoning" || (last?.type === "text" && typeof last.text === "string" && last.text.trim().length > 0);
 }
 
-/** The desk's one sentence: what the teacher does, by why the turn runs. Null for the moment
- *  between the learner's send and the server's first word on the turn. */
-export function deskHead({ name, waiting, work }: { name: string; waiting: boolean; work: LessonWork }): string | null {
-	if (waiting || (work.live && !work.taken)) return `Waiting for ${name} to start.`;
+/** The desk's one sentence: what the teacher does, by why the turn runs; that it is off (`off`);
+ *  that it has not started while one is on or starting and has not taken the job. Null for the
+ *  moment between the learner's send and the server's first word on the turn. */
+export function deskHead({ name, off, work }: { name: string; off: boolean; work: LessonWork }): string | null {
+	if (off) return `${name} is off.`;
+	if (work.live && !work.taken) return `Waiting for ${name} to start.`;
 	if (!work.live) return null;
 	switch (work.cause) {
 		case "first":
@@ -97,8 +99,10 @@ export function deskRows({ plan, steps }: Pick<LessonWork, "plan" | "steps">): {
 
 /** The page on the desk: the place the teacher read last in a file that has pages to show, or
  *  before that the first of its files that has them, lying still (Word, PowerPoint and EPUB files
- *  have none). */
-export function deskPaper(work: Pick<LessonWork, "steps" | "files">): { reading: DeskReading; still: boolean } | null {
+ *  have none). None while the lesson page shows the open problem's own sheet (`sheet`): that is
+ *  the page the learner reads. */
+export function deskPaper(work: Pick<LessonWork, "steps" | "files">, sheet: boolean): { reading: DeskReading; still: boolean } | null {
+	if (sheet) return null;
 	const read = work.steps.findLast((step) => step.reads !== null && step.reads.kind !== "other")?.reads;
 	if (read) return { reading: read, still: false };
 	const first = work.files.find((file) => file.kind !== "other");

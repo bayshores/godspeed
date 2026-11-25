@@ -558,6 +558,8 @@ export function Chat({
 	// While it is shut and the teacher works, a task that streams in waits for the reply to land.
 	const turnPending = open || pending?.appPosed?.kind === "review" ? pending : null;
 	const turnProblem = open ? problem : null;
+	// The open problem shows on the page, unless a question asked while it is open stands in its place.
+	const problemShown = turnProblem !== null && turnPending === null;
 	// Where the page last laid "Your turn" out: only beside the text or alone does it keep the finished task,
 	// and the lesson's notes take its place there when they come.
 	const [turnPlace, setTurnPlace] = useState<TurnPlace>("under");
@@ -629,7 +631,7 @@ export function Chat({
 									shutting={book.shutting}
 									onShut={book.shut}
 									onRest={book.rest}
-									pin={turnProblem !== null && turnPending === null}
+									pin={problemShown}
 									place={turnPlace}
 									onPlace={setTurnPlace}
 									reading={
@@ -646,6 +648,7 @@ export function Chat({
 											stoppedEmpty={stoppedEmpty}
 											waitingForAgent={waitingForAgent}
 											work={work}
+											problemSheet={problemShown}
 											queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
 											arrivalsLive={arrivalsLive}
 											pageMarks={pageMarks}

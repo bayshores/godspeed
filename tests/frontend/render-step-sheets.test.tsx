@@ -39,6 +39,7 @@ function pane(messages: LhViewMessage[], over: Partial<Props> = {}): string {
 			stoppedEmpty={false}
 			waitingForAgent={false}
 			work={NO_LESSON_WORK}
+			problemSheet={false}
 			queuedSteers={[]}
 			arrivalsLive={false}
 			pageMarks={new Map()}

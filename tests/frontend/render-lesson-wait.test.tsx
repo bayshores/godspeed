@@ -13,7 +13,7 @@ import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
-import { StartKey } from "../../src/frontend/components/lesson/start-key.tsx";
+import { useStartKey } from "../../src/frontend/components/lesson/use-start-key.ts";
 import { titleEcho } from "../../src/frontend/components/lesson/wait-model.ts";
 import { AgentStatusContext, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
 import { TeacherContext, type TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
@@ -72,6 +72,7 @@ const props = (over: Partial<Props> = {}): Props => ({
 	stoppedEmpty: false,
 	waitingForAgent: false,
 	work: NO_LESSON_WORK,
+	problemSheet: false,
 	queuedSteers: [],
 	arrivalsLive: false,
 	pageMarks: new Map(),
@@ -91,7 +92,7 @@ describe("the desk", () => {
 
 	it("opens on a new lesson as the desk: what the teacher does, the pencil writing on the current tile, no bubble for the title", () => {
 		const out = pane({ work: work() });
-		assert.match(out, /data-testid="agent-at-work" data-state="working"[\s\S]*Teacher is getting your first step ready\.[\s\S]*data-testid="desk-plan"[\s\S]*data-testid="pencil-line" data-state="working"[\s\S]*lh-pencil-ink/);
+		assert.match(out, /data-testid="agent-at-work" data-state="working"[\s\S]*Teacher is getting your first step ready\.[\s\S]*data-testid="desk-plan"[\s\S]*data-testid="pencil-line"[\s\S]*lh-pencil-ink/);
 		assert.doesNotMatch(out, /data-testid="desk-paper"/, "no files: no paper");
 		assert.doesNotMatch(out, /data-testid="user-message"/);
 		assert.doesNotMatch(out, /Space context/, "the scaffolding card is not drawn");
@@ -115,10 +116,23 @@ describe("the desk", () => {
 		assert.doesNotMatch(out, /\bborder(-edge)?\b(?!-)/);
 	});
 
-	it("lays the pencil down, with no ink, while no agent takes the turn", () => {
-		const out = pane({ waitingForAgent: true, work: work({ taken: false }) });
-		assert.match(out, /data-testid="agent-at-work" data-state="waiting"[\s\S]*Waiting for Teacher to start\.[\s\S]*data-testid="pencil-line" data-state="waiting"[\s\S]*lh-pencil-tip/);
-		assert.doesNotMatch(out, /lh-pencil-ink|lh-pencil-ghost/);
+	it("says only that the teacher is off while no agent is here or starting: no rows, no pencil, no paper", () => {
+		const none = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 1, helperWork: 0, claimedLessons: [] } as AgentStatus;
+		const waiting = props({ waitingForAgent: true, work: work({ taken: false, files: [pdf("a.pdf")] }) });
+		const out = renderToStaticMarkup(
+			<AgentStatusContext.Provider value={none}>
+				<ReadingPane {...waiting} />
+			</AgentStatusContext.Provider>,
+		);
+		assert.match(out, /data-testid="agent-at-work" data-state="off"[\s\S]*Teacher is off\./);
+		assert.doesNotMatch(out, /desk-plan|pencil|desk-paper/);
+		const starting = renderToStaticMarkup(<ReadingPane {...waiting} />);
+		assert.match(starting, /data-state="working"[\s\S]*Waiting for Teacher to start\.[\s\S]*data-testid="pencil-line"/, "an agent not known to be away is waited for");
+	});
+
+	it("says it waits for the teacher to start while an agent is on and has not taken the turn, with the pencil writing", () => {
+		const out = pane({ work: work({ taken: false }) });
+		assert.match(out, /Waiting for Teacher to start\.[\s\S]*data-testid="pencil-line"[\s\S]*lh-pencil-ink/);
 	});
 
 	it("lists the steps in the server's words, the older checked and the pencil only on the newest", () => {
@@ -146,6 +160,14 @@ describe("the desk", () => {
 		assert.match(reading, /data-testid="desk-paper" data-open=""/);
 	});
 
+	it("lays no paper while the page shows the open problem's own sheet, and takes no blank room", () => {
+		const out = pane({ problemSheet: true, work: work({ files: [pdf("a.pdf")] }) });
+		assert.match(out, /data-testid="desk-plan"/);
+		assert.doesNotMatch(out, /data-testid="desk-paper"/);
+		assert.doesNotMatch(out, /lh-text-sheets[^"]*flex-1/);
+		assert.match(pane({ work: work({ files: [pdf("a.pdf")] }) }), /lh-text-sheets[^"]*flex-1/);
+	});
+
 	it("shows no paper for a file it cannot draw", () => {
 		const out = pane({ work: work({ files: [{ name: "Week 8.pptx", path: "/h/Week 8.pptx", kind: "other" }] }) });
 		assert.doesNotMatch(out, /data-testid="desk-paper"/);
@@ -154,23 +176,26 @@ describe("the desk", () => {
 
 describe("the start key", () => {
 	const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 1, helperWork: 0, claimedLessons: [] } as AgentStatus;
-	const withStatus = (status: AgentStatus | null, panelStarts = false) =>
+	function Shows() {
+		return String(useStartKey());
+	}
+	const shows = (status: AgentStatus | null, panelStarts = false) =>
 		renderToStaticMarkup(
 			<AgentStatusContext.Provider value={status}>
 				<TeacherContext.Provider value={{ name: "Quigley", panelStarts } as TeacherApi}>
-					<StartKey />
+					<Shows />
 				</TeacherContext.Provider>
 			</AgentStatusContext.Provider>,
-		);
+		) === "true";
 
-	it("turns the teacher on while no agent is here", () => {
-		assert.match(withStatus(off), /lh-btn lh-btn-main[^>]*>Turn on Quigley<\/button>/);
+	it("may show while no agent is here", () => {
+		assert.equal(shows(off), true);
 	});
 
-	it("is not there while an agent is here, before the status is known, or while the teacher's panel shows its own", () => {
-		assert.doesNotMatch(withStatus({ ...off, connected: true }), /Turn on/);
-		assert.doesNotMatch(withStatus(null), /Turn on/);
-		assert.doesNotMatch(withStatus(off, true), /Turn on/);
+	it("does not while an agent is here, before the status is known, or while the teacher's panel shows its own", () => {
+		assert.equal(shows({ ...off, connected: true }), false);
+		assert.equal(shows(null), false);
+		assert.equal(shows(off, true), false);
 	});
 });
 
