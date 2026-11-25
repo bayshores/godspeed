@@ -1629,6 +1629,833 @@
           "fontWeight": "normal"
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "JUp1x",
+      "x": 16881,
+      "y": 700,
+      "name": "Empty room: approval 1 (picked)",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "TZswl",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Empty room: approval 1 (picked)",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "VXSoO",
+          "name": "Line",
+          "fill": "$dim",
+          "textGrowth": "fixed-width",
+          "width": 2272,
+          "content": "Options 1 and 2 agree here. The page the teacher reads fills the left page; the sentence, steps and Allow card rest on the writing row at the right.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "lSP9a",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "Mur0z",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/room1-approval-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "N86eU",
+              "name": "800 wide",
+              "width": 800,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/room1-approval-800.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "y3NumA",
+      "x": 16881,
+      "y": 2100,
+      "name": "Empty room: writing 1",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "rmA7u",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Empty room: writing 1",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "BGM8e",
+          "name": "Line",
+          "fill": "$dim",
+          "textGrowth": "fixed-width",
+          "width": 2272,
+          "content": "Option 1, material left, turn right. The page stays on the left. The words are written just above the row on the right, the steps folded to their last one. When the reply is done the words glide onto the lesson page.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "mNDmL",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "IheJw",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/room1-writing-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "nvtS8",
+              "name": "800 wide",
+              "width": 800,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/room1-writing-800.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "tu0xz",
+          "name": "Motion label",
+          "fill": "$dim",
+          "content": "Motion at 1440, twelve frames: working, the Allow card, words being written, the reply done.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "omXsU",
+          "name": "Motion",
+          "width": 1952,
+          "height": 924,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "teacher-chat/room1-motion-strip.png",
+            "mode": "contain"
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "q3wPz",
+      "x": 19393,
+      "y": 2100,
+      "name": "Empty room: writing 2 (picked)",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "SN7bt",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Empty room: writing 2 (picked)",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "f14qy",
+          "name": "Line",
+          "fill": "$dim",
+          "textGrowth": "fixed-width",
+          "width": 2272,
+          "content": "Option 2, words push the page. The words start at the top of the left page and push the page down. The steps stay on the row at the right as the turn's record.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "w9z0u",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "nIaqC",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/room2-writing-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "W8Gb7",
+              "name": "800 wide",
+              "width": 800,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/room2-writing-800.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "DVDFH",
+          "name": "Motion label",
+          "fill": "$dim",
+          "content": "Motion at 1440, twelve frames: working, the Allow card, words being written, the reply done.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "q62MI",
+          "name": "Motion",
+          "width": 1952,
+          "height": 924,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "teacher-chat/room2-motion-strip.png",
+            "mode": "contain"
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "oP57Q",
+      "x": 16881,
+      "y": 4400,
+      "name": "Empty room: setup card 1",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "rQUYR",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Empty room: setup card 1",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "A55Bg",
+          "name": "Line",
+          "fill": "$dim",
+          "textGrowth": "fixed-width",
+          "width": 2272,
+          "content": "Option 1, the card in the box's place. The chat stays readable, and today's whole setup card (agent pick, Version, Account) stands at the foot where the writing box goes. A first chat keeps its starters at the top, dim until the agent can run. Once it can, the card folds away and the writing box rises into its place.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "naXgS",
+          "name": "1440 wide",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "auUuE",
+              "name": "Not logged in, with an earlier chat",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "UOWft",
+                  "name": "Label",
+                  "fill": "$dim",
+                  "content": "Not logged in, with an earlier chat, 1440 wide",
+                  "fontFamily": "Literata",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "cC6xf",
+                  "name": "Picture",
+                  "width": 1440,
+                  "height": 900,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "teacher-chat/setup1-loggedout-1440.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "zelma",
+              "name": "Log in pressed: the sign-in waits on the browser",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "r8AzKA",
+                  "name": "Label",
+                  "fill": "$dim",
+                  "content": "Log in pressed: the sign-in waits on the browser, 1440 wide",
+                  "fontFamily": "Literata",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "k5V3Xq",
+                  "name": "Picture",
+                  "width": 1440,
+                  "height": 900,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "teacher-chat/setup1-login-1440.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "KCPNI",
+              "name": "A first chat, not logged in",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "elwCt",
+                  "name": "Label",
+                  "fill": "$dim",
+                  "content": "A first chat, not logged in, 1440 wide",
+                  "fontFamily": "Literata",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "HJjLw",
+                  "name": "Picture",
+                  "width": 1440,
+                  "height": 900,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "teacher-chat/setup1-first-1440.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "o2gFXE",
+          "name": "800 wide",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "rBq0r",
+              "name": "Not logged in, with an earlier chat",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ql6aR",
+                  "name": "Label",
+                  "fill": "$dim",
+                  "content": "Not logged in, with an earlier chat, 800 wide",
+                  "fontFamily": "Literata",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "WRHAX",
+                  "name": "Picture",
+                  "width": 800,
+                  "height": 900,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "teacher-chat/setup1-loggedout-800.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "KqneW",
+              "name": "Log in pressed: the sign-in waits on the browser",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "P1KoOK",
+                  "name": "Label",
+                  "fill": "$dim",
+                  "content": "Log in pressed: the sign-in waits on the browser, 800 wide",
+                  "fontFamily": "Literata",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "Afkgr",
+                  "name": "Picture",
+                  "width": 800,
+                  "height": 900,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "teacher-chat/setup1-login-800.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "quybo",
+              "name": "A first chat, not logged in",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "NScwL",
+                  "name": "Label",
+                  "fill": "$dim",
+                  "content": "A first chat, not logged in, 800 wide",
+                  "fontFamily": "Literata",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "MfYkz",
+                  "name": "Picture",
+                  "width": 800,
+                  "height": 900,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "teacher-chat/setup1-first-800.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "a2aRT",
+          "name": "Motion label",
+          "fill": "$dim",
+          "content": "Motion at 1440, twelve frames: the teacher opens, Log in, the code is typed, the agent is ready and the chat takes its usual shape.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "pVUyx",
+          "name": "Motion",
+          "width": 1952,
+          "height": 924,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "teacher-chat/setup1-motion-strip.png",
+            "mode": "contain"
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "zvqSU",
+      "x": 21505,
+      "y": 4400,
+      "name": "Empty room: setup card 2 (picked)",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "DtJCG",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Empty room: setup card 2 (picked)",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "T5aE9",
+          "name": "Line",
+          "fill": "$dim",
+          "textGrowth": "fixed-width",
+          "width": 2272,
+          "content": "Option 2, the box speaks. The writing box's place holds one line: what stops the agent and its key (today's compact card), with \"Use Codex\" where the model key goes. After Log in the line says \"Finish in your browser.\" Once the agent can run, \"Ask anything\" fades in in the same place while the line fades out.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "GO8OF",
+          "name": "1440 wide",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "fBKWc",
+              "name": "Not logged in, with an earlier chat",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "QiezF",
+                  "name": "Label",
+                  "fill": "$dim",
+                  "content": "Not logged in, with an earlier chat, 1440 wide",
+                  "fontFamily": "Literata",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "h8HmP",
+                  "name": "Picture",
+                  "width": 1440,
+                  "height": 900,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "teacher-chat/setup2-loggedout-1440.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "yZWwo",
+              "name": "Log in pressed: the sign-in waits on the browser",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "CJwvP",
+                  "name": "Label",
+                  "fill": "$dim",
+                  "content": "Log in pressed: the sign-in waits on the browser, 1440 wide",
+                  "fontFamily": "Literata",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "W9XxO",
+                  "name": "Picture",
+                  "width": 1440,
+                  "height": 900,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "teacher-chat/setup2-login-1440.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "jOQxX",
+              "name": "A first chat, not logged in",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "uRtoR",
+                  "name": "Label",
+                  "fill": "$dim",
+                  "content": "A first chat, not logged in, 1440 wide",
+                  "fontFamily": "Literata",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "tiKOv",
+                  "name": "Picture",
+                  "width": 1440,
+                  "height": 900,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "teacher-chat/setup2-first-1440.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "HNUR6",
+          "name": "800 wide",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "GVE3z",
+              "name": "Not logged in, with an earlier chat",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "IHhka",
+                  "name": "Label",
+                  "fill": "$dim",
+                  "content": "Not logged in, with an earlier chat, 800 wide",
+                  "fontFamily": "Literata",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "su0z6",
+                  "name": "Picture",
+                  "width": 800,
+                  "height": 900,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "teacher-chat/setup2-loggedout-800.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "W1gjkw",
+              "name": "Log in pressed: the sign-in waits on the browser",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "w1uUC",
+                  "name": "Label",
+                  "fill": "$dim",
+                  "content": "Log in pressed: the sign-in waits on the browser, 800 wide",
+                  "fontFamily": "Literata",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "n1ro29",
+                  "name": "Picture",
+                  "width": 800,
+                  "height": 900,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "teacher-chat/setup2-login-800.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "LSQo5",
+              "name": "A first chat, not logged in",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "U3JeW",
+                  "name": "Label",
+                  "fill": "$dim",
+                  "content": "A first chat, not logged in, 800 wide",
+                  "fontFamily": "Literata",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "KUY3s",
+                  "name": "Picture",
+                  "width": 800,
+                  "height": 900,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "teacher-chat/setup2-first-800.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "IQbAs",
+          "name": "Motion label",
+          "fill": "$dim",
+          "content": "Motion at 1440, twelve frames: the teacher opens, Log in, the code is typed, the agent is ready and the chat takes its usual shape.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "F9zOiA",
+          "name": "Motion",
+          "width": 1952,
+          "height": 924,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "teacher-chat/setup2-motion-strip.png",
+            "mode": "contain"
+          }
+        }
+      ]
     }
   ],
   "variables": {
