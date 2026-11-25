@@ -11,7 +11,8 @@
  * lesson is at is kept in LAYOUT_HELPER_DIR, since the app is started twice and resumes its
  * sessions. A lesson that holds never ends its turn until it is stopped; the word a screen writes
  * to the `desk` file in that folder makes it read files as an agent at work would (`read`), ask
- * to run a command (`approve`), or stream half a reply (`stream`).
+ * to run a command (`approve`), or write a reply's first sentence and go back to reading under it
+ * (`stream`).
  *
  * A session that is not kept is one of godspeed's background jobs: its one turn plays the fixed
  * answer layout-jobs.mjs gives for the job's tools and request.
@@ -131,21 +132,23 @@ function askApproval(session) {
 	write({ type: "approval", id, session: session.key, tool: "Bash", input, toolUseId });
 }
 
-const SENTENCE = "To solve an equation, undo what was done to x in the opposite order. First subtract the three from both sides, then divide by the two to leave x alone.";
+const FIRST_SENTENCE = "To solve an equation, undo what was done to x in the opposite order.";
 
-/** Streams the first half of a reply, once, and stops there, so the page shows a reply half written. */
-async function streamHalf(session) {
-	if (session.streamed) return;
-	session.streamed = true;
-	const words = SENTENCE.split(/(?<= )/);
-	for (const word of words.slice(0, words.length / 2)) {
+/** Writes a reply's first sentence word by word, once, then reads a file of its own: a step after
+ *  the words, so the page shows a reply half written with the desk back under it. */
+async function writeThenRead(session) {
+	if (session.wrote) return;
+	session.wrote = true;
+	for (const word of FIRST_SENTENCE.split(/(?<= )/)) {
 		sdk(session.key, { type: "stream_event", event: { type: "content_block_delta", delta: { type: "text_delta", text: word } } });
 		await new Promise((done) => setTimeout(done, 60));
 	}
+	sdk(session.key, { type: "assistant", message: { content: [{ type: "text", text: FIRST_SENTENCE }] } });
+	ownTool(session, "Read", { file_path: "notes.md" });
 }
 
 /** The requests a screen can make of a held turn, by the word it writes to the desk file. */
-const DESK_REQUESTS = { read: readFiles, approve: askApproval, stream: streamHalf };
+const DESK_REQUESTS = { read: readFiles, approve: askApproval, stream: writeThenRead };
 
 /** Holds the turn until it is stopped, doing what the desk file asks while it waits. */
 async function hold(session) {

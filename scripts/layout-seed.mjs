@@ -105,7 +105,8 @@ function inDays(days) {
 /** Two vaults Obsidian lists in the throwaway home, the first holding one note: Settings shows them
  *  as keys until a screen picks one. Returns the first vault's path. */
 function listVaults(dataDir) {
-	const home = path.join(dataDir, "..", "home");
+	// The data folder lies in the throwaway home (layout.mjs).
+	const home = path.dirname(dataDir);
 	const vaults = ["Documents/Lab notes", "Documents/Reading"].map((name) => path.join(home, name));
 	for (const vault of vaults) fs.mkdirSync(path.join(vault, ".obsidian"), { recursive: true });
 	fs.writeFileSync(path.join(vaults[0], "Slope.md"), "# Slope\n\nRise over run.\n");

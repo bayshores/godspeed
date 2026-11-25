@@ -544,17 +544,27 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `${unheard}; document.querySelector("[data-testid=noise-word]").click()`,
 		shows: "[data-testid=noise-word][aria-pressed=true]",
 	},
-	// The two screens below leave requests waiting for an agent; the lesson that follows them ends them.
+	// The two screens below leave requests the stand-in helper holds; the lesson that follows them ends them.
 	{ name: "Cheat sheet being made", before: `${sounds(false)}; ${askSheet}`, url: sheetPage("{waitingDeadline}"), ready: "[data-testid=sheet-working]" },
 	{ name: "Mock being written", before: askMock, url: "/space/deadline/{waitingDeadline}", ready: "[data-testid=deadline-mock-continue]", setup: `document.querySelector("[data-testid=deadline-mock-continue]").click()`, shows: "[data-testid=mock-writing]" },
 	{ name: "Lesson whose first reply the teacher works on", before: dropAskedRequests, url: waitingLesson, ready: deskUp },
-	// The stand-in helper, holding that reply, reads a file of its own and a passage of the space's: the desk lists the steps and lifts the file.
+	// Stop is pressed at the first width; the widths after it open the lesson already stopped.
 	{
-		name: "Lesson whose reply the teacher works on, a file lifted",
+		name: "Lesson whose first reply was stopped with nothing written",
 		url: "/chat/{pending}",
-		ready: deskUp,
+		ready: `${turnRuns}, [data-testid=nothing-written]`,
+		setup: `document.querySelector("${turnRuns}")?.click()`,
+		shows: "[data-testid=nothing-written]",
+	},
+	// Start again runs that reply again. The stand-in helper, holding it, reads a file of its own and a passage of the space's: the desk lists
+	// the steps and its sheet shows the file.
+	{
+		name: "Lesson whose reply the teacher works on, reading a file",
+		url: "/chat/{pending}",
+		ready: `${deskUp}, [data-testid=nothing-written]`,
+		setup: `document.querySelector("[data-testid=nothing-written]") && document.querySelector("[data-testid=next-problem-button]")?.click(); ${whenThere(deskUp)}`,
 		helper: "read",
-		shows: "[data-testid=desk-stack] [data-lifted]",
+		shows: "[data-testid=desk-paper][data-open]",
 	},
 	// The helper asks to run a command: its card, with the command on a slip, waits under the desk's steps for Deny or Allow.
 	{
@@ -564,7 +574,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		helper: "approve",
 		shows: "[data-testid=desk-approvals] [data-testid=approval-subject]",
 	},
-	// Allow is pressed, so the card goes; the helper then streams half a reply, and the desk stays under the words.
+	// Allow is pressed, so the card goes; the helper then writes the reply's first sentence and reads a file, so the desk comes back under the words.
 	{
 		name: "Lesson whose reply is half written, the desk under it",
 		url: "/chat/{pending}",
@@ -572,14 +582,6 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `${whenThere("[data-testid=approval-allow]")}; document.querySelector("[data-testid=approval-allow]")?.click(); for (let n = 0; n < 100 && document.querySelector("[data-testid=approval-card]"); n++) ${pause}`,
 		helper: "stream",
 		shows: "[data-turn-wrote] [data-testid=agent-at-work]",
-	},
-	// Stop is pressed at the first width; the widths after it open the lesson already stopped.
-	{
-		name: "Lesson whose first reply was stopped with nothing written",
-		url: "/chat/{pending}",
-		ready: `${turnRuns}, [data-testid=nothing-written]`,
-		setup: `document.querySelector("${turnRuns}")?.click()`,
-		shows: "[data-testid=nothing-written]",
 	},
 	// Starter keys show only while no lesson turn waits, so the waiting lesson goes first.
 	{

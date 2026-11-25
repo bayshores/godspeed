@@ -9,12 +9,12 @@ import { isRecord } from "../is-record.ts";
 const TURN_CAUSES = ["first", "answer", "problem", "ask", "next", "retry", "open_problem", "job"] as const;
 type TurnCause = (typeof TURN_CAUSES)[number];
 
-/** How the desk draws a file: pages of text, PDF pages, or a named sheet with no pages
- *  (Word, PowerPoint, EPUB). */
+/** How the desk draws a file: pages of text, PDF pages, or no pages to show (Word, PowerPoint,
+ *  EPUB). */
 type DeskFileKind = "text" | "pdf" | "other";
 
-/** A file on the desk. `path` is where it is on the computer, which the paper reads. */
-export interface DeskFile {
+/** A file the teacher works from. `path` is where it is on the computer, which the paper reads. */
+interface DeskFile {
 	name: string;
 	path: string;
 	kind: DeskFileKind;

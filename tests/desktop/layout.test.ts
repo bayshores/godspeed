@@ -302,12 +302,12 @@ describe("the stand-in helper", () => {
 			fs.rmSync(dir, { recursive: true, force: true });
 		}
 	});
-	it("asks to run a command once and streams half a reply, when a screen asks a held lesson", async () => {
+	it("asks to run a command once, and writes a reply's first sentence and then reads a file, when a screen asks a held lesson", async () => {
 		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "layout-helper-"));
 		const helper = spawn(process.execPath, [path.join(import.meta.dirname, "../../scripts/layout-helper.mjs")], { env: { ...process.env, LAYOUT_HELPER_DIR: dir }, stdio: ["pipe", "pipe", "inherit"] });
 		const lines = createInterface({ input: helper.stdout })[Symbol.asyncIterator]();
 		const say = (message: object) => helper.stdin.write(`${JSON.stringify(message)}\n`);
-		const next = async () => JSON.parse((await lines.next()).value as string) as { type: string; tool?: string; input?: { command: string }; message?: { type: string; event?: { delta: { text: string } } } };
+		const next = async () => JSON.parse((await lines.next()).value as string) as { type: string; tool?: string; input?: { command: string }; message?: { type: string; event?: { delta: { text: string } }; message?: { content: { type: string; text?: string; name?: string }[] } } };
 		const ask = async (request: string) => {
 			fs.writeFileSync(path.join(dir, "desk"), request);
 			while (fs.existsSync(path.join(dir, "desk"))) await new Promise((done) => setTimeout(done, 20));
@@ -325,6 +325,12 @@ describe("the stand-in helper", () => {
 			const approvals = seen.filter((message) => message.type === "approval");
 			assert.equal(approvals.length, 1);
 			assert.deepEqual([approvals[0]!.tool, approvals[0]!.input], ["Bash", { command: "ls notes" }]);
+			// The words stream, then come whole, then a file is read: a step after them.
+			let message = await next();
+			while (message.message?.type === "stream_event") message = await next();
+			assert.deepEqual(message.message?.message?.content.map((block) => block.type), ["text"]);
+			assert.match(message.message?.message?.content[0]?.text ?? "", /^To solve an equation/);
+			assert.equal((await next()).message?.message?.content[0]?.name, "Read");
 		} finally {
 			helper.kill();
 			fs.rmSync(dir, { recursive: true, force: true });

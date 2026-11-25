@@ -1,35 +1,28 @@
 import { memo, useLayoutEffect, useMemo, useRef } from "react";
 import type { DeskReading } from "@/shared/core";
-import { prefersReducedMotion } from "@/frontend/components/presence";
-import { cn } from "@/frontend/lib/utils";
+import { EASE_OUT, prefersReducedMotion } from "@/frontend/components/presence";
 import { textPages } from "./page-stage-model";
 import { pdfPageUrl, useReadingDoc, type ReadingDoc } from "./use-reading-doc";
 
 /**
- * THE PAPER ON THE DESK: the front file of the desk's stack as sheets of paper, cut by the
- * stack's well (desk-stack.tsx). While the teacher reads it, the view drifts down through all of
- * it once, then settles on the part being read, whose lines the highlighter marks; before that it
- * lies still on its first page (`still`). The paper itself lies still. The step beside it names
+ * THE PAPER ON THE DESK: one sheet lying on the page, with a page of the file the teacher reads.
+ * While the teacher reads it, the view drifts down through all of the file once, then settles on
+ * the part being read; in a text file the highlighter marks the lines. Before any read it lies
+ * still on the first page of the teacher's first file (`still`). The sheet is one page tall, and
+ * shorter in a room that is: the page is then cut at the sheet's foot. The step beside it names
  * the file and the place, so the paper carries no label.
  */
 
 /** PDFs longer than this show only their first pages. */
 const MAX_PDF_PAGES = 80;
 
-/** A short text file is a US letter page. */
+/** A short text file is a US letter page, and the sheet is one such page whatever the file. */
 const LETTER = 8.5 / 11;
-
-/** The paper sits under the front sheet's edge, as wide as the edges, and the well cuts it.
- *  It is a picture of the file, so screen readers skip it. */
-const INSET = "px-6";
-
-/** A page is never wider than this, so its type keeps the size of a printed page. */
-const PAGE = "mx-auto w-full max-w-[560px]";
 
 /** The file the teacher has open: its pages, which drift through the whole file the first time
  *  and then move to each new place it reads. The highlighter waits while the pages drift, so one
  *  thing moves at a time. */
-export function PageStage({ reading, still }: { reading: DeskReading; still: boolean }) {
+export function PageStage({ reading, still, arrives }: { reading: DeskReading; still: boolean; arrives: boolean }) {
 	const doc = useReadingDoc(reading.path);
 	const scrollerRef = useRef<HTMLDivElement>(null);
 	const stageRef = useRef<HTMLDivElement>(null);
@@ -72,14 +65,18 @@ export function PageStage({ reading, still }: { reading: DeskReading; still: boo
 		drift.finished.then(settle, settle);
 	}, [doc, anchor, still]);
 
+	// A file the teacher turns to steps in on the sheet; the one the desk opened on is simply there.
+	useLayoutEffect(() => {
+		if (doc && arrives && !prefersReducedMotion()) scrollerRef.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, easing: EASE_OUT });
+	}, [doc, arrives]);
+
 	return (
 		// The file is not lesson text, and Find could never scroll into this stage.
-		<div ref={stageRef} data-session-find-exclude="" data-still={still || undefined} className="lh-desk-pages absolute inset-0 overflow-hidden">
-			<div aria-hidden className={INSET}>
-				<div ref={scrollerRef} className={cn("relative flex flex-col gap-4 will-change-transform", PAGE)}>
-					{doc?.kind === "text" && <TextPages text={doc.text} from={from} to={to} />}
-					{doc?.kind === "pdf" && reading.kind === "pdf" && <PdfPages path={reading.path} doc={doc} page={reading.page} />}
-				</div>
+		<div ref={stageRef} data-testid="desk-paper" data-open={still ? undefined : ""} data-session-find-exclude="" className="lh-sheet lh-paper min-h-0 overflow-hidden" style={{ aspectRatio: LETTER }}>
+			{/* A picture of the file, so screen readers skip it. A band of the paper's edge parts two pages. */}
+			<div ref={scrollerRef} aria-hidden className="flex flex-col will-change-transform [&>*+*]:border-t-4 [&>*+*]:border-(--lh-paper-lip)">
+				{doc?.kind === "text" && <TextPages text={doc.text} from={from} to={to} />}
+				{doc?.kind === "pdf" && reading.kind === "pdf" && <PdfPages path={reading.path} doc={doc} page={reading.page} />}
 			</div>
 		</div>
 	);
@@ -118,7 +115,7 @@ function TextPage({ start, lines, from, to }: { start: number; lines: string[]; 
 const TextPages = memo(function TextPages({ text, from, to }: { text: string; from: number | null; to: number | null }) {
 	const pages = useMemo(() => textPages(text), [text]);
 	return pages.map((page) => (
-		<div key={page.start} className="lh-sheet lh-paper px-6 py-5" style={{ aspectRatio: LETTER }}>
+		<div key={page.start} className="px-6 py-5" style={{ aspectRatio: LETTER }}>
 			<TextPage start={page.start} lines={page.lines} from={from} to={to} />
 		</div>
 	));
@@ -126,9 +123,9 @@ const TextPages = memo(function TextPages({ text, from, to }: { text: string; fr
 
 function PdfPages({ path, doc, page }: { path: string; doc: Extract<ReadingDoc, { kind: "pdf" }>; page: number | null }) {
 	return Array.from({ length: Math.min(doc.pageCount, MAX_PDF_PAGES) }, (_, i) => i + 1).map((n) => (
-		<div key={n} data-reading-here={n === page ? "" : undefined} className="lh-sheet lh-paper relative overflow-hidden" style={{ aspectRatio: doc.aspect }}>
-			<img src={pdfPageUrl(path, n)} alt={`Page ${n}`} loading={page !== null && Math.abs(n - page) <= 1 ? "eager" : "lazy"} className="size-full object-contain" />
-			{n === page && <span className="lh-read-mark absolute top-0 bottom-0 left-0 w-1.5" />}
+		// The page's white takes the paper's color: the picture is multiplied onto it.
+		<div key={n} data-reading-here={n === page ? "" : undefined} className="bg-(--lh-paper)" style={{ aspectRatio: doc.aspect }}>
+			<img src={pdfPageUrl(path, n)} alt={`Page ${n}`} loading={page !== null && Math.abs(n - page) <= 1 ? "eager" : "lazy"} className="size-full object-contain mix-blend-multiply" />
 		</div>
 	));
 }
