@@ -17,7 +17,6 @@ import { prefersReducedMotion } from "@/frontend/components/presence";
 import { workProgress } from "@/frontend/components/work/work-model";
 import { tuckPeek } from "./peek-store";
 import { dueSoon, stripClick, stripView } from "./strip-model";
-import { useAskingLessons } from "./use-asking-lessons";
 import { useReadyLessons } from "./use-ready-lessons";
 
 /**
@@ -34,7 +33,6 @@ export function useStrip() {
 	const { deadlines } = useOpenDeadlines();
 	const minute = useMinute();
 	const ready = useReadyLessons();
-	const asking = useAskingLessons();
 	const notices = useNotices();
 	const navigate = useNavigate();
 	const { pathname } = useLocation();
@@ -47,9 +45,12 @@ export function useStrip() {
 	const terminal = teacherTerminalState(teacherFacts);
 	const requests = useMemo(() => (feed.requests ?? []).map((r) => r.title), [feed.requests]);
 	const work = useMemo(() => workProgress({ spaces, extractions: feed.extractions, jobs: feed.jobs, requests }), [spaces, feed.extractions, feed.jobs, requests]);
+	const waiting = teacher?.waiting ?? null;
+	// A reply in the panel's chat is work too, though its thread shows it there.
+	const talkWorking = !!teacher?.talk.chats?.some((c) => c.running);
 	const view = useMemo(
-		() => stripView({ agent, terminal, working: !!doing?.working, work, ready, asking, panelOpen }),
-		[agent, terminal, doing, work, ready, asking, panelOpen],
+		() => stripView({ agent, terminal, talkWaits: !!waiting?.talk, working: !!doing?.working || talkWorking, work, ready, asking: waiting?.lessons ?? [], panelOpen }),
+		[agent, terminal, waiting, doing, talkWorking, work, ready, panelOpen],
 	);
 	// The open panel's head says the teacher's status: the peek leaves it out.
 	const status = useMemo(() => (panelOpen ? null : teacherHead({ agent, name, doing, facts: teacherFacts })), [panelOpen, agent, name, doing, teacherFacts]);
@@ -70,21 +71,22 @@ export function useStrip() {
 	);
 
 	const setPanelOpen = teacher?.setPanelOpen;
-	const showTerminal = teacher?.showTerminal;
+	const showChat = teacher?.showChat;
+	const talkWaits = waiting?.talk ?? null;
 	const need = view.need;
 	const ask = view.ask;
 	const click = useCallback(() => {
 		setNoticesOpen(false);
 		const does = stripClick(need, ask, panelOpen);
 		if (does === "open" || does === "close") setPanelOpen?.(does === "open");
-		else if (does === "show") showTerminal?.();
+		else if (does === "show") showChat?.(talkWaits ?? undefined);
 		else {
 			const href = `/chat/${encodeURIComponent(does.lesson)}`;
 			// On its lesson, the card is brought into view; elsewhere the lesson opens, where its desk shows it.
 			if (pathname === href) document.querySelector("[data-testid=approval-card]")?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "instant" : "smooth" });
 			else void navigate(href);
 		}
-	}, [need, ask, panelOpen, setPanelOpen, showTerminal, pathname, navigate]);
+	}, [need, ask, panelOpen, setPanelOpen, showChat, talkWaits, pathname, navigate]);
 	const leave = useCallback(() => {
 		tuckPeek();
 		setNoticesOpen(false);

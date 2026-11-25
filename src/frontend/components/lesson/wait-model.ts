@@ -7,7 +7,8 @@ import { isQuestionTool, PRACTICE_PROBLEM_TOOL, type DeskReading, type LessonWor
  */
 
 /** The desk's one sentence: what the teacher does, by why the turn runs. Null for the moment
- *  between the learner's send and the server's first word on the turn. */
+ *  between the learner's send and the server's first word on the turn. The teacher panel's head
+ *  names the teacher, so a talk chat's sentence does not. */
 export function deskHead(name: string, work: LessonWork): string | null {
 	if (!work.live) return null;
 	switch (work.cause) {
@@ -23,9 +24,10 @@ export function deskHead(name: string, work: LessonWork): string | null {
 			return `${name} is trying again.`;
 		case "open_problem":
 			return `${name} is getting the problem ready.`;
+		case "talk":
+			return work.steps.length === 0 ? "Reading your message." : "Working on it.";
 		case "next":
 		case "job":
-		case "talk":
 		case null:
 			return `${name} is writing the next step.`;
 	}

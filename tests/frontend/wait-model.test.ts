@@ -31,6 +31,12 @@ describe("deskHead", () => {
 	it("says nothing before the server's first word", () => {
 		assert.equal(deskHead("Claude", NO_LESSON_WORK), null);
 	});
+
+	it("does not name the teacher in a talk chat, whose panel head already does", () => {
+		assert.equal(deskHead("Claude", live({ cause: "talk" })), "Reading your message.");
+		assert.equal(deskHead("Claude", live({ cause: "talk", steps: [step("s1", "Looking through your notes")] })), "Working on it.");
+		assert.equal(deskHead("Claude", { ...NO_LESSON_WORK, cause: "talk" }), null, "still nothing before the server's first word");
+	});
 });
 
 describe("wordsSince", () => {

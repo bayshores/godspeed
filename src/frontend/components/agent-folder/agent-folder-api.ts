@@ -1,5 +1,5 @@
 /** The godspeed folder on the server, and the agent that runs the lessons. */
-import type { FolderAgent } from "@/shared/core";
+import { isFolderAgent, type FolderAgent } from "@/shared/core";
 import { jsonInit, send, serverError } from "@/frontend/lib/api";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import type { FolderView } from "./agent-folder-model";
@@ -24,6 +24,6 @@ export const pickAgent = (agent: FolderAgent): Promise<FolderView> => changeFold
  *  the next start. */
 export async function sendOldAgent(pick: (agent: FolderAgent) => Promise<unknown>): Promise<void> {
 	const old = readStorage(OLD_AGENT_KEY);
-	if (old === "claude" || old === "codex") await pick(old);
+	if (isFolderAgent(old)) await pick(old);
 	if (old !== null) writeStorage(OLD_AGENT_KEY, null);
 }

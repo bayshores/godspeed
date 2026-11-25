@@ -23,6 +23,8 @@ export interface FolderView {
 	oldSetup: OldSetup;
 	/** The agent the learner picked to run the lessons; null until they pick one (lessons run on Claude Code then). */
 	agent: FolderAgent | null;
+	/** The model each agent's new chats and lessons start on, where the learner picked one. */
+	model: Partial<Record<FolderAgent, string>>;
 }
 
 /** A click on the button outside the desktop app: the folder is made,

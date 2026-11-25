@@ -33,6 +33,7 @@ const FOLDER = {
 	startCommands: {},
 	oldSetup: { plugin: false, codex: false },
 	agent: "claude",
+	model: {},
 };
 const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, turnsRunning: 0, terminals: [], outsideHere: false, ...over });
 
@@ -284,10 +285,10 @@ describe("after godspeed's teacher ended, though the server still says connected
 		// What each surface shows, from the status every surface reads.
 		const words = () => {
 			const agent = status()!;
-			const doing = agentDoing({ agent, round: null, lesson: { working: true }, extractions: [], jobs: [] });
+			const doing = agentDoing({ agent, round: null, lesson: { working: true }, extractions: [], jobs: [], talkTurns: 0 });
 			const facts = api!.facts;
 			return {
-				strip: stripView({ agent, terminal: teacherTerminalState(facts), working: !!doing?.working, work: null, ready: [], asking: [], panelOpen: false }).square,
+				strip: stripView({ agent, terminal: teacherTerminalState(facts), talkWaits: false, working: !!doing?.working, work: null, ready: [], asking: [], panelOpen: false }).square,
 				panel: agentLine(agent, "Teacher", doing),
 				tile: teacherTile(doing, false).chip,
 			};

@@ -40,7 +40,7 @@ function rows(): Row[] {
 	return out;
 }
 
-const tools = (JSON.parse(read("crates/server/src/mcp/tools.json")) as { name: string }[]).map((tool) => tool.name);
+const tools = (JSON.parse(read("crates/services/src/talk/tools.json")) as { name: string }[]).map((tool) => tool.name);
 const actions = KEYBOARD_ACTIONS.map((action) => action.id);
 const routes = [...read("src/frontend/routes/router.tsx").matchAll(/\bpath:\s*"([^"]*)"/g)].map((m) => m[1]!);
 

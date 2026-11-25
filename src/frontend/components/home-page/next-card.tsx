@@ -11,7 +11,7 @@ import { blockColor, spaceLineColor } from "@/frontend/components/space-color";
 import { addDeadlineHref } from "@/frontend/components/space-page/deadlines-tab-model";
 import { homeworkStartId } from "@/frontend/components/study-page/use-lesson-start";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { updateLine } from "@/frontend/components/terminal/starter-model";
+import { updateLine } from "@/frontend/components/teacher/starter-model";
 import { Key } from "@/frontend/components/ui/key";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";

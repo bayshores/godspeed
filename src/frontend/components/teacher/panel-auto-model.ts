@@ -1,10 +1,10 @@
 /**
  * When the teacher's panel opens and closes by itself (use-teacher-panel.ts).
- * It opens when a need for the learner arises, once the learner has paused
- * typing, and closes when that need is settled or when a lesson reply starts.
- * While the teacher's screen is in its own window it never opens: the strip lights.
- * It also opens once for a new learner, the first time Home shows with the teacher on,
- * so they see what the teacher can be asked.
+ * It opens when a need for the learner arises (a card in its chat waits to be
+ * allowed), once the learner has paused typing, and closes when that need is
+ * settled or when a lesson reply starts. While the chat is in its own window it
+ * never opens: the strip lights. It also opens once for a new learner, the first
+ * time Home shows with the teacher on, so they see what the teacher can be asked.
  */
 /** Set when onboarding ends, removed once the panel has opened for it. */
 export const WELCOME_KEY = "lh:teacher-welcome";
@@ -19,7 +19,7 @@ export const TYPING_PAUSE_MS = 3000;
 
 /** What the last step saw, kept between steps. */
 export interface PanelMemory {
-	/** The teacher's terminal needed the learner. */
+	/** A card in the panel's chat waited to be allowed. */
 	need: boolean;
 	/** A lesson reply is running; null while no lesson is open. */
 	replying: boolean | null;
@@ -38,7 +38,7 @@ export interface PanelSeen {
 	open: boolean;
 	/** The panel opened by itself and the learner has not taken it over. */
 	byApp: boolean;
-	/** The teacher's screen is in its own window. */
+	/** The panel's chat is in its own window. */
 	popped: boolean;
 }
 

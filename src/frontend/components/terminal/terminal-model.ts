@@ -32,18 +32,6 @@ const EXIT_NO_NODE = 4;
 const EXIT_CHAT_GONE = 5;
 const EXIT_OLD_AGENT = 6;
 
-/** A chat the teacher had in godspeed's terminal, to go back to (GET /api/teacher-chats). */
-export interface TeacherChat {
-	id: string;
-	agent: FolderAgent;
-	/** The first line typed to it. */
-	name: string | null;
-	/** Last used, ms since the epoch. */
-	at: number;
-	/** The teacher's terminal runs it now. */
-	open: boolean;
-}
-
 /** The agent said the chat it was to go back to is gone. */
 export const chatGone = (ended: TerminalEnded | null): boolean => ended?.stopped === false && ended.code === EXIT_CHAT_GONE;
 
@@ -128,14 +116,12 @@ export interface TerminalFooter {
 const footer = (text: string | null, more: Partial<TerminalFooter> = {}): TerminalFooter => ({ text, assist: null, get: null, startAgain: false, ...more });
 
 /** What a screen says: `need` is the short form the teacher's status line
- *  shows, `rest` what only the footer adds. `starting`: the status line
- *  says the teacher starts instead. Only installing and signing in name
- *  the program; the rest say `name`. */
+ *  shows, `rest` what only the footer adds. Only installing and signing in
+ *  name the program; the rest say `name`. */
 interface ScreenWords {
 	need: string | null;
 	rest: string | null;
 	more?: Partial<TerminalFooter>;
-	starting?: boolean;
 }
 
 function screenWords(f: TerminalFacts, name: string): ScreenWords {
@@ -161,19 +147,14 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 		return { need: `Finish signing in to ${agent}.`, rest: "Got a code? Click Paste." };
 	if (term.prompt === "menu") return { need: `${name} is asking you something.`, rest: null };
 	if (needsYou(f) === "no-check-in") return { need: `${name} hasn't connected to godspeed yet.`, rest: null };
-	if (!f.checkedIn) return { need: `${name} is starting.`, rest: null, starting: true };
+	if (!f.checkedIn) return { need: `${name} is starting.`, rest: null };
 	return { need: null, rest: null };
 }
 
-/** The footer under a screen. `underStatus`: the screen's status line
- *  shows above it (the teacher's panel), so the footer leaves out what that
- *  line already says. */
-export function terminalFooter(f: TerminalFacts, name: string, underStatus: boolean): TerminalFooter {
+/** The footer under a screen: what the agent needs and the rest it says. */
+export function terminalFooter(f: TerminalFacts, name: string): TerminalFooter {
 	const w = screenWords(f, name);
-	const state = underStatus ? teacherTerminalState(f) : null;
-	const said = state !== null && state === (w.starting ? "starting" : "needsYou");
-	const text = said ? w.rest : [w.need, w.rest].filter(Boolean).join(" ") || null;
-	return footer(text, w.more);
+	return footer([w.need, w.rest].filter(Boolean).join(" ") || null, w.more);
 }
 
 /** What the teacher's terminal adds to its status (the status lines and
@@ -218,7 +199,7 @@ export function teacherStartRefused(teacher: TerminalRecord | null, outsideHere:
 export function firstRunFooter(f: TerminalFacts, folder: string): TerminalFooter {
 	const { term } = f;
 	const agent = AGENT_LABEL[term.agent];
-	if (term.ended || term.prompt || (!f.checkedIn && term.url)) return terminalFooter(f, agent, false);
+	if (term.ended || term.prompt || (!f.checkedIn && term.url)) return terminalFooter(f, agent);
 	return footer(f.checkedIn ? `${agent} is connected.` : `${agent} is starting in ${folder}. If it asks you something, answer it here.`);
 }
 

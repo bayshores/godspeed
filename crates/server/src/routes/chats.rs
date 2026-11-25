@@ -115,12 +115,15 @@ async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandl
 /// question, a deadline or a path topic), or with `homework: true` a homework session on the
 /// deadline. With `fileIds` a lesson on files, which answers `continued: true` when an earlier
 /// lesson goes on, so the window sends no first message; refused with 400 and the reason. With
-/// `kind: "talk"` a teacher panel chat for its first message, `text`, which names it.
+/// `kind: "talk"` a teacher panel chat for its first message, `text`, which names it, on
+/// `model` when one was picked first.
 async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
 	let body = fields(body).await?;
 	if body["kind"].as_str() == Some("talk") {
-		let created = create_talk_chat(&app, body["text"].as_str().unwrap_or_default())?;
-		return Ok(reply::json(200, &json!({ "id": created["id"], "title": created["title"] })));
+		return Ok(match create_talk_chat(&app, body["text"].as_str().unwrap_or_default(), body["model"].as_str()) {
+			Ok(created) => reply::json(200, &json!({ "id": created["id"], "title": created["title"] })),
+			Err(refused) => error(400, &refused),
+		});
 	}
 	let title = body["title"].as_str().unwrap_or_default();
 	let Some(space_id) = parse_space_scope(body["spaceId"].as_str()) else { return Ok(error(400, "bad spaceId")) };

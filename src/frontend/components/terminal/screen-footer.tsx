@@ -5,29 +5,23 @@ import { ScreenKey } from "./screen-key";
 import type { TerminalFooter } from "./terminal-model";
 
 /**
- * The slim row under a screen: Attach, Paste, Pop out and Ideas at the left, the sentence
+ * The slim row under a screen: Attach and Paste at the left, the sentence
  * when there is one, then Turn off (the agent's whole process), and the one bright key (the assist key or
  * Start again) at the far right. A key shows only while it can act, and
  * fades in and out.
  */
-export function ScreenFooter({ text, onAttach, onPaste, onPopOut, ideas, onStop, off, get, assist, onStartAgain, again = "Start again", onNewChat = null }: {
+export function ScreenFooter({ text, onAttach, onPaste, onStop, off, get, assist, onStartAgain, again }: {
 	text: string | null;
 	onAttach: ((files: File[]) => void) | null;
 	onPaste: (() => void) | null;
-	/** Moves the teacher's screen into a window of its own; null where it cannot. */
-	onPopOut: (() => void) | null;
-	/** Brings the "Try asking" row back once the chat is used; `open` while that row shows. */
-	ideas: { open: boolean; toggle: () => void } | null;
 	onStop: (() => void) | null;
 	/** Stop's words: "Turn off Teacher". */
 	off: string;
 	get: TerminalFooter["get"];
 	assist: { label: string; run: () => void } | null;
 	onStartAgain: (() => void) | null;
-	/** Start again's word: "Continue" when it goes back to the chat that ended. */
-	again?: string;
-	/** Beside Continue: a new chat instead. */
-	onNewChat?: (() => void) | null;
+	/** Start again's word: "New chat" when the agent said its chat is gone. */
+	again: string;
 }) {
 	const picker = useRef<HTMLInputElement>(null);
 	return (
@@ -51,12 +45,6 @@ export function ScreenFooter({ text, onAttach, onPaste, onPopOut, ideas, onStop,
 			<ScreenKey testid="terminal-paste" onClick={onPaste} quiet>
 				Paste
 			</ScreenKey>
-			<ScreenKey testid="terminal-pop-out" onClick={onPopOut} quiet>
-				Pop out
-			</ScreenKey>
-			<ScreenKey testid="terminal-ideas-key" onClick={ideas && ideas.toggle} held={ideas?.open} quiet>
-				Ideas
-			</ScreenKey>
 			<p data-testid="terminal-footer" role="status" className={cn("min-w-0 flex-1 px-1.5 font-mono text-[13px] leading-snug text-ink", text && "min-w-56")}>
 				{text}
 			</p>
@@ -68,9 +56,6 @@ export function ScreenFooter({ text, onAttach, onPaste, onPopOut, ideas, onStop,
 			</ScreenKey>
 			<ScreenKey testid="terminal-assist" onClick={assist?.run ?? null} main>
 				{assist?.label}
-			</ScreenKey>
-			<ScreenKey testid="terminal-new-chat" onClick={onNewChat} quiet>
-				New chat
 			</ScreenKey>
 			<ScreenKey testid="terminal-start-again" onClick={onStartAgain} main>
 				{again}

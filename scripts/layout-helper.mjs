@@ -16,13 +16,17 @@
  *
  * A session that is not kept is one of godspeed's background jobs: its one turn plays the fixed
  * answer layout-jobs.mjs gives for the job's tools and request.
+ *
+ * A session opened with the teacher panel's prompt is one of the panel's chats: a message that
+ * asks for the slope checker holds its turn like a holding lesson (the desk's screens), and any
+ * other is answered at once with TALK_REPLY.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
 import { jobAnswer } from "./layout-jobs.mjs";
-import { LESSONS, PLAN_ORDER_SENT_BACK } from "./layout-lessons.mjs";
+import { LESSONS, PLAN_ORDER_SENT_BACK, TALK_HOLDS } from "./layout-lessons.mjs";
 
 const DIR = process.env.LAYOUT_HELPER_DIR;
 const STATE = DIR && path.join(DIR, "state.json");
@@ -38,6 +42,11 @@ const save = () => STATE && fs.writeFileSync(STATE, JSON.stringify(stands));
 const write = (message) => process.stdout.write(`${JSON.stringify(message)}\n`);
 const log = (line) => process.stderr.write(`[layout helper] ${line}\n`);
 const sdk = (session, message) => write({ type: "sdk", session, message: { ...message, parent_tool_use_id: null } });
+
+/** Words only the teacher panel's prompt holds, which mark a session as one of its chats. */
+const TALK_KEY = "godspeed's teacher panel";
+const TALK_REPLY =
+	"One thing this week: **Pop quiz: graphing**, Friday at 10:00 AM. You haven't tested either of its two topics yet, so start with *slope from a graph* tonight and *intercepts of a line* tomorrow.\n\nAfter that comes **Homework 3: graphing lines** on December 4.";
 
 const sessions = new Map();
 /** Calls waiting for godspeed's answer, by id. */
@@ -194,11 +203,22 @@ async function playJob(session, texts) {
 	return finish(session, how === "stopped");
 }
 
+/** A panel chat's turn: held while the learner asks for the slope checker, else one fixed reply. */
+async function playTalk(session, texts) {
+	if (texts.some((text) => text.includes(TALK_HOLDS))) {
+		await hold(session);
+		return finish(session, true);
+	}
+	assistant(session, TALK_REPLY, []);
+	return finish(session, false);
+}
+
 /** The turn a message starts: the lesson's next replies. */
 async function playTurn(session, texts) {
 	session.stopped = false;
 	sdk(session.key, { type: "system", subtype: "init" });
 	if (session.job) return playJob(session, texts);
+	if (session.talk) return playTalk(session, texts);
 	session.passage = CITED && fs.existsSync(CITED) ? fs.readFileSync(CITED, "utf8").trim() : null;
 	if (!session.lesson) {
 		const at = LESSONS.findIndex((lesson) => lesson.is(texts));
@@ -225,13 +245,22 @@ function open(message) {
 	const { session: key, resume } = message;
 	const native = resume ?? randomUUID();
 	const job = message.persist === false ? { tools: (message.tools ?? []).map((tool) => tool.name), cwd: message.cwd } : null;
-	const session = { key, native, job, lesson: stands[native] ? { ...stands[native] } : null, passage: null, cancel: null, stopped: false, closed: false, turns: Promise.resolve() };
+	const talk = (message.systemPrompt ?? "").includes(TALK_KEY);
+	const session = { key, native, job, talk, lesson: stands[native] ? { ...stands[native] } : null, passage: null, cancel: null, stopped: false, closed: false, turns: Promise.resolve() };
 	sessions.set(key, session);
 	write({ type: "opened", session: key, nativeId: native });
 }
 
+/** The models the stand-in offers, as the Agent SDK's supportedModels() names them. */
+const MODELS = [
+	{ value: "default", displayName: "Default (recommended)" },
+	{ value: "opus", displayName: "Opus" },
+	{ value: "haiku", displayName: "Haiku" },
+];
+
 function take(message) {
 	if (message.type === "open") return open(message);
+	if (message.type === "models") return write({ type: "models", id: message.id, models: MODELS });
 	if (message.type === "tool_result" || message.type === "approval") {
 		const done = waiting.get(message.id);
 		waiting.delete(message.id);

@@ -9,7 +9,7 @@ import { dueSoon, keepReady, noticeCount, stripClick, stripView } from "../../sr
 
 const off = { connected: false, turnsRunning: 0 };
 const teaching = { ...off, connected: true, name: "Claude Code" };
-const nothing = { agent: teaching, terminal: null, working: false, work: null, ready: [], asking: [], panelOpen: false };
+const nothing = { agent: teaching, terminal: null, talkWaits: false, working: false, work: null, ready: [], asking: [], panelOpen: false };
 const reading = { doing: "Reading files", count: "6 of 17" };
 const counting = { id: "l1", title: "Counting" };
 
@@ -28,6 +28,8 @@ describe("the strip at rest", () => {
 
 	it("puts what waits for the learner on the highlighter: an agent's screen first, then a reply in another lesson", () => {
 		assert.deepEqual([stripView({ ...nothing, terminal: "needsYou" }).flag, stripView({ ...nothing, terminal: "needsYou" }).need], ["needs you", true]);
+		assert.deepEqual([stripView({ ...nothing, talkWaits: true }).flag, stripView({ ...nothing, talkWaits: true }).need], ["needs you", true], "a card in the panel's chat");
+		assert.equal(stripView({ ...nothing, talkWaits: true, panelOpen: true }).need, false, "the open panel shows the card");
 		assert.deepEqual([stripView({ ...nothing, ready: [counting] }).flag, stripView({ ...nothing, ready: [counting] }).need], ["your turn", false]);
 		assert.equal(stripView({ ...nothing, ready: [counting], terminal: "needsYou" }).flag, "needs you");
 		assert.equal(stripView({ ...nothing, work: reading, working: true }).flag, null, "work under way waits for nobody");

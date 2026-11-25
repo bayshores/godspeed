@@ -1,10 +1,8 @@
 import { useContext, useLayoutEffect, useMemo, type Ref } from "react";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { ConversationEmptyState } from "@/frontend/components/ai-elements/conversation";
-import { prefersReducedMotion } from "@/frontend/components/presence";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
 import { cn } from "@/frontend/lib/utils";
@@ -13,22 +11,17 @@ import { AgentAtWork } from "./agent-at-work";
 import { ArrivalRow, type Arrive } from "./arrivals";
 import { MessageRow, messageShows } from "./message-row";
 import { stepSheets, type SheetRow } from "./step-sheets-model";
-import { useReplyHold } from "./use-reply-hold";
-import { useTeacherWriting } from "./use-teacher-writing";
-import { deskCalls, deskHead, deskMark, heldBack } from "./wait-model";
+import { useDesk } from "./use-desk";
 
 /**
  * THE READING PANE: the lesson text in the reading type, answered cards
  * inline, one sheet per step (stepSheets) with the step's number on a tab at
  * its left edge. A sheet is as tall as its text and the newest fills the
  * window; the page around them scrolls (LessonScroll).
- * While the teacher works, the newest sheet holds the desk (AgentAtWork): what the teacher does,
- * its steps and the files it reads, with the lines typed to it that wait under it; Stop and the keys
- * that move the lesson on are in "Your turn". When it writes (useTeacherWriting), its words wait
- * under the desk a moment for a turn that ends at once (useReplyHold), then the desk fades out and
- * the words are held back until it has gone, so the two never stack and the words take the desk's
- * place in one step. They grow as they are written, with the waiting lines under them; a step
- * after them brings the desk back under the words.
+ * While the teacher works, the newest sheet holds the desk (AgentAtWork, useDesk): what the
+ * teacher does, its steps and the files it reads, with the lines typed to it that wait under it;
+ * Stop and the keys that move the lesson on are in "Your turn". Its words take the desk's place
+ * and grow as they are written, with the waiting lines under them.
  * Each message is a memoized row, so streaming redraws only the message
  * being written.
  */
@@ -79,20 +72,12 @@ export function ReadingPane({
 	sheetRef?: Ref<HTMLElement>;
 }) {
 	const last = messages.length - 1;
-	const { wrote, writing } = useTeacherWriting(messages, busy, work);
-	// Its words wait a moment under the desk for a turn that ends at once.
-	const held = useReplyHold(busy && writing, deskMark(messages));
-	const head = deskHead(useTeacher()?.name ?? DEFAULT_TEACHER_NAME, work);
-	const open = useMemo(() => (busy && (!writing || held) ? { head, work, calls: deskCalls(work), mark: held ?? deskMark(messages) } : null), [busy, writing, held, head, work, messages]);
-	const desk = useLastWhileClosing(open);
-	const closing = desk.mounted && desk.state === "closed" && !prefersReducedMotion();
-	const shownDesk = open || (closing ? desk.shown : null);
-	const mark = held ?? (closing && desk.shown ? desk.shown.mark : null);
-	const shown = mark ? heldBack(messages, mark) : messages;
+	const { wrote, desk: shownDesk, closing, shown } = useDesk(messages, busy, work, useTeacher()?.name ?? DEFAULT_TEACHER_NAME);
 	const deskUp = shownDesk !== null;
 	useLayoutEffect(() => onDesk(deskUp), [deskUp, onDesk]);
 	const foot = (busy || closing) && <QueuedSteersBody steers={queuedSteers} />;
-	const inTurn = useContext(ChatActionsContext)?.inTurn ?? null;
+	const actions = useContext(ChatActionsContext);
+	const inTurn = actions?.inTurn ?? null;
 	const spaceColor = useSpaceColor(spaceId);
 	// A row or a sheet with nothing drawn on it is left out; with no sheet drawn, the newest still stands for the desk.
 	const sheets = useMemo(() => {
@@ -144,7 +129,7 @@ export function ReadingPane({
 							{newest && shownDesk && (
 								<ArrivalRow live={arrivalsLive} className="flex flex-1 flex-col">
 									<div data-state={closing ? "closed" : "open"} data-desk-closing={closing || undefined} inert={closing} className={cn("flex flex-1 flex-col", closing && "lh-fade")}>
-										<AgentAtWork head={shownDesk.head} work={shownDesk.work} arrive={arrive} foot={foot} />
+										<AgentAtWork chatId={actions?.chatId ?? ""} head={shownDesk.head} work={shownDesk.work} arrive={arrive} foot={foot} />
 									</div>
 								</ArrivalRow>
 							)}

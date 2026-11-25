@@ -2,7 +2,7 @@
  *  its own file so parts the provider draws can read it without an import
  *  cycle. */
 import { createContext, useContext } from "react";
-import type { AgentAction } from "@/shared/core";
+import type { AgentAction, TalkChat } from "@/shared/core";
 import type { AgentDoing } from "./follow-status";
 import type { FollowSlip } from "./use-follow-slip";
 
@@ -19,16 +19,21 @@ export interface TeacherApi {
 	setFollow: (on: boolean) => void;
 	panelOpen: boolean;
 	setPanelOpen: (open: boolean) => void;
-	/** Open the panel on the teacher's screen, which takes the keyboard (or bring its own
-	 *  window forward while it is popped out). */
-	showTerminal: () => void;
-	/** The teacher can be handed a line by a page key (ask): godspeed runs it in its own
-	 *  terminal here, so not in a browser, with an outside agent or popped out. */
+	/** Open the panel on its chat, or on chat `id` (null: a new chat), or bring the chat's own
+	 *  window forward while it is popped out. */
+	showChat: (id?: string | null) => void;
+	/** The panel's chats, newest first (null before the first read), and the one it shows (null:
+	 *  a new chat). */
+	talk: { chats: readonly TalkChat[] | null; chatId: string | null };
+	/** The chats whose teacher waits for the learner to allow something, oldest first: the
+	 *  lessons', and the panel chat's first. */
+	waiting: { lessons: readonly string[]; talk: string | null };
+	/** The teacher can be handed a line by a page key (ask): not while its chat is popped out. */
 	canAsk: boolean;
-	/** A page key hands the teacher one line: the panel opens on its screen and sends it once the
-	 *  teacher can take it. A second line replaces one not yet sent. */
+	/** A page key hands the teacher one line: the panel opens on its chat and sends it as if typed.
+	 *  A second line replaces one not yet sent. */
 	ask: (line: string) => void;
-	/** The line waiting to be sent (ask), which the panel's screen takes; `clear` once it has. */
+	/** The line waiting to be sent (ask), which the panel's chat takes; `clear` once it has. */
 	asking: { line: string; clear: () => void } | null;
 	/** Newest first. */
 	recent: AgentAction[];

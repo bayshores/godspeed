@@ -16,9 +16,7 @@ import {
 const T0 = 1_000_000;
 const term = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", agent: "claude", startedAt: T0, ended: null, prompt: null, url: false, ...over });
 const facts = (over: Partial<TerminalFacts> = {}, t: Partial<TerminalRecord> = {}): TerminalFacts => ({ term: term(t), checkedIn: true, outsideHere: false, now: T0 + 1000, ...over });
-/** The full words (onboarding), and the panel's under the status line. */
-const words = (f: TerminalFacts) => terminalFooter(f, "Ada", false);
-const tab = (f: TerminalFacts) => terminalFooter(f, "Ada", true);
+const words = (f: TerminalFacts) => terminalFooter(f, "Ada");
 
 describe("when the screen opens by itself", () => {
 	it("a question on the screen, a crash and a missing agent open it", () => {
@@ -43,56 +41,50 @@ describe("when the screen opens by itself", () => {
 	it("after the first check-in, a long quiet is no reason to open it", () => {
 		const later = { checkedIn: true, now: T0 + 10 * 60_000 };
 		assert.equal(needsYou(facts(later)), null);
-		assert.equal(tab(facts(later)).text, null);
+		assert.equal(words(facts(later)).text, null);
 		assert.equal(screenStatusLine(facts(later), "Ada"), null);
 	});
 });
 
 describe("the footer's words", () => {
-	it("starting, then running: under the status line, only what it adds", () => {
+	it("starting, then running: it says the agent starts, and nothing once it runs", () => {
 		assert.equal(words(facts({ checkedIn: false })).text, "Ada is starting.");
-		assert.equal(tab(facts({ checkedIn: false })).text, null);
-		assert.equal(tab(facts()).text, null, "the status line says it runs");
+		assert.equal(words(facts()).text, null);
 	});
 
 	it("the trust question gets the one assist key", () => {
 		const f = words(facts({ checkedIn: false }, { prompt: "trust" }));
 		assert.equal(f.text, "Ada asks to trust its folder.");
-		assert.equal(tab(facts({ checkedIn: false }, { prompt: "trust" })).text, null);
 		assert.deepEqual(f.assist, { kind: "trust", label: "Trust folder" });
 		assert.equal(f.startAgain, false);
 	});
 
-	it("Continue says it all: under the status line, no sentence", () => {
-		assert.equal(tab(facts({}, { prompt: "enter" })).text, null);
-		assert.equal(words(facts({}, { prompt: "enter" })).text, "Ada is asking you to continue.");
+	it("Continue gets the one assist key and says what it is for", () => {
+		const f = words(facts({}, { prompt: "enter" }));
+		assert.equal(f.text, "Ada is asking you to continue.");
+		assert.deepEqual(f.assist, { kind: "enter", label: "Continue" });
 	});
 
 	it("a sign-in: a link before the first check-in; a menu then is a question like any other", () => {
 		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", url: true })).text, "Finish signing in to Codex. Got a code? Click Paste.");
 		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, "Ada is asking you something.");
-		assert.equal(tab(facts({ checkedIn: false }, { url: true })).text, "Finish signing in to Claude Code. Got a code? Click Paste.", "the status line still says it starts");
+		assert.equal(words(facts({ checkedIn: false }, { url: true })).text, "Finish signing in to Claude Code. Got a code? Click Paste.");
 		assert.equal(words(facts({}, { prompt: "menu" })).text, "Ada is asking you something.");
-		assert.equal(tab(facts({}, { prompt: "menu" })).text, null);
 	});
 
 	it("the check-in timer", () => {
-		const late = "Ada hasn't connected to godspeed yet.";
-		assert.equal(words(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, late);
-		assert.equal(tab(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, null);
+		assert.equal(words(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, "Ada hasn't connected to godspeed yet.");
 	});
 
 	it("stopped, crashed, not installed, no Node", () => {
-		const stopped = tab(facts({}, { ended: { stopped: true, code: null } }));
-		assert.equal(stopped.text, "You stopped Ada.", "the status line says only that none is connected");
+		const stopped = words(facts({}, { ended: { stopped: true, code: null } }));
+		assert.equal(stopped.text, "You stopped Ada.");
 		assert.equal(stopped.startAgain, true);
 		assert.equal(words(facts({}, { ended: { stopped: false, code: 1 } })).text, "Ada closed with an error.");
-		assert.equal(tab(facts({}, { ended: { stopped: false, code: 1 } })).text, null);
-		assert.equal(tab(facts({}, { ended: { stopped: false, code: 0 } })).text, "Ada closed.");
+		assert.equal(words(facts({}, { ended: { stopped: false, code: 0 } })).text, "Ada closed.");
 		const missing = words(facts({}, { agent: "codex", ended: { stopped: false, code: 3 } }));
 		assert.equal(missing.text, "Codex isn't installed on this computer.");
 		assert.deepEqual(missing.get, { label: "Get Codex", url: "https://developers.openai.com/codex" });
-		assert.equal(tab(facts({}, { agent: "codex", ended: { stopped: false, code: 3 } })).text, null);
 		assert.equal(words(facts({}, { ended: { stopped: false, code: 3 } })).get?.url, "https://claude.com/claude-code");
 		const node = words(facts({}, { ended: { stopped: false, code: 4 } }));
 		assert.equal(node.text, "godspeed needs Node.js to connect Claude Code.");
@@ -102,10 +94,6 @@ describe("the footer's words", () => {
 		assert.deepEqual([old.text, old.get, old.startAgain], ["Claude Code needs an update.", null, true]);
 		const gone = words(facts({}, { ended: { stopped: false, code: 5 } }));
 		assert.deepEqual([gone.text, gone.startAgain], ["Couldn't open that chat.", true]);
-	});
-
-	it("an agent outside godspeed teaches: the status line says nothing of the old screen, so its footer says it all", () => {
-		assert.equal(tab(facts({ outsideHere: true }, { ended: { stopped: false, code: 1 } })).text, "Ada closed with an error.");
 	});
 
 	it("no sentence has an em-dash or a dot divider", () => {
@@ -122,7 +110,7 @@ describe("the footer's words", () => {
 			facts({}, { ended: { stopped: false, code: 3 } }),
 			facts({}, { ended: { stopped: false, code: 4 } }),
 			facts({}, { ended: { stopped: false, code: 6 } }),
-		].flatMap((f) => [words(f).text, tab(f).text]);
+		].map((f) => words(f).text);
 		for (const text of all) assert.ok(!text?.includes("—") && !text?.includes(" · "), text ?? "");
 	});
 });

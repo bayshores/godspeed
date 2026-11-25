@@ -14,7 +14,7 @@ To add a row:
 | Home | The control a learner can click or see before the feature exists. A block drawn only after the teacher made the thing is not a home. |
 | Shown by | The exact name of a screen in `scripts/layout-screens.mjs` that draws the Home control. |
 | Made by | `learner` when a control of the app makes the thing, `teacher` when only the teacher's tool call can. |
-| Covers | Teacher tools (`crates/server/src/mcp/tools.json`), key actions (`KEYBOARD_ACTIONS`) and routes (`src/frontend/routes/router.tsx`). |
+| Covers | Teacher tools (`crates/services/src/talk/tools.json`), key actions (`KEYBOARD_ACTIONS`) and routes (`src/frontend/routes/router.tsx`). |
 
 ## Features
 
@@ -87,19 +87,22 @@ To add a row:
 | Lesson menu: skip the waiting question or discard the open problem (its first line, in an open lesson), export, move, stats, delete | Lesson, Progress | `lesson-more` | Lesson, its menu | learner | |
 | Find in a lesson | Lesson | `lesson-find` | Lesson with Find open in the bar | learner | `find` |
 | Document panel | Lesson | `lesson-document` | Lesson on files with the Document panel open | learner | |
-| Attach pictures or PDFs | Lesson | `attach-button` | | learner | |
+| Attach pictures or PDFs | Lesson; Teacher panel | `attach-button` | | learner | |
 | Your thinking in a lesson | Lesson | none: ⌘T shows or hides all of it; a single row's own key shows only on that row | | learner | `toggle-user-thinking` |
 | Search lessons | Menu | `menu-search-lessons` | | learner | `sessions-search` |
 | Calculator | Any writing box | `menu-shortcuts` | Home, the keyboard shortcuts list | learner | `calculator-keep` |
 | A plugin's lesson word and space tab | Lesson, space tabs | `plugins-add` | Settings, Plugins, Add | learner | `space/plugin/:id` |
 | Teacher's strip | Right edge | `strip` | | learner | |
-| Start the teacher | Teacher panel | `open-agent` | Teacher's panel with no agent | learner | |
+| Start the teacher | Onboarding, the teacher step | `open-agent` | | learner | |
+| Chat with the teacher outside lessons: its reply written as it comes, its steps and Allow cards in the chat, Stop by Send | Teacher panel | `talk-try` | Teacher chat, a new chat | learner | |
+| A chat's model, by Send | Teacher panel | `talk-model` | Teacher chat, its model list | learner | |
+| On a lesson or cheat sheet page, the panel says to type in the page's box, with Stop while the teacher writes | Teacher panel | `talk-gives-way` | Teacher's panel beside a lesson | learner | |
 | Chats list | Teacher panel | `teacher-panel-chats` | Teacher's chats under the Chats key | learner | |
 | Follow: its slip at the page's foot saying what the teacher does and listing its steps (its own web searches, file reads and commands too), what it changed staying lit, and the teacher opening pages | Teacher panel; the slip on every page but a lesson, a mock and a cheat sheet | `follow-start` | | learner | `open_page` |
-| Pop out the teacher | Teacher panel | `terminal-pop-out` | | learner | `terminal-window` |
-| Try asking | Teacher panel | `terminal-starters` | The agent's screen | learner | |
-| Everything the teacher can do | Teacher panel | `terminal-everything` | The agent's screen with everything the teacher can do | learner | |
-| Attach or paste into the teacher's screen | Teacher panel | `terminal-attach` | | learner | |
+| Pop out the teacher's chat into its own window, and Put back | Teacher panel | `teacher-panel-pop-out` | | learner | `terminal-window` |
+| Try asking | Teacher panel | `talk-try` | | learner | |
+| Everything the teacher can do | Teacher panel | `talk-all-ideas` | | learner | |
+| Attach or paste into the teacher's screen | Onboarding, the first run's terminal | `terminal-attach` | | learner | |
 | Activity and graph costs | Teacher panel | `teacher-panel-activity` | Teacher's Activity | learner | |
 | Saved rules | Settings, Teaching | `area-detail` | | learner | `save_rule` |
 | Delete a remembered note | Settings, Teaching | `remembered-notes` | | learner | `forget` |

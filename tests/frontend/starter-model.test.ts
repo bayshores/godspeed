@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { everything, startersFor, takesLine, type IdeaFacts } from "../../src/frontend/components/terminal/starter-model.ts";
-import type { TerminalFacts, TerminalRecord } from "../../src/frontend/components/terminal/terminal-model.ts";
+import { boxPage, everything, startersFor, type IdeaFacts } from "../../src/frontend/components/teacher/starter-model.ts";
 
 const CSE = { id: "s1", name: "CSE 21", files: 3 };
 const deadline = (id: string, name: string, kind: IdeaFacts["deadlines"][number]["kind"], date: string, spaceId = "s1") => ({ id, name, kind, date, spaceId });
@@ -121,19 +120,11 @@ describe("everything the teacher can be asked", () => {
 	});
 });
 
-describe("when a terminal takes a line", () => {
-	const term = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", agent: "claude", startedAt: 1, ended: null, prompt: null, url: false, ...over });
-	const now = (over: Partial<TerminalFacts> = {}, t: Partial<TerminalRecord> = {}): TerminalFacts => ({ term: term(t), checkedIn: true, outsideHere: false, now: 2, ...over });
-
-	it("running and checked in, with nothing asked", () => {
-		assert.ok(takesLine(now()));
-	});
-
-	it("not before the check-in, while the screen asks, or after the end", () => {
-		assert.ok(!takesLine(null));
-		assert.ok(!takesLine(now({ checkedIn: false })));
-		assert.ok(!takesLine(now({}, { prompt: "menu" })));
-		assert.ok(!takesLine(now({}, { url: true })), "a sign-in link");
-		assert.ok(!takesLine(now({}, { ended: { stopped: true, code: null } })));
+describe("pages with their own box", () => {
+	it("a lesson and a cheat sheet, nothing else", () => {
+		assert.equal(boxPage("/chat/c1"), "lesson");
+		assert.equal(boxPage("/space/deadline/d1/cheat-sheet"), "cheat sheet");
+		assert.equal(boxPage("/space/deadline/d1"), null);
+		assert.equal(boxPage("/"), null);
 	});
 });

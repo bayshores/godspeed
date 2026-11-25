@@ -178,6 +178,32 @@
    its ink, round corners, no outline, no blur, no shadow. What sits inside
    reads the surface and text colors, so they are set again here for the
    bar. */
+/* The page's colors, kept under their own names: a custom property is computed where it is set,
+   so these keep the page's values inside a pop-up, which sets the plain names to the bar's. */
+:root {
+	--lh-page-background: var(--background);
+	--lh-page-foreground: var(--foreground);
+	--lh-page-card: var(--card);
+	--lh-page-accent: var(--accent);
+	--lh-page-border: var(--border);
+	--lh-page-input: var(--input);
+	--lh-page-muted-foreground: var(--muted-foreground);
+	--lh-page-ring: var(--ring);
+	--lh-page-lh-ink-3: var(--lh-ink-3);
+	--lh-page-lh-ink-body: var(--lh-ink-body);
+	--lh-page-lh-ink-strong: var(--lh-ink-strong);
+	--lh-page-lh-ink-italic: var(--lh-ink-italic);
+	--lh-page-lh-ink-max: var(--lh-ink-max);
+	--lh-page-lh-edge: var(--lh-edge);
+	--lh-page-lh-line: var(--lh-line);
+	--lh-page-lh-tint: var(--lh-tint);
+	--lh-page-lh-mark-bg: var(--lh-mark-bg);
+	--lh-page-lh-well: var(--lh-well);
+	--lh-page-lh-highlight: var(--lh-highlight);
+	--lh-page-lh-ans-right: var(--lh-ans-right);
+	--lh-page-lh-ans-wrong: var(--lh-ans-wrong);
+	--lh-page-destructive: var(--destructive);
+}
 .lh-popup {
 	--background: var(--lh-bar);
 	--foreground: var(--lh-bar-ink);
@@ -223,6 +249,34 @@
    line so its edge shows. */
 .dark .lh-popup:not(.lh-hang-body, .lh-follow-slip) {
 	box-shadow: inset 0 0 0 1px var(--border);
+}
+/* The teacher panel's chat reads like the page: its body takes the page's colors back from the
+   pop-up look around it, under the panel's dark head. */
+.lh-page-colors {
+	--background: var(--lh-page-background);
+	--foreground: var(--lh-page-foreground);
+	--card: var(--lh-page-card);
+	--accent: var(--lh-page-accent);
+	--border: var(--lh-page-border);
+	--input: var(--lh-page-input);
+	--muted-foreground: var(--lh-page-muted-foreground);
+	--ring: var(--lh-page-ring);
+	--lh-ink-3: var(--lh-page-lh-ink-3);
+	--lh-ink-body: var(--lh-page-lh-ink-body);
+	--lh-ink-strong: var(--lh-page-lh-ink-strong);
+	--lh-ink-italic: var(--lh-page-lh-ink-italic);
+	--lh-ink-max: var(--lh-page-lh-ink-max);
+	--lh-edge: var(--lh-page-lh-edge);
+	--lh-line: var(--lh-page-lh-line);
+	--lh-tint: var(--lh-page-lh-tint);
+	--lh-mark-bg: var(--lh-page-lh-mark-bg);
+	--lh-well: var(--lh-page-lh-well);
+	--lh-highlight: var(--lh-page-lh-highlight);
+	--lh-ans-right: var(--lh-page-lh-ans-right);
+	--lh-ans-wrong: var(--lh-page-lh-ans-wrong);
+	--destructive: var(--lh-page-destructive);
+	background-color: var(--background);
+	color: var(--foreground);
 }
 .lh-popup [role="menuitem"] {
 	border-radius: 8px;

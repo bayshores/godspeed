@@ -1,6 +1,5 @@
-import { useCallback, useContext, useId, useRef, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useId, useRef, type CSSProperties, type ReactNode } from "react";
 import type { LessonWork } from "@/shared/core";
-import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { jsonInit, send } from "@/frontend/lib/api";
 import { useLitMarker } from "@/frontend/components/lit-marker";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -17,20 +16,17 @@ import { deskPaper, deskRows, type DeskRow } from "./wait-model";
  * a tile where the pencil writes, and under them a card for each thing it waits for the learner to
  * allow; beside them, one sheet of paper with the page of the file it reads. The desk takes the
  * page's blank room, so the sheet is whole where the window lets it. `foot` rests under it: the
- * lines typed to the teacher that wait for it.
+ * lines typed to the teacher that wait for it. The teacher panel's desk has no paper (`paper`
+ * false): the panel is too narrow for it, and the lesson keeps the files.
  */
-export function AgentAtWork({ head, work, arrive, foot }: { head: string | null; work: LessonWork; arrive: Arrive; foot: ReactNode }) {
+export function AgentAtWork({ chatId, head, work, arrive, foot, paper: withPaper = true }: { chatId: string; head: string | null; work: LessonWork; arrive: Arrive; foot: ReactNode; paper?: boolean }) {
 	// Each desk's own arrival slots, so the next turn's desk steps in again.
 	const slot = useId();
-	const paper = deskPaper(work);
+	const paper = withPaper ? deskPaper(work) : null;
 	// The file the desk opened on lies there at once; one the teacher turns to later steps in.
 	const opened = useRef(paper?.reading.path);
 	const { rows, under } = deskRows(work);
-	const chatId = useContext(ChatActionsContext)?.chatId;
-	const answer = useCallback(
-		async (id: string, allow: boolean) => (chatId ? (await send(`/api/chats/${encodeURIComponent(chatId)}/approvals/${encodeURIComponent(id)}`, jsonInit("POST", { allow }))).error : null),
-		[chatId],
-	);
+	const answer = useCallback(async (id: string, allow: boolean) => (await send(`/api/chats/${encodeURIComponent(chatId)}/approvals/${encodeURIComponent(id)}`, jsonInit("POST", { allow }))).error, [chatId]);
 	return (
 		<div data-testid="agent-at-work" className="lh-desk @container/desk flex flex-1 flex-col gap-6">
 			{/* The sentence's line is kept while it has no words, so nothing moves when they come. */}

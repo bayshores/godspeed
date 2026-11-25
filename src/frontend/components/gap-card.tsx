@@ -10,7 +10,7 @@ import { useLocation } from "react-router";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { updateLine } from "@/frontend/components/terminal/starter-model";
+import { updateLine } from "@/frontend/components/teacher/starter-model";
 import { useCloseSpace } from "@/frontend/components/top-bar/use-close-space";
 import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";

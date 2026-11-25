@@ -14,12 +14,14 @@
  *    the learner asked for) goes there with Follow off too. While the
  *    window holds (unsent lesson text, a mock, a dialog) it waits as a
  *    held "Go to" instead; a newer open replaces it.
- *  - The panel (use-teacher-panel.ts): in the desktop app the agent's
- *    screen, where the learner talks to it outside lessons, and Activity
- *    (teacher-activity.tsx); in a browser Activity alone. It stays open
- *    across pages, lessons too. It opens by itself for a need and closes
- *    when that is settled or a lesson reply starts. While the teacher's
- *    screen is in a window of its own the panel shows Activity instead.
+ *  - The panel (use-teacher-panel.ts): godspeed's own chat with the
+ *    teacher (talk-chat.tsx), where the learner talks to it outside lessons,
+ *    and Activity (teacher-activity.tsx). It stays open across pages,
+ *    lessons too. It opens by itself for a card waiting to be allowed and
+ *    closes when that is settled or a lesson reply starts. While the chat is
+ *    in a window of its own the panel shows Activity instead.
+ *  - The chats (use-talk-chats.ts) and the one the panel shows: the newest
+ *    when the panel opens, else the one picked under Chats or just made.
  *
  * The name is the learner's choice (Settings → General → Teacher name) and
  * only ever shown on screen.
@@ -42,10 +44,13 @@ import { usePresence } from "@/frontend/components/presence";
 import { useSettings } from "@/frontend/components/settings-context";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useWindowPage } from "@/frontend/components/terminal/use-terminal-lines";
+import { useAskingLessons } from "@/frontend/components/strip/use-asking-lessons";
+import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { TeacherPanel } from "./teacher-panel";
 import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
 import { useTeacherPanel } from "./use-teacher-panel";
-import { panelBody } from "./dock-model";
+import { useTalkChats } from "./use-talk-chats";
+import { panelBody, SHOWN_CHAT_KEY } from "./dock-model";
 import { agentDoing } from "./follow-status";
 import { useFollow } from "./use-follow";
 import { useRecentActions } from "./use-recent-actions";
@@ -90,9 +95,49 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 
 	const { recent, add, offer, held, setHeld } = useRecentActions(followOn, pathname);
 
-	// ── the panel ──
-	const panel = useTeacherPanel(lesson?.working ?? null, pathname === "/");
-	const { open: panelOpen, setOpen: setPanelOpen, showTerminal, setList } = panel;
+	// ── the chats and the panel ──
+	const chats = useTalkChats();
+	const asking = useAskingLessons();
+	const waiting = useMemo(() => {
+		const talk = new Set((chats ?? []).map((c) => c.id));
+		return { lessons: asking.filter((id) => !talk.has(id)), talk: asking.find((id) => talk.has(id)) ?? null };
+	}, [chats, asking]);
+	const panel = useTeacherPanel(lesson?.working ?? null, pathname === "/", waiting.talk !== null, chats !== null);
+	const { open: panelOpen, setOpen: setPanelOpen, setList, showChat: showPanel } = panel;
+	// The chat shown: undefined is the newest, null a new chat. The panel opens on the newest again.
+	const [picked, setPicked] = useState<string | null | undefined>(undefined);
+	useEffect(() => {
+		if (!panelOpen) setPicked(undefined);
+	}, [panelOpen]);
+	const chatId = picked === undefined ? (chats?.[0]?.id ?? null) : picked;
+	// A card waiting in a chat brings the panel to that chat.
+	useEffect(() => {
+		if (waiting.talk) setPicked(waiting.talk);
+	}, [waiting.talk]);
+	const terminals = useTerminals();
+	const popOut = terminals?.popOut;
+	// The window the chat pops out to shows the chat the panel showed; put back, the panel shows the one it left on.
+	const putBacks = terminals?.putBacks ?? 0;
+	useEffect(() => {
+		if (putBacks > 0) setPicked(readStorage(SHOWN_CHAT_KEY) || null);
+	}, [putBacks]);
+	const popChat = useMemo(
+		() =>
+			popOut
+				? () => {
+						writeStorage(SHOWN_CHAT_KEY, chatId ?? "");
+						return popOut(name);
+					}
+				: null,
+		[popOut, chatId, name],
+	);
+	const showChat = useCallback(
+		(id?: string | null) => {
+			if (id !== undefined) setPicked(id);
+			showPanel();
+		},
+		[showPanel],
+	);
 	useDoneSound(panelOpen);
 	const [panelWhole, setPanelWhole] = useState(false);
 	const [slipRoom, setSlipRoom] = useState(true);
@@ -122,7 +167,8 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	// ── what it's doing ──
 	// While the slip is up it says what the teacher does, and the other places say only "Working".
 	const round = work?.live ? (slip ? "Working" : (timeline.at(-1)?.text ?? "Working")) : null;
-	const doing = useMemo(() => agentDoing({ agent, round, lesson, extractions: feed.extractions, jobs: feed.jobs }), [agent, round, lesson, feed.extractions, feed.jobs]);
+	const talkTurns = (chats ?? []).filter((c) => c.running).length;
+	const doing = useMemo(() => agentDoing({ agent, round, lesson, extractions: feed.extractions, jobs: feed.jobs, talkTurns }), [agent, round, lesson, feed.extractions, feed.jobs, talkTurns]);
 
 	useServerEvent("agent-action", (action) => {
 		if (!action || typeof action.id !== "string") return;
@@ -130,31 +176,50 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 		take(action);
 	});
 
-	const terminals = useTerminals();
-	const view = panelBody(!!terminals?.available, !!terminals?.popped);
+	const view = panelBody(!!terminals?.popped);
 	const shown = usePresence(panelOpen);
 
-	// One line a page key handed over; the panel's screen sends it and clears it, or it goes when the panel closes.
-	const [asking, setAsking] = useState<string | null>(null);
+	// One line a page key handed over; the panel's chat sends it and clears it, or it goes when the panel closes.
+	const [askLine, setAskLine] = useState<string | null>(null);
 	const ask = useCallback(
 		(line: string) => {
-			setAsking(line);
-			showTerminal();
+			setAskLine(line);
+			showPanel();
 		},
-		[showTerminal],
+		[showPanel],
 	);
 	useEffect(() => {
-		if (!panelOpen) setAsking(null);
+		if (!panelOpen) setAskLine(null);
 	}, [panelOpen]);
-	const waiting = useMemo(() => (asking === null ? null : { line: asking, clear: () => setAsking(null) }), [asking]);
-	const canAsk = !!terminals?.available && !terminals.outsideHere && !terminals.popped;
+	const asked = useMemo(() => (askLine === null ? null : { line: askLine, clear: () => setAskLine(null) }), [askLine]);
+	const canAsk = !terminals?.popped;
 
 	const spaceList = spaces.spaces;
 	const spaceNameOf = useCallback((id: string | null) => (id ? (spaceList.find((c) => c.id === id)?.name ?? null) : null), [spaceList]);
 
 	const api = useMemo<TeacherApi>(
-		() => ({ name, follow: followOn, setFollow, panelOpen, setPanelOpen, showTerminal, canAsk, ask, asking: waiting, recent, doing, setLesson, go, slip, offer: held ?? offer, held: !!held, spaceNameOf }),
-		[name, followOn, setFollow, panelOpen, setPanelOpen, showTerminal, canAsk, ask, waiting, recent, doing, setLesson, go, slip, held, offer, spaceNameOf],
+		() => ({
+			name,
+			follow: followOn,
+			setFollow,
+			panelOpen,
+			setPanelOpen,
+			showChat,
+			talk: { chats, chatId },
+			waiting,
+			canAsk,
+			ask,
+			asking: asked,
+			recent,
+			doing,
+			setLesson,
+			go,
+			slip,
+			offer: held ?? offer,
+			held: !!held,
+			spaceNameOf,
+		}),
+		[name, followOn, setFollow, panelOpen, setPanelOpen, showChat, chats, chatId, waiting, canAsk, ask, asked, recent, doing, setLesson, go, slip, held, offer, spaceNameOf],
 	);
 	const marks = useMemo(() => litRules(lit, CSS.escape), [lit]);
 
@@ -168,8 +233,11 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 				createPortal(
 					<TeacherPanel
 						name={name}
-						agent={agent}
 						view={view}
+						chat={{ id: chatId, row: chats?.find((c) => c.id === chatId) ?? null, show: setPicked }}
+						asking={asked}
+						popOut={popChat}
+						putBack={terminals?.putBack ?? null}
 						list={panel.list}
 						onList={panel.setList}
 						focus={panel.focus}

@@ -49,7 +49,7 @@ use super::turn_service::{persist_turn, trigger_extraction};
 use super::turn_work;
 use crate::App;
 use crate::app::agent_actions::record_answer;
-use crate::app::agent_folder::start_model;
+use crate::app::agent_folder::chat_model;
 use crate::app::agents;
 use crate::app::today_note::today_note_for;
 use crate::graph::progress::lesson_ended;
@@ -113,7 +113,7 @@ impl ChatReply {
 }
 
 /// What a message to the old Talk chat answers.
-const TALK_REPLACED: &str = "Talk was replaced by your agent's screen";
+const TALK_REPLACED: &str = "Talk was replaced by the teacher panel's chats";
 /// What a talk chat answers an input that is not a message or Try again.
 const TALK_TAKES_TEXT: &str = "A talk chat takes a message or Try again";
 
@@ -349,7 +349,7 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 		chat_id: chat_id.to_owned(),
 		runtime,
 		cwd: agent_cwd(app)?,
-		model: record["model"].as_str().map(str::to_owned).or_else(|| start_model(app, agent)),
+		model: chat_model(app, &record, agent),
 		tools: setup.host.specs(),
 		prompt: setup.prompt,
 		stored: record["agentSession"].clone(),

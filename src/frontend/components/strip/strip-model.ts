@@ -86,6 +86,8 @@ interface StripView {
 export function stripView(i: {
 	agent: AgentStatus | null;
 	terminal: TeacherTerminalState | null;
+	/** A card in the teacher panel's chat waits to be allowed. */
+	talkWaits: boolean;
 	/** The teacher works. */
 	working: boolean;
 	work: WorkProgress | null;
@@ -94,7 +96,7 @@ export function stripView(i: {
 	asking: readonly string[];
 	panelOpen: boolean;
 }): StripView {
-	const teacherNeeds = i.terminal === "needsYou";
+	const teacherNeeds = i.terminal === "needsYou" || i.talkWaits;
 	const ask = i.asking[0] ?? null;
 	const need = !i.panelOpen && teacherNeeds;
 	const here = i.terminal !== null || i.agent !== null;
@@ -112,7 +114,7 @@ export function stripView(i: {
 }
 
 /**
- * What a click on the strip does: the teacher's screen that needs the
+ * What a click on the strip does: the panel's chat whose card waits for the
  * learner shows (wherever it is, its own window too); else the lesson whose
  * teacher waits for the learner to allow something; else the open panel
  * closes; else it opens.

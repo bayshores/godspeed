@@ -18,6 +18,9 @@ export const PLAN_ORDER_SENT_BACK = "comes first and nothing in this lesson aske
 
 const WEB_SOURCE = "[[https://example.com/lab-algebra/linear-equations]]";
 
+/** A teacher panel chat's message with these words holds its turn in the stand-in helper. */
+export const TALK_HOLDS = "run my slope checker";
+
 export const FIRST_TOPIC = "Solving linear equations by graphing";
 /** The lesson whose reply the helper holds; its address sends the first message (layout-screens.mjs). */
 export const WAITING_TOPIC = "Graphing two lines to find where they cross";

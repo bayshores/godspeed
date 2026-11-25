@@ -1,6 +1,5 @@
-import { Fragment, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ChatAttachment, CheatSheetView, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
-import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { ApprovalCards } from "@/frontend/components/lesson/approval-card";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
@@ -14,7 +13,7 @@ import { cn } from "@/frontend/lib/utils";
 import type { Pointed } from "./canvas-model";
 import { sheetBox } from "./sheet-box-model";
 import { sheetFilePath } from "./use-cheat-sheet";
-import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
+import { TeacherThread, type ThreadLine } from "@/frontend/components/teacher/teacher-thread";
 
 /** "the back of version 3", "page 1 of version 2". */
 export function pointedLabel(region: SheetRegion, pages: number): string {
@@ -22,16 +21,15 @@ export function pointedLabel(region: SheetRegion, pages: number): string {
 	return `${page} of version ${region.n}`;
 }
 
-/** A small boxed note in the chat (a version made, a part pointed at). */
+/** A small boxed note in the chat (a version made). */
 const NOTE = "flex items-center gap-2.5 lh-well self-start rounded px-2.5 py-1.5 text-base text-ink";
 
 /**
  * THE SHEET'S CHAT: the sheet's rules (each with a remove ✕), then the
- * conversation, each speaker named above their words: the learner's
- * messages with the part they pointed at, their pictures and the problem
- * they were on, the agent's answers (markdown and math) with a "Made
- * version N" note that shows that version on the canvas and the rules it
- * saved. The learner writes in the box at its foot (the lesson's box, with
+ * conversation as the teacher panel's chat draws it (TeacherThread): the
+ * learner's messages on plates with the part they pointed at and their
+ * pictures, the agent's answers (markdown and math) with a "Made version N"
+ * note that shows that version on the canvas and the rules it saved. The learner writes in the box at its foot (the lesson's box, with
  * sheetBox's one key); a line typed in the teacher's terminal comes the
  * same way (useTerminalLines). Both carry the part pointed at. Stop while
  * the agent works, Try again when it failed.
@@ -150,19 +148,26 @@ export function SheetChat({
 						{empty}
 					</p>
 				)}
-				{messages.map((m, i) => {
-					const first = i === 0 || messages[i - 1]!.role !== m.role;
-					return (
-						<Fragment key={m.id}>
-							<div data-testid="sheet-row" className="flex min-w-0 flex-col gap-1">
-								{first && <span className={cn("truncate", LABEL_TEXT)}>{m.role === "you" ? "You" : agentName}</span>}
-								{m.role === "you" ? (
-									<YouBody message={m} spaceId={spaceId} deadlineId={deadlineId} pages={pagesOf} />
-								) : (
-									<AgentBody message={m} current={view.sheet.versions.at(-1)?.n ?? null} onShowVersion={onShowVersion} />
-								)}
-							</div>
-							{view.running?.messageId === m.id && (
+				<TeacherThread
+					lines={messages.map((m): ThreadLine =>
+						m.role === "you"
+							? {
+									key: m.id,
+									who: "you",
+									text: m.text ?? "",
+									over: m.region && (
+										<p data-testid="sheet-pointed" className="text-[15px] text-ink-2">
+											Pointed at {pointedLabel(m.region, pagesOf(m.region.n))}
+										</p>
+									),
+									under: <YouFiles message={m} spaceId={spaceId} deadlineId={deadlineId} />,
+								}
+							: { key: m.id, who: "teacher", text: m.text ?? "", under: <AgentNotes message={m} current={view.sheet.versions.at(-1)?.n ?? null} onShowVersion={onShowVersion} /> },
+					)}
+					arrive={arrive}
+					live={
+						<>
+							{view.running && (
 								<p data-testid="sheet-working" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
 									<span>{agentName} is on it</span>
 									<button type="button" data-testid="sheet-stop" onClick={() => post({ action: "stop" })} className="lh-btn lh-btn-quiet">
@@ -170,8 +175,8 @@ export function SheetChat({
 									</button>
 								</p>
 							)}
-							{view.running?.messageId === m.id && <ApprovalCards approvals={view.approvals} slot={slot} arrive={arrive} answer={answer} />}
-							{!busy && view.error?.messageId === m.id && (
+							{view.running && <ApprovalCards approvals={view.approvals} slot={slot} arrive={arrive} answer={answer} />}
+							{!busy && view.error && (
 								<p data-testid="sheet-failed" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
 									<span>
 										<span className="text-ans-wrong">{agentName} couldn&apos;t finish that.</span> {view.error.text}
@@ -181,9 +186,9 @@ export function SheetChat({
 									</button>
 								</p>
 							)}
-						</Fragment>
-					);
-				})}
+						</>
+					}
+				/>
 				<div ref={endRef} />
 			</div>
 			<div data-testid="sheet-box" className="flex shrink-0 flex-col gap-2.5 px-[22px] pt-2.5 pb-[22px]">
@@ -194,48 +199,32 @@ export function SheetChat({
 	);
 }
 
-function YouBody({ message, spaceId, deadlineId, pages }: { message: Extract<SheetMessage, { role: "you" }>; spaceId: string; deadlineId: string; pages: (n: number) => number }) {
+/** The learner's files under their words: pictures, and other files as chips. */
+function YouFiles({ message, spaceId, deadlineId }: { message: Extract<SheetMessage, { role: "you" }>; spaceId: string; deadlineId: string }) {
 	const files = message.files ?? [];
+	if (files.length === 0) return null;
 	return (
-		<>
-			{message.region && (
-				<p data-testid="sheet-pointed" className={NOTE}>
-					Pointed at {pointedLabel(message.region, pages(message.region.n))}
-				</p>
+		<div className="flex flex-wrap items-start gap-2">
+			{files.map((f, i) =>
+				f.file && !/\.pdf$/i.test(f.file) ? (
+					<img key={i} data-testid="sheet-picture" src={sheetFilePath(spaceId, deadlineId, f.file)} alt={f.name} className="block max-h-[160px] w-auto max-w-full rounded border border-border" />
+				) : (
+					<span key={i} data-testid="sheet-file" className="flex h-8 max-w-56 lh-well items-center rounded px-3 text-base text-ink">
+						<span className="truncate" title={f.name}>
+							{f.name}
+						</span>
+					</span>
+				),
 			)}
-			{message.text && (
-				<p data-testid="sheet-you" className="font-prose text-lg leading-normal whitespace-pre-wrap break-words text-ink">
-					{message.text}
-				</p>
-			)}
-			{files.length > 0 && (
-				<div className="flex flex-wrap items-start gap-2">
-					{files.map((f, i) =>
-						f.file && !/\.pdf$/i.test(f.file) ? (
-							<img key={i} data-testid="sheet-picture" src={sheetFilePath(spaceId, deadlineId, f.file)} alt={f.name} className="block max-h-[160px] w-auto max-w-full rounded border border-border" />
-						) : (
-							<span key={i} data-testid="sheet-file" className="flex h-8 max-w-56 lh-well items-center rounded px-3 text-base text-ink">
-								<span className="truncate" title={f.name}>
-									{f.name}
-								</span>
-							</span>
-						),
-					)}
-				</div>
-			)}
-		</>
+		</div>
 	);
 }
 
-function AgentBody({ message, current, onShowVersion }: { message: Extract<SheetMessage, { role: "agent" }>; current: number | null; onShowVersion?: (n: number) => void }) {
+/** Under the agent's words: the version it made, which shows on the canvas, and the rules it saved. */
+function AgentNotes({ message, current, onShowVersion }: { message: Extract<SheetMessage, { role: "agent" }>; current: number | null; onShowVersion?: (n: number) => void }) {
 	const n = message.version;
 	return (
 		<>
-			{message.text && (
-				<div data-testid="sheet-agent" className="min-w-0 font-prose break-words text-ink" style={{ "--lh-prose-size": "16px", "--lh-prose-leading": "1.5" } as React.CSSProperties}>
-					<CitedResponse text={message.text} />
-				</div>
-			)}
 			{n !== undefined && (
 				<button type="button" data-testid="sheet-made" disabled={!onShowVersion} onClick={() => onShowVersion?.(n)} className={cn(NOTE, "lh-press max-w-full text-left enabled:hover:bg-tone disabled:cursor-default")}>
 					<span className="min-w-0 truncate">

@@ -17,7 +17,7 @@ const { useAgentChoice } = await import("../../src/frontend/components/agent-fol
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 
 const KEY = "lh-folder-agent";
-const FOLDER = { folder: "/home/ada/godspeed", short: "~/godspeed", exists: true, commands: { claude: "claude", codex: "codex" }, startCommands: {}, oldSetup: { plugin: false, codex: false } };
+const FOLDER = { folder: "/home/ada/godspeed", short: "~/godspeed", exists: true, commands: { claude: "claude", codex: "codex" }, startCommands: {}, oldSetup: { plugin: false, codex: false }, model: {} };
 const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 
 const stored = new Map<string, string>();

@@ -9,6 +9,8 @@
 
 export type FolderAgent = "claude" | "codex";
 
+export const isFolderAgent = (v: unknown): v is FolderAgent => v === "claude" || v === "codex";
+
 /** The old ways godspeed loaded outside the folder that are still set up:
  *  the retired Claude Code plugin, and the block once pasted into Codex's config. */
 export interface OldSetup {

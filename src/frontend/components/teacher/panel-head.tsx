@@ -1,53 +1,52 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { usePresence } from "@/frontend/components/presence";
-import { KEY_HELD } from "@/frontend/components/terminal/screen-key";
-import { useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { cn } from "@/frontend/lib/utils";
 import { PanelChats } from "./panel-chats";
 import { TeacherActivity } from "./teacher-activity";
 import { useTeacher } from "./teacher-context";
 
-/** The head's words are in the screen's font; its keys are plain words. */
-const TYPE = "font-mono text-[13px]";
-const KEY = cn("lh-btn lh-btn-quiet h-8 shrink-0", TYPE);
 
 /**
- * The panel's one head row: the screen's status (lit while it needs the
- * learner, its words fading from one to the next, a breathing square while
- * the teacher works), then Chats (once the teacher has a screen and there
- * are chats to go back to), Follow (held down while the window goes where
- * the teacher works), and Activity. Chats and Activity each drop their list
- * over the top of the screen, one at a time. While the teacher's screen is
- * in a window of its own, Activity is the panel's body and its key gives
- * way to Put back, which is also the only key in that window's head. The
- * strip beside it names the panel, and the strip that opened it closes it.
+ * The panel's one head row, dark like the top bar: the teacher's name with a
+ * square that breathes while the teacher works anywhere (the name gives way
+ * to "Working" while the work is outside the panel's chat, which shows its
+ * own in its thread), then Chats, Follow (held down while the window goes
+ * where the teacher works), Activity and Pop out. Chats and Activity each
+ * drop their list over the top of the chat, one at a time. While the chat is
+ * in a window of its own, Activity is the panel's body and its key gives way
+ * to Put back, which is also the only key in that window's head. The strip
+ * beside it names the panel, and the strip that opened it closes it.
  */
 export function PanelHead({
-	status,
-	lit,
+	name,
 	working,
+	elsewhere,
 	list,
+	popOut,
 	putBack,
 }: {
-	status: string | null;
-	lit: boolean;
+	name: string;
+	/** The teacher works, here or anywhere. */
 	working: boolean;
+	/** It works outside the panel's chat. */
+	elsewhere: boolean;
 	/** The Activity list its key drops; null where there is none. */
 	list: { open: boolean; onOpen: (open: boolean) => void } | null;
-	/** The teacher's screen is in its own window: the key that brings it back. */
+	/** Moves the chat to a window of its own; null where there is none. */
+	popOut: (() => void) | null;
+	/** The chat is in its own window: the key that brings it back. */
 	putBack: (() => void) | null;
 }) {
 	const teacher = useTeacher();
-	const terminals = useTerminals();
 	const listKey = useRef<HTMLButtonElement>(null);
 	const chatsKey = useRef<HTMLButtonElement>(null);
 	const card = useRef<HTMLDivElement>(null);
 	const listId = useId();
 	const listOpen = !!list?.open;
-	// The teacher's own head: Chats and Follow, and not the terminal window's, which has no teacher.
+	// The panel's own head has Chats and Follow; the popped window's has no teacher.
 	const own = !!(list || putBack) && !!teacher;
-	// Before the teacher's first start the screen itself lists the chats.
-	const chatsThere = own && !!terminals?.facts && terminals.chats.length > 0;
+	const chatsThere = own && !!list;
 	const [chatsWanted, setChatsWanted] = useState(false);
 	const chatsOpen = chatsWanted && chatsThere && !listOpen;
 	const open = listOpen ? "activity" : chatsOpen ? "chats" : null;
@@ -56,7 +55,7 @@ export function PanelHead({
 	const [hung, setHung] = useState<"activity" | "chats">("activity");
 	if (open && open !== hung) setHung(open);
 	// The list hangs into the panel, which clips it: it may reach the panel's
-	// bottom and no further, whatever the screen's height.
+	// bottom and no further, whatever the chat's height.
 	const head = useRef<HTMLDivElement>(null);
 	const [room, setRoom] = useState<number | null>(null);
 	useLayoutEffect(() => {
@@ -101,29 +100,21 @@ export function PanelHead({
 		};
 	}, [open, onOpen]);
 
-	const words = status && (
-		<span key={status} data-state="open" className={cn("lh-fade min-w-0", lit ? "whitespace-normal" : "truncate")}>
-			{status}
-		</span>
-	);
-	// Plain words; on the highlighter only while the agent needs the learner.
-	const chipLook = cn(
-		"flex min-w-0 items-center gap-2 text-left leading-5 transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
-		TYPE,
-		lit ? "rounded-[10px] bg-highlight px-2.5 py-1 text-ink" : "text-ink-2",
-	);
-	const statusChip = status && (
-		<span data-testid="teacher-panel-agent" title={status} className={chipLook}>
-			{working && <span aria-hidden className="ob-pulse size-2 shrink-0 bg-current" />}
-			{words}
+	const words = elsewhere ? "Working" : name;
+	const statusChip = (
+		<span data-testid="teacher-panel-agent" title={words} className="flex min-w-0 items-center gap-2.5 text-left text-[15px] leading-5 text-bar-ink">
+			<span aria-hidden className={cn("size-2 shrink-0 bg-current", working && "ob-pulse")} />
+			<span key={words} data-state="open" className="lh-fade min-w-0 truncate">
+				{words}
+			</span>
 		</span>
 	);
 
 	return (
 		// Over the panel's resize edges while its list is open, so they never cover the list.
-		<div ref={head} data-hang={open ? "" : undefined} className={cn("peer relative flex shrink-0 flex-col gap-2 pt-2.5 pb-1.5 pr-3 pl-[18px]", hang.mounted ? "z-40" : "z-10")}>
-			<div className="flex min-h-8 items-center gap-2.5">
-				<div className="flex min-w-0 flex-1 items-center gap-2">{statusChip}</div>
+		<div ref={head} data-hang={open ? "" : undefined} className={cn("peer relative flex shrink-0 flex-col bg-bar pr-1 pl-[18px]", hang.mounted ? "z-40" : "z-10")}>
+			<div className="flex h-12 items-center">
+				<div className="flex min-w-0 flex-1 items-center pr-2">{statusChip}</div>
 				{chatsThere && (
 					<button
 						ref={chatsKey}
@@ -135,7 +126,7 @@ export function PanelHead({
 							list?.onOpen(false);
 							setChatsWanted(!chatsOpen);
 						}}
-						className={cn(KEY, chatsOpen && KEY_HELD)}
+						className={barWord(chatsOpen)}
 					>
 						Chats
 					</button>
@@ -146,7 +137,7 @@ export function PanelHead({
 						data-testid={teacher.follow ? "follow-stop" : "follow-start"}
 						aria-pressed={teacher.follow}
 						onClick={() => teacher.setFollow(!teacher.follow)}
-						className={cn(KEY, teacher.follow && KEY_HELD)}
+						className={barWord(teacher.follow)}
 					>
 						{teacher.follow ? "Following" : "Follow"}
 					</button>
@@ -162,13 +153,18 @@ export function PanelHead({
 							setChatsWanted(false);
 							list.onOpen(!listOpen);
 						}}
-						className={cn(KEY, listOpen && KEY_HELD)}
+						className={barWord(listOpen)}
 					>
 						Activity
 					</button>
 				)}
+				{popOut && (
+					<button type="button" data-testid="teacher-panel-pop-out" onClick={popOut} className={barWord(false)}>
+						Pop out
+					</button>
+				)}
 				{putBack && (
-					<button type="button" data-testid="teacher-panel-put-back" onClick={putBack} className={KEY}>
+					<button type="button" data-testid="teacher-panel-put-back" onClick={putBack} className={barWord(false)}>
 						Put back
 					</button>
 				)}

@@ -4,17 +4,17 @@
  */
 import type { PaneBounds } from "@/frontend/components/ui/pane-width-model";
 
-/** The panel's body: the agent's screen, the Activity list, or Activity while the teacher's
- *  screen is in its own window ("popped": the head then has Follow, Chats and Put back). */
-export type PanelView = "terminal" | "activity" | "popped";
+/** The panel's body: its chat (Activity then hangs from its key in the head), or Activity while the
+ *  chat is in a window of its own ("popped": the head then has Follow and Put back). */
+export type PanelView = "chat" | "popped";
 
-/** What the panel's body is: the screen in the desktop app (Activity then
- *  hangs from its key in the head) unless the teacher's screen is popped out, Activity in a
- *  browser. */
-export const panelBody = (terminals: boolean, popped: boolean): PanelView => (!terminals ? "activity" : popped ? "popped" : "terminal");
+export const panelBody = (popped: boolean): PanelView => (popped ? "popped" : "chat");
 
-/** The panel's width: the learner drags its left edge. The narrowest
- *  still shows the agent's screen 40 columns wide. */
+/** The chat the panel showed when it popped out (an empty value is a new chat), which the popped
+ *  window shows, and which the panel shows again when it is put back. */
+export const SHOWN_CHAT_KEY = "lh:teacher-chat";
+
+/** The panel's width: the learner drags its left edge. */
 export const PANEL_WIDTH: PaneBounds = { initial: 620, min: 360, max: 900 };
 /** Below this the panel takes the whole width. */
 const DOCK_FULL_BELOW = 640;

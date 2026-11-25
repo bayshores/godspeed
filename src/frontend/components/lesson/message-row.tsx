@@ -30,6 +30,7 @@ import {
 import type { Arrive } from "./arrivals";
 import { isSubagentSteer } from "./chat-helpers";
 import { MessageAttachments } from "./message-attachments";
+import { LearnerPlate } from "./learner-plate";
 import { drawnSeparators } from "./message-row-model";
 import { FromEarlierCard } from "./from-earlier-card";
 import { KeptCard } from "./kept-card";
@@ -145,20 +146,15 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, echo
 	);
 });
 
-/** The learner's message: a soft plate at the right, as wide as its words.
- *  Plain text, since learner text never goes through the model's LaTeX
- *  pipeline; the learner's files sit under it. An `echo` of the title shows
- *  only its files. */
+/** The learner's message on its plate, with the learner's files under it. An `echo` of the title
+ *  shows only its files. */
 function UserMessage({ message, echo, className }: { message: LhViewMessage; echo: boolean; className?: string }) {
 	const text = echo ? "" : message.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
 	if (echo && !message.parts.some(isAttachmentPart)) return null;
 	return (
-		<div className={cn("my-2 flex w-full justify-end", className)}>
-			<div data-testid="user-message" className="flex w-fit max-w-[82%] flex-col gap-2 lh-well px-4 py-2.5">
-				{text && <div className="whitespace-pre-wrap font-prose text-ink" style={{ fontSize: "var(--lh-prose-size)" }}>{text}</div>}
-				<MessageAttachments parts={message.parts} />
-			</div>
-		</div>
+		<LearnerPlate text={text} className={className}>
+			<MessageAttachments parts={message.parts} />
+		</LearnerPlate>
 	);
 }
 

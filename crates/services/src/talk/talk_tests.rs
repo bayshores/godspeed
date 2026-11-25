@@ -7,7 +7,7 @@ use gs_json::{Json, json};
 use gs_runtime::fake::FakeStep;
 
 use super::{create_talk_chat, earlier_words, set_talk_model, talk_chats};
-use crate::app::agent_folder::agent_folder;
+use crate::app::agent_folder::{agent_folder, set_agent_models};
 use crate::turns::chat_handler::handle_chat_input;
 use crate::turns::stand_in::{Lesson, bash, lesson, text, tool};
 use crate::turns::turn_liveness::is_turn_running;
@@ -54,11 +54,11 @@ async fn a_talk_chat_opens_on_where_you_left_off_and_answers_with_godspeed_s_too
 #[tokio::test(flavor = "multi_thread")]
 async fn a_talk_chat_is_named_by_its_first_line() {
 	let fx = talk("talk-name", Vec::new());
-	let made = create_talk_chat(&fx.app, &format!("\n  What is due {}?\nand more", "this week ".repeat(8))).unwrap();
+	let made = create_talk_chat(&fx.app, &format!("\n  What is due {}?\nand more", "this week ".repeat(8)), None).unwrap();
 	let title = made["title"].str_or_empty();
 	assert_eq!(title.chars().count(), 60);
 	assert!(title.starts_with("What is due this week this week"));
-	assert_eq!(create_talk_chat(&fx.app, "").unwrap()["title"], json!("A chat"), "a picture alone");
+	assert_eq!(create_talk_chat(&fx.app, "", None).unwrap()["title"], json!("A chat"), "a picture alone");
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -83,6 +83,20 @@ async fn a_chat_s_model_opens_its_session_and_a_new_pick_applies_from_the_next_r
 	assert!(set_talk_model(&fx.app, &fx.chat_id, "two\nlines").is_err());
 	let lesson = fx.app.stores.chats.create_chat("Sets", None, None, None, &[]).unwrap();
 	assert!(set_talk_model(&fx.app, lesson["id"].str_or_empty(), "claude-opus-5-5").is_err(), "a lesson's model is not the chat's to set");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_chat_lists_the_model_its_next_reply_runs_on() {
+	let fx = talk("talk-model-listed", Vec::new());
+	let listed = |id: &str| talk_chats(&fx.app).into_iter().find(|chat| chat["id"] == json!(id)).unwrap()["model"].clone();
+	assert_eq!(listed(&fx.chat_id), Json::Null, "the agent's own default");
+	set_agent_models(&fx.app, &json!({ "claude": "claude-sonnet-5-5" })).unwrap();
+	assert_eq!(listed(&fx.chat_id), json!("claude-sonnet-5-5"), "the setup card's model");
+	let picked = create_talk_chat(&fx.app, "Hi", Some("claude-opus-5-5")).unwrap()["id"].str_or_empty().to_owned();
+	assert_eq!(listed(&picked), json!("claude-opus-5-5"), "picked before the chat was made");
+	assert!(create_talk_chat(&fx.app, "Hi", Some("two\nlines")).is_err());
+	fx.app.stores.chats.set_agent_session(&picked, &json!({ "agent": "codex", "id": "thread-1" })).unwrap();
+	assert_eq!(listed(&picked), json!("claude-sonnet-5-5"), "a pick made on the other agent is not sent to this one");
 }
 
 #[tokio::test(flavor = "multi_thread")]

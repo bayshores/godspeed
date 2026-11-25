@@ -1,4 +1,4 @@
-import { WAITING_TOPIC } from "./layout-lessons.mjs";
+import { TALK_HOLDS, WAITING_TOPIC } from "./layout-lessons.mjs";
 
 /**
  * layout-screens.mjs — the screens `npm run layout` checks, in order.
@@ -36,6 +36,13 @@ const pause = `await new Promise((done) => setTimeout(done, 100))`;
 const whenThere = (selector) => `for (let n = 0; n < 100 && !document.querySelector("${selector}"); n++) ${pause}`;
 const openTeacher = `document.querySelector("[data-testid=strip]").click()`;
 /** The pointer comes to rest on the strip, so its peek slides out. */
+/** Makes a teacher panel chat and sends it `text`, as the panel's first send does; the reply runs on in the server. */
+const talk = (text) => `const made = await (await fetch("/api/chats", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "talk", text: ${JSON.stringify(text)} }) })).json();
+const sent = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: made.id, input: { type: "text", text: ${JSON.stringify(text)} } }) });
+await sent.body?.cancel()`;
+/** Stops every teacher panel chat's running reply. */
+const stopTalk = `const { chats } = await (await fetch("/api/chats?kind=talk")).json();
+for (const chat of chats.filter((c) => c.running)) await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: chat.id }) })`;
 const peekOut = `document.querySelector("[data-strip]").dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }))`;
 const peekShown = "[data-testid=peek][data-state=open] [data-testid=peek-status]";
 const deadlineCard = "[data-teacher-target='deadline:{deadline}']";
@@ -349,7 +356,7 @@ export const SCREENS = [
 	{ name: "Progress, the next deadline marked done", url: "/space", ready: `${homeworkCard} [data-testid=next-deadline-done]`, setup: `document.querySelector("${homeworkCard} [data-testid=next-deadline-done]").click()`, shows: `${homeworkCard} [data-testid=next-deadline-undo]` },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", before: untickHomework, url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
 	{ name: "Lesson with a written-answer question", url: "/chat/{written}", ready: "[data-testid=question-dock]" },
-	{ name: "Lesson with a written-answer question beside the teacher's panel", url: "/chat/{written}", ready: "[data-testid=question-dock]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
+	{ name: "Lesson with a written-answer question beside the teacher's panel", url: "/chat/{written}", ready: "[data-testid=question-dock]", setup: openTeacher, shows: "[data-testid=talk-gives-way]" },
 	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, shows: "[data-testid=plugin-window] [data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Lesson, its menu", url: "/chat/{lesson}", ready: "[data-testid=lesson-more]", setup: `document.querySelector("[data-testid=lesson-more]").click()`, shows: "[data-testid=lesson-menu][data-state=open]" },
 	{
@@ -420,7 +427,7 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 		shows: "[data-testid=document-pages] [data-testid=document-page]:only-child img",
 	},
 	{ name: "Lesson with two steps, a sheet for each", url: "/chat/{twoSheets}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=sheet-step]" },
-	{ name: "Lesson with two steps beside the teacher's panel", url: "/chat/{twoSheets}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=sheet-step]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
+	{ name: "Lesson with two steps beside the teacher's panel", url: "/chat/{twoSheets}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=sheet-step]", setup: openTeacher, shows: "[data-testid=talk-gives-way]" },
 	{ name: "Lesson with a question of the learner's own before the step's answer", url: "/chat/{askedFirst}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=user-message]", shows: "[data-testid=question-dock]" },
 	{ name: "Lesson with a question whose choices are code, longer than the window", url: "/chat/{codeChoices}", ready: "[data-testid=question-dock] pre" },
 	{ name: "Lesson with a question answered in the code editor", url: "/chat/{codeWrite}", ready: "[data-testid=code-editor-host] .cm-content" },
@@ -470,15 +477,8 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	{ name: "An address that is no page", url: "/nowhere", ready: "[data-testid=not-found]" },
 	{ name: "Space's plugin tab", url: "/space/plugin/flashcards", ready: "[data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Home, the strip's peek", url: "/", ready: deadlineCard, setup: peekOut, shows: peekShown },
-	{ name: "Teacher's panel with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
-	{ name: "Teacher's panel, the other agents", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent-menu]").click()`, shows: "[data-testid=open-agent-choices][data-state=open]" },
-	{
-		name: "Teacher's panel beside a lesson",
-		url: "/chat/{lesson}",
-		ready: "[data-testid=cite-list]",
-		setup: openTeacher,
-		shows: "[data-testid=terminal-none] [data-testid=open-agent]",
-	},
+	// No chat yet: the panel opens on a new one, with what the teacher can be asked here.
+	{ name: "Teacher chat, a new chat", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=talk-try] [data-testid=talk-starter]" },
 	{ name: "Teacher's Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`, shows: "[data-testid=teacher-panel-list] [data-testid=activity-list] > *" },
 	{ name: "Settings, Connection", url: "/settings?section=connection", ready: "[data-testid=agent-status]" },
 	{ name: "Settings, Teaching", url: "/settings?section=teaching", ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)" },
@@ -522,10 +522,10 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{ name: "Notes that could not be saved", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: notesAre(`{ notes: ${pagesOf(3, { waiting: [0, 1] })} }`, `{ waiting: { names: [topics[0].name, topics[1].name], why: "The disk is full." } }`), shows: "[data-testid=vault-notice] [data-testid=vault-notice-key]" },
 	{ name: "Progress with no notes folder", before: unlinkVault, url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
 	{ name: "Cheat sheet, not made", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]" },
-	{ name: "Cheat sheet, not made, beside the teacher's panel", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
+	{ name: "Cheat sheet, not made, beside the teacher's panel", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]", setup: openTeacher, shows: "[data-testid=talk-gives-way]" },
 	{ name: "Cheat sheet, made, two pages", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), shows: "[data-testid=sheet-made]" },
 	{ name: "Cheat sheet, made, its rules folded", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), setup: `document.querySelector("[data-testid=sheet-rules-toggle]").click()`, shows: "[data-testid=sheet-rules-toggle][aria-expanded=false]" },
-	{ name: "Cheat sheet, made, beside the teacher's panel", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
+	{ name: "Cheat sheet, made, beside the teacher's panel", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), setup: openTeacher, shows: "[data-testid=talk-gives-way]" },
 	{ name: "Cheat sheet, two versions", url: sheetPage("{sheetVersions}"), ready: sheetDrawn(1), shows: "[data-testid=cheat-sheet-version] ~ [data-testid=cheat-sheet-version]" },
 	{ name: "Deadline with a graded mock and a ready one", url: "/space/deadline/{sheetMade}", ready: "[data-testid=deadline-mock-continue]" },
 	{ name: "Mock ready to start", url: mockPage("{mockReady}"), ready: "[data-testid=mock-ready] [data-testid=mock-start]" },
@@ -583,23 +583,24 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		helper: "stream",
 		shows: "[data-turn-wrote] [data-testid=agent-at-work]",
 	},
-	// Starter keys show only while no lesson turn waits, so the waiting lesson goes first.
+	// The waiting lesson's held reply ends first, so the panel chat's held reply below is the only one the stand-in's desk requests reach.
 	{
-		name: "The agent's screen",
+		name: "Teacher chat, all ideas",
 		before: dropWaitingLesson,
 		url: "/",
 		ready: deadlineCard,
-		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]")?.click()`,
-		shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]",
+		setup: `${openTeacher}; ${whenThere("[data-testid=talk-all-ideas]")}; document.querySelector("[data-testid=talk-all-ideas]").click()`,
+		shows: "[data-testid=talk-try] [data-testid=talk-idea]",
 	},
-	// The longest starter key: "Get me ready for" the deadline's name.
-	{ name: "The agent's screen on a deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]", setup: openTeacher, shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]" },
+	// The longest starter: "Get me ready for" the deadline's name.
+	{ name: "Teacher chat on a deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]", setup: openTeacher, shows: "[data-testid=talk-try] [data-testid=talk-starter]" },
+	// The model key's menu opens up from the writing row, the stand-in's models listed.
 	{
-		name: "The agent's screen with everything the teacher can do",
+		name: "Teacher chat, its model list",
 		url: "/",
 		ready: deadlineCard,
-		setup: `${openTeacher}; ${whenThere("[data-testid=terminal-everything]")}; document.querySelector("[data-testid=terminal-everything]").click()`,
-		shows: "[data-testid=terminal-ideas] [data-testid=terminal-idea]",
+		setup: `${openTeacher}; ${whenThere("[data-testid=talk-model]")}; document.querySelector("[data-testid=talk-model]").click()`,
+		shows: "[data-testid=talk-models] [data-testid=talk-model-choice]",
 	},
 	// Onboarding's mark: the panel opens by itself on Home, once.
 	{
@@ -607,18 +608,42 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		before: `localStorage.setItem("lh:teacher-welcome", "1")`,
 		url: "/",
 		ready: deadlineCard,
-		shows: "[data-testid=terminal-starters] [data-testid=terminal-starter]",
+		shows: "[data-testid=talk-try] [data-testid=talk-starter]",
 	},
-	// The stand-in teacher runs by now. The window's own page, and the column of the main window while the shell says the window is open.
+	// The stand-in helper answers a panel chat at once: the learner's plate, then the teacher's words.
+	{ name: "Teacher chat with a reply", before: talk("What's due this week?"), url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=talk-thread] [data-testid=thread-teacher]" },
+	// A message that asks for the slope checker is held: the desk lists the steps it reads under the newest plate.
 	{
-		name: "The terminal window",
+		name: "Teacher chat, a reply being written",
+		before: talk(`Add Thursday's review session at 4 PM, and ${TALK_HOLDS} on problem 2 of homework 3`),
+		url: "/",
+		ready: deadlineCard,
+		setup: openTeacher,
+		helper: "read",
+		shows: "[data-testid=talk-thread] [data-testid=desk-plan] li",
+	},
+	// The held reply asks to run a command: its card waits under the desk's steps for Deny or Allow.
+	{ name: "Teacher chat, a card waiting", url: "/", ready: deadlineCard, setup: openTeacher, helper: "approve", shows: "[data-testid=talk-thread] [data-testid=approval-card]" },
+	// On a lesson the panel's box gives way to the lesson's, with Stop while the held reply runs.
+	{ name: "Teacher's panel beside a lesson", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=talk-gives-way] [data-testid=talk-stop]" },
+	// The held reply is stopped: the chats, the one shown "open now".
+	{
+		name: "Teacher's chats under the Chats key",
+		before: stopTalk,
+		url: "/",
+		ready: deadlineCard,
+		setup: `${openTeacher}; ${whenThere("[data-testid=teacher-panel-chats]")}; document.querySelector("[data-testid=teacher-panel-chats]").click()`,
+		shows: "[data-testid=teacher-panel-list] [data-testid=teacher-chat-open]",
+	},
+	// The chat's own window, and the main window's column while the shell says the window is open.
+	{
+		name: "The chat's own window",
 		url: "/terminal-window",
-		ready: "[data-testid=terminal-window] [data-testid=teacher-panel-put-back]",
-		setup: `${pause}; document.querySelector("[data-testid=open-agent]")?.click()`,
-		shows: "[data-testid=terminal-window] [data-testid=terminal-starter]",
+		ready: "[data-testid=chat-window] [data-testid=teacher-panel-put-back]",
+		shows: "[data-testid=chat-window] [data-testid=talk-chat]",
 	},
 	{
-		name: "Teacher's column while the terminal is in its window",
+		name: "Teacher's column while the chat is in its window",
 		url: "/",
 		ready: deadlineCard,
 		setup: `window.__lhPush("terminal-window", { open: true }); ${pause}; ${openTeacher}`,
@@ -694,27 +719,6 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		shows: "[data-testid=space-tabs-strip] > :nth-child(5)",
 	},
 	{ name: "Lesson with no space", before: noSpace, url: "/chat/{written}", ready: "[data-testid=question-dock]", shows: "[data-testid=spaces-plus] ~ [data-testid=bar-crumb] [data-testid=lesson-title]" },
-	{
-		// The stand-in teacher goes back to a chat, which has a line typed in it: a chat to list.
-		name: "Teacher's chats under the Chats key",
-		before: `const shell = window.lh.terminals;
-const running = (await shell.list()).find((t) => !t.ended);
-if (running) await shell.stop(running.id);
-for (let tries = 0; (await shell.list()).some((t) => !t.ended); tries++) {
-	if (tries > 50) throw new Error("the teacher never stopped");
-	await new Promise((done) => setTimeout(done, 100));
-}
-await shell.start("claude", "7c9e6679-7425-40de-944b-e07fc1f90ae7")`,
-		url: "/",
-		ready: "[data-testid=strip]",
-		setup: `if (!document.querySelector("[data-teacher-panel]")) { ${openTeacher}; ${pause}; }
-for (let tries = 0; !document.querySelector("[data-testid=teacher-panel-chats]"); tries++) {
-	if (tries > 100) throw new Error("the Chats key never showed");
-	await new Promise((done) => setTimeout(done, 100));
-}
-document.querySelector("[data-testid=teacher-panel-chats]").click()`,
-		shows: "[data-testid=teacher-panel-list] [data-testid=teacher-chat-open]",
-	},
 	{ name: "Progress, a new space", before: newSpace, url: "/space", ready: "[data-testid=space-start] [data-testid=space-start-path]" },
 	// With a lesson the new space is no longer empty: the deadline's place holds the two ways it still lacks.
 	{ name: "Progress, a lesson but no deadline", before: lessonInNewSpace, url: "/space", ready: "[data-testid=next-deadline-none] [data-testid=space-start-path]" },

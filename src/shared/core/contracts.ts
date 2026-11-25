@@ -19,3 +19,5 @@ export * from "./contracts/space.ts";
 export * from "./contracts/boot.ts";
 export * from "./contracts/lesson-work.ts";
 export * from "./contracts/teacher-work.ts";
+export * from "./contracts/talk-chats.ts";
+export * from "./contracts/agent-models.ts";
