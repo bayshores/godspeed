@@ -260,11 +260,6 @@ export class SessionModel {
 	private onReattachSettled?: () => void;
 	/** The hook's re-render trigger (set by the adapter). */
 	onChange?: () => void;
-	/** Every taken input that waits for the teacher: a learner message, a side
-	 *  question, an answer that makes a turn, Next, a continue, a steer, and an
-	 *  answer whose lost ack hid a turn now running. The adapter starts
-	 *  godspeed's teacher here when no agent is (TerminalsApi.wake). */
-	onSent?: () => void;
 
 	// THE STATE: the record (server canon) + the live tail (this client's
 	// optimistic appends and the streaming turn's messages). The tail dies
@@ -666,8 +661,6 @@ export class SessionModel {
 				if (!Array.isArray(record.messages) || typeof record.turnInFlight !== "boolean") throw new Error("An error occurred.");
 				this.setMessages(record.messages, record.turnError);
 				if (record.turnInFlight) {
-					// A lost ack can hide this answer's own turn, which waits for the teacher too.
-					this.onSent?.();
 					await this.resumeStream(false);
 					return true;
 				}
@@ -709,9 +702,6 @@ export class SessionModel {
 		if (optimistic.length > 0) this.mutate(() => {
 			this.tail = [...this.tail, ...optimistic];
 		});
-		// The server's rule: an answer that leaves a sibling question open makes no turn,
-		// so nothing waits for the teacher and starting one would cost the learner a model turn.
-		const makesTurn = input.type !== "answer" || danglingQuestionOf([...this.base, ...this.tail]) === null;
 		let refused = false;
 		try {
 			// SUBMITS ARE NOT ABORTABLE BY VIEW TEARDOWN: the POST must NOT
@@ -737,8 +727,6 @@ export class SessionModel {
 			// replay lands on top). One live view connection per page, always —
 			// the browser's 6-per-origin pool is the scarce resource.
 			await res.text().catch(() => {}); // drain the tiny ack; release the socket
-			// Taken: tell the adapter now, not when the turn ends (with no agent it never would).
-			if (makesTurn) this.onSent?.();
 			// A stop() or a newer send/consume won while the ack was in
 			// flight: the turn is live server-side either way — do not attach
 			// a stream from a view that is gone or superseded.
@@ -793,8 +781,6 @@ export class SessionModel {
 		try {
 			const res = await this.postRoute("steer", { type: "steer", id, text: t });
 			if (res.ok) {
-				// A turn godspeed started by itself may still wait for a teacher.
-				this.onSent?.();
 				return true; // parked or delivered — the stream lands the card
 			}
 			if (res.status === 409) {

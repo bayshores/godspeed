@@ -16,7 +16,7 @@
 | `first_run.rs` | One-time data backup, cleanup of Electron leftovers. |
 | `quit.rs` | The one exit routine: stop the agents' terminals, then the server, clean up, install a downloaded update. |
 | `server.rs` | Port choice, secret, spawn, ready wait, login tokens, restarts, stop, `mcp-endpoint.json`. |
-| `rpc.rs` | Reads the server's stdout lines, queues demo work, passes notifications, line clears, nudges, page opens and the menu bar countdown on, and writes replies to its stdin. |
+| `rpc.rs` | Reads the server's stdout lines, queues demo work, passes notifications, line clears, page opens and the menu bar countdown on, and writes replies to its stdin. |
 | `notify.rs` | System notifications the server asks for. |
 | `terminal_window.rs` | The terminal window: its place and size, its commands, the `terminal-window` push. |
 | `window.rs` | Window labels, the builder every window shares, main window, navigation rules, `open_link`, show fallback, title, downloads, pending `open-settings` push, window commands. |

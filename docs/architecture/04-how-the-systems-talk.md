@@ -18,7 +18,7 @@ flowchart TB
 
     subgraph CLASSROOM["Classroom: writes data/chats"]
         TURN["turn pipeline: handle_chat_input"]
-        AGENTS["lesson agent, rebuilt from the record each turn"]
+        AGENTS["lesson agent: the lesson's session on the learner's agent"]
         CHATS[("data/chats/*.json")]
     end
 
@@ -34,7 +34,7 @@ flowchart TB
         LEDGERS[("graph ledgers")]
     end
 
-    OUTSIDE["outside agent over MCP"]
+    OUTSIDE["the learner's agent (Claude Code or Codex)"]
 
     LEARNER -->|"messages, answers"| UI
     UI -->|"POST /api/chat, one input event"| TURN
@@ -51,7 +51,7 @@ flowchart TB
     TOPICS -->|"appends topics.jsonl"| LEDGERS
     DERIVE -->|"reads"| LEDGERS
     UI -->|"GET /api/graph, GET /api/progress"| DERIVE
-    AGENTS -.->|"work items"| OUTSIDE
-    RUNNER -.->|"work items"| OUTSIDE
-    EXTRACT -.->|"work items"| OUTSIDE
+    AGENTS -.->|"the lesson's session"| OUTSIDE
+    RUNNER -.->|"a one-off session per job"| OUTSIDE
+    EXTRACT -.->|"a one-off session per job"| OUTSIDE
 ```

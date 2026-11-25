@@ -6,7 +6,6 @@ import { setNoticesOpen } from "@/frontend/components/notice-store";
 import { usePresence } from "@/frontend/components/presence";
 import { announceDelay } from "@/frontend/components/teacher/follow-status";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { HELPER_NAME } from "@/frontend/components/work/work-model";
 import { cn } from "@/frontend/lib/utils";
 import { PEEK_ROWS_ID } from "./peek-sheet";
 import { peekKeyboard, stripPointer, stripPressed, tuckPeek, usePeekOut } from "./peek-store";
@@ -136,7 +135,8 @@ export function Strip() {
 	);
 }
 
-/** The teacher's square: it breathes while the teacher works, and is hollow while the teacher is off. */
+/** The teacher's square: it breathes while the teacher works, and is hollow before the agent's
+ *  state is read. */
 function SquareMark({ square }: { square: Square }) {
 	return <span aria-hidden data-square={square} className={cn("size-2 shrink-0", square === "off" ? "border-2 border-current" : "bg-current", square === "working" && "ob-pulse")} />;
 }
@@ -153,11 +153,7 @@ function PeekRows({ strip }: { strip: StripState }) {
 				</button>
 			)}
 			{view.rows.map((row) =>
-				row.kind === "background" ? (
-					<button key="background" type="button" data-testid="peek-background" onClick={strip.showHelper} className={cn(ROW, "lh-press", LIT)}>
-						{HELPER_NAME} needs you
-					</button>
-				) : row.kind === "ready" ? (
+				row.kind === "ready" ? (
 					<div key={row.lesson.id} data-testid="peek-ready" className={ROW}>
 						<span title={row.lesson.title} className="min-w-0 flex-1 truncate">
 							{row.lesson.title}

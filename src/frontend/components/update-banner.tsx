@@ -4,8 +4,8 @@
  * Restart now or Later once it is staged. Later hides it until the next
  * launch; a staged update installs on quit anyway (autoInstallOnAppQuit).
  * It sits under the welcome screen, so it appears once that closes.
- * While the teacher's terminal answers a turn, Restart now asks first
- * (restarting stops it). Browser builds have no window.lh and never see a
+ * While a lesson's turn runs, Restart now asks first (restarting stops
+ * it). Browser builds have no window.lh and never see a
  * push: renders null.
  */
 
@@ -15,8 +15,6 @@ import { useUpdateState } from "@/frontend/components/settings/update-settings.t
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { RestartDialog } from "@/frontend/components/terminal/restart-dialog";
-import { restartAsks } from "@/frontend/components/terminal/terminal-model";
-import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useSettings } from "@/frontend/components/settings-context";
 
 export default function UpdateBanner() {
@@ -24,8 +22,7 @@ export default function UpdateBanner() {
 	const { state } = useUpdateState();
 	const [later, setLater] = useState(false);
 	const [asking, setAsking] = useState(false);
-	const teacher = useTerminals()?.teacher ?? null;
-	const pendingTurns = useAgentStatus()?.pendingTurns ?? 0;
+	const turnsRunning = useAgentStatus()?.turnsRunning ?? 0;
 	const install = () => window.lh?.installUpdate?.();
 	const ready = state?.status === "downloaded";
 	if ((!ready && state?.status !== "downloading") || (ready && later)) return null;
@@ -42,7 +39,7 @@ export default function UpdateBanner() {
 						<button type="button" data-testid="update-later" onClick={() => setLater(true)} className="lh-btn">
 							Later
 						</button>
-						<button type="button" data-testid="update-restart-now" onClick={() => (restartAsks(teacher, pendingTurns) ? setAsking(true) : install())} className="lh-btn lh-btn-main">
+						<button type="button" data-testid="update-restart-now" onClick={() => (turnsRunning > 0 ? setAsking(true) : install())} className="lh-btn lh-btn-main">
 							Restart now
 						</button>
 					</>

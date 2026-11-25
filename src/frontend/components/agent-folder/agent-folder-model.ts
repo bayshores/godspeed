@@ -29,8 +29,6 @@ export interface FolderView {
  *  then the learner runs the command. */
 export interface Launch {
 	agent: FolderAgent;
-	/** Only the helper was asked for. */
-	helperOnly?: true;
 	/** Running, done, or failed with a message. */
 	made: "wait" | "done" | { error: string };
 }
@@ -41,22 +39,20 @@ export interface LogLine {
 }
 
 /** The log's lines for a launch and the live agent status. */
-export function logLines(launch: Launch, status: { connected: boolean; teaching: boolean; helperHere: boolean }, short: string): LogLine[] {
+export function logLines(launch: Launch, connected: boolean, short: string): LogLine[] {
 	const name = AGENT_LABEL[launch.agent];
 	if (typeof launch.made === "object") return [{ text: launch.made.error, state: "error" }];
 	if (launch.made === "wait") return [{ text: `Making ${short}…`, state: "wait" }];
 	const lines: LogLine[] = [
 		{ text: `Made ${short}`, state: "done" },
-		{ text: "Copy the command and run it in your terminal", state: status.connected ? "done" : "wait" },
+		{ text: "Copy the command and run it in your terminal", state: connected ? "done" : "wait" },
 	];
-	if (launch.helperOnly) return [...lines, status.helperHere ? { text: "Started background work", state: "done" } : { text: "Waiting for background work to start…", state: "wait" }];
-	if (!status.connected) {
+	if (!connected) {
 		lines.push({ text: `Waiting for ${name} to start…`, state: "wait" });
 		lines.push({ text: `If ${name} asks whether to trust the folder, choose Yes.`, state: "note" });
 		return lines;
 	}
 	lines.push({ text: `Started ${name}`, state: "done" });
-	lines.push(status.teaching ? { text: `${name} is teaching`, state: "done" } : { text: `Waiting for ${name} to start teaching…`, state: "wait" });
 	return lines;
 }
 

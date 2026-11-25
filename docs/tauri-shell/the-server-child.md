@@ -78,7 +78,7 @@ No signals are needed, so the path is the same on Windows, where the installer c
 - Every server stderr line is logged as `server: <line>`.
 - Lifecycle lines: `starting server: <server path>`, `data dir: <data path>`, `server up: <url>`, `server exited (code=<n|null> signal=<SIGNAME|null>)`, `restarting server (<n> in the last minute)`, `server up again: <url>`, `window open: <app origin>/`.
 - The window line never holds the login URL, because it has the token.
-- Terminal lines: `terminal started: <role> <agent> pid <n>`, `terminal ended: <role> <agent> pid <n> code <n>` (or `stopped`, or `screen broke`), `terminal could not start: <role> <agent>: <error>`. Nothing from a terminal's screen, environment or the clipboard is ever logged.
+- Terminal lines: `terminal started: <agent> pid <n>`, `terminal ended: <agent> pid <n> code <n>` (or `stopped`, or `screen broke`), `terminal could not start: <agent>: <error>`. Nothing from a terminal's screen, environment or the clipboard is ever logged.
 - The first thing in `main` is a panic hook that logs `uncaught: <panic info>` with a backtrace, then runs the default hook.
 
 ### Timeouts

@@ -35,7 +35,6 @@ describe("the work's approvals", () => {
 		const work = readLessonWork({
 			live: true,
 			cause: "ask",
-			taken: true,
 			steps: [],
 			files: [],
 			approvals: [
@@ -59,7 +58,7 @@ describe("the approval card", () => {
 	const card: LhViewMessage = { id: "card", role: "user", parts: [{ type: "data-space-context", data: { spaceId: "s", name: "Calculus", description: "", files: [] } }] };
 	const first: LhViewMessage = { id: "u1", role: "user", parts: [{ type: "text", text: "Limits" }] };
 	const bash: WorkApproval = { id: "a1", text: "Quigley wants to run this command.", subject: { kind: "command", text: "python3 plot.py" } };
-	const work = (approvals: WorkApproval[], steps: LessonWork["steps"] = []): LessonWork => ({ ...NO_LESSON_WORK, live: true, cause: "ask", taken: true, steps, approvals });
+	const work = (approvals: WorkApproval[], steps: LessonWork["steps"] = []): LessonWork => ({ ...NO_LESSON_WORK, live: true, cause: "ask", steps, approvals });
 	type Props = React.ComponentProps<typeof ReadingPane>;
 	const props = (over: Partial<Props> = {}): Props => ({
 		spaceId: undefined,
@@ -71,7 +70,6 @@ describe("the approval card", () => {
 		status: "streaming",
 		busy: true,
 		stoppedEmpty: false,
-		waitingForAgent: false,
 		work: work([]),
 		queuedSteers: [],
 		arrivalsLive: true,

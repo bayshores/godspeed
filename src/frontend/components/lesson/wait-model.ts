@@ -6,14 +6,9 @@ import { isQuestionTool, PRACTICE_PROBLEM_TOOL, type DeskFile, type DeskReading,
  * the files it works from on the desk as paper. Pure.
  */
 
-/** "waiting": no agent is at the desk; "working": one is. */
-export type DeskState = "waiting" | "working";
-
-
 /** The desk's one sentence: what the teacher does, by why the turn runs. Null for the moment
  *  between the learner's send and the server's first word on the turn. */
-export function deskHead({ name, waiting, work }: { name: string; waiting: boolean; work: LessonWork }): string | null {
-	if (waiting || (work.live && !work.taken)) return `Waiting for ${name} to start.`;
+export function deskHead(name: string, work: LessonWork): string | null {
 	if (!work.live) return null;
 	switch (work.cause) {
 		case "first":

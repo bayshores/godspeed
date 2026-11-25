@@ -1,7 +1,6 @@
 /**
  * The lesson while the teacher works: the desk from the start, with its sentence, its steps and
- * the files as a stack, the title's bubble left out, the start key while no agent is here, no
- * Start again at the foot of the text, and the reply as it is written: its words wait a moment
+ * the files as a stack, the title's bubble left out, no Start again at the foot of the text, and the reply as it is written: its words wait a moment
  * under the desk, the desk leaves before they show, then they grow in place, and a step after them
  * brings the desk back.
  */
@@ -13,9 +12,7 @@ import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
-import { StartKey } from "../../src/frontend/components/lesson/start-key.tsx";
 import { titleEcho } from "../../src/frontend/components/lesson/wait-model.ts";
-import { AgentStatusContext, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
 import { TeacherContext, type TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 import { MessageRow, messageShows } from "../../src/frontend/components/lesson/message-row.tsx";
 import { NO_LESSON_WORK, type DeskFile, type LessonWork, newNextMessage, newUserMessage, projectView, type AttachmentPart, type LhViewMessage } from "../../src/shared/core/index.ts";
@@ -63,7 +60,6 @@ const props = (over: Partial<Props> = {}): Props => ({
 	status: "submitted",
 	busy: true,
 	stoppedEmpty: false,
-	waitingForAgent: false,
 	work: NO_LESSON_WORK,
 	queuedSteers: [],
 	arrivalsLive: false,
@@ -79,11 +75,11 @@ describe("the desk", () => {
 	type DeskStep = LessonWork["steps"][number];
 	const step = (id: string, text: string, over: Partial<DeskStep> = {}): DeskStep => ({ id, at: "2026-11-23T22:20:33.000Z", text, call: null, reads: null, ...over });
 	const pdf = (name: string): DeskFile => ({ name, path: `/h/${name}`, kind: "pdf" });
-	const work = (over: Partial<LessonWork> = {}): LessonWork => ({ ...NO_LESSON_WORK, live: true, cause: "first", taken: true, ...over });
+	const work = (over: Partial<LessonWork> = {}): LessonWork => ({ ...NO_LESSON_WORK, live: true, cause: "first", ...over });
 
 	it("opens on a new lesson as the desk: what the teacher does, the pencil writing on the current tile, no bubble for the title", () => {
 		const out = pane({ work: work() });
-		assert.match(out, /data-testid="agent-at-work" data-state="working"[\s\S]*Teacher is getting your first step ready\.[\s\S]*data-testid="desk-plan"[\s\S]*data-testid="pencil-line" data-state="working"[\s\S]*lh-pencil-ink/);
+		assert.match(out, /data-testid="agent-at-work"[\s\S]*Teacher is getting your first step ready\.[\s\S]*data-testid="desk-plan"[\s\S]*data-testid="pencil-line"[\s\S]*lh-pencil-ink/);
 		assert.doesNotMatch(out, /data-testid="desk-stack"/, "no files: no stack");
 		assert.doesNotMatch(out, /data-testid="user-message"/);
 		assert.doesNotMatch(out, /Space context/, "the scaffolding card is not drawn");
@@ -105,12 +101,6 @@ describe("the desk", () => {
 		const out = pane({ work: work({ steps: [step("1", "Reading a.pdf", { reads: { ...pdf("a.pdf"), from: null, to: null, page: 1 } })], files: [pdf("a.pdf"), pdf("b.pdf")] }) });
 		assert.doesNotMatch(out, /gradient/);
 		assert.doesNotMatch(out, /\bborder(-edge)?\b(?!-)/);
-	});
-
-	it("lays the pencil down, with no ink, while no agent takes the turn", () => {
-		const out = pane({ waitingForAgent: true, work: work({ taken: false }) });
-		assert.match(out, /data-testid="agent-at-work" data-state="waiting"[\s\S]*Waiting for Teacher to start\.[\s\S]*data-testid="pencil-line" data-state="waiting"[\s\S]*lh-pencil-tip/);
-		assert.doesNotMatch(out, /lh-pencil-ink|lh-pencil-ghost/);
 	});
 
 	it("lists the steps in the server's words, the older checked and the pencil only on the newest", () => {
@@ -142,28 +132,6 @@ describe("the desk", () => {
 		const out = pane({ work: work({ files: [{ name: "Week 8.pptx", path: "/h/Week 8.pptx", kind: "other" }] }) });
 		assert.match(out, /data-testid="desk-stack"[\s\S]*Week 8\.pptx/);
 		assert.doesNotMatch(out, /lh-desk-pages/);
-	});
-});
-
-describe("the start key", () => {
-	const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 1, helperWork: 0, claimedLessons: [] } as AgentStatus;
-	const withStatus = (status: AgentStatus | null, panelStarts = false) =>
-		renderToStaticMarkup(
-			<AgentStatusContext.Provider value={status}>
-				<TeacherContext.Provider value={{ name: "Quigley", panelStarts } as TeacherApi}>
-					<StartKey />
-				</TeacherContext.Provider>
-			</AgentStatusContext.Provider>,
-		);
-
-	it("turns the teacher on while no agent is here", () => {
-		assert.match(withStatus(off), /lh-btn lh-btn-main[^>]*>Turn on Quigley<\/button>/);
-	});
-
-	it("is not there while an agent is here, before the status is known, or while the teacher's panel shows its own", () => {
-		assert.doesNotMatch(withStatus({ ...off, connected: true }), /Turn on/);
-		assert.doesNotMatch(withStatus(null), /Turn on/);
-		assert.doesNotMatch(withStatus(off, true), /Turn on/);
 	});
 });
 
@@ -219,7 +187,7 @@ describe("the reply as it is written", () => {
 	const wait = (ms: number) => act(async () => void (await new Promise((done) => setTimeout(done, ms))));
 	type DeskStep = LessonWork["steps"][number];
 	const step = (id: string, text: string): DeskStep => ({ id, at: "2026-11-23T22:20:33.000Z", text, call: null, reads: null });
-	const working = (steps: DeskStep[]): LessonWork => ({ ...NO_LESSON_WORK, live: true, cause: "ask", taken: true, steps });
+	const working = (steps: DeskStep[]): LessonWork => ({ ...NO_LESSON_WORK, live: true, cause: "ask", steps });
 
 	it("waits for the desk to fade out, then grows in place as the words come, never printed", async () => {
 		animated.length = 0;

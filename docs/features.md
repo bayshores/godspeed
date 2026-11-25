@@ -78,7 +78,7 @@ To add a row:
 | Write to the teacher in a lesson, in the writing row at the window's foot: a question, or while it writes, what to focus on, with Stop at the row's end | Lesson | `composer` | | learner | |
 | The desk: while the teacher works on a reply, in the lesson text with no box, one sentence on what it does, its steps (its own web searches and file reads too) and the files it works from as a stack of paper | Lesson | `agent-at-work` | Lesson whose first reply waits for an agent | learner | |
 | The teacher's reply, written into the lesson as it comes | Lesson | `composer` | | learner | |
-| Allow or Deny what the teacher wants to run (a command, a file change, a web page), on a card on the desk | Lesson | `agent-at-work` | Lesson whose first reply waits for an agent | teacher | |
+| Allow or Deny what the teacher wants to run (a command, a file change, a web page), on a card on the desk, or under a cheat sheet's working line while the teacher works on it | Lesson; Cheat sheet | `agent-at-work` | Lesson whose first reply waits for an agent | teacher | |
 | Stuck keys, over the writing row while a question or problem waits | Lesson | `help-hint` | | learner | |
 | Whole problem: a long problem pinned over the lesson text in a narrow window folds, and one key on its plate opens it and folds it again | Lesson | `turn-whole` | Lesson with a long problem folded over the text | learner | |
 | A figure the teacher draws under its reply, in the theme's colors ("Draw it" asks for one) | Lesson | `lesson-idea` | Homework lesson with a figure under the method | teacher | |
@@ -130,7 +130,7 @@ To add a row:
 | Back and Forward | Mac Go menu | none: the Mac menu and ⌘[ and ⌘] only | | learner | |
 | Open godspeed Folder | Mac File menu | none: the Mac menu only | | learner | |
 | A page that is gone | Any address | none: shown for an address that is no page, not a feature | | learner | `*` |
-| The agent's own tools | None | none: not a learner feature | | teacher | `wait_for_work`, `respond`, `read_work`, `list_lessons`, `read_lesson`, `list_spaces`, `read_space`, `read_passage`, `search_graph` |
+| The agent's own tools | None | none: not a learner feature | | teacher | `list_lessons`, `read_lesson`, `list_spaces`, `read_space`, `read_passage`, `search_graph` |
 
 ## Upgrade code
 

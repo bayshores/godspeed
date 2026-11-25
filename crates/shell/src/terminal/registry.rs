@@ -14,7 +14,7 @@ use serde_json::{Value, json};
 
 use super::input::{clear_input, enter_on_yes, type_line};
 use super::screen::{self, Prompt, Screen, Settle, Trust};
-use super::spawn::{self, Agent, Role};
+use super::spawn::{self, Agent};
 use super::{Ended, Io, NO_START, NOT_SENT, NOT_SET_UP, NOT_SHOWN, NOT_THERE, Outlet, State, Terminal, To, next_tick, state_ended};
 use crate::lock::lock;
 
@@ -22,15 +22,18 @@ use crate::lock::lock;
 const COLS_RANGE: (u16, u16) = (40, 200);
 const ROWS_RANGE: (u16, u16) = (10, 100);
 /// How long a stopped agent gets to close before it is killed.
+/// A second start while the teacher's terminal runs.
+const RUNNING: &str = "The teacher is already running.";
 const STOP_GRACE: Duration = Duration::from_secs(2);
 
 type List = Mutex<Vec<Arc<Terminal>>>;
 
-/// The ids of the terminals that run and were not stopped, and the teacher's among them.
+/// The ids of the terminals that run and were not stopped, and the teacher's among them: the one
+/// that runs.
 fn live_ids(list: &[Arc<Terminal>]) -> (Vec<String>, Option<String>) {
-	let live: Vec<&Arc<Terminal>> = list.iter().filter(|t| !state_ended(&t.state())).collect();
-	let teacher = live.iter().find(|t| t.role == Role::Teacher).map(|t| t.id.clone());
-	(live.into_iter().map(|t| t.id.clone()).collect(), teacher)
+	let live: Vec<String> = list.iter().filter(|t| !state_ended(&t.state())).map(|t| t.id.clone()).collect();
+	let teacher = live.first().cloned();
+	(live, teacher)
 }
 
 /// Tells the server the live ids. Sent under the list's lock, so two changes at once reach it
@@ -65,17 +68,17 @@ impl Terminals {
 		tell_live(&self.list, &*self.outlet);
 	}
 
-	/// Runs the folder's start script for `role` and `agent`: the new terminal's id. `env` is the
-	/// app's environment; `data` is this app's data folder.
-	pub fn start(&self, role: Role, agent: Agent, folder: &str, env: Vec<(OsString, OsString)>, data: &Path, resume: Option<&str>) -> Result<String, String> {
-		// Only the teacher goes back to a chat, and only to one named by a session id.
-		let resume = resume.filter(|_| role == Role::Teacher).filter(|chat| gs_base::ids::is_uuid(chat));
+	/// Runs the folder's start script for `agent`: the new terminal's id. `env` is the app's
+	/// environment; `data` is this app's data folder.
+	pub fn start(&self, agent: Agent, folder: &str, env: Vec<(OsString, OsString)>, data: &Path, resume: Option<&str>) -> Result<String, String> {
+		// It goes back only to a chat named by a session id.
+		let resume = resume.filter(|chat| gs_base::ids::is_uuid(chat));
 		let mut list = lock(&self.list);
-		if list.iter().any(|t| t.role == role && !state_ended(&t.state())) {
-			return Err(format!("The {} is already running.", role.name()));
+		if list.iter().any(|t| !state_ended(&t.state())) {
+			return Err(RUNNING.to_owned());
 		}
 		let os = std::env::consts::OS;
-		let script = spawn::script(folder, role, agent, os).ok_or(NOT_SET_UP)?;
+		let script = spawn::script(folder, agent, os).ok_or(NOT_SET_UP)?;
 		let id = crate::server::random_hex::<16>();
 		let shell = spawn::shell(&env, os);
 		#[cfg_attr(not(windows), allow(unused_mut))]
@@ -83,7 +86,7 @@ impl Terminals {
 		#[cfg(windows)]
 		crate::win::path::refresh(&mut env);
 		let spawned = spawn::spawn(spawn::argv(&script, &shell, os), env, Path::new(folder)).map_err(|err| {
-			self.outlet.log(&format!("terminal could not start: {} {}: {err}", role.name(), agent.name()));
+			self.outlet.log(&format!("terminal could not start: {}: {err}", agent.name()));
 			NO_START.to_owned()
 		})?;
 		let (input, queued) = mpsc::channel::<Vec<u8>>();
@@ -97,7 +100,6 @@ impl Terminals {
 		});
 		let terminal = Arc::new(Terminal {
 			id: id.clone(),
-			role,
 			agent,
 			started_at: gs_base::clock::now_ms(),
 			pid: spawned.child.process_id(),
@@ -120,13 +122,13 @@ impl Terminals {
 			}),
 			wake: Condvar::new(),
 		});
-		// An ended record stays until the next start for its role.
-		list.retain(|t| t.role != role);
+		// An ended record stays until the next start.
+		list.clear();
 		list.push(terminal.clone());
 		let (ids, teacher) = live_ids(&list);
 		self.outlet.live(ids, teacher);
 		drop(list);
-		self.outlet.log(&format!("terminal started: {} {} pid {}", role.name(), agent.name(), terminal.pid.unwrap_or_default()));
+		self.outlet.log(&format!("terminal started: {} pid {}", agent.name(), terminal.pid.unwrap_or_default()));
 		self.run(terminal, spawned.reader, spawned.child);
 		Ok(id)
 	}
@@ -272,7 +274,7 @@ impl Terminals {
 	/// line. Codex leaves its input empty.
 	pub fn clear_line(&self, id: &str, line: &str) {
 		let Ok(terminal) = self.find(id) else { return };
-		if terminal.role == Role::Teacher && terminal.agent == Agent::Claude {
+		if terminal.agent == Agent::Claude {
 			let line = line.to_owned();
 			std::thread::spawn(move || clear_input(&terminal, &line));
 		}
@@ -293,7 +295,7 @@ impl Terminals {
 		if !typable {
 			return Err(NOT_SHOWN.to_owned());
 		}
-		if terminal.role != Role::Teacher || asked || line.chars().any(char::is_control) || !type_line(&terminal, line) {
+		if asked || line.chars().any(char::is_control) || !type_line(&terminal, line) {
 			return Err(NOT_SENT.to_owned());
 		}
 		self.outlet.typed(&terminal.id);
@@ -346,7 +348,6 @@ impl Terminals {
 			list.iter()
 				.map(|t| {
 					let mut item = t.state_json(&t.state());
-					item["role"] = t.role.name().into();
 					item["agent"] = t.agent.name().into();
 					item["startedAt"] = t.started_at.into();
 					item
@@ -395,17 +396,10 @@ fn ended(terminal: Arc<Terminal>, code: u32, outlet: &dyn Outlet, list: &List) {
 		Ended::Stopped => "stopped".to_owned(),
 		Ended::Broken => "screen broke".to_owned(),
 	};
-	outlet.log(&format!("terminal ended: {} {} pid {} {how}", terminal.role.name(), terminal.agent.name(), terminal.pid.unwrap_or_default()));
+	outlet.log(&format!("terminal ended: {} pid {} {how}", terminal.agent.name(), terminal.pid.unwrap_or_default()));
 	if !stopped {
 		tell_live(list, outlet);
-		hang_up_then_kill(terminal.clone());
-	}
-	// The helper stops with the teacher here, not in the page, which may be gone by then.
-	if terminal.role == Role::Teacher {
-		let helper = lock(list).iter().find(|t| t.role == Role::Helper).cloned();
-		if let Some(helper) = helper {
-			stop(helper, outlet, list);
-		}
+		hang_up_then_kill(terminal);
 	}
 }
 

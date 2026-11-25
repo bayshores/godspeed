@@ -37,12 +37,12 @@ fn changed(app: &App) {
 	app.events.emit(EventKind::TeacherChatsChanged, json!({}));
 }
 
-/// The chats the terminal offers: `[{id, agent, name, lesson, at, open}]`, newest first. `open`:
-/// the teacher's terminal runs it now. `lesson`: the last lesson it taught, while that lesson is kept.
+/// The chats the terminal offers: `[{id, agent, name, at, open}]`, newest first. `open`: the
+/// teacher's terminal runs it now.
 pub fn shown(app: &App) -> Json {
 	let chats = teacher_chats::shown(&app.stores.teacher_chats.read(), &agent_folder(app));
 	let open = app.terminals.teacher_chat();
-	Json::Arr(chats.iter().map(|c| json!({ "id": c.id.as_str(), "agent": c.agent.as_str(), "name": c.name.clone(), "lesson": c.lesson.clone().filter(|l| app.stores.chats.get_chat(l).is_some()), "at": c.at, "open": open.as_deref() == Some(c.id.as_str()) })).collect())
+	Json::Arr(chats.iter().map(|c| json!({ "id": c.id.as_str(), "agent": c.agent.as_str(), "name": c.name.clone(), "at": c.at, "open": open.as_deref() == Some(c.id.as_str()) })).collect())
 }
 
 /// The agent said the chat is gone: it leaves the list.

@@ -2,7 +2,7 @@
  * godspeed's Claude helper (crates/runtime/src/claude/claude-helper.mjs) on a stand-in for the
  * Agent SDK's `query`: the JSON lines it speaks with the server, two sessions at once, a resume,
  * godspeed's tools through its in-process MCP server, a question that ends the turn, a permission
- * question, and the learner's own launch command.
+ * question, web search without one, and the learner's own launch command.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -58,8 +58,9 @@ function stubQuery(seen: { options: Options[]; calls: string[] }) {
 					yield { type: "result", subtype: "success", listed, result, after, other };
 				} else if (text === "bash") {
 					const own = await options.canUseTool("mcp__godspeed__quiz", { question: "?" }, { signal: signal(), toolUseID: "toolu_g", mcpServer: { name: "godspeed", source: "sdk" } });
+					const search = await options.canUseTool("WebSearch", { query: "limits" }, { signal: signal(), toolUseID: "toolu_w" });
 					const decision = await options.canUseTool("Bash", { command: "ls" }, { signal: signal(), toolUseID: "toolu_b" });
-					yield { type: "result", subtype: "success", own, decision };
+					yield { type: "result", subtype: "success", own, search, decision };
 				} else {
 					yield { type: "stream_event", event: { type: "content_block_delta", delta: { type: "text_delta", text: `echo ${text}` } } };
 					yield { type: "result", subtype: "success" };
@@ -159,7 +160,7 @@ test("a godspeed tool call goes to the server, and its answer can end the turn",
 	assert.deepEqual(result.other, {}, "other tools go on");
 });
 
-test("a permission question waits for the learner's answer, and godspeed's own tools never ask", async () => {
+test("a permission question waits for the learner's answer, and godspeed's own tools and web search never ask", async () => {
 	const { send, next } = helper();
 	send(open("s1", { claudePath: "/bin/claude" }));
 	await next();
@@ -170,6 +171,7 @@ test("a permission question waits for the learner's answer, and godspeed's own t
 	send({ type: "approval", id: asked.id, allow: false, message: "The learner did not allow this." });
 	const result = (await next()).message as Json;
 	assert.deepEqual(result.own, { behavior: "allow", updatedInput: { question: "?" } });
+	assert.deepEqual(result.search, { behavior: "allow", updatedInput: { query: "limits" } }, "asked before Bash, it never reached the learner");
 	assert.deepEqual(result.decision, { behavior: "deny", message: "The learner did not allow this." });
 });
 

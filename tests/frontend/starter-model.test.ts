@@ -122,19 +122,18 @@ describe("everything the teacher can be asked", () => {
 });
 
 describe("when a terminal takes a line", () => {
-	const term = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", role: "teacher", agent: "claude", startedAt: 1, ended: null, prompt: null, url: false, ...over });
-	const now = (over: Partial<TerminalFacts> = {}, t: Partial<TerminalRecord> = {}): TerminalFacts => ({ term: term(t), checkedIn: true, outsideHere: false, teaching: true, now: 2, quietSince: null, helperBusy: false, turnWaits: false, ...over });
+	const term = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", agent: "claude", startedAt: 1, ended: null, prompt: null, url: false, ...over });
+	const now = (over: Partial<TerminalFacts> = {}, t: Partial<TerminalRecord> = {}): TerminalFacts => ({ term: term(t), checkedIn: true, outsideHere: false, now: 2, ...over });
 
 	it("running and checked in, with nothing asked", () => {
 		assert.ok(takesLine(now()));
 	});
 
-	it("not before the check-in, while the screen asks, while a turn waits or after the end", () => {
+	it("not before the check-in, while the screen asks, or after the end", () => {
 		assert.ok(!takesLine(null));
 		assert.ok(!takesLine(now({ checkedIn: false })));
 		assert.ok(!takesLine(now({}, { prompt: "menu" })));
 		assert.ok(!takesLine(now({}, { url: true })), "a sign-in link");
-		assert.ok(!takesLine(now({ turnWaits: true })));
 		assert.ok(!takesLine(now({}, { ended: { stopped: true, code: null } })));
 	});
 });

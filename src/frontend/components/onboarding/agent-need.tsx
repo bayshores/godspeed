@@ -8,7 +8,7 @@ import { useTerminals } from "@/frontend/components/terminal/use-terminals";
  *  here, as the agent step does. */
 export function AgentNeed({ open, onOpen }: { open: boolean; onOpen: () => void }) {
 	const api = useTerminals();
-	const facts = api?.facts.teacher ?? null;
+	const facts = api?.facts ?? null;
 	const line = teacherTerminalState(facts) === "needsYou" ? screenStatusLine(facts, AGENT_LABEL[facts!.term.agent]) : null;
 
 	if (open)

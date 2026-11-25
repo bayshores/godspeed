@@ -3,7 +3,6 @@
  *  cycle. */
 import { createContext, useContext } from "react";
 import type { AgentAction } from "@/shared/core";
-import type { TerminalRole } from "@/frontend/components/terminal/terminal-model";
 import type { AgentDoing } from "./follow-status";
 import type { FollowSlip } from "./use-follow-slip";
 
@@ -19,13 +18,10 @@ export interface TeacherApi {
 	follow: boolean;
 	setFollow: (on: boolean) => void;
 	panelOpen: boolean;
-	/** The open panel shows a key that starts the teacher (panelStarts). */
-	panelStarts: boolean;
 	setPanelOpen: (open: boolean) => void;
-	/** Open the panel on the agent's screen, that one (the teacher's
-	 *  when none is named; background work's shows as its own view with
-	 *  Back), which takes the keyboard. */
-	showTerminal: (role?: TerminalRole) => void;
+	/** Open the panel on the teacher's screen, which takes the keyboard (or bring its own
+	 *  window forward while it is popped out). */
+	showTerminal: () => void;
 	/** The teacher can be handed a line by a page key (ask): godspeed runs it in its own
 	 *  terminal here, so not in a browser, with an outside agent or popped out. */
 	canAsk: boolean;
@@ -36,7 +32,7 @@ export interface TeacherApi {
 	asking: { line: string; clear: () => void } | null;
 	/** Newest first. */
 	recent: AgentAction[];
-	/** What the agent is doing now; null while no agent is connected. */
+	/** What the agent is doing now; null before the first read of the agent. */
 	doing: AgentDoing | null;
 	/** A lesson screen reports itself (null when it leaves). */
 	setLesson: (p: LessonPresence | null) => void;

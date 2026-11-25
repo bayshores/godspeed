@@ -96,7 +96,7 @@ export function OtherAppSetup() {
 		<div className="flex w-full flex-col gap-3 text-left">
 			<p className="text-[15px] text-ink-2">
 				Add a Streamable HTTP MCP server with this address and header, then ask your app to teach you with the godspeed tools. Let it use
-				them without asking your permission. For background work, start a second session and tell it "Start as the helper".
+				them without asking your permission.
 			</p>
 			<div className="lh-well rounded">
 				<div className="flex items-center justify-between px-4 py-2.5">

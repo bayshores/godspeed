@@ -124,9 +124,10 @@ export function serve({ input, output, query = sdkQuery }) {
 					includePartialMessages: true,
 					permissionMode: "default",
 					canUseTool: async (tool, toolInput, { signal, toolUseID, mcpServer }) => {
-						// godspeed's own tools run without asking. The SDK says which server a tool is
-						// from; a configured server could reuse the name, never the source.
-						if (mcpServer?.source === "sdk" && mcpServer.name === TOOL_SERVER) return { behavior: "allow", updatedInput: toolInput };
+						// godspeed's own tools and the agent's own web search run without asking. The SDK
+						// says which server a tool is from; a configured server could reuse the name, never
+						// the source.
+						if ((mcpServer?.source === "sdk" && mcpServer.name === TOOL_SERVER) || (!mcpServer && tool === "WebSearch")) return { behavior: "allow", updatedInput: toolInput };
 						const reply = await ask({ type: "approval", session: key, tool, input: toolInput, toolUseId: toolUseID ?? null }, signal, { allow: false, message: "Stopped." });
 						return reply.allow ? { behavior: "allow", updatedInput: toolInput } : { behavior: "deny", message: reply.message };
 					},

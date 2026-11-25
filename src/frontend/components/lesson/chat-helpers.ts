@@ -1,5 +1,5 @@
 /** Pure helpers for the lesson view (src/frontend/components/chat.tsx). */
-import { isQuestionTool, type LessonKind, type LhMessage, type LhViewMessage } from "@/shared/core";
+import type { LessonKind, LhMessage, LhViewMessage } from "@/shared/core";
 
 /** Layered Esc: an open overlay claims Esc
  *  — closing itself — before the abort chain acts.
@@ -52,31 +52,6 @@ export function restoreUnsent(unsent: string, draft: string): string {
  *  teacher shows it as a tip), or null when it can. */
 export function sendBlockedReason(pending: boolean): string | null {
 	return pending ? "Answer or skip the waiting question first." : null;
-}
-
-/** An agent's claim on the lesson's request counts as stuck after this long. */
-const STUCK_CLAIM_MINUTES = 3;
-
-/** Whole minutes since an agent took the lesson's request without
- *  answering, once that is at least STUCK_CLAIM_MINUTES; otherwise null. */
-export function stuckClaimMinutes(claimedAt: string | undefined, now: number): number | null {
-	if (!claimedAt) return null;
-	const minutes = Math.floor((now - Date.parse(claimedAt)) / 60_000);
-	return Number.isFinite(minutes) && minutes >= STUCK_CLAIM_MINUTES ? minutes : null;
-}
-
-/** What the stuck-turn line runs once the turn is stopped: the learner's
- *  last message again when it was plain text, otherwise (an answer,
- *  practice work, a message with files) the turn again from the record. */
-export function stuckRetry(messages: readonly LhMessage[]): { type: "text"; text: string } | { type: "continue" } {
-	for (let i = messages.length - 1; i >= 0; i--) {
-		const m = messages[i] as { role?: string; toolName?: string; isError?: boolean; content?: unknown };
-		// The running turn's own replies and tool results.
-		if (m.role === "assistant") continue;
-		if (m.role === "toolResult" && (m.isError || !isQuestionTool(m.toolName ?? ""))) continue;
-		return m.role === "user" && typeof m.content === "string" && m.content.trim() ? { type: "text", text: m.content } : { type: "continue" };
-	}
-	return { type: "continue" };
 }
 
 /** Has the teacher posed a problem in this lesson? */

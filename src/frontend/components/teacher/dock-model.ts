@@ -2,7 +2,6 @@
  * The teacher's panel: what it shows, how wide it is beside the strip,
  * and how far it pushes the page left. Pure.
  */
-import type { TerminalRecord, TerminalRole } from "@/frontend/components/terminal/terminal-model";
 import type { PaneBounds } from "@/frontend/components/ui/pane-width-model";
 
 /** The panel's body: the agent's screen, the Activity list, or Activity while the teacher's
@@ -13,22 +12,6 @@ export type PanelView = "terminal" | "activity" | "popped";
  *  hangs from its key in the head) unless the teacher's screen is popped out, Activity in a
  *  browser. */
 export const panelBody = (terminals: boolean, popped: boolean): PanelView => (!terminals ? "activity" : popped ? "popped" : "terminal");
-
-/** The screen the panel shows: the helper's only while there is one. */
-export const shownScreen = (picked: TerminalRole, helper: boolean): TerminalRole => (picked === "helper" && helper ? "helper" : "teacher");
-
-/**
- * The open panel shows a key that starts the teacher: on the teacher's
- * screen, the start pair before any start or Start again once it ended;
- * in a browser, the start pair above Activity while no agent is here.
- * Nothing elsewhere repeats that key while it shows.
- */
-export function panelStarts(p: { view: PanelView; screen: TerminalRole; terminals: boolean; noAgent: boolean; teacher: TerminalRecord | null; outside: boolean }): boolean {
-	if (p.view === "popped") return false;
-	if (p.view === "activity") return !p.terminals && p.noAgent;
-	if (p.screen !== "teacher") return false;
-	return p.teacher ? !!p.teacher.ended : !p.outside;
-}
 
 /** The panel's width: the learner drags its left edge. The narrowest
  *  still shows the agent's screen 40 columns wide. */

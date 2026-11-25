@@ -6,8 +6,6 @@
  * It also opens once for a new learner, the first time Home shows with the teacher on,
  * so they see what the teacher can be asked.
  */
-import type { TerminalRole } from "@/frontend/components/terminal/terminal-model";
-
 /** Set when onboarding ends, removed once the panel has opened for it. */
 export const WELCOME_KEY = "lh:teacher-welcome";
 
@@ -21,18 +19,18 @@ export const TYPING_PAUSE_MS = 3000;
 
 /** What the last step saw, kept between steps. */
 export interface PanelMemory {
-	/** The terminal that needed the learner, if any. */
-	need: TerminalRole | null;
+	/** The teacher's terminal needed the learner. */
+	need: boolean;
 	/** A lesson reply is running; null while no lesson is open. */
 	replying: boolean | null;
 	/** A need arose and the panel has not opened for it yet. */
 	waiting: boolean;
 }
 
-export const FIRST_LOOK: PanelMemory = { need: null, replying: null, waiting: false };
+export const FIRST_LOOK: PanelMemory = { need: false, replying: null, waiting: false };
 
 export interface PanelNow {
-	need: TerminalRole | null;
+	need: boolean;
 	replying: boolean | null;
 }
 
@@ -44,7 +42,7 @@ export interface PanelSeen {
 	popped: boolean;
 }
 
-export type PanelAct = { open: TerminalRole } | "close" | null;
+export type PanelAct = "open" | "close" | null;
 
 /** Milliseconds left before the learner has paused long enough; 0 when they have. */
 export function typingWaitLeft(lastKeyAt: number | null, now: number): number {
@@ -66,16 +64,15 @@ const NOT_TEXT = new Set(["checkbox", "radio", "button", "submit", "reset", "ran
  * was closed by the learner does nothing.
  */
 export function stepPanel(mem: PanelMemory, now: PanelNow, pane: PanelSeen, waitLeft: number): { mem: PanelMemory; act: PanelAct } {
-	const arrived = mem.need === null && now.need !== null;
-	const settled = mem.need !== null && now.need === null;
+	const arrived = !mem.need && now.need;
+	const settled = mem.need && !now.need;
 	const replyStarted = mem.replying === false && now.replying === true;
 
 	// A need that arrives while popped is not held for later: put back, the panel stays as it is.
-	const waiting = (mem.waiting || arrived) && now.need !== null && !pane.open && !pane.popped;
+	const waiting = (mem.waiting || arrived) && now.need && !pane.open && !pane.popped;
 	const opens = waiting && waitLeft === 0;
-	const closes = pane.open && ((settled && pane.byApp) || (replyStarted && now.need === null));
+	const closes = pane.open && ((settled && pane.byApp) || (replyStarted && !now.need));
 
 	const next: PanelMemory = { need: now.need, replying: now.replying, waiting: waiting && !opens };
-	if (opens && now.need) return { mem: next, act: { open: now.need } };
-	return { mem: next, act: closes ? "close" : null };
+	return { mem: next, act: opens ? "open" : closes ? "close" : null };
 }

@@ -1,6 +1,6 @@
 //! The terminal commands (`window.lh.terminals` in shim.js). Each checks `trusted_terminal()`
-//! first, so they come from the main window or the terminal window. The page names a role, an
-//! agent and a terminal id; it never names a program, an argument or a folder, and it can type
+//! first, so they come from the main window or the terminal window. The page names an agent
+//! and a terminal id; it never names a program, an argument or a folder, and it can type
 //! only into a terminal it shows: keys only while its window has the focus, an attached file's
 //! path also while it has not.
 
@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 use tauri::{AppHandle, Manager, State, Webview};
 
 use super::attach::attachment_bytes;
-use super::{Agent, NOT_SET_UP, Outlet, Prompt, Role, Terminals, To};
+use super::{Agent, NOT_SET_UP, Outlet, Prompt, Terminals, To};
 use crate::commands::{AppOrigin, trusted_terminal};
 use crate::paths::Paths;
 use crate::server::Server;
@@ -49,19 +49,18 @@ fn focused(webview: &Webview) -> Option<&str> {
 	webview.window().is_focused().unwrap_or(false).then(|| webview.label())
 }
 
-/// Starts the godspeed folder's start script for a role and an agent: `{ id }`, or why it could
-/// not. The server says where the folder is. `resume`: the teacher's chat to go back to.
+/// Starts the godspeed folder's start script for an agent: `{ id }`, or why it could not. The server says where the folder is. `resume`: the teacher's chat to go back to.
 #[tauri::command(async)]
 #[allow(clippy::too_many_arguments)]
-pub fn terminal_start(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, paths: State<Paths>, server: State<Server>, role: String, agent: String, resume: Option<String>) -> Result<Value, String> {
+pub fn terminal_start(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, paths: State<Paths>, server: State<Server>, agent: String, resume: Option<String>) -> Result<Value, String> {
 	trusted_terminal(&webview, &origin)?;
-	let (Some(role), Some(agent)) = (Role::parse(&role), Agent::parse(&agent)) else { return Err(NOT_SET_UP.to_owned()) };
+	let Some(agent) = Agent::parse(&agent) else { return Err(NOT_SET_UP.to_owned()) };
 	let Some(folder) = server.agent_folder() else {
 		log::line("terminal could not start: the server did not say where the godspeed folder is");
 		return Err(super::NO_START.to_owned());
 	};
 	let folder = folder.ok_or(NOT_SET_UP)?;
-	let id = terminals.start(role, agent, &folder, std::env::vars_os().collect(), &paths.data, resume.as_deref())?;
+	let id = terminals.start(agent, &folder, std::env::vars_os().collect(), &paths.data, resume.as_deref())?;
 	Ok(json!({ "id": id }))
 }
 

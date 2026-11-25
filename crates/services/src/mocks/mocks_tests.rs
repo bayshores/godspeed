@@ -8,7 +8,7 @@ use gs_core::mocks::mock::parse_mock_code;
 use gs_runtime::fake::{FakeAgent, FakeStep};
 
 use super::*;
-use crate::app::agents::pick_stand_in;
+use crate::app::agents::use_runtime;
 use crate::app::test_support::{scratch_dir, test_app};
 
 const CODE: &str = "function countVowels(s) {\n\treturn [...s].filter((c) => 'aeiou'.includes(c)).length;\n}\n";
@@ -46,10 +46,10 @@ fn questions() -> Json {
 	})
 }
 
-/// The learner's agent, picked; each job plays the next turn pushed.
+/// The learner's agent; each job plays the next turn pushed.
 fn stand_in(app: &Arc<App>) -> FakeAgent {
 	let agent = FakeAgent::default();
-	pick_stand_in(app, agent.runtime());
+	use_runtime(app, agent.runtime());
 	agent
 }
 

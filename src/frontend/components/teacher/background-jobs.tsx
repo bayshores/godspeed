@@ -27,7 +27,7 @@ type AbortState = "pending" | "failed";
  *  the state keys on its start too and never carries over. */
 const runKey = (blob: ActivityBlob) => `${blob.id}@${blob.startedAt}`;
 
-export function BackgroundJobs({ feed, waiting }: { feed: ActivityFeed; waiting: string | null }) {
+export function BackgroundJobs({ feed }: { feed: ActivityFeed }) {
 	const { refresh } = useActivity();
 	const blobs = useMemo(() => toBlobs(feed), [feed]);
 	const [openBlob, setOpenBlob] = useState<string | null>(null);
@@ -62,7 +62,7 @@ export function BackgroundJobs({ feed, waiting }: { feed: ActivityFeed; waiting:
 	}, []);
 
 	const failed = feed.failed ?? [];
-	if (!waiting && failed.length === 0 && blobs.length === 0) return null;
+	if (failed.length === 0 && blobs.length === 0) return null;
 	return (
 		<section data-testid="activity-section" className="flex flex-col gap-3">
 			<div className="flex items-baseline gap-2">
@@ -73,34 +73,27 @@ export function BackgroundJobs({ feed, waiting }: { feed: ActivityFeed; waiting:
 					</span>
 				)}
 			</div>
-			{waiting && (
-				<p data-testid="activity-waiting" className="text-[15px] text-ink-2">
-					{waiting}
-				</p>
-			)}
-			{(failed.length > 0 || blobs.length > 0) && (
-				<div className={ACTIVITY_ROWS}>
-					{failed.map((f) => (
-						<div key={f.id} data-testid="activity-failed" className={`flex flex-col gap-0.5 py-2.5 ${ACTIVITY_ROW}`}>
-							<span className="truncate text-lg text-ink" title={f.title}>
-								{f.title}
-							</span>
-							<span className="break-words text-base text-ans-wrong">Failed: {f.error}</span>
-						</div>
-					))}
-					{blobs.map((blob) => (
-						<JobRow
-							key={blob.id}
-							blob={blob}
-							now={now}
-							detailOpen={openBlob === blob.id}
-							onToggleDetail={() => setOpenBlob((id) => (id === blob.id ? null : blob.id))}
-							abortState={abortStates[runKey(blob)]}
-							onAbort={() => void abort(blob)}
-						/>
-					))}
-				</div>
-			)}
+			<div className={ACTIVITY_ROWS}>
+				{failed.map((f) => (
+					<div key={f.id} data-testid="activity-failed" className={`flex flex-col gap-0.5 py-2.5 ${ACTIVITY_ROW}`}>
+						<span className="truncate text-lg text-ink" title={f.title}>
+							{f.title}
+						</span>
+						<span className="break-words text-base text-ans-wrong">Failed: {f.error}</span>
+					</div>
+				))}
+				{blobs.map((blob) => (
+					<JobRow
+						key={blob.id}
+						blob={blob}
+						now={now}
+						detailOpen={openBlob === blob.id}
+						onToggleDetail={() => setOpenBlob((id) => (id === blob.id ? null : blob.id))}
+						abortState={abortStates[runKey(blob)]}
+						onAbort={() => void abort(blob)}
+					/>
+				))}
+			</div>
 		</section>
 	);
 }

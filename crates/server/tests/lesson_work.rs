@@ -88,7 +88,7 @@ async fn the_agent_takes_its_lesson_s_desk_and_what_it_does_is_the_lesson_s_step
 	let asked = approval(&app, &chat_id).await;
 
 	let now = work(&app, &chat_id);
-	assert_eq!((now["live"].as_bool(), now["cause"].as_str(), now["taken"].as_bool()), (Some(true), Some("first"), Some(true)), "the agent took the turn as it started on it");
+	assert_eq!((now["live"].as_bool(), now["cause"].as_str()), (Some(true), Some("first")));
 	assert_eq!(now["files"], json!([{ "name": "PA4.pdf", "path": now["files"][0]["path"], "kind": "pdf" }]));
 	let words: Vec<&str> = now["steps"].items().iter().map(|s| s["text"].str_or_empty()).collect();
 	assert_eq!(words, ["Looking at CSE 29", "Searching the web for “pointers in c”"], "a read and its own tool are steps, a change is none");
@@ -103,7 +103,7 @@ async fn the_agent_takes_its_lesson_s_desk_and_what_it_does_is_the_lesson_s_step
 	let saved = app.stores.chats.get_chat(&chat_id).unwrap();
 	let called = saved["messages"].items().iter().flat_map(|m| m["content"].items().to_vec()).find(|b| b["name"] == json!("read_space")).unwrap();
 	assert_eq!(read["call"], called["id"], "the call's id, so the lesson text leaves out its card");
-	assert_eq!(work(&app, &chat_id), json!({ "live": false, "cause": null, "taken": false, "plan": null, "steps": [], "approvals": [], "files": now["files"] }), "the list goes with the turn");
+	assert_eq!(work(&app, &chat_id), json!({ "live": false, "cause": null, "plan": null, "steps": [], "approvals": [], "files": now["files"] }), "the list goes with the turn");
 	assert!(!round_live(&app));
 }
 
@@ -126,6 +126,6 @@ async fn the_window_reads_a_lesson_s_desk_at_its_route() {
 	let (status, body) = get(format!("/api/chats/{chat_id}/work")).await;
 	assert_eq!(status, "200");
 	let keys: Vec<&str> = body.as_obj().unwrap().keys().map(String::as_str).collect();
-	assert_eq!(keys, ["live", "cause", "taken", "plan", "steps", "approvals", "files"], "the contract's fields");
+	assert_eq!(keys, ["live", "cause", "plan", "steps", "approvals", "files"], "the contract's fields");
 	assert_eq!(get("/api/chats/chat_gone/work".to_owned()).await.0, "404");
 }

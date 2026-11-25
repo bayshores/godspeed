@@ -9,13 +9,11 @@
  * For Follow's slip a screen hands it a line as if the learner typed it in its terminal (the
  * shell takes keys only from a terminal that is shown and clicked, so the check writes the line to
  * the file named by LAYOUT_TYPED, which the stand-in removes once it has done it): "follow <space id>"
- * starts a new chat, as after /clear (the jobs it took and never answered stay with the old chat;
- * while it held them its calls would make no steps), hands the app that line as the prompt hook
- * does, which begins its round of work, reads the space as an agent would (four steps) and
- * searches the web for its homework, told as the folder's tool hook tells it;
+ * starts a new chat, as after /clear, hands the app that line as the prompt hook does, which
+ * begins its round of work, reads the space as an agent would (four steps) and searches the web
+ * for its homework, told as the folder's tool hook tells it;
  * "change" adds a homework to the space in that round;
- * "done" takes the homework away and stops as the Stop hook says, which ends the round. It waits
- * for no work while its round lasts, since its next wait would end the round.
+ * "done" takes the homework away and stops as the Stop hook says, which ends the round.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -49,9 +47,6 @@ const back = process.env.GODSPEED_RESUME;
 await tell("/api/mcp/agent-event", { event: "session", session: back ?? "0f8fad5b-d9cb-469f-a165-70867728950e", agent: "claude" });
 if (back) await tell("/api/mcp/line", { line: "why is slope rise over run" });
 
-/** The round of work a screen asked for: settled once it is done, so the waits go on. */
-let round = Promise.resolve();
-let roundDone = () => {};
 let space = "";
 let homework = "";
 const HOMEWORK = "Homework 7: slopes";
@@ -61,7 +56,6 @@ async function typed(line) {
 	const [word, arg] = line.trim().split(/\s+/);
 	if (word === "follow" && arg) {
 		space = arg;
-		round = new Promise((done) => (roundDone = done));
 		await tell("/api/mcp/agent-event", { event: "session", session: crypto.randomUUID(), agent: "claude" });
 		await tell("/api/mcp/line", { line: "Update Lab Algebra" });
 		await tool("list_spaces", {});
@@ -78,12 +72,10 @@ async function typed(line) {
 		if (homework) await tool("remove_space_deadline", { space_id: space, deadline_id: homework });
 		homework = "";
 		await tell("/api/mcp/agent-event", { event: "stop" });
-		roundDone();
 	}
 }
 
-// The helper runs this file too; only the teacher is typed to.
-const typedFile = process.env.GODSPEED_HELPER ? undefined : process.env.LAYOUT_TYPED;
+const typedFile = process.env.LAYOUT_TYPED;
 let busy = false;
 setInterval(async () => {
 	if (busy || !typedFile || !fs.existsSync(typedFile)) return;
@@ -94,7 +86,3 @@ setInterval(async () => {
 }, 100);
 
 await call("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "layout-agent", version: "1" } });
-for (;;) {
-	await round;
-	await tool("wait_for_work", { timeout_seconds: 60 });
-}

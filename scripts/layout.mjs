@@ -5,7 +5,7 @@
  * Chromium and WebKit lay some CSS out differently, and the Mac app draws with WebKit. This
  * builds the debug shell with its `screens` control channel (crates/shell/src/screens.rs), starts
  * it on a throwaway home and data folder, and has a stand-in agent write made-up data
- * (layout-seed.mjs). Lessons play on a stand-in for the Claude helper (layout-helper.mjs, named
+ * (layout-seed.mjs). Lessons and jobs play on a stand-in for the Claude helper (layout-helper.mjs, named
  * by LH_CLAUDE_HELPER), so no agent runs. It then starts the app again with no agent in its
  * terminal and walks the screens
  * in layout-screens.mjs, two passes for each:
@@ -230,7 +230,7 @@ async function startApp(port, name) {
 			// The agent's start script runs in zsh, which reads the home's .zshrc (standInAgent).
 			SHELL: "/bin/zsh",
 			TMPDIR: path.join(RUN, "tmp"),
-			// Lessons play on a stand-in for the Claude helper, a debug build only.
+			// Lessons and jobs play on a stand-in for the Claude helper, a debug build only.
 			LH_CLAUDE_HELPER: path.join(import.meta.dirname, "layout-helper.mjs"),
 			LAYOUT_HELPER_DIR: HELPER_DIR,
 			LH_SCREENS_CTL: ctl,

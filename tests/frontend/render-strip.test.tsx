@@ -445,13 +445,12 @@ describe("A notice's close key", () => {
 });
 
 describe("The strip", () => {
-	const TEACHING = { connected: true, teaching: true, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [], name: "Claude Code" };
+	const TEACHING = { connected: false, turnsRunning: 0 };
 	const api = (over: Partial<TeacherApi> = {}): TeacherApi => ({
 		name: "Ada",
 		follow: false,
 		setFollow: () => {},
 		panelOpen: false,
-		panelStarts: false,
 		setPanelOpen: () => {},
 		showTerminal: () => {},
 		canAsk: false,

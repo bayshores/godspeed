@@ -31,7 +31,6 @@ use super::topic_data::{TopicFacts, space_topics};
 use super::write::{picked_vault, write_vault_note, write_vault_words};
 use super::{notes_changed, setup, with_reader};
 use crate::App;
-use crate::app::agent_folder::picked_agent;
 use crate::graph::progress::{lesson_answered_topics, progress_for, space_mistakes};
 use crate::jobs::job_agent::job_agent;
 use crate::turns::turn_liveness::turns_running;
@@ -177,15 +176,14 @@ pub fn catch_up(app: &Arc<App>) {
 	}
 }
 
-/// Sends each waiting space's pass on its own when it may: no lesson turn runs, and either no
-/// agent is picked or the grouping that would have carried it never came.
+/// Sends each waiting space's pass on its own when it may: no lesson turn runs, and the grouping
+/// that would have carried it never came.
 pub fn send_waiting(app: &Arc<App>) {
 	let now = clock::now_ms();
-	let picked = picked_agent(app).is_some();
 	let ready: Vec<String> = {
 		let waiting = app.vault.pass.waiting.lock();
 		let busy = app.vault.pass.sending.lock();
-		waiting.iter().filter(|(space, w)| !busy.contains_key(*space) && now >= w.not_before && (!picked || now - w.since >= GROUPING_WAIT_MS)).map(|(space, _)| space.clone()).collect()
+		waiting.iter().filter(|(space, w)| !busy.contains_key(*space) && now >= w.not_before && now - w.since >= GROUPING_WAIT_MS).map(|(space, _)| space.clone()).collect()
 	};
 	if ready.is_empty() || turns_running(app) > 0 {
 		return;
@@ -193,20 +191,15 @@ pub fn send_waiting(app: &Arc<App>) {
 	for space_id in ready {
 		let app = app.clone();
 		detach("vault", async move {
-			let Some(taken) = take(&app, &space_id).await else { return };
+			let Some(taken) = take_block(&app, &space_id).await else { return };
 			let ok = run_own_item(&app, &space_id, &taken.text).await;
 			taken.done(&app, ok);
 		});
 	}
 }
 
-/// The block for the space's next topic grouping, when an agent is picked and a pass waits.
-pub async fn take_for_grouping(app: &Arc<App>, space_id: &str) -> Option<Taken> {
-	picked_agent(app)?;
-	take(app, space_id).await
-}
-
-async fn take(app: &Arc<App>, space_id: &str) -> Option<Taken> {
+/// The space's waiting block, taken once: by its next topic grouping, or to send on its own.
+pub async fn take_block(app: &Arc<App>, space_id: &str) -> Option<Taken> {
 	let lessons: Vec<String> = {
 		let mut waiting = app.vault.pass.waiting.lock();
 		if app.vault.pass.sending.lock().contains_key(space_id) || waiting.get(space_id)?.not_before > clock::now_ms() {

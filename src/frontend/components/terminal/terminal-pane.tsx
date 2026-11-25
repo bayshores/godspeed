@@ -19,7 +19,7 @@ import { showSpaceFile } from "@/frontend/components/files/show-space-file";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { lazyComponent } from "@/frontend/lib/lazy-component";
 import type { ScreenLink } from "./terminal-links-model";
-import { chatGone, type TerminalFooter, type TerminalRole } from "./terminal-model";
+import { chatGone, type TerminalFooter } from "./terminal-model";
 import { IdeaList } from "./idea-list";
 import { ScreenFooter } from "./screen-footer";
 import { takesLine, type IdeaGroup } from "./starter-model";
@@ -31,10 +31,9 @@ import type { TerminalsApi } from "./use-terminals";
 /** xterm loads with the first screen shown. */
 const TerminalView = lazyComponent(() => import("./terminal-view").then((m) => m.TerminalView));
 
-export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null, popOut = null, ask = null }: {
+export function TerminalPane({ api, name, foot, focusOnOpen, ideas = null, popOut = null, ask = null }: {
 	api: TerminalsApi;
-	role: TerminalRole;
-	/** What the screen's agent is called: the teacher's name, or background work's. */
+	/** The teacher's name. */
 	name: string;
 	foot: TerminalFooter;
 	/** The learner opened it: the screen takes the keyboard. Opened by
@@ -47,25 +46,25 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null,
 	/** A line to send as soon as the screen takes one; `clear` runs when it goes. */
 	ask?: { line: string; clear: () => void } | null;
 }) {
-	const term = api[role]!;
+	const term = api.teacher!;
 	const [focusKey, setFocusKey] = useState(0);
 	const [error, setError] = useState<string | null>(null);
 	// A refusal shows until the screen asks something else or the footer changes.
 	useEffect(() => setError(null), [term.id, term.prompt, foot.text, foot.assist?.kind, foot.startAgain]);
 	const live = !term.ended;
 	// Running: it reached godspeed. Asked: it waits for the learner (a question, a sign-in).
-	const running = live && !!api.facts[role]?.checkedIn;
+	const running = live && !!api.facts?.checkedIn;
 	const asked = live && (!!term.prompt || !!term.url);
 	const refocus = () => setFocusKey((n) => n + 1);
 	// The teacher's Start again goes back to the chat that ended, when it was used.
-	const lastChat = role === "teacher" ? api.chats.find((c) => c.agent === term.agent && c.at >= term.startedAt) : undefined;
-	const startAgain = async (resume?: string) => setError(await api.start(role, term.agent, resume));
+	const lastChat = api.chats.find((c) => c.agent === term.agent && c.at >= term.startedAt);
+	const startAgain = async (resume?: string) => setError(await api.start(term.agent, resume));
 	// A clicked line folds the row at once; a refusal says why, and brings an unused chat's row back.
 	const [sentFrom, setSentFrom] = useState<string | null>(null);
 	// The Ideas key unfolded the row; the whole list is open.
 	const [rowWanted, setRowWanted] = useState(false);
 	const [listWanted, setListWanted] = useState(false);
-	const takes = takesLine(api.facts[role]);
+	const takes = takesLine(api.facts);
 	const canAsk = !!ideas && ideas.starters.length > 0 && takes;
 	const used = !!lastChat || sentFrom === term.id;
 	const rowShown = canAsk && (!used || rowWanted);
@@ -74,7 +73,7 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null,
 		setSentFrom(term.id);
 		setRowWanted(false);
 		setListWanted(false);
-		void api.send(role, line).then((refused) => {
+		void api.send(line).then((refused) => {
 			setError(refused);
 			if (refused) setSentFrom(null);
 		});
@@ -91,7 +90,6 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null,
 	}, [ask, ready, sendIdea]);
 	const row = useRef<HTMLDivElement>(null);
 	useMenuDismiss(listShown, useCallback(() => setListWanted(false), []), row);
-	const attaches = role === "teacher" && running;
 	// Each file's path goes in after the one before, then the screen takes the keys again.
 	const attach = async (files: readonly File[]) => {
 		for (const file of files) {
@@ -117,9 +115,9 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null,
 		<>
 			<div
 				className="relative flex min-h-0 min-w-0 flex-1 flex-col"
-				onDragOver={(e) => attaches && e.dataTransfer.types.includes("Files") && e.preventDefault()}
+				onDragOver={(e) => running && e.dataTransfer.types.includes("Files") && e.preventDefault()}
 				onDrop={(e) => {
-					if (!attaches || e.dataTransfer.files.length === 0) return;
+					if (!running || e.dataTransfer.files.length === 0) return;
 					e.preventDefault();
 					void attach(Array.from(e.dataTransfer.files));
 				}}
@@ -132,11 +130,11 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null,
 			</div>
 			<ScreenFooter
 				text={error ?? foot.text}
-				onAttach={attaches ? (files) => void attach(files) : null}
+				onAttach={running ? (files) => void attach(files) : null}
 				onPaste={
 					running || asked
 						? () => {
-								void api.paste(role).then(setError);
+								void api.paste().then(setError);
 								refocus();
 							}
 						: null
@@ -153,14 +151,14 @@ export function TerminalPane({ api, role, name, foot, focusOnOpen, ideas = null,
 							}
 						: null
 				}
-				onStop={live ? () => void api.stop(role) : null}
+				onStop={live ? () => void api.stop() : null}
 				off={`Turn off ${name}`}
 				get={foot.get}
 				assist={
 					foot.assist && {
 						label: foot.assist.label,
 						run: () => {
-							void api.answer(role, foot.assist!.kind).then(setError);
+							void api.answer(foot.assist!.kind).then(setError);
 							refocus();
 						},
 					}

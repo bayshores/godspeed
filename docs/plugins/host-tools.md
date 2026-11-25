@@ -86,7 +86,7 @@ One JSON file per key under `data/` in the plugin's folder. Reinstalling keeps i
 
 ### ask_agent
 
-One request to the learner's agent, as a work item labelled "<name> asked for…". `prompt` is the request, `schema` a JSON Schema for the answer (`{}` when left out, accepts anything). The agent must answer to fit the schema; godspeed returns `{ answer }`.
+One request to the learner's agent, as a background job labelled "<name> asked for…" ([5.4](../architecture/05.4-background-jobs.md)). Nobody watches it, so its agent's own permission questions are denied. `prompt` is the request, `schema` a JSON Schema for the answer (`{}` when left out, accepts anything). The agent must answer to fit the schema; godspeed returns `{ answer }`.
 
 | Rule | Value |
 |---|---|

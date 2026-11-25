@@ -1,5 +1,5 @@
 //! Questions from earlier: a topic he got right comes back later as one question, which godspeed
-//! asks by itself while the teacher reads or writes or no agent is teaching, and grades itself.
+//! asks by itself while the teacher reads or writes, and grades itself.
 //! Each right answer after its full rest doubles the next rest (GAPS), a miss brings the topic
 //! back within 4 days, and a close deadline shortens the rest of the topics it covers. Days are
 //! local calendar days of the app clock. Skipping changes nothing.
@@ -316,8 +316,8 @@ fn usable_item<'a>(items: &'a [Json], node: &str, today: &str, shown: &HashMap<S
 		.min_by_key(|item| last_shown(item))
 }
 
-/// Whether godspeed may ask a question from earlier in this lesson now. `busy`: a turn is running
-/// or no agent is teaching. Only in a Study lesson, in its sitting's first wait (at the sitting's
+/// Whether godspeed may ask a question from earlier in this lesson now. `busy`: a turn is running.
+/// Only in a Study lesson, in its sitting's first wait (at the sitting's
 /// start, or after his first input on a return, until the teacher's reply to it lands), with no
 /// question, problem, opener or stop open.
 pub fn review_window_open(record: &Json, now_ms: i64, busy: bool) -> bool {

@@ -229,7 +229,7 @@
 		openInObsidian: (path) => invoke("open_in_obsidian", { path }),
 		// The agents' terminals: the page names a role and an agent, never a program or a folder.
 		terminals: {
-			start: (role, agent, resume) => invoke("terminal_start", { role, agent, resume: resume ?? null }),
+			start: (agent, resume) => invoke("terminal_start", { agent, resume: resume ?? null }),
 			attach: (id) => invoke("terminal_attach", { id }),
 			detach: (id) => invoke("terminal_detach", { id }),
 			resize: (id, cols, rows) => invoke("terminal_resize", { id, cols, rows }),

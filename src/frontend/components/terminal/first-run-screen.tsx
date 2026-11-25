@@ -10,11 +10,11 @@ import { useTerminals } from "./use-terminals";
 export function FirstRunScreen() {
 	const api = useTerminals();
 	const name = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
-	const facts = api?.facts.teacher;
+	const facts = api?.facts;
 	if (!api || !facts) return null;
 	return (
 		<div data-testid="first-run-screen" className="lh-popup flex h-[460px] w-full flex-col overflow-hidden">
-			<TerminalPane api={api} role="teacher" name={name} foot={firstRunFooter(facts, api.folder)} focusOnOpen={false} />
+			<TerminalPane api={api} name={name} foot={firstRunFooter(facts, api.folder)} focusOnOpen={false} />
 		</div>
 	);
 }

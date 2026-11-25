@@ -13,15 +13,14 @@ use gs_base::{clock, ids, time};
 use gs_core::messages::input_events::{About, ChatInput, TurnInput};
 use gs_core::messages::native_messages::dangling_question_of;
 use gs_core::messages::role::is_custom;
-use gs_core::spaces::agent_folder::FolderAgent;
 use gs_json::{Json, json, stringify};
 use gs_runtime::fake::{FakeAgent, FakeStep};
 use gs_services::App;
 use gs_services::app::agent_actions::recent_agent_actions;
-use gs_services::app::agent_folder::set_folder_agent;
 use gs_services::app::agents::use_runtime;
 use gs_services::turns::chat_handler::REVIEW_NOT_OPEN;
 use gs_services::turns::review::{ReviewReply, answer_review, next_review, skip_review};
+use gs_services::turns::turn_liveness::{begin_turn, end_turn};
 use gs_services::turns::turn_work::lesson_work;
 use gs_services::turns::{answer_approval, every_turn_rules_for, handle_chat_input, is_turn_running};
 use gs_store::graph::Ledger;
@@ -81,6 +80,14 @@ impl Fixture {
 		let tree = json!({ "nodes": [{ "id": "reg", "title": "Regularization" }, { "id": "cv", "title": "Cross-validation" }], "edges": [] });
 		self.app.stores.chats.save_tree(&id, &tree).unwrap();
 		self.app.stores.chats.save_messages(&id, messages).unwrap();
+		id
+	}
+
+	/// A Study lesson holding `messages` whose turn runs, as while the teacher writes its reply:
+	/// questions from earlier show only then.
+	fn waiting(&self, messages: &[Json]) -> String {
+		let id = self.lesson(messages);
+		assert!(begin_turn(&self.app, &id));
 		id
 	}
 
@@ -189,16 +196,17 @@ fn text(words: &str, about: Option<About>) -> ChatInput {
 async fn the_window_opens_at_a_sittings_start_and_after_his_first_input_on_a_return() {
 	let fx = Fixture::new();
 	let now = clock::now_ms();
-	let starting = fx.lesson(&[user("Study for Midterm", now)]);
-	let first = fx.next(&starting).expect("no agent and the first reply not landed");
+	let starting = fx.waiting(&[user("Study for Midterm", now)]);
+	let first = fx.next(&starting).expect("the first reply not landed");
 	assert_eq!(first, json!({ "of": { "chatId": first["of"]["chatId"], "messageId": "m-t-bayes", "toolCallId": "t-bayes" }, "nodeId": "bayes", "topic": "Bayes' rule", "quiz": { "question": "A question on bayes?", "options": [{ "label": "A" }, { "label": "B" }], "correctAnswer": "A", "explanation": "Because A." } }));
-	let replied = fx.lesson(&[user("Study for Midterm", now - 60_000), reply("Here is Regularization.", now)]);
+	let replied = fx.waiting(&[user("Study for Midterm", now - 60_000), reply("Here is Regularization.", now)]);
 	assert_eq!(fx.next(&replied), None, "the reply landed");
-	let returned = fx.lesson(&[user("Study for Midterm", now - DAY_MS), reply("Here is Regularization.", now - DAY_MS), user("I am back.", now)]);
+	let returned = fx.waiting(&[user("Study for Midterm", now - DAY_MS), reply("Here is Regularization.", now - DAY_MS), user("I am back.", now)]);
 	assert!(fx.next(&returned).is_some(), "his first input on a return");
-	set_folder_agent(&fx.app, FolderAgent::Claude).unwrap();
-	assert_eq!(fx.next(&starting), None, "an agent is picked and no turn runs");
+	end_turn(&fx.app, &starting);
+	assert_eq!(fx.next(&starting), None, "no turn runs");
 	let teach = fx.app.stores.chats.create_chat("Sets", Some("teach"), Some(&fx.space_id), None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
+	assert!(begin_turn(&fx.app, &teach));
 	assert_eq!(fx.next(&teach), None, "Study lessons only");
 	assert_eq!(next_review(&fx.app, "chat_gone").unwrap(), ReviewReply::UnknownLesson);
 }
@@ -207,7 +215,7 @@ async fn the_window_opens_at_a_sittings_start_and_after_his_first_input_on_a_ret
 fn three_a_day_across_two_lessons_and_a_reload_shows_the_same_question() {
 	let fx = Fixture::new();
 	let now = clock::now_ms();
-	let (a, b) = (fx.lesson(&[user("Study", now)]), fx.lesson(&[user("Study", now)]));
+	let (a, b) = (fx.waiting(&[user("Study", now)]), fx.waiting(&[user("Study", now)]));
 	assert_eq!(fx.next(&a), fx.next(&a), "a reload shows the same question");
 	assert_eq!(topic(&Some(fx.answer(&a))), Some("bayes"));
 	assert_eq!(topic(&Some(fx.answer(&a))), Some("eig"));
@@ -226,7 +234,7 @@ fn three_a_day_across_two_lessons_and_a_reload_shows_the_same_question() {
 #[test]
 fn a_skip_stores_nothing_and_passes_the_question_by() {
 	let fx = Fixture::new();
-	let id = fx.lesson(&[user("Study", clock::now_ms())]);
+	let id = fx.waiting(&[user("Study", clock::now_ms())]);
 	let first = fx.next(&id).unwrap();
 	let before = fx.messages(&id);
 	assert_eq!(skip_review(&fx.app, &id, &first["of"]).unwrap(), ReviewReply::Done);
@@ -234,14 +242,14 @@ fn a_skip_stores_nothing_and_passes_the_question_by() {
 	assert_eq!(topic(&fx.next(&id)), Some("eig"));
 	assert_eq!(skip_review(&fx.app, &id, &first["of"]).unwrap(), ReviewReply::NotOpen, "no longer the open one");
 	assert_eq!(answer_review(&fx.app, &id, &first["of"], &graded()).unwrap(), ReviewReply::NotOpen);
-	let other = fx.lesson(&[user("Study", clock::now_ms())]);
+	let other = fx.waiting(&[user("Study", clock::now_ms())]);
 	assert_eq!(topic(&fx.next(&other)), Some("bayes"), "a skip belongs to its lesson's sitting");
 }
 
 #[test]
 fn the_question_on_screen_stays_answerable_after_the_picks_moved() {
 	let fx = Fixture::new();
-	let id = fx.lesson(&[user("Study", clock::now_ms())]);
+	let id = fx.waiting(&[user("Study", clock::now_ms())]);
 	let first = fx.next(&id).unwrap();
 	assert_eq!(skip_review(&fx.app, &id, &first["of"]).unwrap(), ReviewReply::Done);
 	let second = fx.next(&id).unwrap();
@@ -257,7 +265,7 @@ fn the_question_on_screen_stays_answerable_after_the_picks_moved() {
 #[test]
 fn the_refusals() {
 	let fx = Fixture::new();
-	let id = fx.lesson(&[user("Study", clock::now_ms())]);
+	let id = fx.waiting(&[user("Study", clock::now_ms())]);
 	let open = fx.next(&id).unwrap();
 	let other = json!({ "chatId": open["of"]["chatId"], "toolCallId": "t-none" });
 	assert_eq!(answer_review(&fx.app, &id, &other, &graded()).unwrap(), ReviewReply::NotOpen);
@@ -304,8 +312,9 @@ async fn an_answer_during_a_turn_lands_before_the_reply_and_reaches_the_agent_on
 #[tokio::test(flavor = "multi_thread")]
 async fn ask_teacher_sends_the_open_question_whole_and_refuses_another() {
 	let fx = Fixture::new();
-	let id = fx.lesson(&[user("Study", clock::now_ms())]);
+	let id = fx.waiting(&[user("Study", clock::now_ms())]);
 	let open = fx.next(&id).unwrap();
+	end_turn(&fx.app, &id);
 	let not_open = About::Review { of: json!({ "chatId": open["of"]["chatId"], "toolCallId": "t-none" }), picked: vec![] };
 	assert_eq!(send(&fx.app, &id, text("Is it A?", Some(not_open))).await, (400, stringify(&json!({ "error": REVIEW_NOT_OPEN }))));
 	let ask = About::Review { of: json!({ "chatId": open["of"]["chatId"], "toolCallId": open["of"]["toolCallId"] }), picked: vec!["B".into()] };
@@ -368,7 +377,7 @@ fn last_row(fx: &Fixture, chat_id: &str) -> Json {
 fn a_question_from_earlier_brings_back_the_sentence_he_kept_shown_longest_ago() {
 	let fx = Fixture::new();
 	let kept_in = fx.lesson(&kept_on_bayes(clock::now_ms() - 10 * DAY_MS));
-	let id = fx.lesson(&[user("Study", clock::now_ms())]);
+	let id = fx.waiting(&[user("Study", clock::now_ms())]);
 	assert_eq!(topic(&Some(fx.answer(&id))), Some("bayes"));
 	let first = json!({ "of": { "chatId": kept_in, "messageId": "m-k1", "toolCallId": "k1" }, "text": "Divide by everyone who got an A.", "phrase": "A over all A" });
 	assert_eq!(last_row(&fx, &id)["kept"], first, "kept first, never the analogy lines");
@@ -376,7 +385,7 @@ fn a_question_from_earlier_brings_back_the_sentence_he_kept_shown_longest_ago() 
 	assert!(last_row(&fx, &id).get("kept").is_none(), "a topic with no kept sentence");
 
 	clock::advance(8 * DAY_MS);
-	let later = fx.lesson(&[user("Study", clock::now_ms())]);
+	let later = fx.waiting(&[user("Study", clock::now_ms())]);
 	let bayes = loop {
 		let question = fx.next(&later).expect("Bayes' rule comes back");
 		if question["nodeId"] == json!("bayes") {

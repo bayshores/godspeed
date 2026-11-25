@@ -12,7 +12,7 @@ use gs_core::spaces::deadline_requests::RequestKind;
 use gs_json::{Json, json, stringify};
 use gs_runtime::fake::{FakeAgent, FakeStep};
 use gs_services::App;
-use gs_services::app::agents::pick_stand_in;
+use gs_services::app::agents::use_runtime;
 use gs_services::spaces::add_space_deadline;
 use gs_services::spaces::deadline_requests::{deadline_request_rows, deadline_request_view, request_deadline};
 use gs_services::spaces::space_checks::{check_spaces, check_spaces_now, undo_check};
@@ -31,7 +31,7 @@ impl Fixture {
 		}
 		let app = App::new(Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.join("res")), None);
 		let agent = FakeAgent::default();
-		pick_stand_in(&app, agent.runtime());
+		use_runtime(&app, agent.runtime());
 		Fixture { app, agent, dir }
 	}
 }

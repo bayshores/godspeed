@@ -1,6 +1,6 @@
-//! What godspeed does by itself once an agent can work, at the server's start and each time the
-//! learner picks an agent: lessons whose last stretch never reached the graph (queued runs do not
-//! survive a restart) are extracted, and lessons left with new answers queue their notes.
+//! What godspeed does by itself at the server's start: lessons whose last stretch never reached
+//! the graph (queued runs do not survive a restart) are extracted, and lessons left with new
+//! answers queue their notes.
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -40,7 +40,7 @@ fn catch_up_lessons(app: &Arc<App>, now: i64) -> Result<(), String> {
 	Ok(())
 }
 
-/// At the server's start and when the learner picks an agent.
+/// At the server's start.
 pub fn catch_up(app: &Arc<App>) {
 	if let Err(err) = catch_up_lessons(app, clock::now_ms()) {
 		eprintln!("[catch-up] failed: {err}");
@@ -69,6 +69,6 @@ mod tests {
 			app.turns.leftover_timers.lock().contains_key(&id)
 		};
 		assert!(handed(), "the start hands the lesson out");
-		assert!(handed(), "and so does the next pick, in case the first run failed");
+		assert!(handed(), "and so does the next call, in case the first run failed");
 	}
 }

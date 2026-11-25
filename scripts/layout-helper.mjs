@@ -12,11 +12,15 @@
  * sessions. A lesson that holds never ends its turn until it is stopped; the word a screen writes
  * to the `desk` file in that folder makes it read files as an agent at work would (`read`), ask
  * to run a command (`approve`), or stream half a reply (`stream`).
+ *
+ * A session that is not kept is one of godspeed's background jobs: its one turn plays the fixed
+ * answer layout-jobs.mjs gives for the job's tools and request.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
+import { jobAnswer } from "./layout-jobs.mjs";
 import { LESSONS, PLAN_ORDER_SENT_BACK } from "./layout-lessons.mjs";
 
 const DIR = process.env.LAYOUT_HELPER_DIR;
@@ -159,11 +163,32 @@ function finish(session, stopped) {
 	sdk(session.key, stopped ? { type: "result", subtype: "error_during_execution", is_error: true, errors: [] } : { type: "result", subtype: "success", is_error: false });
 }
 
+/** The passage the seed found. A job can start before the seed has written it, so it waits. */
+async function citedPassage(session) {
+	for (let tries = 0; CITED && !fs.existsSync(CITED) && tries < 600 && !session.stopped; tries++) await new Promise((done) => setTimeout(done, 100));
+	return CITED && fs.existsSync(CITED) ? fs.readFileSync(CITED, "utf8").trim() : null;
+}
+
+/** A job's turn: its answer, once. A follow-up turn, or a job no answer fits, ends with no reply. */
+async function playJob(session, texts) {
+	session.passage = await citedPassage(session);
+	const answer = session.answered ? null : jobAnswer({ tools: session.job.tools, text: texts.join("\n"), cwd: session.job.cwd }, session.passage);
+	if (!session.answered && !answer) log(`no job answer for ${JSON.stringify(texts.join("\n").slice(0, 80))}`);
+	session.answered = true;
+	if (answer?.holds) {
+		while (!session.stopped) await new Promise((done) => setTimeout(done, 100));
+		return finish(session, true);
+	}
+	const how = answer ? await playReply(session, answer) : "done";
+	return finish(session, how === "stopped");
+}
+
 /** The turn a message starts: the lesson's next replies. */
 async function playTurn(session, texts) {
 	session.stopped = false;
-	session.passage = CITED && fs.existsSync(CITED) ? fs.readFileSync(CITED, "utf8").trim() : null;
 	sdk(session.key, { type: "system", subtype: "init" });
+	if (session.job) return playJob(session, texts);
+	session.passage = CITED && fs.existsSync(CITED) ? fs.readFileSync(CITED, "utf8").trim() : null;
 	if (!session.lesson) {
 		const at = LESSONS.findIndex((lesson) => lesson.is(texts));
 		if (at < 0) log(`no lesson starts with ${JSON.stringify(texts.map((text) => text.slice(0, 60)))}`);
@@ -188,7 +213,8 @@ async function playTurn(session, texts) {
 function open(message) {
 	const { session: key, resume } = message;
 	const native = resume ?? randomUUID();
-	const session = { key, native, lesson: stands[native] ? { ...stands[native] } : null, passage: null, cancel: null, stopped: false, closed: false, turns: Promise.resolve() };
+	const job = message.persist === false ? { tools: (message.tools ?? []).map((tool) => tool.name), cwd: message.cwd } : null;
+	const session = { key, native, job, lesson: stands[native] ? { ...stands[native] } : null, passage: null, cancel: null, stopped: false, closed: false, turns: Promise.resolve() };
 	sessions.set(key, session);
 	write({ type: "opened", session: key, nativeId: native });
 }

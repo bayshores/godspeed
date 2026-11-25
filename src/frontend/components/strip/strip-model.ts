@@ -4,7 +4,7 @@
  */
 import type { AgentStatus } from "@/frontend/components/agent-status";
 import { DAY, dueAtMs } from "@/frontend/components/countdown-model";
-import type { TeacherTerminalState, TerminalRole } from "@/frontend/components/terminal/terminal-model";
+import type { TeacherTerminalState } from "@/frontend/components/terminal/terminal-model";
 import { plural } from "@/frontend/lib/plural";
 import type { WorkProgress } from "@/frontend/components/work/work-model";
 
@@ -55,14 +55,13 @@ export function dueSoon(deadlines: readonly DueSoon[], nowMs: number, pathname: 
 
 /** A row of the peek, under the teacher's status. */
 type PeekRow =
-	/** Background work's screen waits for the learner: the row shows it. */
-	| { kind: "background" }
 	/** A reply waits in another lesson: the row's Open goes there. */
 	| { kind: "ready"; lesson: ReadyLesson }
 	/** Background work under way, as plain words. */
 	| { kind: "work"; work: WorkProgress };
 
-/** The strip's square: it breathes while the teacher works, and is hollow while the teacher is off. */
+/** The strip's square: it breathes while the teacher works, and is hollow before the agent's
+ *  state is read. */
 export type Square = "working" | "still" | "off";
 
 /** The words on the strip's highlighter. */
@@ -70,8 +69,8 @@ type Flag = "needs you" | "your turn";
 
 interface StripView {
 	square: Square;
-	/** The agent's screen that waits for the learner, the teacher's first. */
-	need: TerminalRole | null;
+	/** The teacher's screen waits for the learner. */
+	need: boolean;
 	/** The lesson whose teacher waits for the learner to allow something. */
 	ask: string | null;
 	/** What waits for the learner first, on the highlighter. */
@@ -82,16 +81,13 @@ interface StripView {
 
 /**
  * The strip from what is live. `panelOpen`: the open panel's head says what
- * the teacher and background work need, so the strip leaves both out and a
- * click closes the panel.
+ * the teacher needs, so the strip leaves it out and a click closes the panel.
  */
 export function stripView(i: {
 	agent: AgentStatus | null;
 	terminal: TeacherTerminalState | null;
 	/** The teacher works. */
 	working: boolean;
-	/** Background work's screen waits for the learner. */
-	background: boolean;
 	work: WorkProgress | null;
 	ready: readonly ReadyLesson[];
 	/** The lessons whose teacher waits for the learner to allow something, oldest first. */
@@ -100,10 +96,9 @@ export function stripView(i: {
 }): StripView {
 	const teacherNeeds = i.terminal === "needsYou";
 	const ask = i.asking[0] ?? null;
-	const need: TerminalRole | null = i.panelOpen ? null : teacherNeeds ? "teacher" : i.background ? "helper" : null;
-	const here = i.terminal !== null || !!i.agent?.connected || !!i.agent?.teaching;
+	const need = !i.panelOpen && teacherNeeds;
+	const here = i.terminal !== null || i.agent !== null;
 	const rows: PeekRow[] = [
-		...(i.background && !i.panelOpen ? [{ kind: "background" } as const] : []),
 		...i.ready.map((lesson) => ({ kind: "ready", lesson }) as const),
 		...(i.work ? [{ kind: "work", work: i.work } as const] : []),
 	];
@@ -119,13 +114,12 @@ export function stripView(i: {
 /**
  * What a click on the strip does: the teacher's screen that needs the
  * learner shows (wherever it is, its own window too); else the lesson whose
- * teacher waits for the learner to allow something; else the helper's screen
- * that needs the learner; else the open panel closes; else it opens.
+ * teacher waits for the learner to allow something; else the open panel
+ * closes; else it opens.
  */
-export function stripClick(need: TerminalRole | null, ask: string | null, panelOpen: boolean): { show: TerminalRole } | { lesson: string } | "open" | "close" {
-	if (need === "teacher") return { show: need };
+export function stripClick(need: boolean, ask: string | null, panelOpen: boolean): "show" | { lesson: string } | "open" | "close" {
+	if (need) return "show";
 	if (ask) return { lesson: ask };
-	if (need) return { show: need };
 	return panelOpen ? "close" : "open";
 }
 

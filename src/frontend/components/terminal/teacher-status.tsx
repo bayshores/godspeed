@@ -19,7 +19,7 @@ export function TeacherStatus({ name, line, testid, className }: {
 	const api = useTerminals();
 	const panel = useTeacher();
 	const open = !!panel?.panelOpen;
-	const text = (open ? null : screenStatusLine(api?.facts.teacher ?? null, name)) ?? line;
+	const text = (open ? null : screenStatusLine(api?.facts ?? null, name)) ?? line;
 	if (!text) return null;
 	if (!api?.teacher || !panel || open)
 		return (

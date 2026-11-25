@@ -38,7 +38,7 @@ Object.assign(globalThis, {
 
 const { createRoot } = await import("react-dom/client");
 const { SettingsPage, sectionFor } = await import("../../src/frontend/components/settings/settings-page.tsx");
-const { ConnectionSection, connectionHint } = await import("../../src/frontend/components/settings/connection-section.tsx");
+const { ConnectionSection } = await import("../../src/frontend/components/settings/connection-section.tsx");
 const { WebSearch } = await import("../../src/frontend/components/settings/web-search.tsx");
 const { RememberedNotes } = await import("../../src/frontend/components/settings/remembered-notes.tsx");
 const { maskToken } = await import("../../src/frontend/components/mcp-access.ts");
@@ -85,7 +85,7 @@ const FOLDER = {
 	folder: "/Users/me/godspeed",
 	short: "~/godspeed",
 	exists: false,
-	commands: { claude: 'cd ~/godspeed && claude --settings .godspeed/claude-settings.json "Start teaching"', codex: "cd ~/godspeed && codex" },
+	commands: { claude: 'cd ~/godspeed && claude --settings .godspeed/claude-settings.json', codex: "cd ~/godspeed && codex" },
 	startCommands: {},
 	oldSetup: { plugin: false, codex: false },
 	agent: "claude",
@@ -150,11 +150,11 @@ describe("settings restyle", () => {
 		assert.deepEqual(saves, [], "the dropped edit is not saved");
 	});
 
-	it("Connection: the teacher and the helper, the folder and the token masked (web search is in Teaching)", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:47613/api/mcp", agentConnected: true, agentTeaching: true, pendingWork: 1 });
+	it("Connection: the teacher, the folder and the token masked (web search is in Teaching)", async () => {
+		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:47613/api/mcp", agentConnected: true });
 		const el = await mount(<Connection />);
 		const text = el.textContent!;
-		for (const label of ["Teacher", "Background work", "Access token", "Copy the command"]) {
+		for (const label of ["Teacher", "Access token", "Copy the command"]) {
 			assert.ok(text.includes(label), label);
 		}
 		assert.ok(q("web-search") === null);
@@ -163,15 +163,14 @@ describe("settings restyle", () => {
 		assert.equal(q("agent-status")!.textContent, "Your agent is Claude Code", "the tiles' chips say what runs");
 		assert.equal(q("agent-window-teacher-chip")!.textContent, "Running", "teaching with nothing to do");
 		assert.ok(q("agent-window-teacher-open") === null);
-		assert.ok(q("agent-window-helper-chip") === null, "nothing runs, so no chip: the top bar says it");
-		assert.equal(q("agent-window-helper-open")!.textContent, "Start background work");
+		assert.ok(!/Background work|helper/.test(text), "no second agent");
 		assert.equal(q("agent-folder-path")!.textContent, "~/godspeed");
 		assert.ok(!text.includes("/plugin"), "no plugin to install");
 		assert.ok(q("old-setup-warning") === null, "nothing old left: no warning");
 	});
 
 	it("beside the teacher's open panel, the teacher's tile leaves its status to the panel's head", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_p", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, agentTeaching: true, pendingWork: 1 });
+		globalThis.fetch = connectionFetch({ token: "tok_p", url: "http://127.0.0.1:1/api/mcp", agentConnected: true });
 		const panel = { name: "Teacher", panelOpen: true, doing: null, showTerminal: () => {} } as unknown as React.ContextType<typeof TeacherContext>;
 		await mount(
 			<TeacherContext.Provider value={panel}>
@@ -180,11 +179,10 @@ describe("settings restyle", () => {
 		);
 		assert.ok(q("agent-window-teacher") !== null);
 		assert.ok(q("agent-window-teacher-chip") === null && q("agent-window-teacher-line") === null);
-		assert.ok(q("agent-window-helper-chip") === null, "the head speaks for the teacher only");
 	});
 
 	it("the teacher's tile carries the teacher's own name", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_n", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, agentTeaching: true, pendingWork: 0 });
+		globalThis.fetch = connectionFetch({ token: "tok_n", url: "http://127.0.0.1:1/api/mcp", agentConnected: true });
 		const panel = { name: "Quigley", panelOpen: false, doing: null, showTerminal: () => {} } as unknown as React.ContextType<typeof TeacherContext>;
 		await mount(
 			<TeacherContext.Provider value={panel}>
@@ -194,25 +192,10 @@ describe("settings restyle", () => {
 		assert.equal(q("agent-window-teacher")!.querySelector("h3")!.textContent, "Quigley");
 	});
 
-	it("the section's line says godspeed starts the helper only in the desktop app", () => {
-		assert.ok(connectionHint(true).endsWith("builds the graph, and godspeed starts it when there is reading to do."));
-		assert.ok(connectionHint(false).endsWith("builds the graph."));
-	});
-
-	it("both running: the helper covers while the teacher tidies its memory", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_h", agentConnected: true, agentTeaching: true, helperHere: true, helperCovering: true, pendingWork: 1 });
-		await mount(<Connection />);
-		assert.equal(q("agent-window-helper")!.getAttribute("data-tone"), "busy");
-		assert.equal(q("agent-window-helper-chip")!.textContent, "Covering");
-		assert.equal(q("agent-window-helper-line")!.textContent, "Answering for Teacher for a minute");
-		assert.equal(q("agent-window-teacher-line")!.textContent, "Tidying its memory");
-		assert.ok(q("agent-window-helper-open") === null);
-	});
-
 	it("warns about the old plugin left on the computer, and Remove says to restart open chats", async () => {
 		const posted: unknown[] = [];
 		const left = { ...FOLDER, exists: true, oldSetup: { plugin: true, codex: false } };
-		const access = { token: "tok_secret_c33d", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 };
+		const access = { token: "tok_secret_c33d", url: "http://127.0.0.1:1/api/mcp", agentConnected: true };
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
 			const path = String(url);
 			if (path.startsWith("/api/agent-folder")) {
@@ -233,31 +216,22 @@ describe("settings restyle", () => {
 		assert.ok(document.body.textContent!.includes("Removed. Restart any open Claude Code chats to finish."));
 	});
 
-	it("access is always on: no on/off switch, and outside the desktop app only the helper's tile carries a button", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_secret_b22c", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
+	it("access is always on: no on/off switch, and the teacher's tile carries no button", async () => {
+		globalThis.fetch = connectionFetch({ token: "tok_secret_b22c", url: "http://127.0.0.1:1/api/mcp", agentConnected: false });
 		const el = await mount(<Connection />);
 		assert.ok(!el.textContent!.includes("Let outside agents connect"));
 		assert.ok(el.querySelector('[role="switch"]') === null);
 		assert.ok(q("agent-window-teacher-open") === null, "the teacher starts from its own window");
-		assert.equal(q("agent-window-helper-open")!.textContent, "Start background work");
 	});
 
-	it("a connected agent that isn't teaching says how to start it", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_d", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, agentTeaching: false, agentName: "Codex", pendingWork: 0 });
+	it("a connected agent is named by the program", async () => {
+		globalThis.fetch = connectionFetch({ token: "tok_d", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, agentName: "Codex" });
 		const el = await mount(<Connection />);
-		assert.equal(q("agent-window-teacher-chip")!.textContent, "Running");
-		assert.equal(q("agent-window-teacher-line")!.textContent, "Tell Teacher to start teaching.");
 		assert.ok(el.textContent!.includes("Your agent is Codex"));
 	});
 
-	it("a lesson waiting with no agent says so on the teacher's tile", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_w", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, agentTeaching: false, pendingWork: 2, pendingTurns: 1 });
-		await mount(<Connection />);
-		assert.equal(q("agent-window-teacher-line")!.textContent, "Your lesson is waiting");
-	});
-
 	it("the menu switches the agent to Codex, and Other app shows the address and a masked token", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_secret_e77e", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
+		globalThis.fetch = connectionFetch({ token: "tok_secret_e77e", url: "http://127.0.0.1:1/api/mcp", agentConnected: false });
 		const el = await mount(<Connection />);
 		const pick = async (id: string) => {
 			await act(async () => q("open-agent-menu")!.click());
@@ -271,7 +245,6 @@ describe("settings restyle", () => {
 		await pick("open-agent-other");
 		assert.ok(q("agent-window-teacher-open") === null, "godspeed can't start another app");
 		assert.ok(el.textContent!.includes("Add a Streamable HTTP MCP server"));
-		assert.ok(el.textContent!.includes('tell it "Start as the helper"'));
 		assert.ok(el.textContent!.includes("http://127.0.0.1:1/api/mcp"));
 		assert.ok(el.textContent!.includes("Bearer ••••••••••••e77e"));
 		assert.ok(!el.textContent!.includes("Copy the command"), "no command for another app");
@@ -279,7 +252,7 @@ describe("settings restyle", () => {
 
 	it("Web search: the teacher's own search until a key is saved, then Tavily with its count", async () => {
 		const calls: string[] = [];
-		const access = { token: "tok_s", agentConnected: false, pendingWork: 0 };
+		const access = { token: "tok_s", agentConnected: false };
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
 			const path = String(url);
 			if (!path.startsWith("/api/web-search")) return Response.json(path.startsWith("/api/agent-folder") ? FOLDER : access);
@@ -342,7 +315,7 @@ describe("settings restyle", () => {
 
 	it("Change command opens a box for the picked agent's own start command, and Save keeps it", async () => {
 		const posted: unknown[] = [];
-		const access = { token: "tok_f", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 };
+		const access = { token: "tok_f", url: "http://127.0.0.1:1/api/mcp", agentConnected: false };
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
 			const path = String(url);
 			if (!path.startsWith("/api/agent-folder")) return Response.json(path.startsWith("/api/agent-notes") ? { notes: [] } : access);
@@ -378,7 +351,7 @@ describe("settings restyle", () => {
 			if (String(url).startsWith("/api/agent-notes")) return Response.json({ notes: [] });
 			if (String(url).startsWith("/api/agent-folder")) return Response.json(FOLDER);
 			calls.push(init?.method ?? "GET");
-			return Response.json({ token: init?.method === "POST" ? "tok_new_2222" : "tok_old_1111", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
+			return Response.json({ token: init?.method === "POST" ? "tok_new_2222" : "tok_old_1111", url: "http://127.0.0.1:1/api/mcp", agentConnected: false });
 		}) as unknown as typeof fetch;
 		await mount(<Connection />);
 		await act(async () => q("agent-new-token")!.click());
@@ -395,7 +368,7 @@ describe("settings restyle", () => {
 	});
 
 	it("Copy puts the whole token on the clipboard and says Copied", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
+		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:1/api/mcp", agentConnected: false });
 		const el = await mount(<Connection />);
 		const copied: string[] = [];
 		Object.defineProperty(globalThis, "navigator", { configurable: true, value: { clipboard: { writeText: async (t: string) => void copied.push(t) } } });
@@ -414,7 +387,7 @@ describe("settings restyle", () => {
 				posts += 1;
 				return new Promise<Response>(() => {});
 			}
-			return Response.json({ token: "tok_old_1111", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
+			return Response.json({ token: "tok_old_1111", url: "http://127.0.0.1:1/api/mcp", agentConnected: false });
 		}) as unknown as typeof fetch;
 		await mount(<Connection />);
 		await act(async () => q("agent-new-token")!.click());
@@ -425,7 +398,7 @@ describe("settings restyle", () => {
 	});
 
 	it("Remembered lists the agent's notes with a Delete button", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 }, {
+		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true }, {
 			notes: [{ id: "note_1", text: "CSE 29 exam is done.", spaceName: "CSE 29", createdAt: "2026-10-30T02:00:00Z" }],
 		});
 		const el = await mount(<RememberedNotes />);
@@ -440,7 +413,7 @@ describe("settings restyle", () => {
 			{ id: "note_1", text: "Likes proofs.", spaceName: null, createdAt: "2026-10-30T02:00:00Z" },
 			{ id: "note_2", text: "Prefers mornings.", spaceName: null, createdAt: "2026-10-30T02:00:00Z" },
 		];
-		const read = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 }, { notes });
+		const read = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true }, { notes });
 		let deletes = 0;
 		let finish: () => void = () => {};
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
@@ -470,7 +443,7 @@ describe("settings restyle", () => {
 	});
 
 	it("Remembered says there are no notes yet", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 });
+		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true });
 		await mount(<RememberedNotes />);
 		assert.ok(q("remembered-notes")!.textContent!.includes("Nothing yet."));
 	});

@@ -62,7 +62,7 @@ To check a new screen or state with `npm run layout`:
 1. Add one entry to `scripts/layout-screens.mjs`: a name, its `url`, and a `ready` selector for something drawn from the screen's data (not its frame, which shows before the data).
 2. For a state the URL does not reach, add `setup` (a page script that clicks) and `shows` (the selector it waits for), or `before` (a page script that changes the data first).
 3. Every menu and pop-up gets its own entry that opens it, with `[data-state=open]` in `shows`: a `MenuShell` menu carries it once it is placed. At each width the walk brings the key that opened a menu or pop-up back into the window, so a row a narrower window pushed down is not reported as a menu outside the window.
-4. If the state needs data that is not there, have the stand-in agent in `scripts/layout-seed.mjs` write it through MCP. A lesson's made-up replies go in `scripts/layout-lessons.mjs`.
+4. If the state needs data that is not there, have the stand-in agent in `scripts/layout-seed.mjs` write it through MCP. A lesson's made-up replies go in `scripts/layout-lessons.mjs`, and a job's fixed answer in `scripts/layout-jobs.mjs`.
 
 Release builds run on the target OS, not as cross-builds from macOS. See [desktop-release.md](desktop-release.md) for Windows and Linux packages and the release flow.
 
@@ -174,7 +174,7 @@ Shared helpers sit in `tests/` itself.
 | `release-assets.mjs` | Gives the bundler's outputs their download names. |
 | `release-feeds.mjs` | Writes the update feeds a release publishes. |
 | `verify-release.ts` | The last check in the release workflow. |
-| `layout.mjs`, `layout-page.mjs`, `layout-screens.mjs`, `layout-seed.mjs`, `layout-lessons.mjs`, `layout-helper.mjs`, `layout-agent.mjs` | `npm run layout`: the walk, the in-page check, the screen list, the stand-in agent that writes the made-up data and answers jobs, the made-up lessons, the stand-in Claude helper that plays those lessons through the lesson tools (a debug build starts it when `LH_CLAUDE_HELPER` names it), and the stand-in `claude` and `codex` a Start runs in the check. |
+| `layout.mjs`, `layout-page.mjs`, `layout-screens.mjs`, `layout-seed.mjs`, `layout-lessons.mjs`, `layout-jobs.mjs`, `layout-helper.mjs`, `layout-agent.mjs` | `npm run layout`: the walk, the in-page check, the screen list, the stand-in agent that writes the made-up data, the made-up lessons, the fixed answers to godspeed's jobs, the stand-in Claude helper that plays those lessons and jobs through godspeed's tools (a debug build starts it when `LH_CLAUDE_HELPER` names it), and the stand-in `claude` and `codex` a Start runs in the check. |
 
 ## Where to read about what
 
@@ -182,9 +182,9 @@ Each is described in [architecture/README.md](architecture/README.md), in the se
 
 | Topic | Section |
 |---|---|
-| The outside agent, work items, the helper, when an agent counts as connected or teaching | 8.1 |
+| The outside agent, godspeed's terminal, when an agent counts as connected | 8.1 |
 | Question tools, side questions, attachments, the plan tree | 5 |
-| Background jobs and the wake pipeline | 5 and 5.1 |
+| Background jobs and the wake pipeline | 5.4 and 5.1 |
 | Compaction | 5, details in [compaction-accounting.md](compaction-accounting.md) |
 | The knowledge graph and extraction | 6 |
 | Spaces, linked folders, deadlines, source marks, problem lists, cheat sheets | 6.1 and 6.4 to 6.7 |
@@ -199,7 +199,7 @@ Each is described in [architecture/README.md](architecture/README.md), in the se
 | `cargo test --workspace` (part of `npm run rust:check`) | Rust unit tests in each module and each crate's `tests/` folder. |
 | `python3 -B -m unittest discover -s tests/skills -v` | The skill's Python tests. |
 
-All tests are deterministic: no LLM, no network. The engine is scripted per test with the faux provider (`crates/engine/src/turn/faux.rs`); web and agent calls are stubbed.
+All tests are deterministic: no LLM, no network. Lessons and jobs run on a stand-in agent that plays a script per test (`gs_runtime::fake::FakeAgent`); web calls are stubbed.
 
 - Golden cases: `crates/<crate>/tests/golden/*.json` hold recorded outputs of the original TypeScript functions; a Rust test beside each replays them (see `crates/base/tests/golden.rs`).
 - Fixtures: an on-disk format change updates `tests/fixtures/golden-data/` in the same commit. Its README says how.
@@ -223,7 +223,6 @@ Everything under `data/` is plain JSON or JSONL, never tracked by git. Read thes
 | `search-key` | Optional Tavily key (mode 0600). |
 | `mcp-endpoint.json` | Where the MCP server listens. Desktop only, written by the shell. |
 | `agent-notes.json` | Notes agents saved with `remember`. |
-| `agent-seen.json` | What each agent has seen of each lesson. |
 | `agent-rules.json` | Which teaching rules an agent saved. |
 | `agent-actions.json` | The activity log. |
 | `agent-folder.json` | The godspeed folder, and whether its notice was seen. |

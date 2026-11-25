@@ -11,30 +11,25 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
 import { BarWindow, observeBar } from "@/frontend/components/ui/bar-window";
 import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
-import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
-import { needsYou, screenStatusLine, teacherTerminalState, type TerminalFacts, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
+import type { AgentStatus } from "@/frontend/components/agent-status";
+import { screenStatusLine, teacherTerminalState, type TerminalFacts } from "@/frontend/components/terminal/terminal-model";
 import { stripWidth } from "@/frontend/components/strip/strip-dom";
-import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
-import { HELPER_NAME } from "@/frontend/components/work/work-model";
+import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useTeacher } from "./teacher-context";
 import type { AgentDoing } from "./follow-status";
 import { TeacherActivity } from "./teacher-activity";
 import { PanelHead } from "./panel-head";
 import { PanelScreen } from "./panel-screen";
 import { StartTeacher } from "./start-teacher";
-import { PANEL_WIDTH, panelLayout, shownScreen, type PanelView } from "./dock-model";
+import { PANEL_WIDTH, panelLayout, type PanelView } from "./dock-model";
 
-/** The status line under the name: the notice while the agent compacts,
- *  the waiting notice while work waits, what the agent is doing while it
- *  works, then whether it is teaching. Nothing until the first read of the
- *  agent. */
+/** The status line under the name: what the agent is doing while it works,
+ *  else "on" while an agent in its terminal is connected, else ready.
+ *  Nothing until the first read of the agent. */
 export function agentLine(agent: AgentStatus | null, teacher: string, doing: AgentDoing | null = null): string | null {
 	if (!agent) return null;
-	if (agent.helperCovering) return "Tidying my memory. A backup is answering for a minute.";
-	if (agentWaiting(agent)) return waitingNotice(teacher, agent.connected);
 	if (doing?.working) return doing.text;
-	if (agent.teaching) return "Ready";
-	return agentStatusLabel(agent, teacher);
+	return agent.connected ? `${teacher} is on` : "Ready";
 }
 
 /**
@@ -59,8 +54,6 @@ export function TeacherPanel({
 	view,
 	list,
 	onList,
-	screen,
-	onScreen,
 	focus,
 	state,
 	onBeside,
@@ -70,9 +63,6 @@ export function TeacherPanel({
 	view: PanelView;
 	list: boolean;
 	onList: (open: boolean) => void;
-	/** The screen picked (background work's only while it needs the learner), and the way to one. */
-	screen: TerminalRole;
-	onScreen: (role: TerminalRole) => void;
 	/** The learner opened the screen: it takes the keyboard. */
 	focus: boolean;
 	/** "closed" while it goes back into the strip. */
@@ -83,11 +73,7 @@ export function TeacherPanel({
 	const teacher = useTeacher();
 	const terminals = useTerminals();
 	const onScreenView = view === "terminal";
-	const shown = shownScreen(screen, !!terminals?.helper);
-	const background = onScreenView && shown === "helper";
-	const teacherFacts = terminals?.facts.teacher ?? null;
-	const helperFacts = terminals?.facts.helper ?? null;
-	const helperCalls = !!helperFacts && !!needsYou(helperFacts);
+	const teacherFacts = terminals?.facts ?? null;
 	const head = teacherHead({ agent, name, doing: teacher?.doing ?? null, facts: teacherFacts });
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
 	const [{ width, whole }, setLayout] = useState({ width: wanted, whole: false });
@@ -126,29 +112,7 @@ export function TeacherPanel({
 		<BarWindow right={stripWidth()} width={width} height={null} state={state} data-teacher-panel="" data-whole={whole || undefined} data-testid="teacher-panel" aria-label={name}>
 			{/* Nothing to drag while it takes the whole window. */}
 			{!whole && <ResizeHandle paneKey="teacher" width={width} bounds={PANEL_WIDTH} onWidth={setWanted} label={`Resize ${name}'s panel`} />}
-			{background ? (
-				<PanelHead
-					title={HELPER_NAME}
-					status={screenStatusLine(helperFacts, HELPER_NAME)}
-					lit={helperCalls}
-					working={false}
-					list={null}
-					need={null}
-					back={() => onScreen("teacher")}
-					putBack={null}
-				/>
-			) : (
-				<PanelHead
-					title={null}
-					status={head.status}
-					lit={head.lit}
-					working={head.working}
-					list={onScreenView ? { open: list, onOpen: onList } : null}
-					need={view !== "activity" && helperCalls ? () => onScreen("helper") : null}
-					back={null}
-					putBack={putBack}
-				/>
-			)}
+			<PanelHead status={head.status} lit={head.lit} working={head.working} list={onScreenView ? { open: list, onOpen: onList } : null} putBack={putBack} />
 
 			<div
 				data-testid="teacher-panel-body"
@@ -160,12 +124,12 @@ export function TeacherPanel({
 				)}
 			>
 				{onScreenView ? (
-					<PanelScreen name={background ? HELPER_NAME : name} role={shown} focus={focus} />
+					<PanelScreen name={name} focus={focus} />
 				) : (
 					<>
 						{/* In a browser there is no screen to start from. */}
-						{!terminals?.available && noAgentHere(agent, terminals) && <StartTeacher />}
-						<TeacherActivity underStatus />
+						{!terminals?.available && agent && !agent.connected && <StartTeacher />}
+						<TeacherActivity />
 					</>
 				)}
 			</div>

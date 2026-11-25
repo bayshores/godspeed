@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
 import type { ChatAttachment, CheatSheetView, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
 import { CitedResponse } from "@/frontend/components/citations/cited-response";
-import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
+import { ApprovalCards } from "@/frontend/components/lesson/approval-card";
+import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/frontend/components/lesson/chat-helpers";
 import { LessonBox } from "@/frontend/components/lesson/lesson-box";
@@ -41,7 +42,6 @@ export function SheetChat({
 	deadlineId,
 	act,
 	agentName,
-	agentGone,
 	pointed,
 	onClearPointed,
 	onShowVersion,
@@ -55,8 +55,6 @@ export function SheetChat({
 	/** Posts one action; resolves to the error line, or null. */
 	act: (body: Record<string, unknown>) => Promise<string | null>;
 	agentName: string;
-	/** No agent connected: a request waits for one. */
-	agentGone: boolean;
 	pointed: Pointed | null;
 	onClearPointed: () => void;
 	/** Shows a version on the canvas; absent when that version isn't there. */
@@ -79,6 +77,9 @@ export function SheetChat({
 	}, [messages.length, busy, view.error]);
 
 	const post = (body: Record<string, unknown>) => void act(body).then(setFailed);
+	const arrive = useArrivals();
+	const slot = useId();
+	const answer = (id: string, allow: boolean) => act({ action: "approval", id, allow });
 	// A line typed while the sheet is being worked on goes on to the agent.
 	const sendLine = async (line: string, files: ChatAttachment[]): Promise<boolean> => {
 		if (busy || view.newer || (!line.trim() && files.length === 0 && !pointed)) return false;
@@ -114,7 +115,6 @@ export function SheetChat({
 	const pagesOf = (n: number) => view.sheet.versions.find((v) => v.n === n)?.pages.length ?? 1;
 	const notes = (
 		<>
-			<NoAgentLine />
 			{(failed || view.newer) && (
 				<p role="alert" className="text-[15px] text-ans-wrong">
 					{view.newer ? "A newer godspeed saved this cheat sheet. Update godspeed to change it." : failed}
@@ -164,12 +164,13 @@ export function SheetChat({
 							</div>
 							{view.running?.messageId === m.id && (
 								<p data-testid="sheet-working" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
-									<span>{agentGone ? "Waiting" : `${agentName} is on it`}</span>
+									<span>{agentName} is on it</span>
 									<button type="button" data-testid="sheet-stop" onClick={() => post({ action: "stop" })} className="lh-btn lh-btn-quiet">
 										Stop
 									</button>
 								</p>
 							)}
+							{view.running?.messageId === m.id && <ApprovalCards approvals={view.approvals} slot={slot} arrive={arrive} answer={answer} />}
 							{!busy && view.error?.messageId === m.id && (
 								<p data-testid="sheet-failed" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
 									<span>

@@ -9,12 +9,11 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { teacherHead } from "@/frontend/components/teacher/teacher-panel";
-import { needsYou, teacherTerminalState } from "@/frontend/components/terminal/terminal-model";
+import { teacherTerminalState } from "@/frontend/components/terminal/terminal-model";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { goLabel } from "@/frontend/components/top-bar/top-bar-model";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { prefersReducedMotion } from "@/frontend/components/presence";
-import { useWorker } from "@/frontend/components/work/use-worker";
 import { workProgress } from "@/frontend/components/work/work-model";
 import { tuckPeek } from "./peek-store";
 import { dueSoon, stripClick, stripView } from "./strip-model";
@@ -32,7 +31,6 @@ export function useStrip() {
 	const { spaces } = useSpaces();
 	const openInSpace = useOpenInSpace();
 	const { feed } = useActivity();
-	const { worker } = useWorker();
 	const { deadlines } = useOpenDeadlines();
 	const minute = useMinute();
 	const ready = useReadyLessons();
@@ -45,15 +43,13 @@ export function useStrip() {
 	const name = teacher?.name ?? "";
 	const doing = teacher?.doing ?? null;
 	const panelOpen = teacher?.panelOpen ?? false;
-	const teacherFacts = terminals?.facts.teacher ?? null;
+	const teacherFacts = terminals?.facts ?? null;
 	const terminal = teacherTerminalState(teacherFacts);
-	const helper = terminals?.facts.helper ?? null;
-	const background = !!helper && !!needsYou(helper);
 	const requests = useMemo(() => (feed.requests ?? []).map((r) => r.title), [feed.requests]);
-	const work = useMemo(() => workProgress({ worker, spaces, extractions: feed.extractions, jobs: feed.jobs, requests }), [worker, spaces, feed.extractions, feed.jobs, requests]);
+	const work = useMemo(() => workProgress({ spaces, extractions: feed.extractions, jobs: feed.jobs, requests }), [spaces, feed.extractions, feed.jobs, requests]);
 	const view = useMemo(
-		() => stripView({ agent, terminal, working: !!doing?.working, background, work, ready, asking, panelOpen }),
-		[agent, terminal, doing, background, work, ready, asking, panelOpen],
+		() => stripView({ agent, terminal, working: !!doing?.working, work, ready, asking, panelOpen }),
+		[agent, terminal, doing, work, ready, asking, panelOpen],
 	);
 	// The open panel's head says the teacher's status: the peek leaves it out.
 	const status = useMemo(() => (panelOpen ? null : teacherHead({ agent, name, doing, facts: teacherFacts })), [panelOpen, agent, name, doing, teacherFacts]);
@@ -81,7 +77,7 @@ export function useStrip() {
 		setNoticesOpen(false);
 		const does = stripClick(need, ask, panelOpen);
 		if (does === "open" || does === "close") setPanelOpen?.(does === "open");
-		else if ("show" in does) showTerminal?.(does.show);
+		else if (does === "show") showTerminal?.();
 		else {
 			const href = `/chat/${encodeURIComponent(does.lesson)}`;
 			// On its lesson, the card is brought into view; elsewhere the lesson opens, where its desk shows it.
@@ -93,10 +89,6 @@ export function useStrip() {
 		tuckPeek();
 		setNoticesOpen(false);
 	}, []);
-	const showHelper = useCallback(() => {
-		leave();
-		showTerminal?.("helper");
-	}, [leave, showTerminal]);
 	const openLesson = useCallback(
 		(id: string) => {
 			leave();
@@ -148,7 +140,6 @@ export function useStrip() {
 		due,
 		openDue,
 		click,
-		showHelper,
 		openLesson,
 		inLesson: pathname.startsWith("/chat/"),
 	};

@@ -68,7 +68,6 @@ A learner who wants godspeed to keep one of their own notes adds `godspeed: keep
 | `godspeed:` key taken out | The note is the learner's and never written again | Nothing |
 | Learner edited a section | That section is theirs and never rewritten. New mistakes still go at the end of "Mistakes to remember" | Their text, word for word |
 | Nothing worked on, or space closed or deleted | No block. godspeed never deletes a file in the folder | |
-| Teacher not connected | The block waits like all work | The strip already says "Waiting for <teacher>" |
 | Unlink | Forgets the folder and stops the index and every write. The record stays, so picking the same folder goes on | The group goes back to its pick line |
 
 Every notice is a status (`role="status"`) and takes no focus. No panel opens by itself or moves focus.

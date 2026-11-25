@@ -85,7 +85,7 @@ Older teach lessons start with a prober: `probe_done` files the assessment and q
 
 ### Job tools
 
-`research`, `demo` and `pdf` run on the server. Each acks at once so the teacher keeps teaching; the job runs in the background (`agent::tools::jobs`, `agent::subagents`) and its result returns through the wake pipeline (§5.1).
+`research`, `demo` and `pdf` run on the server. Each acks at once so the teacher keeps teaching; the job runs in the background on a session of its own ([5.4](05.4-background-jobs.md), `agent::tools::jobs`, `agent::subagents`) and its result returns through the wake pipeline (§5.1).
 
 ### Figures
 
@@ -109,7 +109,7 @@ A learner message carries up to 5 pictures and PDFs: a lesson-box message (side 
 | PDFs | saved in `data/chats/<id>/`, with a short note in message giving path; 30 MB each |
 | Code | `core::messages::attachments`, `services::turns::attachments`, `src/frontend/components/lesson/attachment-tray.tsx` (button, tray, paste, drop) |
 
-An answer's files go into the question call's tool result (`new_answer_result`), so model and work item get them like a message's. Files waiting in a lesson's box stay in memory per lesson until sent: leaving the lesson keeps them, a reload drops them, never localStorage.
+An answer's files go into the question call's tool result (`new_answer_result`), so the agent gets them like a message's. Files waiting in a lesson's box stay in memory per lesson until sent: leaving the lesson keeps them, a reload drops them, never localStorage.
 
 ### Space and date context
 
@@ -120,7 +120,7 @@ A space lesson starts with a `space-context` marker holding the space card (`ser
 A lesson whose transcript passes 40,000 tokens (`compaction.thresholdTokens` in `factory_settings`, not a setting) is shortened between turns, so a turn never waits for a summary (`services::turns::compaction`). The threshold measures only what the model sees of the lesson, the summary and the kept messages (`lesson_tokens`), never the system prompt or tool schemas, which no cut can shrink.
 
 1. Server cuts old part at once and writes its own short version without a model (`local_summary`, `core::session::compaction`).
-2. After 5 quiet minutes outside agent writes real summary, replacing local one.
+2. After 5 quiet minutes a background job on the learner's agent writes the real summary ([5.4](05.4-background-jobs.md)), replacing the local one.
 
 Accounting: [compaction-accounting.md](../compaction-accounting.md). Every call runs on the learner's own agent plan, so nothing has a dollar price; the app counts tokens only.
 

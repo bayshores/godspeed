@@ -11,9 +11,9 @@ use gs_services::App;
 const INSTRUCTIONS_CUT: usize = 4096;
 const CUT_MARGIN: usize = 96;
 
-const INTRO: &str = "godspeed is a learning app; you are its AI: teacher in lessons, worker behind its jobs (research, demos, diagrams, PDF reading) and its knowledge-graph builder. These instructions are short to save tokens. Write to the learner in full, plain sentences.
+const INTRO: &str = "godspeed is a learning app; you are its AI. Outside lessons the learner types to you in godspeed's terminal: answer them there. These instructions are short to save tokens. Write to the learner in full, plain sentences.
 
-Outside lessons they may type to you in godspeed's terminal: answer them there. Asked to show a page (\"open my cheat sheet\"): open_page. Asked to study for or work on a deadline: start_lesson with deadline_id. For one thing for it (one topic): topic too.";
+Asked to show a page (\"open my cheat sheet\"): open_page. Asked to study for or work on a deadline: start_lesson with deadline_id. For one thing for it (one topic): topic too.";
 
 const MEMORY_INSTRUCTIONS: &str = "Memory: \"Where you left off\" above = learner's state when you connected; list_lessons and read_space have anything newer. Learner tells you something outside a lesson that matters next time (exam over, what to study next, how they like to learn): save with remember, one fact per note, never passwords or private details. Remove out-of-date notes with forget.";
 
@@ -40,6 +40,6 @@ mod tests {
 	/// What the fixed texts leave of the 4,096 characters: a longer text here shrinks the briefing.
 	#[test]
 	fn the_fixed_texts_leave_the_briefing_its_room() {
-		assert_eq!(briefing_room(), 3129);
+		assert_eq!(briefing_room(), 3242);
 	}
 }

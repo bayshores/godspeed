@@ -34,8 +34,7 @@ Object.assign(globalThis, {
 globalThis.fetch = (() => new Promise(() => {})) as typeof fetch;
 
 const { TeacherPanel, agentLine, teacherHead } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
-const { PANEL_WIDTH, panelLayout, panelBody, panelStarts, shownScreen } = await import("../../src/frontend/components/teacher/dock-model.ts");
-const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
+const { PANEL_WIDTH, panelLayout, panelBody } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/teacher/teacher-activity.tsx");
 const { PanelHead } = await import("../../src/frontend/components/teacher/panel-head.tsx");
 const { TeacherChats } = await import("../../src/frontend/components/teacher/teacher-chats.tsx");
@@ -70,8 +69,8 @@ const ACTIONS: AgentAction[] = [
 ];
 const names = (id: string | null) => (id === "cls_29" ? "CSE 29" : null);
 
-const IDLE = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [] };
-const TEACHING = { ...IDLE, connected: true, teaching: true, name: "Claude Code" };
+const IDLE = { connected: false, turnsRunning: 0 };
+const TEACHING = { ...IDLE, connected: true, name: "Claude Code" };
 
 type PanelProps = React.ComponentProps<typeof TeacherPanel>;
 /** The panel as a browser has it: Activity alone. */
@@ -82,8 +81,6 @@ const panel = (over: Partial<PanelProps> = {}) => (
 		view="activity"
 		list={false}
 		onList={() => {}}
-		screen="teacher"
-		onScreen={() => {}}
 		focus={false}
 		state="open"
 		onBeside={() => {}}
@@ -96,10 +93,10 @@ describe("the panel", () => {
 		const el = mount(panel());
 		assert.ok(el.querySelector("[data-testid='activity-list'] [data-testid='activity-empty']"), "outside the app shell the list says what will show there");
 		assert.ok(el.querySelector("[aria-expanded]") === null);
-		assert.ok(el.querySelector("[data-testid='no-agent']") === null, "an agent is here: no start pair");
+		assert.ok(el.querySelector("[data-testid='no-agent']") === null, "an agent is connected: no start pair");
 		assert.ok(el.querySelector("[role='tablist'], [role='tab']") === null, "no tabs");
 	});
-	it("in a browser with no agent, the start pair sits above Activity", () => {
+	it("in a browser with no agent connected, the start pair sits above Activity", () => {
 		const el = mount(panel({ agent: IDLE }));
 		const start = el.querySelector("[data-testid='no-agent']");
 		const list = el.querySelector("[data-testid='activity-list']");
@@ -109,7 +106,7 @@ describe("the panel", () => {
 	});
 	it("head: the teacher's status alone, in the screen's font; the strip names the panel and closes it", () => {
 		const html = renderToStaticMarkup(panel());
-		assert.match(html, /data-testid="teacher-panel-agent"[^>]*class="[^"]*font-mono[^"]*"[^>]*>(<[^>]*>)*Ready</);
+		assert.match(html, /data-testid="teacher-panel-agent"[^>]*class="[^"]*font-mono[^"]*"[^>]*>(<[^>]*>)*Ada is on</);
 		assert.doesNotMatch(html, /teacher-panel-name|teacher-panel-close|role="switch"/);
 	});
 	it("runs from the top bar to the window's bottom, sliding out of the strip, made of the bar's sheet, with no blur", () => {
@@ -120,16 +117,11 @@ describe("the panel", () => {
 		assert.match(section, new RegExp(`width:${PANEL_WIDTH.initial}px;height:100%`));
 		assert.doesNotMatch(section, /border-l|bg-panel|blur/);
 	});
-	it("the status line says the teacher is off with no agent, and shows the waiting notice once while work waits", () => {
-		assert.equal(agentLine(IDLE, "Ada"), "Ada is off");
+	it("the status line says what the teacher does, else that it is on while its terminal agent is connected, else ready; never off", () => {
 		assert.equal(agentLine(null, "Ada"), null, "nothing until the first read");
-		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }, "Ada"), "Ready");
-		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true }, "Ada", { text: "Reading a PDF", working: true }), "Reading a PDF");
+		assert.equal(agentLine(IDLE, "Ada"), "Ready", "lessons and jobs need no terminal");
 		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex" }, "Ada"), "Ada is on", "the teacher's name, never the program's");
-		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex", pendingWork: 1 }, "Ada"), waitingNotice("Ada", true));
-		assert.equal(agentLine({ ...IDLE, connected: true, teaching: true, helperCovering: true }, "Ada"), "Tidying my memory. A backup is answering for a minute.");
-		const html = renderToStaticMarkup(panel({ agent: { ...IDLE, pendingWork: 2 } }));
-		assert.equal(html.split(`>${waitingNotice("Ada", false)}<`).length - 1, 1, "in the head, not again in Activity");
+		assert.equal(agentLine({ ...IDLE, connected: true }, "Ada", { text: "Reading a PDF", working: true }), "Reading a PDF");
 	});
 	it("is as wide as the learner left it, pushing the page while it keeps 480 px", () => {
 		const docked = (w: number, wanted: number) => panelLayout(w, w, wanted);
@@ -158,36 +150,18 @@ describe("the panel", () => {
 	it("the head says the terminal's line while it starts or needs the learner, else the status line", () => {
 		const T0 = 1_000_000;
 		const facts = (over: Partial<TerminalFacts> = {}, prompt: "menu" | null = null): TerminalFacts => ({
-			term: { id: "t1", role: "teacher", agent: "claude", startedAt: T0, ended: null, prompt, url: false },
+			term: { id: "t1", agent: "claude", startedAt: T0, ended: null, prompt, url: false },
 			checkedIn: true,
 			outsideHere: false,
-			teaching: true,
 			now: T0 + 1000,
-			quietSince: null,
-			helperBusy: false,
-			turnWaits: false,
 			...over,
 		});
 		const doing = { text: "Reading notes", working: true };
-		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing: null, facts: null }), { status: "Ready", lit: false, working: false });
+		assert.deepEqual(teacherHead({ agent: IDLE, name: "Ada", doing: null, facts: null }), { status: "Ready", lit: false, working: false });
 		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing, facts: null }), { status: "Reading notes", lit: false, working: true }, "the square breathes while the line is the work it does");
 		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing, facts: facts({ checkedIn: false }) }), { status: "Ada is starting.", lit: false, working: false });
 		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing, facts: facts({}, "menu") }), { status: "Ada is asking you something.", lit: true, working: false });
-		assert.deepEqual(teacherHead({ agent: IDLE, name: "Ada", doing: null, facts: null }), { status: "Ada is off", lit: false, working: false });
-	});
-	it("shows a key that starts the teacher: the start pair before any start, Start again once it ended, and in a browser above Activity", () => {
-		const ended = { id: "t1", role: "teacher" as const, agent: "claude" as const, startedAt: 0, ended: { stopped: true as const, code: null }, prompt: null, url: false };
-		const p = { view: "terminal" as const, screen: "teacher" as const, terminals: true, noAgent: true, teacher: null, outside: false };
-		assert.equal(panelStarts(p), true, "the start pair before any start");
-		assert.equal(panelStarts({ ...p, outside: true }), false, "an agent from outside: no start key");
-		assert.equal(panelStarts({ ...p, teacher: ended }), true, "Start again");
-		assert.equal(panelStarts({ ...p, teacher: { ...ended, ended: null } }), false, "a live screen");
-		assert.equal(panelStarts({ ...p, teacher: ended, screen: "helper" }), false, "the helper's screen starts the helper");
-		assert.equal(panelStarts({ ...p, view: "activity" }), false, "the app's Activity has no start key");
-		assert.equal(panelStarts({ ...p, view: "activity", terminals: false }), true, "a browser's Activity with no agent");
-		assert.equal(panelStarts({ ...p, view: "activity", terminals: false, noAgent: false }), false);
-		assert.equal(shownScreen("helper", false), "teacher", "no helper: the teacher's screen");
-		assert.equal(shownScreen("helper", true), "helper");
+		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing: null, facts: null }), { status: "Ada is on", lit: false, working: false });
 	});
 	it("is the screen in the desktop app (Activity hangs from its key), Activity in a browser, lessons too", () => {
 		assert.equal(panelBody(true, false), "terminal");
@@ -221,7 +195,6 @@ describe("the teacher's Activity", () => {
 			recent={ACTIONS}
 			spaceNameOf={names}
 			feed={EMPTY}
-			waiting={null}
 			graph={null}
 			{...over}
 		/>
@@ -242,8 +215,6 @@ describe("the teacher's Activity", () => {
 		assert.equal(el.querySelector("[data-testid='activity-empty']")?.textContent, "Nothing yet. What Ada reads and builds shows here.");
 		act(() => root?.unmount());
 		assert.ok(mount(list()).querySelector("[data-testid='activity-empty']") === null);
-		act(() => root?.unmount());
-		assert.ok(mount(list({ recent: [], waiting: waitingNotice("Ada", false) })).querySelector("[data-testid='activity-empty']") === null, "the waiting line is something");
 	});
 	it("the open space's graph costs come last: who paid, each stage's tokens, the latest runs; never a dollar figure", () => {
 		const tokens = { inputTokens: 1500, outputTokens: 45, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 };
@@ -286,13 +257,12 @@ describe("the teacher's Activity", () => {
 		assert.doesNotMatch(rows[2]!.textContent ?? "", /times/);
 		assert.doesNotMatch(el.innerHTML, /border-/);
 	});
-	it("Running in the background sits above Recent, with failed jobs and the waiting line", () => {
+	it("Running in the background sits above Recent, with failed jobs", () => {
 		const failed = [{ id: "j1", kind: "pdf" as const, chatId: "c1", title: "06_Counting.pdf", error: "The PDF could not be read", at: "2026-10-28T16:00:00Z" }];
-		const html = renderToStaticMarkup(list({ feed: { ...EMPTY, failed }, waiting: waitingNotice("Ada", true) }));
+		const html = renderToStaticMarkup(list({ feed: { ...EMPTY, failed } }));
 		assert.match(html, /Running in the background/);
 		assert.match(html, /data-testid="activity-failed"/);
 		assert.match(html, /Failed: The PDF could not be read/);
-		assert.match(html, /data-testid="activity-waiting"[^>]*>Waiting for Ada\. Tell it to start teaching\.</);
 		assert.ok(html.indexOf("Running in the background") < html.indexOf(">Recent<"));
 	});
 	it("clicking a job opens its detail: what it is doing, cost, context and its lesson", () => {
@@ -321,7 +291,6 @@ describe("Follow in the panel's head", () => {
 		follow: true,
 		setFollow: () => {},
 		panelOpen: false,
-		panelStarts: false,
 		setPanelOpen: () => {},
 		showTerminal: () => {},
 		canAsk: false,
@@ -340,7 +309,7 @@ describe("Follow in the panel's head", () => {
 	const html = (over: Partial<TeacherApi>) =>
 		renderToStaticMarkup(
 			<TeacherContext.Provider value={api(over)}>
-				<PanelHead title={null} status="Idle" lit={false} working={false} list={{ open: false, onOpen: () => {} }} need={null} back={null} putBack={null} />
+				<PanelHead status="Idle" lit={false} working={false} list={{ open: false, onOpen: () => {} }} putBack={null} />
 			</TeacherContext.Provider>,
 		);
 	it("says Following while it is on, and Follow once stopped, working or not", () => {
@@ -352,8 +321,8 @@ describe("Follow in the panel's head", () => {
 describe("the teacher's earlier chats", () => {
 	const now = Date.now();
 	const chats = [
-		{ id: "0f8fad5b-d9cb-469f-a165-70867728950e", agent: "claude" as const, name: "Limits proof", lesson: "chat_limits", at: now - 2 * 3_600_000, open: true },
-		{ id: "7c9e6679-7425-40de-944b-e07fc1f90ae7", agent: "claude" as const, name: null, lesson: null, at: now - 5 * 60_000, open: false },
+		{ id: "0f8fad5b-d9cb-469f-a165-70867728950e", agent: "claude" as const, name: "Limits proof", at: now - 2 * 3_600_000, open: true },
+		{ id: "7c9e6679-7425-40de-944b-e07fc1f90ae7", agent: "claude" as const, name: null, at: now - 5 * 60_000, open: false },
 	];
 	const list = (over: Partial<React.ComponentProps<typeof TeacherChats>> = {}) => (
 		<TeacherChats chats={chats} choice="claude" onChoose={() => {}} onNew={() => {}} onResume={() => {}} busy={false} {...over} />

@@ -26,8 +26,7 @@ export type FileState =
 /**
  * A row's state from its pipeline status and coverage:
  * - extracting → "Building facts"
- * - pending study file → "Waiting" (a space-info file has nothing to do;
- *   the space's work frame says when the teacher is off)
+ * - pending study file → "Waiting" (a space-info file has nothing to do)
  * - failed → red label + Retry
  * - needs-whisper → "Needs a speech tool" + Retry, with the install command
  * - ready recording its lecture's transcript covers → "Uses its

@@ -7,7 +7,7 @@ type DeskStep = LessonWork["steps"][number];
 
 /** The lesson while the teacher works: the desk's sentence, rows and stack, the title echo and the landing. */
 
-const live = (over: Partial<LessonWork> = {}): LessonWork => ({ ...NO_LESSON_WORK, live: true, taken: true, cause: "first", ...over });
+const live = (over: Partial<LessonWork> = {}): LessonWork => ({ ...NO_LESSON_WORK, live: true, cause: "first", ...over });
 const step = (id: string, text: string, over: Partial<DeskStep> = {}): DeskStep => ({ id, at: "2026-11-23T22:20:33.000Z", text, call: null, reads: null, ...over });
 const file = (name: string, kind: DeskFile["kind"] = "pdf"): DeskFile => ({ name, path: `/files/${name}`, kind });
 const user = (text: string, extra: LhViewMessage["parts"] = []): LhViewMessage => ({ id: `u:${text}`, role: "user", parts: [{ type: "text", text }, ...extra] });
@@ -16,7 +16,7 @@ const card = (files: number): LhViewMessage => ({ id: "c", role: "user", parts: 
 
 describe("deskHead", () => {
 	it("says what the teacher does, by why the turn runs", () => {
-		const said = (cause: LessonWork["cause"]) => deskHead({ name: "Claude", waiting: false, work: live({ cause }) });
+		const said = (cause: LessonWork["cause"]) => deskHead("Claude", live({ cause }));
 		assert.equal(said("first"), "Claude is getting your first step ready.");
 		assert.equal(said("answer"), "Claude is reading your answer.");
 		assert.equal(said("problem"), "Claude is checking your work.");
@@ -27,10 +27,8 @@ describe("deskHead", () => {
 		assert.equal(said("open_problem"), "Claude is getting the problem ready.");
 	});
 
-	it("waits while no agent runs or none took the turn, and says nothing before the server's first word", () => {
-		assert.equal(deskHead({ name: "Claude", waiting: true, work: NO_LESSON_WORK }), "Waiting for Claude to start.");
-		assert.equal(deskHead({ name: "Claude", waiting: false, work: live({ taken: false }) }), "Waiting for Claude to start.");
-		assert.equal(deskHead({ name: "Claude", waiting: false, work: NO_LESSON_WORK }), null);
+	it("says nothing before the server's first word", () => {
+		assert.equal(deskHead("Claude", NO_LESSON_WORK), null);
 	});
 });
 

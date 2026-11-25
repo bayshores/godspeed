@@ -366,7 +366,7 @@ fn briefings_match_node() {
 		let mut all = parse(&std::fs::read_to_string(GOLDEN).unwrap()).unwrap();
 		let briefing = all.as_arr_mut().unwrap().iter_mut().find(|c| c["name"] == Json::from("briefing")).unwrap();
 		briefing.as_obj_mut().unwrap().insert("output", Json::Arr(written));
-		std::fs::write(GOLDEN, format!("{}\n", stringify_pretty(&all, "\t"))).unwrap();
+		gs_base::fsx::write_text_atomic(std::path::Path::new(GOLDEN), &format!("{}\n", stringify_pretty(&all, "\t"))).unwrap();
 	}
 }
 

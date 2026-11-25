@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { DEFAULT_TEACHER_NAME, type MockState, type MockView } from "@/shared/core";
-import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { useSpaceRecord } from "@/frontend/components/files/space-record";
@@ -73,7 +72,6 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 				<p className="text-[17px] text-ink-2">
 					{state === "writing" ? `${size}. ` : endedByTime(mock) ? <span data-testid="mock-time-up">The time is up. </span> : ""}This takes a few minutes. You can leave this page and come back.
 				</p>
-				<NoAgentLine />
 			</>
 		);
 	} else {
@@ -91,7 +89,6 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 						</Key>
 					)}
 				</div>
-				<NoAgentLine />
 			</div>
 		);
 	}

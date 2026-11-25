@@ -17,6 +17,7 @@ import { flushSync } from "react-dom";
 import { parseHTML } from "linkedom";
 import UpdateBanner from "../../src/frontend/components/update-banner.tsx";
 import { UpdateStateProvider, type UpdateState } from "../../src/frontend/components/settings/update-settings.tsx";
+import { AgentStatusContext, parseAgentStatus } from "../../src/frontend/components/agent-status.tsx";
 
 // linkedom as the DOM for the interactive pass (first createRoot test in
 // the repo — the banner's push→render→click flow needs real effects).
@@ -76,6 +77,39 @@ describe("update banner (Wave C)", () => {
 		assert.ok(button, "restart button exists");
 		button!.click();
 		assert.equal(installed, 1, "Restart asks the shell to quit-and-install");
+		root.unmount();
+		host.remove();
+	});
+
+	it("while a lesson's turn runs, Restart now asks first and installs nothing yet", async () => {
+		let pushed: ((s: UpdateState) => void) | null = null;
+		let installed = 0;
+		(window as { lh?: unknown }).lh = {
+			onUpdateStatus: (cb: (s: UpdateState) => void) => {
+				pushed = cb;
+				return () => {};
+			},
+			installUpdate: () => {
+				installed += 1;
+			},
+		};
+		const host = document.createElement("div");
+		document.body.appendChild(host);
+		const root = ReactDOMClient.createRoot(host);
+		const running = parseAgentStatus({ turnsRunning: 1 });
+		flushSync(() =>
+			root.render(
+				<AgentStatusContext.Provider value={running}>
+					<UpdateStateProvider>
+						<UpdateBanner />
+					</UpdateStateProvider>
+				</AgentStatusContext.Provider>,
+			),
+		);
+		await new Promise((r) => setTimeout(r, 0));
+		flushSync(() => pushed?.({ status: "downloaded", version: "0.3.1", revision: 1 }));
+		flushSync(() => host.querySelector<HTMLButtonElement>("[data-testid='update-restart-now']")!.click());
+		assert.equal(installed, 0, "it asks before it restarts");
 		root.unmount();
 		host.remove();
 	});

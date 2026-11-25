@@ -13,6 +13,7 @@ Read only the files your task touches. A "§N" in any doc is the file that start
 | [05-one-chat-turn.md](05-one-chat-turn.md) | You change a chat turn, question tools, side questions, attachments, the plan tree, jobs, compaction or the wake pipeline (§5.1). |
 | [05.2-the-lesson-page.md](05.2-the-lesson-page.md) | You change the lesson page's layout: the step line, the lesson text, the turn beside the text or under it, the pinned problem, the writing row, where the page rests. |
 | [05.3-the-agent-session.md](05.3-the-agent-session.md) | You change how a lesson's turn runs on the learner's agent: its session, what each turn sends, rollover, the reply checks, Stop, permission questions. |
+| [05.4-background-jobs.md](05.4-background-jobs.md) | You change how a background job runs on the learner's agent: its one-off session, the agent it runs on, the pool, a job's permission questions, the catch-up. |
 | [06-the-knowledge-graph.md](06-the-knowledge-graph.md) | You change extraction, merging, the graph read side or the Graph page. |
 | [06.1-spaces.md](06.1-spaces.md) | You change spaces, linked folders, deadlines, deadline requests, space checks or picking files on the Files page. |
 | [06.2-interviews-and-mocks.md](06.2-interviews-and-mocks.md) | You change interview, online assessment or test prep. |
@@ -27,12 +28,11 @@ Read only the files your task touches. A "§N" in any doc is the file that start
 | [07.2-lessons-on-files-and-homework.md](07.2-lessons-on-files-and-homework.md) | You change a lesson on files, the Document panel or homework sessions. |
 | [07.3-plots.md](07.3-plots.md) | You change the plot the teacher draws in a multiple-choice lesson. |
 | [08-process-boundaries.md](08-process-boundaries.md) | You need the shell and server split before reading 8.1 to 8.2. |
-| [08.1-the-outside-agent-boundary.md](08.1-the-outside-agent-boundary.md) | You change agent access, when an agent counts as connected or teaching. |
+| [08.1-the-outside-agent-boundary.md](08.1-the-outside-agent-boundary.md) | You change agent access, or when an agent counts as connected. |
 | [08.1.1-the-godspeed-folder.md](08.1.1-the-godspeed-folder.md) | You change the godspeed folder, the spaces folder or the agent start script. |
-| [08.1.2-the-work-loop.md](08.1.2-the-work-loop.md) | You change the work loop, the helper or work items. |
+| [08.1.2-the-teachers-round-and-the-strip.md](08.1.2-the-teachers-round-and-the-strip.md) | You change what opens when the teacher in the terminal starts or opens something, the teacher's round of work, or the strip down the window's right edge. |
 | [08.1.3-agent-tools-and-notes.md](08.1.3-agent-tools-and-notes.md) | You change the other agent tools, agent notes, saved rules or web search. |
 | [08.1.4-claude-codes-start.md](08.1.4-claude-codes-start.md) | You change the arguments, settings or flags every Claude Code start passes. |
-| [08.1.5-claude-codes-wake.md](08.1.5-claude-codes-wake.md) | You change how the waiter hook wakes a Claude Code session when work arrives. |
 | [08.1.6-vault-notes.md](08.1.6-vault-notes.md) | You change the notes folder, Obsidian notes, `write_vault_note`, `search_vault` or the pass that sends them. |
 | [08.1.7-follows-slip.md](08.1.7-follows-slip.md) | You change Follow's slip at the page's foot, the teacher's timeline, or the marks on what it changed. |
 | [08.2-plugins.md](08.2-plugins.md) | You change how the app hosts a plugin. Writing one is in [plugins/README.md](../plugins/README.md). |

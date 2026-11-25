@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import type { FileCoverage, GraphContextPick, TopicProgress } from "@/shared/core";
 import { useMinute } from "@/frontend/components/countdown";
 import { spaceColorVar } from "@/frontend/components/space-color";
-import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useWaited } from "@/frontend/components/loading";
 import { useProgress } from "@/frontend/components/use-progress";
@@ -87,14 +86,11 @@ export function NewLesson() {
 							onClearPicks={() => setPicks([])}
 							attachments={attachments}
 						/>
-						<div className="flex flex-col gap-3.5 empty:hidden">
-							<NoAgentLine />
-							{lesson.error && (
-								<p role="alert" data-testid="lesson-start-error" className="text-[15px] text-ans-wrong">
-									{lesson.error}
-								</p>
-							)}
-						</div>
+						{lesson.error && (
+							<p role="alert" data-testid="lesson-start-error" className="text-[15px] text-ans-wrong">
+								{lesson.error}
+							</p>
+						)}
 						{nowMs !== null && deadlines.length > 0 && (
 							<div className="flex flex-col @[1100px]/page:col-start-2 @[1100px]/page:row-span-3 @[1100px]/page:row-start-1 @[1100px]/page:self-stretch">
 								<DeadlineRows deadlines={deadlines} color={activeSpace ? spaceColorVar(activeSpace.color) : "var(--border)"} nowMs={nowMs} busyOn={lesson.busyOn} onStudy={(d) => void studyDeadline(d)} onWork={(d) => void workOnHomework(d)} />

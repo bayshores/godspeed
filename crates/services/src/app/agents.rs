@@ -22,8 +22,6 @@ pub struct AgentsState {
 	#[cfg(not(any(test, feature = "stand-in")))]
 	env: Arc<AgentEnv>,
 	runtime: Mutex<Option<Made>>,
-	/// Told when the learner picks an agent: jobs wait for one.
-	pub(crate) picked: tokio::sync::Notify,
 }
 
 /// The runtime of the agent picked now. A new pick or start command makes a new one; a session
@@ -57,17 +55,11 @@ fn start(_app: &App, _agent: FolderAgent, _own: Option<String>) -> Runtime {
 	gs_runtime::fake::FakeAgent::default().runtime()
 }
 
-/// Lessons run on `runtime` (a stand-in agent) while the agent and start command stay as they are.
+/// Lessons and jobs run on `runtime` (a stand-in agent) while the agent and start command stay as
+/// they are.
 #[cfg(any(test, feature = "stand-in"))]
 pub fn use_runtime(app: &App, runtime: Runtime) {
 	let agent = runtime.agent();
 	*app.agents.runtime.lock() = Some((agent, start_command(app, agent), Arc::new(runtime)));
 }
 
-/// The learner picked the stand-in's agent, so jobs run too, and lessons and jobs run on it.
-#[cfg(any(test, feature = "stand-in"))]
-pub fn pick_stand_in(app: &Arc<App>, runtime: Runtime) {
-	let agent = runtime.agent();
-	use_runtime(app, runtime);
-	super::agent_folder::set_folder_agent(app, agent).expect("the agent folder state is writable");
-}

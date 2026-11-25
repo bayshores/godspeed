@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import type { UpdateState } from "@/frontend/components/settings/update-settings.tsx";
 import type { FolderAgent } from "@/shared/core";
-import type { TerminalRecord, TerminalRole } from "@/frontend/components/terminal/terminal-model";
+import type { TerminalRecord } from "@/frontend/components/terminal/terminal-model";
 import { useZoom } from "@/frontend/components/use-zoom";
 
 declare global {
@@ -22,7 +22,7 @@ declare global {
 			terminals?: {
 				/** Resolves to the new terminal's id; rejects with a sentence saying why it couldn't start.
 				 *  `resume`: the teacher's chat (a session id) to go back to. */
-				start: (role: TerminalRole, agent: FolderAgent, resume?: string) => Promise<{ id: string }>;
+				start: (agent: FolderAgent, resume?: string) => Promise<{ id: string }>;
 				/** Pushes the screen as it is, then its live output, until detach. */
 				attach: (id: string) => Promise<void>;
 				detach: (id: string) => Promise<void>;

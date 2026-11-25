@@ -1,11 +1,11 @@
 ## Terminals
 
-The learner's agents (Claude Code or Codex) run in terminals the shell owns and shows in the window. `crates/shell/src/terminal/` keeps them in memory only: at most one live record per role (teacher, helper), each with a 32-hex id. An ended record keeps its screen until the next start for its role.
+The learner's agents (Claude Code or Codex) run in terminals the shell owns and shows in the window. `crates/shell/src/terminal/` keeps them in memory only: at most one live record, the teacher's, with a 32-hex id. An ended record keeps its screen until the next start.
 
 ### Starting one
 
-1. The page names a role and an agent, and for the teacher maybe an earlier chat to go back to. The shell asks the server for the godspeed folder (`agent_folder`) and builds the rest, so the page never names a program, argument or folder. The chat must be a UUID (`gs_base::ids::is_uuid`); the script passes it on, unquoted on Windows.
-2. The script must be `<folder>/.godspeed/start-<agent>[-helper].<command|cmd|sh>`, written by the server: a plain file in a plain `.godspeed` folder, neither a link. A link, a missing script or a folder not set up answers "The godspeed folder isn't set up yet."
+1. The page names an agent, and maybe an earlier chat to go back to. The shell asks the server for the godspeed folder (`agent_folder`) and builds the rest, so the page never names a program, argument or folder. The chat must be a UUID (`gs_base::ids::is_uuid`); the script passes it on, unquoted on Windows.
+2. The script must be `<folder>/.godspeed/start-<agent>.<command|cmd|sh>`, written by the server: a plain file in a plain `.godspeed` folder, neither a link. A link, a missing script or a folder not set up answers "The godspeed folder isn't set up yet."
 3. It runs through the learner's login shell, as Terminal does with a `.command` file, so PATH from `.zprofile` and `.zshrc` both count: `<shell> -l -i -c 'exec "$0"' <script>`. `<shell>` is `$SHELL` when zsh, bash, sh, dash or ksh, else `/bin/zsh` (Mac) or `/bin/bash` (Linux). Windows runs `%ComSpec% /d /c .godspeed\<script name>` in the folder: portable-pty quotes only spaces, and cmd would split a full path at `&`, `(`, `)` or `^`.
 4. `portable-pty` opens an 80 × 30 pseudo-terminal (ConPTY on Windows). The page showing it then sizes it to its screen (`terminal_resize`): the pseudo-terminal and the shell's `vt100` screen resize together, and the agent redraws.
 
@@ -31,7 +31,7 @@ A terminal is attached to at most one window, by label: `main`, or `terminal` (t
 | A window destroyed | Every terminal it showed is detached (`Terminals::window_closed`), so nothing is sent to it and no window may type until one attaches. |
 | Resize, answer, stop, list | Not tied to a window. |
 
-While the terminal window is open the main page mounts no view of the teacher's terminal (`TerminalsApi.popped`, [the terminal window](the-main-window.md#the-terminal-window)), so the two windows never fight over its output. Background work's terminal stays in the main window.
+While the terminal window is open the main page mounts no view of the teacher's terminal (`TerminalsApi.popped`, [the terminal window](the-main-window.md#the-terminal-window)), so the two windows never fight over its output.
 
 The shell's `Outlet::push` takes a `To`: `To::Window(label)` for output and snapshots, `To::All` for state.
 
@@ -44,8 +44,7 @@ Four threads per terminal: output, input, exit, and a clock that sleeps until it
 - **Typing** (`write`, `paste`, `send`) is refused unless that terminal is attached to the calling window and that window has focus. Paste drops escape characters and is bracketed when the program asked for bracketed paste. When the learner presses Enter on its own (not with Alt or Shift, not in a paste) while the shell sees no question on screen, the server hears `typed`. The trust and Enter buttons write through `answer`, so never count.
 - **Attach** (`add_file`) takes only the teacher's terminal attached to the calling window, but not focus: a file dropped from Finder arrives while Finder still has it. Safe, because it types only a path the shell saved itself and refuses a path with a line break. It runs off the main thread, refuses a file over 20 MB from the base64 text's length before decoding, checks the first bytes (PNG, JPEG, GIF, WebP, PDF), writes `<folder>/.godspeed/attachments/<first 12 hex of the SHA-256>-<name>` (the name's last part, characters other than letters, digits, `.`, `-` and `_` as `_`), and types the path as a Finder drag does (a backslash before a space or a character a shell reads; on Windows in quotes when it has a space) and a space, bracketed when the program asked, no Enter. Right before typing it looks again: a terminal hidden or ended while the file was saved gets nothing, and a copy this attach made is removed.
 - **Clear line** (`clear_line`, Claude Code's teacher only): a line the learner typed that went to a lesson or cheat sheet page. For up to 3 s the shell waits for the input box to show that line, then deletes it (`clear_input`).
-- **Nudge** (`nudge`, teacher only): the server's line for a quiet teacher. Each second for a minute, while no question shows, the shell types it, reads the input box back after 300 ms, and sends Enter only when the box holds exactly that line; otherwise it deletes what it typed. It never counts as `typed`.
-- **Send** (`send`, teacher only): a line from the "Try asking" row or the list of everything the teacher can do. Refused while a question shows, for a line with a control character, and for an ended terminal. The shell types the line once the way Nudge does (read back after 300 ms, Enter only when the input holds exactly that line, else deleted again, so it never sends what the learner had typed there) and answers "Clear what you typed in the terminal, then try again." when it did not send. A sent line counts as `typed`, as the learner's own Enter does.
+- **Send** (`send`, teacher only): a line from the "Try asking" row or the list of everything the teacher can do. Refused while a question shows, for a line with a control character, and for an ended terminal. The shell types the line once, reads the input box back after 300 ms and sends Enter only when it holds exactly that line, else deletes it again, so it never sends what the learner had typed there, and answers "Clear what you typed in the terminal, then try again." when it did not send. A sent line counts as `typed`, as the learner's own Enter does.
 - **The clock** sends waiting output and pushes `terminal-state` when the recognised question or the web address on screen changes. It wakes only for output to send or a question reaching its 2 s, else sleeps until output comes or the terminal ends.
 
 ### What the shell recognises
@@ -62,11 +61,11 @@ A question counts once unchanged for 2 s. `url` is true while the screen shows a
 
 ### The panel opens and closes by itself
 
-`teacher/panel-auto-model.ts` decides, `teacher/use-teacher-panel.ts` applies it. A need is `needsYou` for the teacher's or background work's terminal.
+`teacher/panel-auto-model.ts` decides, `teacher/use-teacher-panel.ts` applies it. A need is `needsYou` for the teacher's terminal.
 
 | Rule | What happens |
 |---|---|
-| A need arises (none before) while the panel is closed | The panel opens on that terminal's screen without taking the keyboard. A need already there when the learner closed the panel does not reopen it. |
+| A need arises (none before) while the panel is closed | The panel opens on the teacher's screen without taking the keyboard. A need already there when the learner closed the panel does not reopen it. |
 | The learner is writing | A key in a writing box (text box, text field or editable element, not the terminal's screen) in the last 3 s holds the opening back until 3 s after the last key, if the need and the closed panel are still there. |
 | The need is settled | The panel closes, but only one that opened by itself and that the learner has not opened since. |
 | A lesson reply starts (the open lesson's `working` goes from false to true) with no need present | The panel closes, whoever opened it. A lesson already working when it first reports is no change. |
@@ -80,11 +79,10 @@ Size and dock are untouched, and the first terminal list after a reload is a sta
 |---|---|
 | Stop | Record marked stopping; the server hears the new live set at once. Mac and Linux send SIGHUP to the script's process group (`portable-pty` makes it a session leader, `rustix` sends the signal), then SIGKILL 2 s later; Windows ends the Job Object. |
 | The script exits | `ended` is `{stopped: false, code}`; whatever it left running is hung up and killed the same way. Exit 3 means agent not found, 4 Node.js missing, 6 Claude Code older than 2.1.330 (the window says it needs an update). A failed exit whose screen says "No conversation found with session ID" (Claude Code) or "No saved session found" (Codex) becomes 5: the chat to go back to is gone. |
-| The teacher ends | However it ended (Stop, exit, crash), the shell stops the helper as above. The page may be gone by then, so it doesn't do this itself. |
 | Quit | `quit.rs` stops every terminal before the server: all hang up at once (one already stopping too), and after 2 s every group is killed, also what a script that ended in the last 2 s left. A group is signalled no more once killed, since its pid may then belong to another program. |
 | Server crash | Terminals live on. The restarted server gets `LH_TERMINALS`, and the reloaded page calls `terminal_list`. |
 | A child that left the group | It still sends the ended id, so the server refuses it. On Windows the job holds it unless it breaks away. |
 
 The Job Object has kill-on-close and takes the script right after it starts, so closing the app kills the tree too.
 
-Server side: `refuse()` in `crates/server/src/mcp/mod.rs` answers 403 `{"error": "This terminal was closed in godspeed."}` to a request whose terminal id is not live (no header means an agent outside the app). `Bridge::set_live_terminals` wakes every waiter, a wait of an ended terminal ends with the same error, and items that terminal claimed go back at once instead of after the 10 minute hold. After `typed` (`Bridge::typed`, live terminals only), that terminal's wait, or its next one within 2 minutes, ends at once and claims nothing. When that wait is the teacher terminal's, the agent counts as teaching for 3 minutes ([architecture/08.1.2-the-work-loop.md](../architecture/08.1.2-the-work-loop.md#the-work-loop)).
+Server side: `refuse()` in `crates/server/src/mcp/mod.rs` answers 403 `{"error": "This terminal was closed in godspeed."}` to a request whose terminal id is not live (no header means an agent outside the app). `TerminalState::set_live_terminals` (`services::app::terminal_state`) forgets what it kept for an ended terminal, and an ended teacher terminal's round of work ends with it ([the teacher's round](../architecture/08.1.2-the-teachers-round-and-the-strip.md#the-teachers-round-of-work)).

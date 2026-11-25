@@ -303,7 +303,7 @@ mod tests {
 	use gs_runtime::fake::{FakeAgent, FakeStep};
 
 	use super::*;
-	use crate::app::agents::pick_stand_in;
+	use crate::app::agents::use_runtime;
 	use crate::app::test_support::{scratch_dir, test_app};
 	use crate::spaces::{add_copied_file, add_file_from_path, set_file_kind, write_agent_file};
 
@@ -357,7 +357,7 @@ mod tests {
 			agent.push(submit(json!({ "propositions": [], "chains": [], "reteaches": [] })));
 			agent.push_for(ASKS_IF_LOGISTICS, submit(json!({ "propositions": [], "chains": [], "reteaches": [], "spaceInfo": true })));
 		}
-		pick_stand_in(app, agent.runtime());
+		use_runtime(app, agent.runtime());
 		agent
 	}
 

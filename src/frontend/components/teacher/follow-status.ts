@@ -2,9 +2,9 @@
  * What the agent is doing right now, as one line: the Follow chip and the
  * panel's Activity tab show it. Pure.
  *
- * In order: its round of work while it lasts, whether it is teaching at
- * all, the lesson on screen, a file or lesson it is reading for facts, a
- * background job, other work, idle. No agent connected: nothing.
+ * In order: its round of work while it lasts, the lesson on screen, a file
+ * or lesson it is reading for facts, a background job, a lesson turn
+ * elsewhere, idle. Nothing before the first read of the agent.
  */
 import type { JobKind } from "@/shared/core";
 
@@ -27,7 +27,7 @@ interface Extraction {
 }
 
 interface DoingInputs {
-	agent: { connected: boolean; teaching: boolean; helperHere: boolean; pendingWork: number; pendingTurns: number } | null;
+	agent: { turnsRunning: number } | null;
 	/** What the teacher's live round says it does (its newest step or change, or "Working"); null with no live round. */
 	round: string | null;
 	/** The lesson on screen, if one is. */
@@ -65,16 +65,13 @@ function readingLine(run: Extraction): Omit<AgentDoing, "working"> {
 
 export function agentDoing(i: DoingInputs): AgentDoing | null {
 	const agent = i.agent;
-	if (!agent || !(agent.connected || agent.teaching)) return null;
+	if (!agent) return null;
 	if (i.round) return { text: i.round, working: true };
-	// Connected but not running the work loop: queued work isn't being done.
-	if (!agent.teaching) return { text: "Not teaching yet", working: false };
 	// The lesson's desk says what the teacher does there, so the line says it once.
 	if (i.lesson?.working) return { text: "Working", working: true };
-	// A helper does the background work, so the teacher's line leaves it out.
-	const background = agent.helperHere ? null : backgroundLine(i.extractions, i.jobs);
+	const background = backgroundLine(i.extractions, i.jobs);
 	if (background) return { ...background, working: true };
-	if ((agent.helperHere ? agent.pendingTurns : agent.pendingWork) > 0) return { text: "Working", working: true };
+	if (agent.turnsRunning > 0) return { text: "Working", working: true };
 	return { text: "Idle", working: false };
 }
 

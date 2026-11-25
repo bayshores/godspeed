@@ -235,7 +235,7 @@ mod tests {
 	use gs_runtime::fake::{FakeAgent, FakeStep};
 
 	use super::*;
-	use crate::app::agents::pick_stand_in;
+	use crate::app::agents::use_runtime;
 	use crate::app::test_support::{scratch_dir, test_app};
 	use crate::turns::turn_liveness::{begin_turn, end_turn};
 
@@ -271,7 +271,7 @@ mod tests {
 	/// The learner's agent, writing `summaries` one turn each.
 	fn summarizer(app: &Arc<App>, summaries: &[&str]) {
 		let turns = summaries.iter().map(|summary| vec![FakeStep::Usage(Usage { input: 9_000, cached: 0, output: 200 }), FakeStep::Text((*summary).to_owned())]);
-		pick_stand_in(app, FakeAgent::new(turns.collect()).runtime());
+		use_runtime(app, FakeAgent::new(turns.collect()).runtime());
 	}
 
 	fn markers(app: &App, chat_id: &str) -> Vec<Json> {
@@ -430,7 +430,7 @@ mod tests {
 		let chat_id = over_threshold_chat(&app);
 		let fails = vec![FakeStep::Fail("overloaded".to_owned())];
 		let empty = vec![FakeStep::Text("  ".to_owned())];
-		pick_stand_in(&app, FakeAgent::new(vec![fails, empty]).runtime());
+		use_runtime(&app, FakeAgent::new(vec![fails, empty]).runtime());
 		let deps = deps(40_000.0);
 		ensure_compacted(&app, &deps, &chat_id);
 		refine(&app, &deps, &chat_id).await;

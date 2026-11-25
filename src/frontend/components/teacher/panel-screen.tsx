@@ -2,7 +2,7 @@ import { useLocation } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useTeacher } from "./teacher-context";
 import { everything, startersFor } from "@/frontend/components/terminal/starter-model";
-import { terminalFooter, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
+import { terminalFooter } from "@/frontend/components/terminal/terminal-model";
 import { TerminalPane } from "@/frontend/components/terminal/terminal-pane";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
@@ -11,20 +11,19 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { StartTeacher } from "./start-teacher";
 
 /**
- * The panel's screen: the agent's live screen (the teacher's, or
- * background work's while it needs the learner) with its sentence and
- * buttons under it (the teacher's has Pop out too), and what the teacher can be asked on the page on screen. Before
+ * The panel's screen: the teacher's live screen with its sentence and
+ * buttons under it (Pop out too), and what the teacher can be asked on the page on screen. Before
  * godspeed has started an agent: what shows here and the start buttons,
  * or where an agent started outside godspeed shows its screen.
  */
-export function PanelScreen({ name, role, focus }: { name: string; role: TerminalRole; focus: boolean }) {
+export function PanelScreen({ name, focus }: { name: string; focus: boolean }) {
 	const api = useTerminals();
 	const teacher = useTeacher();
 	const { pathname } = useLocation();
 	const { spaces, activeSpace } = useSpaces();
 	const { deadlines, gaps } = useOpenDeadlines();
 	const { status: vault } = useVault();
-	const facts = api?.facts[role] ?? null;
+	const facts = api?.facts ?? null;
 	if (!api) return null;
 	if (!facts)
 		return (
@@ -48,13 +47,12 @@ export function PanelScreen({ name, role, focus }: { name: string; role: Termina
 	return (
 		<TerminalPane
 			api={api}
-			role={role}
 			name={name}
 			foot={terminalFooter(facts, name, true)}
 			focusOnOpen={focus}
-			ideas={role === "teacher" ? { starters: startersFor(ideaFacts), everything: everything(ideaFacts) } : null}
-			popOut={role === "teacher" ? api.popOut : null}
-			ask={role === "teacher" ? (teacher?.asking ?? null) : null}
+			ideas={{ starters: startersFor(ideaFacts), everything: everything(ideaFacts) }}
+			popOut={api.popOut}
+			ask={teacher?.asking ?? null}
 		/>
 	);
 }

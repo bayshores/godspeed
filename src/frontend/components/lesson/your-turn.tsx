@@ -19,7 +19,6 @@ import { TurnScroll } from "./turn-scroll";
 import { TurnPlaceContext, TurnSlotsContext } from "./turn-place";
 import { TurnSwap } from "./turn-swap";
 import { AnsweredTurn } from "./answered-turn";
-import { StartKey } from "./start-key";
 import type { NextAction, TurnShown } from "./turn-next-model";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
@@ -57,8 +56,6 @@ export interface YourTurnProps {
 	busy: boolean;
 	/** Stops the running turn; null with none running, and while the teacher reads ahead at a stop, which is not stopped. */
 	onStop: (() => void) | null;
-	/** No agent runs the turn yet: the key that turns the teacher on may show. */
-	waitingForAgent: boolean;
 	/** The answer box's text. */
 	value: string;
 	onChange: (v: string) => void;
@@ -69,8 +66,6 @@ export interface YourTurnProps {
 	attachments: AttachmentDraft;
 	/** The waiting question, for the lesson to read what is picked so far. */
 	questionRef: RefObject<QuestionHandle | null>;
-	/** An agent took the turn and went quiet: stop it and run it again. */
-	stuck: { minutes: number; label: string; onStop: () => void } | null;
 	/** The last send or reply failed. */
 	error: { text: string; detail: string; onRetry: () => void } | null;
 	/** Answers the "My words" ask at the last topic: with words, or by skipping it. */
@@ -123,14 +118,12 @@ export function YourTurn({
 	onNext,
 	busy,
 	onStop,
-	waitingForAgent,
 	value,
 	onChange,
 	onSend,
 	onHelpLine,
 	attachments,
 	questionRef,
-	stuck,
 	error,
 	onAnswerAsk,
 	askError,
@@ -305,14 +298,6 @@ export function YourTurn({
 
 	const row = (
 		<div data-testid="turn-row" {...stood} className={cn("lh-turn-row flex min-w-0 shrink-0 flex-col gap-3", stand)}>
-			{stuck && (
-				<div data-testid="turn-stuck" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-highlight px-4 py-3 text-base text-ink">
-					{teacher} took this {stuck.minutes} minutes ago and hasn't answered.
-					<button type="button" data-testid="turn-stuck-stop" onClick={stuck.onStop} className="lh-btn lh-btn-small shrink-0">
-						{stuck.label}
-					</button>
-				</div>
-			)}
 			{error && (
 				<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well px-4 py-3 text-base">
 					<span data-testid="lesson-error" title={error.detail} className="text-ans-wrong">
@@ -361,7 +346,6 @@ export function YourTurn({
 				// With a "My words" ask, the key that ends the day sits among the box's own keys.
 				end={
 					<>
-						{onStop && waitingForAgent && <StartKey />}
 						{onStop && (
 							<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet shrink-0">
 								Stop

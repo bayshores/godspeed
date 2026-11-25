@@ -7,6 +7,7 @@ use gs_base::clock;
 use gs_core::messages::input_events::{ChatInput, TurnInput};
 use gs_core::messages::native_messages::new_user_steer;
 use gs_core::messages::role::Role;
+use gs_core::spaces::file_state::FileKind;
 use gs_core::spaces::today_note::local_day;
 use gs_core::study::reply_nudges::{LAST_REPLY_LEAD, Nudge, curve_refusal};
 use gs_json::{Json, json};
@@ -24,6 +25,7 @@ use crate::app::agent_folder::set_folder_agent;
 use crate::app::agents::use_runtime;
 use crate::app::test_support::{Scratch, scratch_dir, test_app};
 use crate::jobs::steer_live_chat;
+use crate::spaces::write_agent_file;
 
 const CURVE: &str = "| lambda | error |\n|---|---|\n| 0.1 | 9 |\n| 1 | 4 |\n| 10 | 6 |";
 const QUESTIONS: &str = "1. What is the score?\n2. Which lambda wins?";
@@ -56,6 +58,11 @@ fn lesson(label: &str, kind: Option<&str>, turns: Vec<Vec<FakeStep>>) -> Lesson 
 fn lesson_on(label: &str, kind: Option<&str>, turns: Vec<Vec<FakeStep>>, runtime: fn(&FakeAgent) -> Runtime) -> Lesson {
 	let root = scratch_dir(label);
 	let app = test_app(&root);
+	lesson_in(app, root, kind, turns, runtime)
+}
+
+/// A lesson of `kind` in `app` whose agent plays `turns` on the runtime `runtime` makes.
+fn lesson_in(app: Arc<App>, root: Scratch, kind: Option<&str>, turns: Vec<Vec<FakeStep>>, runtime: fn(&FakeAgent) -> Runtime) -> Lesson {
 	let agent = FakeAgent::new(turns);
 	// The lesson runs on the agent the learner picked, so the pick matches the stand-in.
 	let runtime = runtime(&agent);
@@ -145,9 +152,10 @@ async fn a_question_ends_the_turn_and_the_next_turn_goes_on_with_what_is_new() {
 	assert_eq!(fx.replies(), ["One check first.", "Unions, then."]);
 }
 
-/// A figure the teacher draws is stored with its svg, which the lesson shows, and ends the turn.
+/// A figure the teacher draws is stored with its svg, which the lesson shows, its render goes back
+/// to the lesson's session as an image in the tool's result, and it ends the turn.
 #[tokio::test(flavor = "multi_thread")]
-async fn a_drawn_figure_is_stored_with_its_svg_and_ends_the_turn() {
+async fn a_drawn_figure_is_stored_with_its_svg_its_render_goes_back_as_an_image_and_it_ends_the_turn() {
 	let svg = r#"<svg viewBox="0 0 100 40"><line x1="10" y1="20" x2="90" y2="20" stroke="var(--ink)" stroke-width="2"/></svg>"#;
 	let fx = lesson("session-figure", Some("study"), vec![vec![text("Here it is."), tool("visual", json!({ "svg": svg })), text("never played")]]);
 	fx.say("Draw the number line").await;
@@ -156,6 +164,10 @@ async fn a_drawn_figure_is_stored_with_its_svg_and_ends_the_turn() {
 	let result = fx.messages().into_iter().find(|m| Role::ToolResult.is(m) && m["toolName"].as_str() == Some("visual")).expect("the figure's result is stored");
 	assert_eq!(result["isError"], json!(false), "{result:?}");
 	assert!(result["details"]["svg"].str_or_empty().starts_with("<svg"), "{result:?}");
+	let reply = fx.sent("tool_result").pop().expect("the figure's result went back to the agent");
+	let image = &reply["content"][1];
+	assert_eq!((image["type"].as_str(), image["mimeType"].as_str(), reply["endTurn"].as_bool()), (Some("image"), Some("image/png"), Some(true)), "{reply:?}");
+	assert!(!image["data"].str_or_empty().is_empty());
 }
 
 /// A homework lesson's turns end with the time now and the time due on the day it is due, after
@@ -197,6 +209,69 @@ async fn an_allowed_permission_question_lets_the_turn_go_on() {
 	fx.settled().await;
 	assert_eq!(fx.replies(), ["Listed."]);
 	assert_eq!(fx.sent("approval")[0]["allow"], json!(true));
+}
+
+/// A lesson's turn and a file's reading run at once on the picked agent, each in a session of its
+/// own playing its own script: the reading is done while the lesson waits on the learner.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_lesson_and_a_reading_run_together_each_in_a_session_of_its_own() {
+	let fx = lesson("session-with-job", None, vec![vec![bash(), text("Listed.")]]);
+	let reading = "You are the extraction stage of a learning app.";
+	fx.agent.push_for(reading, vec![tool("submit_findings", json!({ "propositions": [], "chains": [], "reteaches": [] }))]);
+	fx.say("Look at my folder").await;
+	let id = fx.approval().await;
+
+	let space = fx.app.stores.spaces.create_space(&json!({ "name": "Biology" })).unwrap()["id"].str_or_empty().to_owned();
+	let file = write_agent_file(&fx.app, &space, "Study guide.md", b"Mitosis has four phases.", FileKind::Study).unwrap().0["id"].str_or_empty().to_owned();
+	let status = || fx.app.stores.spaces.get_space(&space).unwrap()["files"].items().iter().find(|f| f["id"].as_str() == Some(file.as_str())).unwrap()["status"].clone();
+	for _ in 0..500 {
+		if status() == json!("ready") {
+			break;
+		}
+		clock::sleep(10).await;
+	}
+	assert_eq!(status(), json!("ready"));
+	assert!(is_turn_running(&fx.app, &fx.chat_id), "the lesson still waits on its question");
+
+	assert!(answer_approval(&fx.app, &fx.chat_id, &id, true));
+	fx.settled().await;
+	assert_eq!(fx.replies(), ["Listed."]);
+	let opened = fx.sent("open");
+	assert_eq!(opened.len(), 2, "{opened:?}");
+	assert_eq!(opened.iter().filter(|m| m["systemPrompt"].str_or_empty().starts_with(reading)).count(), 1, "one session reads, the other teaches");
+}
+
+/// The PDF reader a lesson sends out reads in a session of its own, and what it reads shows as a
+/// step on the lesson's desk at its page while the lesson's turn lasts. It needs pdfium.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_pdf_reader_s_lines_are_steps_on_the_lesson_s_desk() {
+	let Some(pdfium) = gs_pdf::test_support::pdfium_dir() else { return };
+	let root = scratch_dir("session-pdf-steps");
+	for name in ["data", "home", "tmp"] {
+		std::fs::create_dir_all(root.join(name)).unwrap();
+	}
+	let app = App::new(gs_base::config::Paths::new(root.join("data"), root.join("home"), root.join("tmp"), pdfium), None);
+	let pdf = root.join("lines.pdf");
+	std::fs::copy(concat!(env!("CARGO_MANIFEST_DIR"), "/../pdf/tests/fixtures/lines.pdf"), &pdf).unwrap();
+	let path = pdf.to_string_lossy().into_owned();
+	let fx = lesson_in(app, root, None, vec![vec![tool("pdf", json!({ "path": path, "question": "What is on page 2?" })), bash(), text("Listed.")]], FakeAgent::runtime);
+	fx.agent.push_for("You are a PDF reading specialist", vec![tool("pdf_extract", json!({ "pages": "2" })), text("Page 2 lists lines (p. 2).")]);
+	fx.say("Read my PDF").await;
+	let id = fx.approval().await;
+
+	let step = || lesson_work(&fx.app, &fx.chat_id).unwrap()["steps"].items().iter().find(|s| s["text"].as_str() == Some("Reading page 2 of lines.pdf")).cloned();
+	for _ in 0..500 {
+		if step().is_some() {
+			break;
+		}
+		clock::sleep(10).await;
+	}
+	let step = step().expect("the reader's line is a step on the desk");
+	assert_eq!(step["reads"], json!({ "name": "lines.pdf", "path": path, "kind": "pdf", "from": null, "to": null, "page": 2 }));
+	assert!(answer_approval(&fx.app, &fx.chat_id, &id, true));
+	fx.settled().await;
+	let opened = fx.sent("open");
+	assert!(opened.iter().any(|m| m["systemPrompt"].str_or_empty().starts_with("You are a PDF reading specialist")), "the reader has a session of its own");
 }
 
 #[tokio::test(flavor = "multi_thread")]

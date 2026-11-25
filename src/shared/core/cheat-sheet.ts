@@ -8,6 +8,7 @@
  * always hold for it). Pure and browser-safe.
  */
 import type { DeadlineKind } from "./contracts.ts";
+import type { WorkApproval } from "./contracts/lesson-work.ts";
 
 // ─── the record ─────────────────────────────────────────────────────────────
 
@@ -166,6 +167,8 @@ export interface CheatSheetView {
 	sheet: CheatSheet;
 	/** The message the agent is answering. */
 	running: { messageId: string } | null;
+	/** What the agent waits for the learner to allow while it answers, oldest first. */
+	approvals: WorkApproval[];
 	/** The message the last request failed on and why (Try again sends it again). */
 	error: { messageId: string; text: string } | null;
 	/** A newer godspeed saved it: shown, never changed. */

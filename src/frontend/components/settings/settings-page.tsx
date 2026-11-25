@@ -20,8 +20,7 @@ import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/frontend/components/menu-sh
 import { useSettings } from "@/frontend/components/settings-context";
 import { PluginsSection } from "./plugins-section.tsx";
 import { AppearanceSection } from "./appearance-section.tsx";
-import { ConnectionSection, connectionHint } from "./connection-section.tsx";
-import { useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { ConnectionSection, CONNECTION_HINT } from "./connection-section.tsx";
 
 /** The tabs. A section's hint is the quiet line under it. */
 const SECTIONS = [
@@ -29,7 +28,7 @@ const SECTIONS = [
 	{ id: "appearance", label: "Appearance" },
 	{ id: "teaching", label: "Teaching" },
 	{ id: "plugins", label: "Plugins" },
-	{ id: "connection", label: "Connection", hint: connectionHint },
+	{ id: "connection", label: "Connection", hint: CONNECTION_HINT },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
 const DEFAULT_SECTION: SectionId = "general";
@@ -86,7 +85,6 @@ export function SettingsPage({ section }: { section?: string }) {
 	// Teaching's full instructions fill the page, heading and tabs included.
 	const [fullPage, setFullPage] = useState(false);
 	const current = SECTIONS.find((s) => s.id === active) ?? SECTIONS[0];
-	const desktop = !!useTerminals()?.available;
 	// A link to another section while the page is open changes
 	// initialSection under our feet — follow it.
 	useEffect(() => {
@@ -191,7 +189,7 @@ export function SettingsPage({ section }: { section?: string }) {
 							)}
 							{"hint" in current && (
 								<p data-testid="settings-hint" className="max-w-(--lh-measure) pt-(--lh-gap) text-sm text-ink-2">
-									{current.hint(desktop)}
+									{current.hint}
 								</p>
 							)}
 						</Travel>

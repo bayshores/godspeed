@@ -4,13 +4,12 @@
 use std::path::Path;
 
 use super::registry::Terminals;
-use super::{NOT_SHOWN, NOT_THERE, Role, Terminal, state_ended};
+use super::{NOT_SHOWN, NOT_THERE, Terminal, state_ended};
 
 /// The largest file Attach takes.
 pub(super) const ATTACH_MAX: usize = 20 * 1024 * 1024;
 pub(super) const ATTACH_TOO_BIG: &str = "That file is over 20 MB.";
 pub(super) const ATTACH_KINDS: &str = "Attach takes pictures (PNG, JPEG, GIF or WebP) and PDFs.";
-const ATTACH_TEACHER: &str = "Attach is for the teacher's screen.";
 const ATTACH_NOT_SAVED: &str = "godspeed couldn't save that file in its folder.";
 pub(super) const ATTACH_UNTYPABLE: &str = "godspeed's folder has a line break in its path, so Attach can't type it.";
 
@@ -23,9 +22,6 @@ impl Terminals {
 	/// is typed is only a path the shell saved itself.
 	pub fn add_file(&self, id: &str, name: &str, bytes: &[u8], folder: &Path, window: &str) -> Result<String, String> {
 		let terminal = self.find(id)?;
-		if terminal.role != Role::Teacher {
-			return Err(ATTACH_TEACHER.to_owned());
-		}
 		let shown = terminal.state().attached.as_deref() == Some(window);
 		// Shown, but no focus check: a Finder drop leaves Finder in front. Safe, since only a path
 		// the shell saved itself is typed, never a line break.

@@ -45,8 +45,6 @@ pub type TextCheck = Box<dyn Fn(&str) -> String + Send + Sync>;
 /// What the lesson's desk hears that the turn stream does not carry.
 #[derive(Clone, Debug, PartialEq)]
 pub enum DeskEvent {
-	/// The agent started on the turn.
-	Taken,
 	/// One of the agent's own tools started (a command, a file read, a web search).
 	OwnTool { name: String, input: Json },
 	/// A permission question waits for the learner.
@@ -345,7 +343,7 @@ impl SessionTurn {
 	/// One event; true when it started a tool call.
 	fn take(self: &Arc<Self>, event: SessionEvent, ran: &mpsc::UnboundedSender<Ran>) -> bool {
 		match event {
-			SessionEvent::TurnStarted => self.tell_desk(DeskEvent::Taken),
+			SessionEvent::TurnStarted => {}
 			SessionEvent::TextDelta(text) => self.build(|b, emit| b.delta(&text, emit)),
 			SessionEvent::TextDone(text) => {
 				let checked = (self.check_text)(&text);

@@ -8,7 +8,7 @@ import * as path from "node:path";
 import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent } from "../../scripts/layout.mjs";
 import { boxMoved, carried, cross, cutOf, emptyBand, hollow, inkOf, lineBox, linesOf, meet, movedSince, offGap, offInset, outside, probes, roomUnder, scrollerClip, sticksOut, tightPad, tooWide } from "../../scripts/layout-page.mjs";
 import { PLAN_ORDER_SENT_BACK, WAITING_TOPIC, WRITTEN_TOPIC } from "../../scripts/layout-lessons.mjs";
-import { workOf } from "../../scripts/layout-seed.mjs";
+import { SPRING_EXAM } from "../../scripts/layout-jobs.mjs";
 import { SCREENS, widthsOf } from "../../scripts/layout-screens.mjs";
 
 const box = (left: number, top: number, right: number, bottom: number) => ({ left, top, right, bottom });
@@ -273,11 +273,6 @@ describe("the screens", () => {
 });
 
 describe("the stand-in agent", () => {
-	it("reads what a work item is for off its text, even when cut, and keeps the text", () => {
-		const text = '{"status":"work","workId":"work_1","kind":"background task","task":"Graph extraction: a.md","tools":[{"name":"x"';
-		assert.deepEqual(workOf(text), { task: "Graph extraction: a.md", text });
-	});
-
 	it("knows the server's words for a card it sends back for plan order", () => {
 		const server = fs.readFileSync(new URL("../../crates/agent/src/tools/questions.rs", import.meta.url), "utf-8");
 		assert.ok(server.includes(PLAN_ORDER_SENT_BACK));
@@ -330,6 +325,39 @@ describe("the stand-in helper", () => {
 			const approvals = seen.filter((message) => message.type === "approval");
 			assert.equal(approvals.length, 1);
 			assert.deepEqual([approvals[0]!.tool, approvals[0]!.input], ["Bash", { command: "ls notes" }]);
+		} finally {
+			helper.kill();
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+	it("answers a job with the tool it must call, and holds the spring exam's mock until it is stopped", async () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "layout-helper-"));
+		fs.writeFileSync(path.join(dir, "passage"), "f_000000000000:1");
+		const helper = spawn(process.execPath, [path.join(import.meta.dirname, "../../scripts/layout-helper.mjs")], { env: { ...process.env, LAYOUT_HELPER_DIR: dir }, stdio: ["pipe", "pipe", "inherit"] });
+		const lines = createInterface({ input: helper.stdout })[Symbol.asyncIterator]();
+		const say = (message: object) => helper.stdin.write(`${JSON.stringify(message)}\n`);
+		const next = async () => JSON.parse((await lines.next()).value as string) as { type: string; message?: { type: string; subtype?: string }; name?: string; id?: string };
+		const past = async (type: string) => {
+			let message = await next();
+			while (message.type === "sdk" && message.message?.type !== type) message = await next();
+			return message;
+		};
+		const job = (session: string, deadline: string) => {
+			say({ type: "open", session, persist: false, cwd: dir, tools: [{ name: "write_mock_questions" }] });
+			say({ type: "send", session, content: [{ type: "text", text: `They are preparing for: ${deadline} (exam).` }] });
+		};
+		try {
+			job("s1", "Midterm");
+			assert.equal((await next()).type, "opened");
+			const call = await past("tool_call");
+			assert.deepEqual([call.type, call.name], ["tool_call", "write_mock_questions"]);
+			say({ type: "tool_result", id: call.id, content: [{ type: "text", text: "Saved." }], isError: false });
+			assert.deepEqual((await past("result")).message?.subtype, "success");
+			job("s2", SPRING_EXAM);
+			assert.equal((await next()).type, "opened");
+			assert.equal((await next()).message?.type, "system");
+			say({ type: "interrupt", session: "s2" });
+			assert.deepEqual((await past("result")).message?.subtype, "error_during_execution");
 		} finally {
 			helper.kill();
 			fs.rmSync(dir, { recursive: true, force: true });

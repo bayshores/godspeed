@@ -95,7 +95,6 @@ async fn the_window_hears_when_a_teacher_chat_starts_and_is_used() {
 	assert_eq!(heard(), 1, "a line typed to it");
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["name"], json!("What's due?"));
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["open"], json!(true), "the teacher's terminal runs it");
-	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["lesson"], json!(null), "it taught no lesson yet");
 
 	app.terminals.set_live_terminals(vec![], None);
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["open"], json!(false), "the terminal ended");

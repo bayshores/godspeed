@@ -90,7 +90,7 @@ pub(crate) fn start_command(app: &App, agent: FolderAgent) -> Option<String> {
 }
 
 /// The agent the learner picked to run the lessons, if they picked one.
-pub(crate) fn picked_agent(app: &App) -> Option<FolderAgent> {
+fn picked_agent(app: &App) -> Option<FolderAgent> {
 	read_state(app).get("agent").and_then(Json::as_str).and_then(FolderAgent::from_name)
 }
 
@@ -99,17 +99,14 @@ pub fn folder_agent(app: &App) -> FolderAgent {
 	picked_agent(app).unwrap_or(FolderAgent::Claude)
 }
 
-/// The learner picked the agent that runs the lessons; the folder as it is now. Jobs waiting for
-/// an agent start, and godspeed catches up on what waited for one.
-pub fn set_folder_agent(app: &Arc<App>, agent: FolderAgent) -> Result<Json, String> {
+/// The learner picked the agent that runs the lessons and jobs; the folder as it is now.
+pub fn set_folder_agent(app: &App, agent: FolderAgent) -> Result<Json, String> {
 	{
 		let _held = app.locks.lock(STATE);
 		let mut state = read_state(app);
 		state.insert("agent", agent.name());
 		write_state(app, state)?;
 	}
-	app.agents.picked.notify_waiters();
-	crate::turns::catch_up(app);
 	Ok(agent_folder_view(app))
 }
 
@@ -353,7 +350,7 @@ mod tests {
 			assert!(view["commands"]["claude"].as_str().unwrap().starts_with(&format!("cd /d \"{folder}\" && claude ")));
 		} else {
 			assert_eq!(view["short"].as_str(), Some("~/godspeed"));
-			assert_eq!(view["commands"]["claude"].as_str(), Some("cd ~/godspeed && claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\""));
+			assert_eq!(view["commands"]["claude"].as_str(), Some("cd ~/godspeed && claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000"));
 		}
 	}
 

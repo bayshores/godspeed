@@ -94,10 +94,6 @@ pub enum Platform {
 	Linux,
 }
 
-/// The prompt each agent starts with; CLAUDE.md and AGENTS.md say what it means. The teacher in
-/// godspeed's terminal starts with none: godspeed asks it when work waits for it.
-const START_PROMPT: &str = "Start teaching";
-
 /// Settings Claude Code loads at launch (--settings), so they apply before the folder is trusted.
 const CLAUDE_SETTINGS: &str = ".godspeed/claude-settings.json";
 
@@ -105,15 +101,15 @@ const CLAUDE_SETTINGS: &str = ".godspeed/claude-settings.json";
 /// and none of the learner's own servers, skills or subagents, which every request would carry;
 /// the chat compacts at 150,000 tokens. The Skill tool is refused, not every slash command, so
 /// /compact, /clear, /model and /resume still work in the terminal. The flags that take several
-/// values (--mcp-config, --disallowedTools) come before a one-value flag, so a prompt after them
-/// stays the prompt.
+/// values (--mcp-config, --disallowedTools) come before a one-value flag, so `--resume <id>`
+/// after them stays apart from them.
 const CLAUDE_ARGS: [&str; 10] = ["--settings", CLAUDE_SETTINGS, "--strict-mcp-config", "--mcp-config", ".mcp.json", "--disallowedTools", "Agent", "Skill", "--autocompact", "150000"];
 
 /// The oldest Claude Code with every flag above.
 const CLAUDE_MIN_VERSION: &str = "2.1.330";
 
-fn claude_args(prompt: Option<&str>) -> Vec<String> {
-	CLAUDE_ARGS.iter().copied().chain(prompt).map(str::to_owned).collect()
+fn claude_args() -> Vec<String> {
+	CLAUDE_ARGS.iter().copied().map(str::to_owned).collect()
 }
 
 /// A folder the generated scripts and TOML can quote safely: absolute, no quotes, no line breaks.
@@ -183,13 +179,13 @@ pub fn claude_settings(folder: &str, platform: Platform) -> String {
 }
 
 /// Codex's arguments: godspeed's server through the folder's connector, its tools pre-approved,
-/// a timeout longer than wait_for_work's 600 s, the app terminal's id and data folder passed
+/// the app terminal's id and data folder passed
 /// on to the connector (Codex gives a server only the variables it names), the prompt hook
 /// that hands each line the learner types to the app first, and the hooks that say when the agent
 /// stopped, asks for a permission or runs a command or a patch, the last in the background (a hook
 /// given here needs no review).
 /// TOML literal strings ('...'), so no value needs escaping: the folder has no quotes in it.
-fn codex_args(folder: &str, platform: Platform, prompt: Option<&str>) -> Vec<String> {
+fn codex_args(folder: &str, platform: Platform) -> Vec<String> {
 	let server = "mcp_servers.godspeed";
 	let connector = join(folder, platform, &[".godspeed", "connect.mjs"]);
 	let command = |script: &str| format!("command='node \"{}\"'", join(folder, platform, &[".godspeed", script]));
@@ -199,8 +195,6 @@ fn codex_args(folder: &str, platform: Platform, prompt: Option<&str>) -> Vec<Str
 		format!("{server}.command='node'"),
 		"-c".to_owned(),
 		format!("{server}.args=['{connector}']"),
-		"-c".to_owned(),
-		format!("{server}.tool_timeout_sec=620"),
 		"-c".to_owned(),
 		format!("{server}.default_tools_approval_mode='approve'"),
 		"-c".to_owned(),
@@ -216,9 +210,6 @@ fn codex_args(folder: &str, platform: Platform, prompt: Option<&str>) -> Vec<Str
 		"-c".to_owned(),
 		format!("hooks.PreToolUse=[{{matcher='{}',hooks=[{{type='command',{},async=true}}]}}]", CODEX_OWN_TOOLS.join("|"), command("agent-event.mjs")),
 	]
-	.into_iter()
-	.chain(prompt.map(str::to_owned))
-	.collect()
 }
 
 fn plain_arg(arg: &str) -> bool {
@@ -236,29 +227,25 @@ fn cmd_quote(arg: &str) -> String {
 	if plain_arg(arg) { arg.to_owned() } else { format!("\"{}\"", arg.replace('"', "\\\"")) }
 }
 
-/// The teacher's three starts, quoted for the script: back to the chat in `resume` (a variable
-/// the shell checked is a session id), a new chat in godspeed's terminal (no prompt), and outside
-/// it (the copied command on Windows runs the script), where "Start teaching" starts it.
+/// The teacher's two starts, quoted for the script: back to the chat in `resume` (a variable the
+/// shell checked is a session id), or a new chat with no prompt.
 struct TeacherStarts {
 	resume: Vec<String>,
 	fresh: Vec<String>,
-	outside: Vec<String>,
 }
 
 fn teacher_starts(agent: FolderAgent, folder: &str, platform: Platform, quote: fn(&str) -> String, resume: &str) -> TeacherStarts {
 	let quoted = |args: Vec<String>| args.iter().map(|a| quote(a)).collect::<Vec<_>>();
 	let base = match agent {
-		FolderAgent::Codex => codex_args(folder, platform, None),
-		FolderAgent::Claude => claude_args(None),
+		FolderAgent::Codex => codex_args(folder, platform),
+		FolderAgent::Claude => claude_args(),
 	};
-	let fresh = quoted(base.clone());
-	let mut outside = fresh.clone();
-	outside.push(quote(START_PROMPT));
+	let fresh = quoted(base);
 	let resume = match agent {
 		FolderAgent::Codex => ["resume".to_owned()].into_iter().chain(fresh.iter().cloned()).chain([resume.to_owned()]).collect(),
 		FolderAgent::Claude => fresh.iter().cloned().chain(["--resume".to_owned(), resume.to_owned()]).collect(),
 	};
-	TeacherStarts { resume, fresh, outside }
+	TeacherStarts { resume, fresh }
 }
 
 fn start_script_name(agent: FolderAgent, platform: Platform) -> String {
@@ -283,13 +270,13 @@ pub fn copy_command(agent: FolderAgent, folder: &str, home: &str, platform: Plat
 		if agent == FolderAgent::Codex {
 			return format!("\"{}\"", start_script_path(folder, FolderAgent::Codex, platform));
 		}
-		let args: Vec<String> = claude_args(Some(START_PROMPT)).iter().map(|a| cmd_quote(a)).collect();
+		let args: Vec<String> = claude_args().iter().map(|a| cmd_quote(a)).collect();
 		return format!("cd /d \"{folder}\" && {start} {}", args.join(" "));
 	}
 	static HOME_RELATIVE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^~[\w./-]*$", ""));
 	let short = short_folder(folder, home);
 	let cd = if HOME_RELATIVE.test(&short) { short } else { posix_quote(folder) };
-	let args = if agent == FolderAgent::Claude { claude_args(Some(START_PROMPT)) } else { codex_args(folder, platform, Some(START_PROMPT)) };
+	let args = if agent == FolderAgent::Claude { claude_args() } else { codex_args(folder, platform) };
 	let args: Vec<String> = args.iter().map(|a| posix_quote(a)).collect();
 	format!("cd {cd} && {start} {}", args.join(" "))
 }
@@ -353,8 +340,7 @@ pub fn start_script(agent: FolderAgent, folder: &str, platform: Platform, comman
 		let start = own.unwrap_or(name);
 		let starts = teacher_starts(agent, folder, platform, cmd_quote, "%GODSPEED_RESUME%");
 		lines.push(format!("if defined GODSPEED_RESUME ({start} {} & exit /b)", starts.resume.join(" ")));
-		lines.push(format!("if defined GODSPEED_TERMINAL ({start} {} & exit /b)", starts.fresh.join(" ")));
-		lines.push(format!("{start} {}", starts.outside.join(" ")));
+		lines.push(format!("{start} {}", starts.fresh.join(" ")));
 		lines.push(String::new());
 		return lines.join("\r\n");
 	}
@@ -369,8 +355,7 @@ pub fn start_script(agent: FolderAgent, folder: &str, platform: Platform, comman
 	let then = |args: &[String]| if own.is_some() { format!("{start} {}; exit $?", args.join(" ")) } else { format!("{start} {}", args.join(" ")) };
 	let starts = teacher_starts(agent, folder, platform, posix_quote, "\"$GODSPEED_RESUME\"");
 	lines.push(format!("if [ -n \"$GODSPEED_RESUME\" ]; then {}; fi", then(&starts.resume)));
-	lines.push(format!("if [ -n \"$GODSPEED_TERMINAL\" ]; then {}; fi", then(&starts.fresh)));
-	lines.push(format!("{start} {}", starts.outside.join(" ")));
+	lines.push(format!("{start} {}", starts.fresh.join(" ")));
 	lines.push(String::new());
 	lines.join("\n")
 }
@@ -412,7 +397,7 @@ mod tests {
 	#[test]
 	fn files_and_commands() {
 		assert_eq!(mcp_json("/h/godspeed/", Platform::Darwin), "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/h/godspeed/.godspeed/connect.mjs\"\n\t\t\t],\n\t\t\t\"env\": {\n\t\t\t\t\"GODSPEED_TERMINAL\": \"${GODSPEED_TERMINAL:-}\",\n\t\t\t\t\"GODSPEED_DATA_DIR\": \"${GODSPEED_DATA_DIR:-}\"\n\t\t\t}\n\t\t}\n\t}\n}\n");
-		assert_eq!(copy_command(FolderAgent::Claude, "/h/godspeed", "/h", Platform::Darwin, &none()), "cd ~/godspeed && claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\"");
+		assert_eq!(copy_command(FolderAgent::Claude, "/h/godspeed", "/h", Platform::Darwin, &none()), "cd ~/godspeed && claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000");
 		assert!(start_script(FolderAgent::Codex, "/h/my godspeed", Platform::Linux, &none()).contains("cd \"/h/my godspeed\" || exit 1\n"));
 		assert_eq!(start_script_path("C:\\g", FolderAgent::Codex, Platform::Win32), "C:\\g\\.godspeed\\start-codex.cmd");
 		assert_eq!(start_script_path("/g", FolderAgent::Claude, Platform::Darwin), "/g/.godspeed/start-claude.command");
@@ -474,17 +459,16 @@ mod tests {
 	}
 
 	#[test]
-	fn the_teacher_goes_back_to_a_chat_starts_quiet_in_godspeed_and_teaches_outside() {
+	fn the_teacher_goes_back_to_a_chat_or_starts_a_plain_one() {
 		let claude = start_script(FolderAgent::Claude, "/Users/me/godspeed", Platform::Darwin, &none());
 		assert!(claude.contains("\nif [ -n \"$GODSPEED_RESUME\" ]; then exec claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 --resume \"$GODSPEED_RESUME\"; fi\n"), "{claude}");
-		assert!(claude.contains("\nif [ -n \"$GODSPEED_TERMINAL\" ]; then exec claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000; fi\n"), "{claude}");
-		assert!(claude.ends_with("\nexec claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\"\n"), "{claude}");
+		assert!(claude.ends_with("; fi\nexec claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000\n"), "{claude}");
 		let codex = start_script(FolderAgent::Codex, "/Users/me/godspeed", Platform::Linux, &none());
 		assert!(codex.contains("then exec codex resume -c "), "{codex}");
 		assert!(codex.contains(" \"$GODSPEED_RESUME\"; fi\n"), "{codex}");
 		let win = start_script(FolderAgent::Claude, "C:\\Users\\me\\godspeed", Platform::Win32, &none());
 		assert!(win.contains("\r\nif defined GODSPEED_RESUME (claude --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 --resume %GODSPEED_RESUME% & exit /b)\r\n"), "{win}");
-		assert!(copy_command(FolderAgent::Claude, "/Users/me/godspeed", "/Users/me", Platform::Darwin, &none()).ends_with(" \"Start teaching\""), "an agent started outside godspeed starts teaching");
+		assert!(copy_command(FolderAgent::Claude, "/Users/me/godspeed", "/Users/me", Platform::Darwin, &none()).ends_with(" --autocompact 150000"), "an agent started outside godspeed opens a plain chat");
 	}
 
 	#[test]
@@ -499,13 +483,13 @@ mod tests {
 	#[test]
 	fn the_learners_own_command_starts_the_agent() {
 		let own = own_claude();
-		assert_eq!(copy_command(FolderAgent::Claude, "/Users/me/godspeed", "/Users/me", Platform::Darwin, &own), "cd ~/godspeed && standardcompute launch claude -- --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\"");
+		assert_eq!(copy_command(FolderAgent::Claude, "/Users/me/godspeed", "/Users/me", Platform::Darwin, &own), "cd ~/godspeed && standardcompute launch claude -- --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000");
 		assert!(copy_command(FolderAgent::Codex, "/Users/me/godspeed", "/Users/me", Platform::Darwin, &own).starts_with("cd ~/godspeed && codex -c "), "Codex keeps the usual one");
-		assert_eq!(copy_command(FolderAgent::Claude, "C:\\gs", "C:\\Users\\me", Platform::Win32, &own), "cd /d \"C:\\gs\" && standardcompute launch claude -- --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\"");
+		assert_eq!(copy_command(FolderAgent::Claude, "C:\\gs", "C:\\Users\\me", Platform::Win32, &own), "cd /d \"C:\\gs\" && standardcompute launch claude -- --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000");
 
 		let script = start_script(FolderAgent::Claude, "/Users/me/godspeed", Platform::Darwin, &own);
 		assert!(script.contains("\ncommand -v standardcompute >/dev/null 2>&1 || { echo \"godspeed couldn't find standardcompute. Check the command under Change command in godspeed.\"; exit 3; }\n"), "{script}");
-		assert!(script.ends_with("\nstandardcompute launch claude -- --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000 \"Start teaching\"\n"));
+		assert!(script.ends_with("\nstandardcompute launch claude -- --settings .godspeed/claude-settings.json --strict-mcp-config --mcp-config .mcp.json --disallowedTools Agent Skill --autocompact 150000\n"));
 		assert!(!script.contains("command -v claude") && !script.contains("exec "));
 		assert!(start_script(FolderAgent::Codex, "/Users/me/godspeed", Platform::Linux, &own).contains("\nexec codex -c "));
 

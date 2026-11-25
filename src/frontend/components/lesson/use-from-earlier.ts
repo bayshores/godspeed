@@ -19,7 +19,7 @@ export async function askFromEarlier(chatId: string, signal?: AbortSignal): Prom
 /**
  * Questions from earlier in a Study lesson. It opens with the one its
  * loader was served; then the route is asked while the teacher reads or
- * writes, or no agent is teaching, and nothing else is open, when that wait
+ * writes and nothing else is open, when that wait
  * begins and when a turn starts or ends; after an answer or a skip it is
  * asked again, until the wait ends (fromEarlierAsk). The server decides whether one may show, so no
  * question is a normal answer. The question on screen stays open after the
@@ -29,7 +29,7 @@ export function useFromEarlier({ chatId, opened, waiting, open, busy, onAnswered
 	chatId: string;
 	/** The question the lesson opens with, as its loader was served it. */
 	opened: ReviewQuestion | null;
-	/** A Study lesson waiting on its teacher or its agent. */
+	/** A Study lesson waiting on its teacher. */
 	waiting: boolean;
 	/** The teacher's question or a problem is open. */
 	open: boolean;

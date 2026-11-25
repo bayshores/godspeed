@@ -40,12 +40,12 @@ import { useActivity } from "@/frontend/components/activity-dock";
 import { useSpaces } from "@/frontend/components/space-context";
 import { usePresence } from "@/frontend/components/presence";
 import { useSettings } from "@/frontend/components/settings-context";
-import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
+import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useWindowPage } from "@/frontend/components/terminal/use-terminal-lines";
 import { TeacherPanel } from "./teacher-panel";
 import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
 import { useTeacherPanel } from "./use-teacher-panel";
-import { panelBody, panelStarts, shownScreen } from "./dock-model";
+import { panelBody } from "./dock-model";
 import { agentDoing } from "./follow-status";
 import { useFollow } from "./use-follow";
 import { useRecentActions } from "./use-recent-actions";
@@ -131,26 +131,15 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	});
 
 	const terminals = useTerminals();
-	const screen = shownScreen(panel.role, !!terminals?.helper);
-	const view = panelBody(!!terminals?.available, !!terminals?.popped && screen === "teacher");
+	const view = panelBody(!!terminals?.available, !!terminals?.popped);
 	const shown = usePresence(panelOpen);
-	const starts =
-		panelOpen &&
-		panelStarts({
-			view,
-			screen,
-			terminals: !!terminals?.available,
-			noAgent: noAgentHere(agent, terminals),
-			teacher: terminals?.teacher ?? null,
-			outside: !!terminals?.outsideHere,
-		});
 
 	// One line a page key handed over; the panel's screen sends it and clears it, or it goes when the panel closes.
 	const [asking, setAsking] = useState<string | null>(null);
 	const ask = useCallback(
 		(line: string) => {
 			setAsking(line);
-			showTerminal("teacher");
+			showTerminal();
 		},
 		[showTerminal],
 	);
@@ -164,8 +153,8 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	const spaceNameOf = useCallback((id: string | null) => (id ? (spaceList.find((c) => c.id === id)?.name ?? null) : null), [spaceList]);
 
 	const api = useMemo<TeacherApi>(
-		() => ({ name, follow: followOn, setFollow, panelOpen, panelStarts: starts, setPanelOpen, showTerminal, canAsk, ask, asking: waiting, recent, doing, setLesson, go, slip, offer: held ?? offer, held: !!held, spaceNameOf }),
-		[name, followOn, setFollow, panelOpen, starts, setPanelOpen, showTerminal, canAsk, ask, waiting, recent, doing, setLesson, go, slip, held, offer, spaceNameOf],
+		() => ({ name, follow: followOn, setFollow, panelOpen, setPanelOpen, showTerminal, canAsk, ask, asking: waiting, recent, doing, setLesson, go, slip, offer: held ?? offer, held: !!held, spaceNameOf }),
+		[name, followOn, setFollow, panelOpen, setPanelOpen, showTerminal, canAsk, ask, waiting, recent, doing, setLesson, go, slip, held, offer, spaceNameOf],
 	);
 	const marks = useMemo(() => litRules(lit, CSS.escape), [lit]);
 
@@ -183,8 +172,6 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 						view={view}
 						list={panel.list}
 						onList={panel.setList}
-						screen={panel.role}
-						onScreen={panel.showScreen}
 						focus={panel.focus}
 						state={shown.state}
 						onBeside={onBeside}

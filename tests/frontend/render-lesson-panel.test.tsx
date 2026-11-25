@@ -24,7 +24,6 @@ import { LessonScroll } from "../../src/frontend/components/lesson/lesson-scroll
 import type { QuestionHandle } from "../../src/frontend/components/question-dock.tsx";
 import { practiceProgress } from "../../src/frontend/components/lesson/practice-progress.ts";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
-import { AgentStatusContext, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
 import { TeacherContext, type TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 import { SpaceProvider } from "../../src/frontend/components/space-context.tsx";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
@@ -77,7 +76,6 @@ const marco: TeacherApi = {
 	follow: false,
 	setFollow: () => {},
 	panelOpen: false,
-	panelStarts: false,
 	setPanelOpen: () => {},
 	showTerminal: () => {},
 	canAsk: false,
@@ -122,7 +120,6 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		onNext: () => {},
 		busy: false,
 		onStop: null,
-		waitingForAgent: false,
 		value: "",
 		onChange: () => {},
 		onSend: () => {},
@@ -130,7 +127,6 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		attachments,
 		questionRef: { current: null },
 		boxRef: { current: null },
-		stuck: null,
 		error: null,
 		onAnswerAsk: () => {},
 		askError: null,
@@ -623,19 +619,6 @@ describe("Your turn in each state", () => {
 		assert.equal(skipped, 1);
 	});
 
-	it("a turn an agent took and went quiet on says how long, and Stop runs it again", async () => {
-		let stopped = 0;
-		const stuck = { minutes: 7, label: "Stop and try again", onStop: () => stopped++ };
-		const out = html({ stuck });
-		assert.match(out, /data-testid="turn-stuck"[^>]*>Teacher took this 7 minutes ago and hasn(?:'|&#x27;)t answered\./);
-		assert.match(out, /data-testid="turn-stuck-stop"[^>]*>Stop and try again</);
-		assert.doesNotMatch(html(), /turn-stuck/);
-		await mounted(turn({ stuck }), async (host) => {
-			await click(host, "turn-stuck-stop");
-			assert.equal(stopped, 1);
-		});
-	});
-
 	it("an error reads as a plain sentence with Try again; the raw text is the hover tip", async () => {
 		let retried = 0;
 		const error = { text: "Your message didn't go through.", detail: "The send failed (500).", onRetry: () => retried++ };
@@ -1077,7 +1060,6 @@ describe("the reading pane", () => {
 		status: "submitted",
 		busy: true,
 		stoppedEmpty: false,
-		waitingForAgent: false,
 		work: NO_LESSON_WORK,
 		queuedSteers: [],
 		arrivalsLive: false,
@@ -1091,7 +1073,7 @@ describe("the reading pane", () => {
 	const planned: React.ComponentProps<typeof ReadingPane>["messages"] = [{ id: "a1", role: "assistant", parts: [{ type: "tool-work_plan", toolCallId: "p", state: "output-available", input: { items: ["Read"], done: 0 } }] }];
 
 	it("the desk while the teacher works, from the start", () => {
-		assert.match(pane(), /data-testid="agent-at-work" data-state="working"/);
+		assert.match(pane(), /data-testid="agent-at-work"/);
 		assert.doesNotMatch(pane({ busy: false, status: "ready" }), /data-testid="agent-at-work"/);
 	});
 
@@ -1102,13 +1084,6 @@ describe("the reading pane", () => {
 		assert.match(html({ busy: true, onStop: () => {} }), /data-testid="composer-keys"[^>]*>[\s\S]*data-testid="composer-send"[\s\S]*data-testid="stop-turn"[^>]*lh-btn-quiet[^>]*>Stop</);
 		assert.doesNotMatch(html(), /stop-turn/);
 		assert.doesNotMatch(html({ busy: true }), /stop-turn/, "the teacher reading ahead at a stop is not stopped");
-	});
-
-	it("the key that turns the teacher on leads Stop only while the turn waits for an agent", () => {
-		const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 1, helperWork: 0, claimedLessons: [] } as AgentStatus;
-		const row = (waitingForAgent: boolean) => html({ busy: true, onStop: () => {}, waitingForAgent }, (n) => <AgentStatusContext.Provider value={off}>{named(n)}</AgentStatusContext.Provider>);
-		assert.match(row(true), /lh-btn-main[^>]*>Turn on marco<\/button><button[^>]*data-testid="stop-turn"/);
-		assert.doesNotMatch(row(false), /Turn on/);
 	});
 
 	it("Stop sends the stop once", async () => {
@@ -1124,12 +1099,6 @@ describe("the reading pane", () => {
 		for (const over of [{ busy: false, status: "ready" as const, onStop: null }, { busy: false, status: "ready" as const, messages: stopped }]) {
 			assert.doesNotMatch(pane(over), /next-problem-button|Start again|Continue/);
 		}
-	});
-
-	it("a still desk while no agent takes the turn, which says so", () => {
-		const out = pane({ waitingForAgent: true });
-		assert.match(out, /data-testid="agent-at-work" data-state="waiting"[\s\S]*Waiting for Teacher to start\./);
-		assert.ok(!out.includes("Thinking"));
 	});
 
 	it("an empty lesson says it is new, with no promise of a probe", () => {

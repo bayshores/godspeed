@@ -15,7 +15,7 @@ import { MessageRow, messageShows } from "./message-row";
 import { stepSheets, type SheetRow } from "./step-sheets-model";
 import { useReplyHold } from "./use-reply-hold";
 import { useTeacherWriting } from "./use-teacher-writing";
-import { deskCalls, deskHead, deskMark, heldBack, type DeskState } from "./wait-model";
+import { deskCalls, deskHead, deskMark, heldBack } from "./wait-model";
 
 /**
  * THE READING PANE: the lesson text in the reading type, answered cards
@@ -42,7 +42,6 @@ export function ReadingPane({
 	status,
 	busy,
 	stoppedEmpty,
-	waitingForAgent,
 	work,
 	queuedSteers,
 	arrivalsLive,
@@ -66,8 +65,6 @@ export function ReadingPane({
 	busy: boolean;
 	/** The first reply was stopped with nothing written, and no turn or error line is up. */
 	stoppedEmpty: boolean;
-	/** No agent runs the work loop: the desk lies still and the start key may show. */
-	waitingForAgent: boolean;
 	/** What the teacher does in the running turn (useLessonWork). */
 	work: LessonWork;
 	/** Lines typed to the teacher that wait for its reply to end. */
@@ -85,9 +82,8 @@ export function ReadingPane({
 	const { wrote, writing } = useTeacherWriting(messages, busy, work);
 	// Its words wait a moment under the desk for a turn that ends at once.
 	const held = useReplyHold(busy && writing, deskMark(messages));
-	const state: DeskState = waitingForAgent ? "waiting" : "working";
-	const head = deskHead({ name: useTeacher()?.name ?? DEFAULT_TEACHER_NAME, waiting: waitingForAgent, work });
-	const open = useMemo(() => (busy && (!writing || held) ? { state, head, work, calls: deskCalls(work), mark: held ?? deskMark(messages) } : null), [busy, writing, held, state, head, work, messages]);
+	const head = deskHead(useTeacher()?.name ?? DEFAULT_TEACHER_NAME, work);
+	const open = useMemo(() => (busy && (!writing || held) ? { head, work, calls: deskCalls(work), mark: held ?? deskMark(messages) } : null), [busy, writing, held, head, work, messages]);
 	const desk = useLastWhileClosing(open);
 	const closing = desk.mounted && desk.state === "closed" && !prefersReducedMotion();
 	const shownDesk = open || (closing ? desk.shown : null);
@@ -148,7 +144,7 @@ export function ReadingPane({
 							{newest && shownDesk && (
 								<ArrivalRow live={arrivalsLive} className="flex flex-1 flex-col">
 									<div data-state={closing ? "closed" : "open"} data-desk-closing={closing || undefined} inert={closing} className={cn("flex flex-1 flex-col", closing && "lh-fade")}>
-										<AgentAtWork state={shownDesk.state} head={shownDesk.head} work={shownDesk.work} arrive={arrive} foot={foot} />
+										<AgentAtWork head={shownDesk.head} work={shownDesk.work} arrive={arrive} foot={foot} />
 									</div>
 								</ArrivalRow>
 							)}

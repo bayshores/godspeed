@@ -6,14 +6,12 @@ import { prefersReducedMotion, usePresence } from "@/frontend/components/presenc
 import { JobsContext } from "@/frontend/components/jobs-context";
 import { cn } from "@/frontend/lib/utils";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
-import { agentWaiting, lessonAgentWaiting, useAgentStatus } from "@/frontend/components/agent-status";
 import { latestTree } from "@/frontend/components/plan-latest";
 import { SessionMermaidContext } from "@/frontend/components/session-overlay";
 import { currentUserThinkingOpen, setAllUserThinkingOpen } from "@/frontend/components/thinking-block";
 import {
 	activeProblemOf,
 	answerTakesFiles,
-	DEFAULT_TEACHER_NAME,
 	emptyDockSelection,
 	findPendingToolCall,
 	firstPhase,
@@ -38,7 +36,7 @@ import {
 	withOpenReview,
 } from "@/shared/core";
 import { problemMessage } from "@/frontend/components/lesson/problem-choices-model";
-import { goAheadLabel, initialPromptOwed, problemPosed, restoreUnsent, sendBlockedReason, stuckClaimMinutes, stuckRetry } from "@/frontend/components/lesson/chat-helpers";
+import { goAheadLabel, initialPromptOwed, problemPosed, restoreUnsent, sendBlockedReason } from "@/frontend/components/lesson/chat-helpers";
 import { holdsDraft } from "@/frontend/components/lesson/lesson-drafts-model";
 import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
@@ -84,7 +82,6 @@ import { useSpaces } from "@/frontend/components/space-context";
 import type { InstalledPlugin } from "@/frontend/lib/plugins-api";
 import { usePluginsAt } from "@/frontend/lib/use-plugins-at";
 import { useStableValue } from "@/frontend/lib/use-stable-value";
-import { useNow } from "@/frontend/components/use-now";
 
 /** A lesson with no topic pages. */
 const NO_PAGES: ReadonlyMap<string, string> = new Map();
@@ -212,25 +209,19 @@ export function Chat({
 	const drafts = useLessonDrafts(chatId, nativeMessages);
 	const { saveComposer, saveQuestion } = drafts;
 
-	// A turn runs: this view's own, or one the app started (a wake).
+	// A turn runs: this view's own, or one the app started (a catch-up).
 	const busy = status === "submitted" || status === "streaming" || turnInFlight;
-	// The turn is waiting on the outside agent and none is connected: say so
-	// in the composer (it starts by itself once the agent connects).
-	const agentStatus = useAgentStatus();
 	const teacher = useTeacher();
-	const teacherName = teacher?.name ?? DEFAULT_TEACHER_NAME;
-	const waitingForAgent = busy && agentWaiting(agentStatus);
 	const work = useLessonWork(chatId, initialWork);
-	const noAgent = lessonAgentWaiting(agentStatus);
 	const busyRef = useRef(busy);
 	busyRef.current = busy;
 
-	// Questions from earlier fill a Study lesson's wait for its teacher or
-	// its agent. The open one shows before the teacher's own question.
+	// Questions from earlier fill a Study lesson's wait for its teacher. The
+	// open one shows before the teacher's own question.
 	const { question: reviewQuestion, answer: answerReview, skip: skipReview, refused: reviewRefused } = useFromEarlier({
 		chatId,
 		opened: openedReview,
-		waiting: kind === "study" && (busy || noAgent),
+		waiting: kind === "study" && busy,
 		open: teacherPending !== null || activeProblem !== null,
 		busy,
 		onAnswered: adoptAppendOnly,
@@ -238,11 +229,6 @@ export function Chat({
 	const pending = useMemo(() => findPendingToolCall(withOpenReview(messages, reviewQuestion)), [messages, reviewQuestion]);
 	const pendingRef = useRef(pending);
 	pendingRef.current = pending;
-	// An agent took this turn and hasn't answered for a while: offer to stop
-	// it (the minutes refresh while the line shows).
-	const claimedAt = agentStatus?.claimedLessons.find((c) => c.lessonId === chatId)?.claimedAt;
-	const now = useNow(Boolean(claimedAt), 30_000);
-	const stuckMinutes = busy ? stuckClaimMinutes(claimedAt, now) : null;
 
 	const overlays = useLessonOverlays();
 	const { abortInFlightTurn, abortAsk, setAbortAsk, confirmAbort } = useLessonAbort({
@@ -256,18 +242,6 @@ export function Chat({
 		closeMermaid: overlays.closeMermaid,
 		skipReview,
 	});
-
-	// The stuck-turn line stops the turn and runs it again at once (its
-	// wording is the confirmation); send() waits until the stopped turn ends.
-	// The line hides at once, so a double click can't stop the new turn too.
-	const [retriedClaim, setRetriedClaim] = useState<string>();
-	const stuck = stuckMinutes !== null && claimedAt !== retriedClaim ? stuckRetry(nativeMessages) : null;
-	const stopAndRetry = () => {
-		if (!stuck) return;
-		setRetriedClaim(claimedAt);
-		abortInFlightTurn();
-		void send(stuck);
-	};
 
 	// The phase at every message (the teach seam).
 	const phases = useMemo(() => phaseTimeline(messages, firstPhase(kind)), [messages, kind]);
@@ -328,7 +302,7 @@ export function Chat({
 
 	// A pick from the lesson's problem list. Why none can open yet: the
 	// lesson's own words for a reply under way, or the question waiting.
-	const openBlocked = busy ? (waitingForAgent ? `Waiting for ${teacherName}` : "The teacher is writing.") : pending ? "Answer the question first." : null;
+	const openBlocked = busy ? "The teacher is writing." : pending ? "Answer the question first." : null;
 	const workBoxRef = useRef<{ focus(): void }>(null);
 	const openPick = useCallback(
 		(number: string | null) => {
@@ -515,7 +489,6 @@ export function Chat({
 		} else if (action === "done-for-today") lessonStop.doneForToday();
 		else void send({ type: action === "start-again" ? "continue" : "next" });
 	};
-	const stuckLine = stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null;
 	const errorLine = error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry };
 	const problemPiece = useMemo(() => (activeProblem ? problemPieceOf(activeProblem.details) : null), [activeProblem]);
 	const listFileId = docView?.listFileId ?? null;
@@ -591,7 +564,7 @@ export function Chat({
 
 	const turnShows = turnDrawn({
 		started: teacherSpoke || busy,
-		holds: pending !== null || problem !== null || next?.key != null || stuckLine !== null || errorLine !== null || reviewRefused,
+		holds: pending !== null || problem !== null || next?.key != null || errorLine !== null || reviewRefused,
 	});
 
 	const stoppedEmpty = unwritten && !busy && error === null;
@@ -652,7 +625,6 @@ export function Chat({
 											status={status}
 											busy={busy}
 											stoppedEmpty={stoppedEmpty}
-											waitingForAgent={waitingForAgent}
 											work={work}
 											queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
 											arrivalsLive={arrivalsLive}
@@ -684,7 +656,6 @@ export function Chat({
 												onNext={onNext}
 												busy={busy}
 												onStop={busy && !atStop ? abortInFlightTurn : null}
-												waitingForAgent={waitingForAgent}
 												boxRef={workBoxRef}
 												value={text}
 												onChange={editText}
@@ -692,7 +663,6 @@ export function Chat({
 												onHelpLine={(line) => void sendLine(line, [])}
 												attachments={attachments}
 												questionRef={questionRef}
-												stuck={stuckLine}
 												error={errorLine}
 												onAnswerAsk={(topicId, reply) => void lessonNotes.answer(topicId, reply).then((saved) => saved && editText(""))}
 												askError={lessonNotes.answering.error}

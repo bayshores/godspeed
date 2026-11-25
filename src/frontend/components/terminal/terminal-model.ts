@@ -7,8 +7,6 @@ import type { FolderAgent } from "@/shared/core";
 import { AGENT_LABEL } from "@/frontend/components/agent-folder/agent-folder-model";
 import { LINE_HEIGHT } from "./terminal-theme";
 
-export type TerminalRole = "teacher" | "helper";
-
 /** A question the shell recognised on the screen. Only trust and enter get a button. */
 export type TerminalPrompt = "trust" | "enter" | "menu";
 
@@ -16,10 +14,9 @@ export type TerminalPrompt = "trust" | "enter" | "menu";
 /** `code: null` without `stopped`: godspeed could not read the screen and ended it. */
 export type TerminalEnded = { stopped: true; code: null } | { stopped: false; code: number | null };
 
-/** One terminal the shell runs, kept after it ends until the next start for its role. */
+/** The teacher's terminal the shell runs, kept after it ends until the next start. */
 export interface TerminalRecord {
 	id: string;
-	role: TerminalRole;
 	agent: FolderAgent;
 	/** Milliseconds since the epoch. */
 	startedAt: number;
@@ -39,10 +36,8 @@ const EXIT_OLD_AGENT = 6;
 export interface TeacherChat {
 	id: string;
 	agent: FolderAgent;
-	/** The last lesson it taught, else the first line typed to it. */
+	/** The first line typed to it. */
 	name: string | null;
-	/** The last lesson it taught, while that lesson is kept. */
-	lesson: string | null;
 	/** Last used, ms since the epoch. */
 	at: number;
 	/** The teacher's terminal runs it now. */
@@ -54,8 +49,6 @@ export const chatGone = (ended: TerminalEnded | null): boolean => ended?.stopped
 
 /** No check-in this long after a start: the agent may be waiting on its screen. */
 export const CHECK_IN_WAIT_MS = 20_000;
-/** Checked in, a turn waits, and no teaching for this long (godspeed nudges a quiet teacher for a minute first). */
-export const TEACH_WAIT_MS = 75_000;
 
 /** The size every terminal starts at (the shell opens it so); a shown
  *  screen then takes the size of its box, at one font size. */
@@ -92,33 +85,22 @@ export interface TerminalFacts {
 	checkedIn: boolean;
 	/** An agent outside godspeed's terminals is here. */
 	outsideHere: boolean;
-	/** The teacher runs its work loop. */
-	teaching: boolean;
 	now: number;
-	/** Since when it has been here, not teaching, while a lesson turn waits; else null. */
-	quietSince: number | null;
-	/** Background jobs are being read. */
-	helperBusy: boolean;
-	/** A lesson turn waits for the teacher. */
-	turnWaits: boolean;
 }
 
 /** Why the screen opens by itself. */
-type NeedsYou = "prompt" | "no-check-in" | "not-teaching" | "crashed" | "missing";
+type NeedsYou = "prompt" | "no-check-in" | "crashed" | "missing";
 
 const crashed = (ended: TerminalEnded | null) => ended?.stopped === false && ended.code !== 0;
 const missing = (ended: TerminalEnded | null) => ended?.stopped === false && (ended.code === EXIT_NOT_INSTALLED || ended.code === EXIT_NO_NODE || ended.code === EXIT_OLD_AGENT);
 
-/** Why the learner is needed at this terminal's screen, or null. The
- *  timers only count for the teacher; a learner's own Stop needs nothing. */
+/** Why the learner is needed at this terminal's screen, or null. A
+ *  learner's own Stop needs nothing. */
 export function needsYou(f: TerminalFacts): NeedsYou | null {
 	const { term } = f;
 	if (term.ended) return missing(term.ended) ? "missing" : crashed(term.ended) ? "crashed" : null;
 	if (term.prompt) return "prompt";
-	if (term.role !== "teacher") return null;
-	if (!f.checkedIn) return f.now - term.startedAt >= CHECK_IN_WAIT_MS ? "no-check-in" : null;
-	if (f.teaching) return null;
-	return f.quietSince !== null && f.now - f.quietSince >= TEACH_WAIT_MS ? "not-teaching" : null;
+	return !f.checkedIn && f.now - term.startedAt >= CHECK_IN_WAIT_MS ? "no-check-in" : null;
 }
 
 /** A page to get what is missing. */
@@ -159,11 +141,9 @@ interface ScreenWords {
 function screenWords(f: TerminalFacts, name: string): ScreenWords {
 	const { term } = f;
 	const agent = AGENT_LABEL[term.agent];
-	const teacher = term.role === "teacher";
 	const ended = term.ended;
 	const again = { startAgain: true };
-	// The shell also stops the helper when the teacher ends.
-	if (ended?.stopped) return { need: null, rest: teacher ? `You stopped ${name}.` : "Stopped.", more: again };
+	if (ended?.stopped) return { need: null, rest: `You stopped ${name}.`, more: again };
 	if (ended) {
 		if (ended.code === EXIT_NOT_INSTALLED) return { need: `${agent} isn't installed on this computer.`, rest: null, more: { get: GET_AGENT[term.agent], ...again } };
 		if (ended.code === EXIT_NO_NODE) return { need: `godspeed needs Node.js to connect ${agent}.`, rest: null, more: { get: GET_NODE, ...again } };
@@ -180,11 +160,9 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 	if (!f.checkedIn && term.url)
 		return { need: `Finish signing in to ${agent}.`, rest: "Got a code? Click Paste." };
 	if (term.prompt === "menu") return { need: `${name} is asking you something.`, rest: null };
-	const why = needsYou(f);
-	if (why === "no-check-in" || why === "not-teaching") return { need: `${name} hasn't started teaching yet.`, rest: null };
+	if (needsYou(f) === "no-check-in") return { need: `${name} hasn't started teaching yet.`, rest: null };
 	if (!f.checkedIn) return { need: `${name} is starting.`, rest: null, starting: true };
-	if (teacher) return { need: null, rest: null };
-	return { need: null, rest: f.helperBusy ? "Reading your files." : "Waiting for files." };
+	return { need: null, rest: null };
 }
 
 /** The footer under a screen. `underStatus`: the screen's status line
@@ -235,22 +213,6 @@ export function teacherStartRefused(teacher: TerminalRecord | null, outsideHere:
 	return outsideHere ? "outside" : null;
 }
 
-/** The helper starts by itself, once per teacher run: the teacher's
- *  terminal runs and checked in, background jobs wait that the teacher
- *  leaves to a helper (`helperWork`), no helper is here, and none was
- *  started since this teacher started. */
-export function helperShouldStart(i: {
-	teacher: TerminalRecord | null;
-	teacherCheckedIn: boolean;
-	helper: TerminalRecord | null;
-	helperHere: boolean;
-	helperWork: number;
-}): boolean {
-	const { teacher, helper } = i;
-	if (!teacher || teacher.ended || !i.teacherCheckedIn || i.helperWork <= 0 || i.helperHere) return false;
-	return !helper || (!!helper.ended && helper.startedAt < teacher.startedAt);
-}
-
 /** Onboarding's footer under the screen: the panel's words while the
  *  agent asks something or has ended, else whether it has connected. */
 export function firstRunFooter(f: TerminalFacts, folder: string): TerminalFooter {
@@ -260,37 +222,16 @@ export function firstRunFooter(f: TerminalFacts, folder: string): TerminalFooter
 	return footer(f.checkedIn ? `${agent} is connected.` : `${agent} is starting in ${folder}. If it asks you something, answer it here.`);
 }
 
-/** Start lesson and a lesson's send start the teacher hidden, with the
- *  agent the learner picked (null before a pick, or before the folder is
- *  read), when no agent is here and none runs or starts. Null leaves it to
- *  the no-agent line. */
-export function wakeAgent(i: { teacher: TerminalRecord | null; agentHere: boolean; outsideHere: boolean; picked: FolderAgent | null }): FolderAgent | null {
-	if (i.agentHere || teacherStartRefused(i.teacher, i.outsideHere)) return null;
-	// A crash or a missing program waits for the learner's Start again.
-	if (crashed(i.teacher?.ended ?? null)) return null;
-	return i.picked;
-}
-
-/** The server counts an agent (and the helper) here for 3 minutes after
- *  its last request, so after godspeed's teacher ended, or before a new one
- *  checked in, it still says so. The terminals know: once godspeed has
- *  started a teacher, no agent here means none connected, teaching or
- *  helping (the shell stops the helper with the teacher). And its own
- *  teacher, running and checked in, is ready to teach even while it sits
- *  quiet: godspeed wakes it when a lesson needs it. */
-export function statusFromTerminals<S extends { connected: boolean; teaching: boolean; helperHere: boolean; helperCovering: boolean; name?: string }>(
-	status: S | null,
-	teacher: TerminalRecord | null,
-	agentHere: boolean,
-): S | null {
-	if (status && agentHere && live(teacher) && !(status.connected && status.teaching)) return { ...status, connected: true, teaching: true };
-	if (!status || !teacher || agentHere || !(status.connected || status.teaching || status.helperHere || status.helperCovering)) return status;
+/** The server counts an agent here for 3 minutes after its last request,
+ *  so after godspeed's teacher ended, or before a new one checked in, it
+ *  still says so. The terminals know: once godspeed has started a teacher,
+ *  no agent here means none connected, and its own teacher, running and
+ *  checked in, is connected. Whether an agent is picked (`teaching`) is
+ *  the server's alone. */
+export function statusFromTerminals<S extends { connected: boolean; name?: string }>(status: S | null, teacher: TerminalRecord | null, agentHere: boolean): S | null {
+	if (status && agentHere && live(teacher) && !status.connected) return { ...status, connected: true };
+	if (!status || !teacher || agentHere || !status.connected) return status;
 	const { name: _gone, ...rest } = status;
-	return { ...rest, connected: false, teaching: false, helperHere: false, helperCovering: false } as S;
+	return { ...rest, connected: false } as S;
 }
 
-/** Restart now asks first while the teacher's terminal runs and a lesson
- *  turn waits for it. */
-export function restartAsks(teacher: TerminalRecord | null, pendingTurns: number): boolean {
-	return live(teacher) && pendingTurns > 0;
-}

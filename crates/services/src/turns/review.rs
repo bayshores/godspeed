@@ -21,7 +21,6 @@ use gs_json::{Json, json};
 use super::turn_liveness::is_turn_running;
 use crate::App;
 use crate::app::agent_actions::record_answer;
-use crate::app::agent_folder::picked_agent;
 use crate::graph::progress::{progress_for, space_order_for, space_reviews};
 
 /// The questions from earlier skipped in a lesson's sitting, and when the last one was.
@@ -106,7 +105,7 @@ pub fn next_review(app: &App, chat_id: &str) -> Result<ReviewReply, String> {
 	{
 		return Ok(ReviewReply::Next(Some(question)));
 	}
-	let busy = is_turn_running(app, chat_id) || picked_agent(app).is_none();
+	let busy = is_turn_running(app, chat_id);
 	if !review_window_open(&record, now, busy) {
 		return Ok(ReviewReply::Next(None));
 	}

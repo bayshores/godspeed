@@ -350,95 +350,7 @@ describe("send (one input event, verbatim consumption)", () => {
 		assert.equal(m.status, "error");
 	});
 
-	it("every input taken, and only those, tells the adapter at once, before its turn ends (which starts the teacher when none is here)", async () => {
-		// The turn never ends (no agent takes it) until the Stop below ends the view's stream.
-		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-			const url = String(input);
-			if (url === "/api/chat") return Response.json({ ok: true });
-			if (url === "/api/chats/chat_x") return Response.json({ messages: [] });
-			const body = new ReadableStream({
-				start: (c) => init?.signal?.addEventListener("abort", () => c.error(new DOMException("stopped", "AbortError"))),
-			});
-			return new Response(body);
-		}) as typeof globalThis.fetch;
-		const quiz = {
-			id: "call-1",
-			role: "assistant",
-			content: [{ type: "toolCall", id: "call-1", name: "quiz", arguments: { question: "Q?", choices: ["a", "b"] } }],
-			stopReason: "toolUse",
-			usage: { input: 0, output: 0, total: 0, cacheReads: 0, cacheWrites: 0 },
-			provider: "openrouter",
-			model: "test",
-			timestamp: 0,
-		} as unknown as LhMessage;
-		const sends: Array<(m: SessionModel) => Promise<boolean>> = [
-			(m) => m.send({ type: "text", text: "a lesson message" }),
-			(m) => m.send({ type: "side", text: "a side question" }),
-			(m) => m.submitAnswer("call-1", { correct: true } as never),
-		];
-		for (const sendIt of sends) {
-			let told = 0;
-			const m = model({ initialMessages: [newUserMessage("hi"), quiz] });
-			m.onSent = () => told++;
-			const sent = sendIt(m);
-			for (let i = 0; i < 50 && told === 0; i++) await new Promise((r) => setTimeout(r, 10));
-			assert.equal(told, 1, "told while the turn still waits");
-			m.stop();
-			await sent;
-			assert.equal(told, 1);
-		}
-		// A steer into a turn godspeed started by itself tells it too.
-		globalThis.fetch = (async () => Response.json({ ok: true })) as typeof globalThis.fetch;
-		let steered = 0;
-		const steering = model();
-		steering.onSent = () => steered++;
-		assert.equal(await steering.steer("wait, why?"), true);
-		assert.equal(steered, 1);
-		globalThis.fetch = (async () => new Response("scan.pdf is not a PDF.", { status: 400 })) as typeof globalThis.fetch;
-		let told = 0;
-		const refused = model();
-		refused.onSent = () => told++;
-		assert.equal(await refused.send({ type: "text", text: "q" }), false);
-		assert.equal(told, 0, "a refused send starts nothing");
-	});
-
-	it("an answer that leaves a sibling question open makes no turn and starts nothing; the last one does", async () => {
-		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-			const url = String(input);
-			if (url === "/api/chat") return Response.json({ ok: true });
-			if (url === "/api/chats/chat_x") return Response.json({ messages: [] });
-			const body = new ReadableStream({
-				start: (c) => init?.signal?.addEventListener("abort", () => c.error(new DOMException("stopped", "AbortError"))),
-			});
-			return new Response(body);
-		}) as typeof globalThis.fetch;
-		const call = (id: string) => ({ type: "toolCall", id, name: "quiz", arguments: { question: `${id}?`, choices: ["a", "b"] } });
-		const two = {
-			id: "two",
-			role: "assistant",
-			content: [call("call-1"), call("call-2")],
-			stopReason: "toolUse",
-			usage: { input: 0, output: 0, total: 0, cacheReads: 0, cacheWrites: 0 },
-			provider: "openrouter",
-			model: "test",
-			timestamp: 0,
-		} as unknown as LhMessage;
-		let told = 0;
-		const m = model({ initialMessages: [newUserMessage("hi"), two] });
-		m.onSent = () => told++;
-		const first = m.submitAnswer("call-1", { correct: true } as never);
-		await new Promise((r) => setTimeout(r, 50));
-		assert.equal(told, 0, "the second question still waits, so no teacher is needed yet");
-		m.stop();
-		await first;
-		const last = m.submitAnswer("call-2", { correct: false } as never);
-		for (let i = 0; i < 50 && told === 0; i++) await new Promise((r) => setTimeout(r, 10));
-		assert.equal(told, 1, "the last answer makes the turn");
-		m.stop();
-		await last;
-	});
-
-	it("an answer sent again after a lost ack tells the adapter when its turn is already running", async () => {
+	it("an answer whose ack was lost is unknown, not refused, and sent again it reattaches to its running turn", async () => {
 		const quiz = {
 			id: "call-1",
 			role: "assistant",
@@ -463,16 +375,13 @@ describe("send (one input event, verbatim consumption)", () => {
 			});
 			return new Response(body);
 		}) as typeof globalThis.fetch;
-		let told = 0;
 		const m = model({ initialMessages: [newUserMessage("hi"), quiz] });
-		m.onSent = () => told++;
 		assert.equal(await m.submitAnswer("call-1", { correct: true } as never), true, "unknown, not refused");
 		assert.equal(m.status, "error");
-		assert.equal(told, 0);
 		lost = false;
 		const again = m.submitAnswer("call-1", { correct: true } as never);
-		for (let i = 0; i < 50 && told === 0; i++) await new Promise((r) => setTimeout(r, 10));
-		assert.equal(told, 1, "the running turn waits for the teacher");
+		for (let i = 0; i < 50 && m.status === "error"; i++) await new Promise((r) => setTimeout(r, 10));
+		assert.notEqual(m.status, "error", "attached to the turn already running");
 		m.stop();
 		await again;
 	});

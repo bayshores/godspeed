@@ -61,6 +61,6 @@ async fn answers_like_the_ts_handler() {
 		assert_eq!(text, body, "{name}: body");
 	}
 	if recording {
-		std::fs::write(GOLDEN, format!("{}\n", stringify_pretty(&golden, "\t"))).unwrap();
+		gs_base::fsx::write_text_atomic(std::path::Path::new(GOLDEN), &format!("{}\n", stringify_pretty(&golden, "\t"))).unwrap();
 	}
 }

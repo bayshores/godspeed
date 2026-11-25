@@ -58,18 +58,17 @@ fn folder(name: &str, script: &str) -> PathBuf {
 	let dir = std::env::temp_dir().join(format!("gs-shell-terminal-{name}-{}", std::process::id()));
 	let _ = std::fs::remove_dir_all(&dir);
 	std::fs::create_dir_all(dir.join(".godspeed")).unwrap();
-	write_script(&dir, Role::Teacher, script);
+	write_script(&dir, script);
 	dir
 }
 
-fn write_script(dir: &Path, role: Role, script: &str) {
-	let helper = if role == Role::Helper { "-helper" } else { "" };
+fn write_script(dir: &Path, script: &str) {
 	let extension = match std::env::consts::OS {
 		"macos" => "command",
 		"windows" => "cmd",
 		_ => "sh",
 	};
-	let file = dir.join(".godspeed").join(format!("start-claude{helper}.{extension}"));
+	let file = dir.join(".godspeed").join(format!("start-claude.{extension}"));
 	gs_base::fsx::write_text_atomic(&file, script).unwrap();
 	#[cfg(unix)]
 	{
@@ -90,7 +89,7 @@ fn env(home: &Path) -> Vec<(OsString, OsString)> {
 }
 
 fn start(terminals: &Terminals, dir: &Path) -> String {
-	terminals.start(Role::Teacher, Agent::Claude, dir.to_str().unwrap(), env(dir), Path::new("/data"), None).unwrap()
+	terminals.start(Agent::Claude, dir.to_str().unwrap(), env(dir), Path::new("/data"), None).unwrap()
 }
 
 fn text(terminals: &Terminals, id: &str) -> String {
@@ -121,7 +120,7 @@ fn an_agent_that_says_the_chat_is_gone_ends_with_its_own_code() {
 	let dir = folder("gone", "#!/bin/sh\nprintf 'resume %s\\n' \"$GODSPEED_RESUME\"\necho 'No conversation found with session ID: x'\nexit 1\n");
 	let terminals = Terminals::new(Arc::new(Heard::default()));
 	let chat = "0f8fad5b-d9cb-469f-a165-70867728950e";
-	let id = terminals.start(Role::Teacher, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), Some(chat)).unwrap();
+	let id = terminals.start(Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), Some(chat)).unwrap();
 	until("the end", || ended_of(&terminals, &id).is_some());
 	assert_eq!(ended_of(&terminals, &id), Some(Ended::Exited(EXIT_CHAT_GONE)));
 	assert!(text(&terminals, &id).contains(&format!("resume {chat}")), "the script was told the chat");
@@ -146,7 +145,7 @@ fn a_starter_is_typed_sent_and_heard_as_the_learners_line() {
 	let dir = codex_folder("starter");
 	let heard = Arc::new(Heard::default());
 	let terminals = Terminals::new(heard.clone());
-	let id = terminals.start(Role::Teacher, Agent::Codex, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
+	let id = terminals.start(Agent::Codex, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
 	until("the input", || text(&terminals, &id).contains('›'));
 	assert_eq!(terminals.send(&id, "What's due?", Some(MAIN)), Err(NOT_SHOWN.to_owned()), "not shown yet");
 	terminals.attach(&id, MAIN).unwrap();
@@ -164,15 +163,10 @@ fn a_starter_is_typed_sent_and_heard_as_the_learners_line() {
 }
 
 #[test]
-fn a_starter_is_only_for_the_teachers_running_terminal() {
-	let dir = folder("starter-helper", ECHO);
-	write_script(&dir, Role::Helper, WAITS);
+fn a_starter_is_only_for_a_running_terminal() {
+	let dir = folder("starter-ended", ECHO);
 	let terminals = Terminals::new(Arc::new(Heard::default()));
 	let teacher = start(&terminals, &dir);
-	let helper = terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
-	until("ready", || text(&terminals, &helper).contains("ready"));
-	terminals.attach(&helper, MAIN).unwrap();
-	assert_eq!(terminals.send(&helper, "What's due?", Some(MAIN)), Err(NOT_SENT.to_owned()), "background work's terminal");
 	terminals.stop(&teacher).unwrap();
 	until("the end", || ended_of(&terminals, &teacher).is_some());
 	terminals.attach(&teacher, MAIN).unwrap();
@@ -263,22 +257,20 @@ fn output_goes_only_to_the_window_that_attached_last() {
 #[test]
 fn a_window_that_is_gone_shows_nothing_and_another_window_is_left_alone() {
 	let dir = folder("window-gone", WAITS);
-	write_script(&dir, Role::Helper, WAITS);
 	let terminals = Terminals::new(Arc::new(Heard::default()));
 	let shown = start(&terminals, &dir);
-	let other = terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
-	until("ready", || text(&terminals, &shown).contains("ready") && text(&terminals, &other).contains("ready"));
-	terminals.attach(&shown, TERMINAL).unwrap();
-	terminals.attach(&other, MAIN).unwrap();
+	until("ready", || text(&terminals, &shown).contains("ready"));
+	terminals.attach(&shown, MAIN).unwrap();
+	terminals.window_closed(TERMINAL);
+	terminals.write(&shown, "b", Some(MAIN)).unwrap();
 
+	terminals.attach(&shown, TERMINAL).unwrap();
 	terminals.window_closed(TERMINAL);
 	assert_eq!(terminals.write(&shown, "a", Some(TERMINAL)), Err(NOT_SHOWN.to_owned()), "nothing shows it now");
-	terminals.write(&other, "b", Some(MAIN)).unwrap();
 	terminals.attach(&shown, MAIN).unwrap();
 	terminals.write(&shown, "c", Some(MAIN)).unwrap();
 	terminals.stop(&shown).unwrap();
-	terminals.stop(&other).unwrap();
-	until("the stops", || ended_of(&terminals, &shown).is_some() && ended_of(&terminals, &other).is_some());
+	until("the stop", || ended_of(&terminals, &shown).is_some());
 	std::fs::remove_dir_all(dir).unwrap();
 }
 
@@ -422,7 +414,7 @@ fn nothing_from_the_screen_or_the_environment_is_logged() {
 	assert!(lock(&heard.typed).is_empty(), "a paste is not a message yet, even with a line break");
 	until("the end", || ended_of(&terminals, &id).is_some());
 	let log = lock(&heard.log).join("\n");
-	assert!(log.contains("terminal started: teacher claude pid ") && log.contains(" code 0"), "{log}");
+	assert!(log.contains("terminal started: claude pid ") && log.contains(" code 0"), "{log}");
 	for kept_out in [SECRET, "ready", id.as_str(), dir.to_str().unwrap()] {
 		assert!(!log.contains(kept_out), "{kept_out} in {log}");
 	}
@@ -430,12 +422,11 @@ fn nothing_from_the_screen_or_the_environment_is_logged() {
 }
 
 #[test]
-fn a_second_live_terminal_for_a_role_is_refused() {
+fn a_second_live_terminal_is_refused() {
 	let dir = folder("second", ECHO);
 	let terminals = Terminals::new(Arc::new(Heard::default()));
 	let id = start(&terminals, &dir);
-	assert_eq!(terminals.start(Role::Teacher, Agent::Codex, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None), Err("The teacher is already running.".to_owned()));
-	assert_eq!(terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None), Err(NOT_SET_UP.to_owned()), "the helper has no script here");
+	assert_eq!(terminals.start(Agent::Codex, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None), Err("The teacher is already running.".to_owned()));
 	terminals.stop(&id).unwrap();
 	until("the stop", || ended_of(&terminals, &id) == Some(Ended::Stopped));
 	let again = start(&terminals, &dir);
@@ -451,30 +442,18 @@ const WAITS: &str = "#!/bin/sh\nprintf 'ready\\n'\nsleep 300\n";
 const WAITS: &str = "@echo off\r\necho ready\r\nping -n 300 127.0.0.1 >nul\r\n";
 
 #[test]
-fn the_helper_stops_when_the_teacher_ends_or_is_stopped() {
-	let dir = folder("helper", ECHO);
-	write_script(&dir, Role::Helper, WAITS);
+fn the_server_hears_which_terminal_is_the_teachers_and_its_end() {
+	let dir = folder("teacher-end", ECHO);
 	let heard = Arc::new(Heard::default());
 	let terminals = Terminals::new(heard.clone());
-	let start_helper = || terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
-
 	let teacher = start(&terminals, &dir);
-	let helper = start_helper();
-	assert_eq!(*lock(&heard.teacher), Some(teacher.clone()), "the server hears which one is the teacher's");
-	until("ready", || text(&terminals, &teacher).contains("ready") && text(&terminals, &helper).contains("ready"));
+	assert_eq!(*lock(&heard.teacher), Some(teacher.clone()));
+	until("ready", || text(&terminals, &teacher).contains("ready"));
 	terminals.attach(&teacher, MAIN).unwrap();
 	terminals.write(&teacher, "bye\r", Some(MAIN)).unwrap();
 	until("the teacher's own end", || ended_of(&terminals, &teacher) == Some(Ended::Exited(0)));
-	until("the helper's stop", || ended_of(&terminals, &helper) == Some(Ended::Stopped));
-	assert_eq!(lock(&heard.live).last(), Some(&Vec::new()), "the server hears both ended");
+	assert_eq!(lock(&heard.live).last(), Some(&Vec::new()), "the server hears it ended");
 	assert_eq!(*lock(&heard.teacher), None);
-
-	let teacher = start(&terminals, &dir);
-	let helper = start_helper();
-	until("ready", || text(&terminals, &helper).contains("ready"));
-	terminals.stop(&teacher).unwrap();
-	until("the helper's stop", || ended_of(&terminals, &helper) == Some(Ended::Stopped));
-	assert_eq!(lock(&heard.live).last(), Some(&Vec::new()));
 	std::fs::remove_dir_all(dir).unwrap();
 }
 
@@ -503,21 +482,20 @@ fn only_enter_on_its_own_is_a_message_to_the_agent() {
 #[test]
 fn the_server_hears_the_live_terminals_in_the_order_they_changed() {
 	let dir = folder("order", WAITS);
-	write_script(&dir, Role::Helper, WAITS);
 	let heard = Arc::new(Heard::default());
 	let terminals = Arc::new(Terminals::new(heard.clone()));
-	let helper = terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
+	let first = start(&terminals, &dir);
 	heard.slow.store(true, Ordering::SeqCst);
 	let stopping = std::thread::spawn({
-		let (terminals, helper) = (terminals.clone(), helper.clone());
-		move || terminals.stop(&helper).unwrap()
+		let (terminals, first) = (terminals.clone(), first.clone());
+		move || terminals.stop(&first).unwrap()
 	});
 	until("the slow send", || heard.sending.load(Ordering::SeqCst));
 	let teacher = start(&terminals, &dir);
 	stopping.join().unwrap();
 	assert_eq!(lock(&heard.live).last(), Some(&vec![teacher.clone()]), "the stop's message came first");
 	terminals.stop(&teacher).unwrap();
-	until("the stops", || ended_of(&terminals, &teacher).is_some() && ended_of(&terminals, &helper).is_some());
+	until("the stop", || ended_of(&terminals, &teacher).is_some());
 	std::fs::remove_dir_all(dir).unwrap();
 }
 

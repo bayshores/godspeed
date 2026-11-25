@@ -76,12 +76,14 @@ async fn review_answers_each_case() {
 	for input in [json!({}), json!({ "type": "answer", "of": of }), json!({ "type": "skip", "of": { "chatId": earlier } }), json!({ "type": "dismiss" })] {
 		assert_eq!(post(port, &path, &json!({ "input": input })).await, (400, malformed.clone()), "{input:?}");
 	}
+	// A question from earlier shows only while the lesson's reply is being written.
+	assert_eq!(post(port, &path, &json!({ "input": { "type": "next" } })).await, (200, json!({ "question": null })), "no turn runs");
+	assert!(begin_turn(&app, &chat_id));
 	let (status, body) = post(port, &path, &json!({ "input": { "type": "next" } })).await;
 	assert_eq!(status, 200);
 	assert_eq!(body["question"]["of"], json!({ "chatId": earlier, "messageId": "m2", "toolCallId": "t1" }));
 	assert_eq!((body["question"]["topic"].as_str(), body["question"]["quiz"]["correctAnswer"].as_str()), (Some("Bayes' rule"), Some("About 25%")));
 
-	assert!(begin_turn(&app, &chat_id));
 	let not_open = json!({ "input": { "type": "answer", "of": { "chatId": earlier, "toolCallId": "q1" }, "answer": right } });
 	assert_eq!(post(port, &path, &not_open).await, (400, json!({ "error": "That question from earlier is not open" })), "during a turn: 400, never 409");
 	let unpicked = json!({ "input": { "type": "answer", "of": of, "answer": { "kind": "quiz", "answers": [] } } });
@@ -92,6 +94,7 @@ async fn review_answers_each_case() {
 
 	let (_, fresh) = space_with_a_question(&app);
 	let fresh_path = format!("/api/chats/{fresh}/review");
+	assert!(begin_turn(&app, &fresh));
 	let (_, body) = post(port, &fresh_path, &json!({ "input": { "type": "next" } })).await;
 	let of = body["question"]["of"].clone();
 	assert_eq!(post(port, &fresh_path, &json!({ "input": { "type": "answer", "of": of, "answer": right } })).await, (200, json!({ "ok": true })));
@@ -99,4 +102,5 @@ async fn review_answers_each_case() {
 	let marker = record["messages"].as_arr().unwrap().last().unwrap().clone();
 	assert_eq!((marker["customType"].as_str(), marker["details"]["topic"].as_str()), (Some("review"), Some("Bayes' rule")));
 	assert_eq!(post(port, &fresh_path, &json!({ "input": { "type": "next" } })).await, (200, json!({ "question": null })), "answered today");
+	end_turn(&app, &fresh);
 }

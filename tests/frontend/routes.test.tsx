@@ -69,7 +69,7 @@ describe("the route table", () => {
 		const jobs = [{ id: "job_1", status: "running" }];
 		const question = { of: { chatId: "chat_0", toolCallId: "q1" } };
 		const plugins = [{ id: "flashcards", enabled: true }];
-		const work = { live: true, cause: "first", taken: true, plan: null, steps: [], files: [] };
+		const work = { live: true, cause: "first", plan: null, steps: [], files: [] };
 		const asked = serve({
 			"/api/chats/chat_1": [200, chat({ kind: "homework", spaceId: "spc_1", deadlineId: "ddl 1" })],
 			"/api/chats/chat_1/problems": [200, { problems }],

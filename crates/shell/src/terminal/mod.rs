@@ -1,4 +1,4 @@
-//! The agents' terminals, in memory only: at most one live record per role (teacher, helper).
+//! The teacher's terminals, in memory only: at most one live record.
 //! Each runs one start script in a pseudo-terminal (spawn.rs); the shell keeps its screen
 //! (screen.rs), sends its output only to the window that shows it (one at a time, by label), and
 //! tells the server which terminal ids are live, so an agent whose terminal ended is refused.
@@ -23,7 +23,7 @@ use crate::lock::lock;
 pub use registry::Terminals;
 pub use screen::Prompt;
 use screen::{Screen, Settle};
-pub use spawn::{Agent, Role};
+pub use spawn::Agent;
 
 /// How long a shown terminal's output waits to go out with what follows it: a program that
 /// prints without pause costs the window one push a frame.
@@ -60,7 +60,7 @@ pub trait Outlet: Send + Sync + 'static {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Ended {
-	/// The learner clicked Stop, godspeed quit, or (the helper) the teacher ended.
+	/// The learner clicked Stop, or godspeed quit.
 	Stopped,
 	Exited(u32),
 	/// The shell could not draw its output, and stopped it.
@@ -69,7 +69,6 @@ enum Ended {
 
 struct Terminal {
 	id: String,
-	role: Role,
 	agent: Agent,
 	started_at: i64,
 	pid: Option<u32>,

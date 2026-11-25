@@ -25,7 +25,6 @@ use crate::jobs::asks::{AskedOn, asks_on};
 
 pub(super) struct TurnWork {
 	cause: TurnCause,
-	taken: bool,
 	plan: Option<Json>,
 	/// Oldest first.
 	steps: VecDeque<Json>,
@@ -51,7 +50,7 @@ fn update(app: &App, chat_id: &str, change: impl FnOnce(&mut TurnWork) -> bool) 
 
 /// The turn began, for `cause`.
 pub(super) fn begin(app: &App, chat_id: &str, cause: TurnCause) {
-	app.turns.work.lock().insert(chat_id.to_owned(), TurnWork { cause, taken: false, plan: None, steps: VecDeque::new(), approvals: Vec::new() });
+	app.turns.work.lock().insert(chat_id.to_owned(), TurnWork { cause, plan: None, steps: VecDeque::new(), approvals: Vec::new() });
 	lesson_work_changed(app, chat_id);
 }
 
@@ -60,11 +59,6 @@ pub(super) fn end(app: &App, chat_id: &str) {
 	if app.turns.work.lock().remove(chat_id).is_some() {
 		lesson_work_changed(app, chat_id);
 	}
-}
-
-/// The agent took the lesson's turn.
-fn taken(app: &App, chat_id: &str) {
-	update(app, chat_id, |work| !std::mem::replace(&mut work.taken, true));
 }
 
 /// One step: its words, the reply's tool call it stands for, the file and place it reads.
@@ -105,15 +99,13 @@ pub(crate) fn approval_view(app: &App, id: &str, ask: &Json) -> Json {
 	json!({ "id": id, "text": card["text"].clone(), "subject": card["subject"].clone() })
 }
 
-/// Hears what the turn's agent does besides godspeed's tools: it took the turn, it runs one of its
-/// own tools (a step; a file it reads shows on the desk), a permission question waits or was
-/// answered.
+/// Hears what the turn's agent does besides godspeed's tools: it runs one of its own tools (a
+/// step; a file it reads shows on the desk), a permission question waits or was answered.
 pub(super) fn desk_listener(app: &Arc<App>, chat_id: &str) -> DeskListener {
 	let (app, chat_id) = (Arc::downgrade(app), chat_id.to_owned());
 	Arc::new(move |event: &DeskEvent| {
 		let Some(app) = app.upgrade() else { return };
 		match event {
-			DeskEvent::Taken => taken(&app, &chat_id),
 			DeskEvent::OwnTool { name, input } => {
 				let Some(step) = own_tool_input_step(name, input) else { return };
 				let reads = (name == "Read").then(|| input["file_path"].as_str().and_then(|path| path_reading(path, None, None, None))).flatten();
@@ -144,7 +136,7 @@ pub(super) fn job_activity(app: &App, job_id: &str, line: &str) {
 	note_step(app, job["chatId"].str_or_empty(), step, None, path_reading(path, None, None, page));
 }
 
-/// GET /api/chats/{id}/work: `{live, cause, taken, plan, steps, approvals, files}`; the files and
+/// GET /api/chats/{id}/work: `{live, cause, plan, steps, approvals, files}`; the files and
 /// the lesson's jobs' permission questions go out with no turn too. None for an unknown lesson.
 pub fn lesson_work(app: &App, chat_id: &str) -> Option<Json> {
 	let lesson = app.stores.chats.get_chat(chat_id)?;
@@ -154,9 +146,9 @@ pub fn lesson_work(app: &App, chat_id: &str) -> Option<Json> {
 	Some(match turns.get(chat_id) {
 		Some(work) => {
 			let approvals = [work.approvals.clone(), job_asks].concat();
-			json!({ "live": true, "cause": work.cause.name(), "taken": work.taken, "plan": work.plan.clone(), "steps": work.steps.iter().cloned().collect::<Vec<_>>(), "approvals": approvals, "files": files })
+			json!({ "live": true, "cause": work.cause.name(), "plan": work.plan.clone(), "steps": work.steps.iter().cloned().collect::<Vec<_>>(), "approvals": approvals, "files": files })
 		}
-		None => json!({ "live": false, "cause": null, "taken": false, "plan": null, "steps": [], "approvals": job_asks, "files": files }),
+		None => json!({ "live": false, "cause": null, "plan": null, "steps": [], "approvals": job_asks, "files": files }),
 	})
 }
 
@@ -183,24 +175,22 @@ mod tests {
 		let lesson = |title: &str| app.stores.chats.create_chat(title, Some("study"), None, None, &[]).unwrap()["id"].str_or_empty().to_owned();
 		let (a, b) = (lesson("Pointers"), lesson("Sets"));
 		let mut events = app.events.subscribe();
-		assert_eq!(lesson_work(&app, &a), Some(json!({ "live": false, "cause": null, "taken": false, "plan": null, "steps": [], "approvals": [], "files": [] })));
+		assert_eq!(lesson_work(&app, &a), Some(json!({ "live": false, "cause": null, "plan": null, "steps": [], "approvals": [], "files": [] })));
 		assert_eq!(lesson_work(&app, "chat_gone"), None);
 
 		for chat in [&a, &b] {
 			assert!(begin_turn(&app, chat));
 			begin(&app, chat, TurnCause::First);
 		}
-		taken(&app, &a);
-		taken(&app, &a);
 		note_step(&app, &a, step("Looking at CSE 29"), Some("agent_1"), None);
 		let not_asking = |chat: &str| json!({ "chatId": chat, "asking": false });
-		assert_eq!(told(&mut events), [not_asking(&a), not_asking(&b), not_asking(&a), not_asking(&a)], "begun twice, taken once, one step");
+		assert_eq!(told(&mut events), [not_asking(&a), not_asking(&b), not_asking(&a)], "begun twice, one step");
 		let work = lesson_work(&app, &a).unwrap();
-		assert_eq!((work["live"].as_bool(), work["cause"].as_str(), work["taken"].as_bool()), (Some(true), Some("first"), Some(true)));
+		assert_eq!((work["live"].as_bool(), work["cause"].as_str()), (Some(true), Some("first")));
 		assert_eq!(work["steps"][0]["text"], json!("Looking at CSE 29"));
 		assert_eq!((work["steps"][0]["call"].as_str(), &work["steps"][0]["reads"]), (Some("agent_1"), &Json::Null));
 		let other = lesson_work(&app, &b).unwrap();
-		assert_eq!((other["taken"].as_bool(), other["steps"].items().len()), (Some(false), 0), "the other lesson's turn is its own");
+		assert_eq!(other["steps"].items().len(), 0, "the other lesson's turn is its own");
 
 		end_turn(&app, &a);
 		assert_eq!(lesson_work(&app, &a).unwrap()["live"], json!(false));

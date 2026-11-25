@@ -16,24 +16,21 @@ export function TerminalWindow() {
 	const name = useSettings().teacherName;
 	const agent = useAgentStatus();
 	const terminals = useTerminals();
-	const facts = terminals?.facts.teacher ?? null;
+	const facts = terminals?.facts ?? null;
 	return (
 		// The teacher panel's colors on a whole window: no pop-up corners, no edge line.
 		<main data-testid="terminal-window" style={{ borderRadius: 0, boxShadow: "none" }} className="lh-popup flex h-dvh min-w-0 flex-col overflow-hidden font-ui">
 			<div className="lh-drag lh-lights-gutter shrink-0 select-none">
 				<PanelHead
-					title={null}
 					status={screenStatusLine(facts, name) ?? agentLine(agent, name)}
 					lit={teacherTerminalState(facts) === "needsYou"}
 					working={false}
 					list={null}
-					need={null}
-					back={null}
 					putBack={() => terminals?.putBack()}
 				/>
 			</div>
 			<div className="flex min-h-0 flex-1 flex-col">
-				<PanelScreen name={name} role="teacher" focus />
+				<PanelScreen name={name} focus />
 			</div>
 		</main>
 	);

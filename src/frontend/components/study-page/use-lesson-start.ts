@@ -3,7 +3,6 @@ import { useNavigate } from "react-router";
 import { lessonStop, type ChatAttachment, type DeadlineProgress, type GraphContextPick, type LhMessage } from "@/shared/core";
 import { useSpaces } from "@/frontend/components/space-context";
 import { holdStartFiles } from "@/frontend/components/lesson/start-files";
-import { useWake } from "@/frontend/components/teacher/use-wake";
 import { getJson, jsonInit, send, type WriteResult } from "@/frontend/lib/api";
 
 /** What `busyOn` names while the typed-topic start runs. */
@@ -29,9 +28,7 @@ type StartBody =
 /**
  * Every Study start (the start page, its suggestions, a deadline, the
  * Graph, the Overview) goes through here, in the active space. The lesson
- * runs on the outside agent; with no agent connected it waits in the agent
- * queue (the lesson shows "Waiting for Teacher") and, in the desktop
- * app, starts the agent last started there (TerminalsApi.wake). The session's title,
+ * runs on the picked agent in a session of its own. The session's title,
  * as the server returns it, is its first message, with any pictures and
  * PDFs added to the topic. A start that fails sets `error`, the server's
  * reason, for the screen to show, and resolves to it. `busyOn` is the id of the start in flight (a deadline, topic,
@@ -44,7 +41,6 @@ export function useLessonStart() {
 	const { active } = useSpaces();
 	const [busyOn, setBusyOn] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	const wake = useWake();
 
 	const post = useCallback(
 		async (startId: string, body: StartBody, files: readonly ChatAttachment[] = [], spaceId = active): Promise<WriteResult> => {
@@ -64,11 +60,10 @@ export function useLessonStart() {
 				return null;
 			}
 			holdStartFiles(id, files);
-			wake?.();
 			navigate(`/chat/${id}?prompt=${encodeURIComponent(title)}`);
 			return null;
 		},
-		[busyOn, active, navigate, wake],
+		[busyOn, active, navigate],
 	);
 
 	/** Study a typed topic, with any facts picked for it and any files added,

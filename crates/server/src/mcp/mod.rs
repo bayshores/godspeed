@@ -190,7 +190,6 @@ pub fn mcp_access_status(app: &App) -> Result<Json, String> {
 	Ok(json!({
 		"token": app.stores.mcp_token.ensure_mcp_token()?,
 		"agentConnected": app.terminals.agent_connected(now),
-		"agentTeaching": turns > 0,
 		"agentName": app.terminals.agent_name(now),
 		"turnsRunning": turns,
 		"terminals": app.terminals.terminals_here(now).into_iter().map(|(id, here)| json!({ "id": id, "here": here })).collect::<Vec<_>>(),

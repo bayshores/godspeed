@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 import { LoadingBox } from "@/frontend/components/loading";
 import { Link } from "react-router";
 import { currentVersion, DEFAULT_TEACHER_NAME, pageSizeLabel, type CheatSheetView } from "@/shared/core";
-import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useJoinSpace } from "@/frontend/components/use-join-space";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
@@ -68,8 +67,6 @@ function Studio({
 	deadlineId: string;
 	act: (body: Record<string, unknown>) => Promise<string | null>;
 }) {
-	const agent = useAgentStatus();
-	const agentGone = !!agent && !agent.connected && !agent.teaching;
 	const teacherName = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [failed, setFailed] = useState<string | null>(null);
 	const [printing, setPrinting] = useState(false);
@@ -105,7 +102,6 @@ function Studio({
 			deadlineId={deadlineId}
 			act={act}
 			agentName={teacherName}
-			agentGone={agentGone}
 			pointed={pointed}
 			onClearPointed={() => setPointed(null)}
 			onShowVersion={current ? showVersion : undefined}

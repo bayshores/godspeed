@@ -60,8 +60,6 @@ export interface LessonWork {
 	/** A turn runs. */
 	live: boolean;
 	cause: TurnCause | null;
-	/** An agent has taken the turn. */
-	taken: boolean;
 	plan: WorkPlan | null;
 	/** Oldest first. */
 	steps: DeskStep[];
@@ -71,7 +69,7 @@ export interface LessonWork {
 	files: DeskFile[];
 }
 
-export const NO_LESSON_WORK: LessonWork = { live: false, cause: null, taken: false, plan: null, steps: [], approvals: [], files: [] };
+export const NO_LESSON_WORK: LessonWork = { live: false, cause: null, plan: null, steps: [], approvals: [], files: [] };
 
 const str = (v: unknown): v is string => typeof v === "string" && v !== "";
 const count = (v: unknown): number | null => (typeof v === "number" && Number.isInteger(v) && v > 0 ? v : null);
@@ -111,5 +109,5 @@ export function readLessonWork(raw: unknown): LessonWork {
 		? raw.steps.flatMap((s): DeskStep[] => (isRecord(s) && str(s.id) && str(s.at) && str(s.text) ? [{ id: s.id, at: s.at, text: s.text, call: str(s.call) ? s.call : null, reads: readReading(s.reads) }] : []))
 		: [];
 	const approvals = Array.isArray(raw.approvals) ? raw.approvals.flatMap((a) => readApproval(a) ?? []) : [];
-	return { live: true, cause: isCause(raw.cause) ? raw.cause : null, taken: raw.taken === true, plan: readPlan(raw.plan), steps, approvals, files };
+	return { live: true, cause: isCause(raw.cause) ? raw.cause : null, plan: readPlan(raw.plan), steps, approvals, files };
 }

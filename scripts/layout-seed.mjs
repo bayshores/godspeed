@@ -9,10 +9,11 @@
  * Four more deadlines, far off, carry the cheat sheet and mock pages: the midterm has a sheet of two
  * pages with its chat and one saved rule, and a graded mock followed by a ready one; the quiz has a
  * sheet with two versions and a paused mock; the review quiz has a mock being taken against the
- * clock; the spring exam has nothing, so a screen can ask for a sheet and a mock with no agent to
- * answer. The sheet and the mocks are made the way the window makes them, and the stand-in agent
- * answers each request (a sheet's PDF is copied into the sheet's working folder, as an agent's own
- * tools would write it). A second space, "Backend jobs",
+ * clock; the spring exam has nothing, so a screen can ask for a sheet and a mock that the stand-in
+ * helper holds unanswered. The sheet and the mocks are made the way the window makes them. Every
+ * job of godspeed's (the graph, the topics, the space check, sheets and mocks) plays on the stand-in
+ * helper, which gives each the fixed answer in layout-jobs.mjs (a sheet's PDF is copied into the
+ * sheet's working folder, as an agent's own tools would write it). A second space, "Backend jobs",
  * has a path toward a goal and one file read into two facts, too few to sort into topics. The window installs the plugin
  * "Flashcards", marked as from the made-up plugin list (tests/fixtures/plugins/layout-list.json)
  * at an older tag, so its sheet shows Update. No model runs; every word is fixed here.
@@ -44,92 +45,21 @@ import {
 	WAITING_TOPIC,
 	WRITTEN_TOPIC,
 } from "./layout-lessons.mjs";
+import { BACKEND_FILE, DEADLINE, FIXTURES, MIDTERM, QUIZ, SHEET_ASKS, SPRING_EXAM } from "./layout-jobs.mjs";
 
 /** The made-up plugin that shows in a lesson and in a space, installed from this folder. */
 const PLUGIN_FOLDER = path.resolve(import.meta.dirname, "..", "tests", "fixtures", "plugins", "layout");
 
-const FIXTURES = path.resolve(import.meta.dirname, "..", "tests", "fixtures");
-
-/** Every made-up name has letters that hang below the line (g, j, p, q, y), so the check for
- *  cut-off letters has something to catch. */
-const DEADLINE = "Pop quiz: graphing";
-/** The most work items a drain answers, and the most 250 ms waits for the lessons to end their turns. */
-const MOST_ITEMS = 80;
+/** The most 250 ms waits for the lessons to end their turns, and for the jobs to end. */
 const LESSON_POLLS = 480;
-/** Lab Algebra's facts by topic, so the Graph has topics that need and lead to others: Solving
- *  linear equations needs the first two and leads to the last two. */
-const LAB_TOPICS = [
-	{ name: "Inverse operations", material: "concept", facts: [["Undo in reverse", "To solve ax + b = c, subtract b from both sides, then divide by a."], ["Inverse operations", "Subtraction undoes addition and division undoes multiplication."]] },
-	{ name: "Equality rules", material: "term", facts: [["Same change both sides", "Doing the same operation to both sides of an equation keeps it true."], ["No dividing by zero", "Dividing both sides of an equation by zero is never allowed."]] },
-	{ name: "Solving linear equations", material: "procedure", facts: [["Isolate the variable", "Solving ax + b = c means isolating x by undoing each operation on it."], ["Check a solution", "Putting the answer back into the equation checks it."]] },
-	{ name: "Graphing lines", material: "procedure", facts: [["Slope-intercept form", "y = mx + b has slope m and y-intercept b."], ["Crossing point", "Where two lines cross is the solution both equations share."]] },
-	{ name: "Word problems", material: "procedure", facts: [["Translate words", "A word problem becomes an equation once each quantity has a symbol."], ["Units check", "An answer's units must match what the question asks for."]] },
-];
-const LAB_FACTS = LAB_TOPICS.flatMap((t) => t.facts);
-const local = (name) => `p${LAB_FACTS.findIndex(([n]) => n === name) + 1}`;
-/** Each chain joins two topics, which links them. */
-const LAB_CHAINS = [
-	[["Inverse operations"], "Isolate the variable"],
-	[["Same change both sides"], "Isolate the variable"],
-	[["Undo in reverse"], "Check a solution"],
-	[["Isolate the variable"], "Crossing point"],
-	[["Isolate the variable"], "Translate words"],
-].map(([premises, conclusion]) => ({ premises: premises.map(local), conclusion: local(conclusion) }));
-/** The second space's one file and its two facts. */
-const BACKEND_FILE = "HTTP basics.md";
-const BACKEND_FACTS = [
-	["Status codes", "A 4xx status means the request was wrong; a 5xx status means the server failed."],
-	["Idempotent methods", "Sending a PUT or DELETE twice leaves the server as sending it once does."],
-];
 /** The printed worksheet that is Homework 6's assignment. */
 const WORKSHEET = path.resolve(import.meta.dirname, "..", "crates", "pdf", "tests", "fixtures", "worksheet.pdf");
 
-/** Deadlines for the cheat sheet and mock pages, far off so Home stays as it was. */
-const MIDTERM = "Midterm: graphing and systems";
-const QUIZ = "Quiz 2: slopes and intercepts";
+/** One more deadline for the cheat sheet and mock pages (layout-jobs.mjs has the others), far off
+ *  so Home stays as it was. */
 const REVIEW_QUIZ = "Review quiz: equations by graphing";
-const SPRING_EXAM = "Spring exam: everything so far";
 
-const SHEET_ASKS = {
-	[MIDTERM]: "Make my cheat sheet for the midterm. Solving equations first, then graphing, and no more than two pages.",
-	[QUIZ]: "Make me a cheat sheet for quiz 2.",
-	short: "Make it fit on one page.",
-};
-const SHEET_REPLIES = {
-	[MIDTERM]: {
-		text: "I made your cheat sheet, two pages as you asked. Page 1 has the steps for solving an equation, lines and intercepts, and the mistakes to avoid. Page 2 has graphing a line, systems of two lines and word problems. The steps for solving come from your notes. [[PASSAGE]]",
-		new_rules: ["Two pages, letter size"],
-	},
-	[QUIZ]: { text: "Here is your cheat sheet. It has two pages: solving, then graphing." },
-	short: { text: "I cut it to one page by dropping the word problems and shortening the mistakes." },
-};
-
-const MOCK_QUESTIONS = [
-	{
-		title: "Why undo in reverse",
-		kind: "text",
-		statement: "In your own words, explain why we undo the steps of $2x + 3 = 11$ in reverse order. Then solve it and check your answer.",
-	},
-	{
-		title: "Solve ax + b = c",
-		kind: "code",
-		statement: "Write `solveLinear(a, b, c)` that returns the $x$ that solves $ax + b = c$. Here $a$ is never 0, and every number is a whole number.",
-		function_name: "solveLinear",
-		params: ["a", "b", "c"],
-		examples: [{ args: "[2, 3, 11]", expected: "4" }, { args: "[5, -7, 18]", expected: "5" }, { args: "[1, 0, 0]", expected: "0" }],
-	},
-	{
-		title: "Where two lines cross",
-		kind: "text",
-		statement: "The lines $y = 2x + 3$ and $y = -x + 9$ cross at one point.\n\nFind the point, and say how you could see from the graph alone that there is no second crossing.",
-	},
-];
 const MOCK_CODE = "function solveLinear(a, b, c) {\n\treturn (c - b) / a;\n}";
-const MOCK_GRADES = [
-	{ question: "q1", verdict: "right", feedback: "You said that adding 3 came last, so it is undone first, and you checked $x = 4$ in the equation. That is the whole idea." },
-	{ question: "q2", verdict: "partly", feedback: "The formula is right, but it returns a decimal when $c - b$ is not a multiple of $a$, for example `solveLinear(2, 1, 4)`. Say what your function should do then, or round on purpose." },
-];
-
 /** The stand-in agent: tool calls to the app's MCP endpoint, each logged when sent and answered. */
 function standIn(dataDir, log) {
 	const { url } = JSON.parse(fs.readFileSync(path.join(dataDir, "mcp-endpoint.json"), "utf8"));
@@ -159,57 +89,12 @@ function standIn(dataDir, log) {
 	return { init: () => rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "layout-stand-in", version: "1" } }), call, json };
 }
 
-/** What a work item is for. A long item comes in pages and its first page is cut text, but its
- *  JSON starts with this field, so it is read off the text. `text` is the whole item. */
-export function workOf(text) {
-	const field = (name) => new RegExp(`"${name}":"([^"\\\\]+)"`).exec(text)?.[1];
-	return { task: field("task"), text };
-}
+const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
 /** The day `days` from now on this computer's calendar, as YYYY-MM-DD. */
 function inDays(days) {
 	const day = new Date(Date.now() + days * 86_400_000);
 	return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
-}
-
-/** The answer to a cheat sheet request. The PDF is copied into the sheet's working folder, which
- *  the request names, as an agent's own tools would write it there. The request is JSON text, so
- *  the folder's line ends at an escaped newline. */
-function sheetAnswer(work, ids) {
-	const asked = work.text.split("The learner says:").pop();
-	const key = asked.includes(SHEET_ASKS.short) ? "short" : work.task.includes(MIDTERM) ? MIDTERM : QUIZ;
-	const folder = /Working folder: ([^"\\]+)\\n/.exec(work.text)?.[1];
-	if (!folder) throw new Error("the cheat sheet request does not name its working folder");
-	fs.copyFileSync(path.join(FIXTURES, key === "short" ? "layout-sheet-one-page.pdf" : "layout-sheet-two-pages.pdf"), path.join(folder, "sheet.pdf"));
-	const reply = SHEET_REPLIES[key];
-	return { tool_calls: [{ name: "sheet_reply", arguments: { ...reply, text: reply.text.replace("PASSAGE", ids.passage), pdf_path: "sheet.pdf" } }] };
-}
-
-/** The stand-in's answer to a work item, or null for one it does not expect. */
-function answerFor(work, ids) {
-	if (work.task?.startsWith("Cheat sheet: ")) return sheetAnswer(work, ids);
-	if (/^Mock \d+: questions$/.test(work.task ?? "")) return { tool_calls: [{ name: "write_mock_questions", arguments: { questions: MOCK_QUESTIONS } }] };
-	if (/^Mock \d+: grading$/.test(work.task ?? "")) return { tool_calls: [{ name: "grade_mock", arguments: { grades: MOCK_GRADES } }] };
-	if (work.task?.startsWith("Graph extraction")) {
-		const backend = work.task.includes(BACKEND_FILE);
-		const propositions = (backend ? BACKEND_FACTS : LAB_FACTS).map(([name, statement], i) => ({ id: `p${i + 1}`, name, statement }));
-		return { tool_calls: [{ name: "submit_findings", arguments: { propositions, chains: backend ? [] : LAB_CHAINS, reteaches: [] } }] };
-	}
-	// godspeed's own grouping of Lab Algebra's facts, a background job: the facts come one per line as "id | name | statement".
-	if (work.task?.startsWith("Topic grouping")) {
-		const ids = new Map([...work.text.matchAll(/(n_[0-9a-z]+) \| ([^|]+?) \|/g)].map((m) => [m[2], m[1]]));
-		const topics = LAB_TOPICS.map((t) => ({ name: t.name, material: t.material, members: t.facts.map(([name]) => ids.get(name)).filter(Boolean) }));
-		return { tool_calls: [{ name: "submit_topics", arguments: { topics } }] };
-	}
-	// godspeed's own check of the space, a background job: it links the file to the deadline.
-	if (work.task?.startsWith("Check: ")) {
-		return { text: "Linked the graphing notes to the quiz.", tool_calls: [{ name: "update_space_deadline", arguments: { space_id: ids.space, deadline_id: ids.deadline, file_ids: [ids.passage.split(":")[0]] } }] };
-	}
-	// godspeed's own request to work out what a deadline covers, a background job.
-	if (work.task?.startsWith("Deadline: ")) {
-		return { text: `${DEADLINE} covers solving linear equations by graphing and by moving terms across the equals sign.` };
-	}
-	return null;
 }
 
 /**
@@ -265,7 +150,7 @@ export async function seed(dataDir, page, log) {
 	for (let tries = 0; !passage; tries++) {
 		if (tries > 30) throw new Error("the made-up file was never indexed for search");
 		passage = /f_[0-9a-f]{12}:\d+/.exec((await agent.call("search_space_files", { space_id: space.id, query: "graphing" })).join("\n"))?.[0];
-		if (!passage) await new Promise((done) => setTimeout(done, 300));
+		if (!passage) await sleep(300);
 	}
 	await agent.call("read_passage", { space_id: space.id, passage_id: passage });
 	// The first lesson cites it, so the stand-in helper is told it before any lesson starts.
@@ -290,7 +175,7 @@ export async function seed(dataDir, page, log) {
 	const aboutId = (await agent.json("read_space", { space_id: space.id, files: true })).files.find((file) => file.name === "What the quizzes are like.md").id;
 	for (const name of [MIDTERM, QUIZ, REVIEW_QUIZ, SPRING_EXAM]) await agent.call("update_space_deadline", { space_id: space.id, deadline_id: deadlineNamed(name), about_file_id: aboutId });
 	const worksheet = (await agent.json("add_space_file", { space_id: space.id, kind: "info", path: WORKSHEET })).file;
-	// The worksheet's source: a .tex with its name, so the two are one row on Files. It is never read, so the work loop gets nothing new.
+	// The worksheet's source: a .tex with its name, so the two are one row on Files. It is never read, so no job starts for it.
 	// Written beside the data folder, as a file added by text is always Markdown.
 	const worksheetTex = path.join(path.dirname(dataDir), "worksheet.tex");
 	fs.writeFileSync(worksheetTex, "\\documentclass{article}\n\\begin{document}\nHomework 6\n\\end{document}\n");
@@ -321,30 +206,21 @@ export async function seed(dataDir, page, log) {
 	/** Every lesson made, so the seed can wait for their turns to end. */
 	const lessonIds = [lessonId, homeworkOpen, homeworkPrinted, homeworkFirst, homeworkMany, filesLesson, written, ...studied, ...open, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, codeWrite, ...Object.values(turnStates)];
 
-	// Answer every item until the queue stays empty for two teacher and two helper waits in a row.
-	// godspeed's own jobs (the graph, the space check, sheets and mocks) are work items; an empty
-	// wait hands over to the other kind, and a wait that brought work asks as the same kind again.
-	let helper = false;
-	const wait = () => agent.call("wait_for_work", { timeout_seconds: 3, ...(helper ? { helper: true } : {}) });
-	const ids = { passage, space: space.id, deadline: deadlineNamed(DEADLINE) };
-	const drain = async () => {
-		let reply = await wait();
-		for (let idle = 0, tries = 0; idle < 4; tries++) {
-			if (tries > MOST_ITEMS) throw new Error("the stand-in agent never ran out of work");
-			const header = JSON.parse(reply[0]);
-			if (header.status !== "work") {
-				if (header.status === "idle") helper = !helper;
-				idle++;
-				reply = await wait();
-				continue;
-			}
-			idle = 0;
-			const texts = [...reply];
-			for (let n = 2; n <= (header.pages ?? 1); n++) texts.push(...(await agent.call("read_work", { work_id: header.workId, page: n })));
-			const work = workOf(texts.slice(header.pages > 1 ? 1 : 0).join(""));
-			const answer = answerFor(work, ids);
-			if (!answer) throw new Error(`the stand-in agent got work it does not expect: ${work.task}`);
-			reply = await agent.call("respond", { work_id: header.workId, ...answer, wait_seconds: 0 });
+	/** Waits until godspeed's jobs, which the stand-in helper answers, have ended: no graph run or
+	 *  request in the activity feed, and no sheet or mock being made, for two seconds in a row. A
+	 *  sheet or mock that failed is an error here. */
+	const sheetDeadlines = [MIDTERM, QUIZ].map(deadlineNamed);
+	const jobsIdle = async () => {
+		for (let tries = 0, quiet = 0; quiet < 8; tries++) {
+			if (tries > LESSON_POLLS) throw new Error("godspeed's jobs never ended");
+			const feed = await page.json("/api/activity");
+			const { mocks } = await page.json(`/api/spaces/${space.id}/mocks`);
+			const sheets = await Promise.all(sheetDeadlines.map((id) => page.json(`/api/spaces/${space.id}/deadlines/${id}/cheat-sheet`)));
+			const failed = [...mocks, ...sheets].find((made) => made.error);
+			if (failed) throw new Error(`a job failed: ${JSON.stringify(failed.error)}`);
+			const busy = feed.extractions.length > 0 || feed.requests.length > 0 || mocks.some((mock) => mock.working) || sheets.some((sheet) => sheet.running);
+			quiet = busy ? 0 : quiet + 1;
+			await sleep(250);
 		}
 	};
 	/** Waits until no lesson's turn runs. A turn that failed is an error here, not a lesson that stays blank. */
@@ -355,12 +231,12 @@ export async function seed(dataDir, page, log) {
 			const failed = chats.find((chat) => chat.turnError);
 			if (failed) throw new Error(`a lesson's turn failed: ${failed.turnError}`);
 			quiet = chats.some((chat) => chat.turnInFlight) ? 0 : quiet + 1;
-			await new Promise((done) => setTimeout(done, 250));
+			await sleep(250);
 		}
 	};
 	/** The jobs and the lessons run side by side; both are done when this returns. */
 	const settle = async () => {
-		await drain();
+		await jobsIdle();
 		await lessonsIdle();
 	};
 	await settle();
@@ -401,7 +277,7 @@ export async function seed(dataDir, page, log) {
 	const sheetOf = (deadlineId) => `/api/spaces/${space.id}/deadlines/${deadlineId}/cheat-sheet`;
 	const mockOf = async (deadlineId, n) => (await page.json(`/api/spaces/${space.id}/mocks?deadline=${deadlineId}`)).mocks.find((mock) => mock.n === n).id;
 	const mockAction = (mockId, body) => send(`/api/spaces/${space.id}/mocks/${mockId}`, body);
-	// The learner asks for the first sheets and mocks; each request is answered by the stand-in agent.
+	// The learner asks for the first sheets and mocks; the stand-in helper answers each request.
 	await send(sheetOf(midterm), { action: "ask", text: SHEET_ASKS[MIDTERM] });
 	await send(sheetOf(quiz), { action: "ask", text: SHEET_ASKS[QUIZ] });
 	await send(`/api/spaces/${space.id}/mocks`, { deadlineId: midterm, questions: 3, minutes: 30 });
@@ -428,10 +304,10 @@ export async function seed(dataDir, page, log) {
 	const running = await mockOf(reviewQuiz, 1);
 	await mockAction(running, { action: "start" });
 	await mockAction(running, { action: "answer", questionId: "q1", text: "Adding 3 happened last, so", seconds: 50, submitted: false });
-	await drain();
+	await jobsIdle();
 	// The midterm's next mock is made once the last one is graded; it waits to be started.
 	await send(`/api/spaces/${space.id}/mocks`, { deadlineId: midterm, questions: 3 });
-	await drain();
+	await jobsIdle();
 	const ready = await mockOf(midterm, 2);
 	// A lesson made as the window's Study does, whose first message the window sends when it opens: its reply waits for an agent.
 	await page.fetch("/api/chats", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: WAITING_TOPIC, spaceId: space.id }) });
@@ -448,8 +324,9 @@ export async function seed(dataDir, page, log) {
 	for (let tries = 0; ; tries++) {
 		const { topics } = await page.json(`/api/progress?space=${space.id}&today=${inDays(0)}`);
 		if (topics.some((topic) => !topic.ungrouped)) break;
-		if (tries > 20) throw new Error("Lab Algebra's facts were never sorted into topics");
-		await drain();
+		if (tries > LESSON_POLLS) throw new Error("Lab Algebra's facts were never sorted into topics");
+		await sleep(250);
 	}
-	return { vault, ...turnStates, quizAnswered: studied[0], sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, codeWrite, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
+	await jobsIdle();
+	return { vault, ...turnStates, quizAnswered: studied[0], sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, codeWrite, pending, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
 }

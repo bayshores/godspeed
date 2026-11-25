@@ -1,8 +1,8 @@
 /**
  * Starting the agent: the web version keeps the copy-command path, the
  * desktop app starts the teacher's terminal and shows its screen in
- * onboarding's step, and Start lesson or a lesson's send start the agent the
- * server keeps, hidden.
+ * onboarding's step, and a lesson's send starts no terminal: lessons run on
+ * the picked agent in sessions of their own.
  */
 import { dom, fakeShell } from "../terminal-dom.ts";
 import React, { act } from "react";
@@ -12,8 +12,8 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 const { AgentLauncher } = await import("../../src/frontend/components/agent-folder/agent-launcher.tsx");
-const { TerminalsProvider, agentHereNow, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
-const { lessonAgentWaiting, useAgentStatus } = await import("../../src/frontend/components/agent-status.tsx");
+const { TerminalsProvider, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
+const { useAgentStatus } = await import("../../src/frontend/components/agent-status.tsx");
 const { agentDoing } = await import("../../src/frontend/components/teacher/follow-status.ts");
 const { agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
 const { stripView } = await import("../../src/frontend/components/strip/strip-model.ts");
@@ -34,7 +34,7 @@ const FOLDER = {
 	oldSetup: { plugin: false, codex: false },
 	agent: "claude",
 };
-const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [], terminals: [], outsideHere: false, ...over });
+const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, turnsRunning: 0, terminals: [], outsideHere: false, ...over });
 
 const stored = new Map<string, string>();
 const realFetch = globalThis.fetch;
@@ -125,7 +125,7 @@ describe("Start Claude Code", () => {
 					assert.ok(!q("open-agent-menu")!.classList.contains("lh-btn-main"));
 					await act(async () => q("open-agent")!.click());
 					await settle();
-					assert.ok(shell.calls.includes("start teacher claude"), shell.calls.join(", "));
+					assert.ok(shell.calls.includes("start claude"), shell.calls.join(", "));
 					assert.ok(q("open-agent") === null && q("open-agent-menu") === null, "no start buttons while the agent runs");
 					assert.ok(q("agent-launch-log") === null, "no copy-command log");
 					assert.ok(q("first-run-screen") !== null, "the screen shows in the step");
@@ -159,7 +159,7 @@ describe("Start with an agent outside godspeed connected", () => {
 				(r) =>
 					act(async () =>
 						r.render(
-							<TerminalsProvider status={access({ connected: true, teaching: true, outsideHere: true })}>
+							<TerminalsProvider status={access({ connected: true, outsideHere: true })}>
 								<AgentLauncher />
 							</TerminalsProvider>,
 						),
@@ -180,7 +180,7 @@ describe("Start with an agent outside godspeed connected", () => {
 
 describe("the shell's list", () => {
 	it("an answer that comes late never replaces a newer teacher", async () => {
-		const old = { id: "t0", role: "teacher" as const, agent: "claude" as const, startedAt: Date.now() - 60_000, ended: { stopped: false as const, code: 1 }, prompt: null, url: false };
+		const old = { id: "t0", agent: "claude" as const, startedAt: Date.now() - 60_000, ended: { stopped: false as const, code: 1 }, prompt: null, url: false };
 		const shell = fakeShell([old]);
 		let api: Api | null = null;
 		function Probe() {
@@ -199,7 +199,7 @@ describe("the shell's list", () => {
 					),
 				async () => {
 					assert.equal(api!.teacher?.id, "t0");
-					await act(async () => void (await api!.start("teacher", "claude")));
+					await act(async () => void (await api!.start("claude")));
 					assert.equal(api!.teacher?.id, "teacher-new");
 					// A push for a terminal the page doesn't know asks for the list again; it still holds t0.
 					await act(async () => shell.push({ id: "helper-x", ended: null, prompt: null, url: false }));
@@ -213,64 +213,17 @@ describe("the shell's list", () => {
 	});
 });
 
-describe("Start lesson and a lesson's send", () => {
-	it("start the server's agent, hidden, only when no agent is here", async () => {
-		const shell = fakeShell();
-		let api: Api | null = null;
-		let seen: Access = null;
-		const status = () => seen;
-		function Probe() {
-			api = useTerminals();
-			seen = useAgentStatus();
-			return null;
-		}
-		const page = (status: Access) => (
-			<TerminalsProvider status={status}>
-				<Probe />
-			</TerminalsProvider>
-		);
-		let root: Root | null = null;
-		serverAgent = "codex";
-		try {
-			await mounted(
-				async (r) => {
-					root = r;
-					await act(async () => r.render(page(access({ connected: true, teaching: true, outsideHere: true }))));
-				},
-				async () => {
-					await act(async () => api!.wake());
-					assert.ok(!shell.calls.some((c) => c.startsWith("start")), "an agent outside godspeed is here");
-					// The server still says connected for a while after the learner stopped godspeed's teacher.
-					await act(async () => root!.render(page(access({ connected: true, teaching: true }))));
-					assert.ok(api!.agentHere === false, "the terminals know it ended");
-					await act(async () => {
-						api!.wake();
-						api!.wake();
-					});
-					await settle();
-					assert.equal(shell.calls.filter((c) => c === "start teacher codex").length, 1, "two sends close together start one teacher");
-					assert.ok(status()?.connected === false && status()?.teaching === false, "every surface reads no agent until the new one checks in");
-					await act(async () => root!.render(page(access({ connected: true, teaching: true, terminals: [{ id: "teacher-new", here: true }] }))));
-					assert.ok(status()?.teaching === true, "checked in: the server's word again");
-				},
-			);
-		} finally {
-			shell.remove();
-		}
-	});
-
-	it("a message in a lesson starts it the same way, once, and never after a crash", async () => {
-		const ended = (code: number | null) => ({ id: "t0", role: "teacher" as const, agent: "claude" as const, startedAt: Date.now() - 60_000, ended: { stopped: false as const, code }, prompt: null, url: false });
+describe("a lesson's send", () => {
+	it("starts no terminal, whatever the terminal did before", async () => {
+		const ended = (code: number | null) => ({ id: "t0", agent: "claude" as const, startedAt: Date.now() - 60_000, ended: { stopped: false as const, code }, prompt: null, url: false });
 		// The session tells the page a turn runs with the page's own event type.
 		const realEvent = globalThis.CustomEvent;
 		globalThis.CustomEvent = (dom.window as unknown as { CustomEvent: typeof CustomEvent }).CustomEvent;
-		for (const [code, starts] of [[0, 1], [1, 0]] as const) {
-			const shell = fakeShell([ended(code)]);
+		for (const shell of [fakeShell([ended(0)]), fakeShell()]) {
 			globalThis.fetch = (async (input: RequestInfo | URL) => {
 				const url = String(input);
 				if (url === "/api/chat") return Response.json({ ok: true });
 				if (url === "/api/chats/c1") return Response.json({ messages: [] });
-				// No agent takes the turn yet: its stream ends only later.
 				if (url === "/api/chats/c1/stream") {
 					const body = new ReadableStream({ start: (c) => void setTimeout(() => (c.enqueue(new TextEncoder().encode("data: [DONE]\n\n")), c.close()), 300) });
 					return new Response(body);
@@ -287,7 +240,7 @@ describe("Start lesson and a lesson's send", () => {
 					(r) =>
 						act(async () =>
 							r.render(
-								<TerminalsProvider status={access({ connected: true, teaching: true })}>
+								<TerminalsProvider status={access({ })}>
 									<Lesson />
 								</TerminalsProvider>,
 							),
@@ -298,9 +251,7 @@ describe("Start lesson and a lesson's send", () => {
 							void session!.send({ type: "side", text: "and the intercept?" });
 						});
 						await settle();
-						await settle();
-						const started = shell.calls.filter((c) => c === "start teacher claude").length;
-						assert.equal(started, starts, `exit ${code}, before the turn ends: ${shell.calls.join(", ")}`);
+						assert.ok(!shell.calls.some((c) => c.startsWith("start")), shell.calls.join(", "));
 						await act(() => new Promise((r) => setTimeout(r, 400)));
 					},
 				);
@@ -310,45 +261,12 @@ describe("Start lesson and a lesson's send", () => {
 		}
 		globalThis.CustomEvent = realEvent;
 	});
-
-	it("leave it to the no-agent line when no agent was ever picked, or before the folder is read", async () => {
-		let api: Api | null = null;
-		function Probe() {
-			api = useTerminals();
-			return null;
-		}
-		const neverPending = (() => new Promise(() => {})) as unknown as typeof fetch;
-		for (const [why, folderRead] of [["never picked", true], ["not read yet", false]] as const) {
-			const shell = fakeShell();
-			serverAgent = null;
-			if (!folderRead) globalThis.fetch = neverPending;
-			try {
-				await mounted(
-					(r) =>
-						act(async () =>
-							r.render(
-								<TerminalsProvider status={access()}>
-									<Probe />
-								</TerminalsProvider>,
-							),
-						),
-					async () => {
-						await act(async () => api!.wake());
-						await settle();
-						assert.ok(!shell.calls.some((c) => c.startsWith("start")), `${why}: ${shell.calls.join(", ")}`);
-					},
-				);
-			} finally {
-				shell.remove();
-			}
-		}
-	});
 });
 
 describe("after godspeed's teacher ended, though the server still says connected for 3 minutes", () => {
-	const teacherRec = { id: "t1", role: "teacher" as const, agent: "claude" as const, startedAt: Date.now() - 60_000, ended: null, prompt: null, url: false };
+	const teacherRec = { id: "t1", agent: "claude" as const, startedAt: Date.now() - 60_000, ended: null, prompt: null, url: false };
 
-	it("the strip, the panel's line, Settings and the lesson head all say no agent at once", async () => {
+	it("only `connected` drops at once: the agent still teaches on the strip, the panel's line and Settings", async () => {
 		const shell = fakeShell([teacherRec]);
 		let api: Api | null = null;
 		let seen: Access = null;
@@ -367,15 +285,14 @@ describe("after godspeed's teacher ended, though the server still says connected
 		const words = () => {
 			const agent = status()!;
 			const doing = agentDoing({ agent, round: null, lesson: { working: true }, extractions: [], jobs: [] });
-			const facts = api!.facts.teacher;
+			const facts = api!.facts;
 			return {
-				strip: stripView({ agent, terminal: teacherTerminalState(facts), working: !!doing?.working, background: false, work: null, ready: [], asking: [], panelOpen: false }).square,
+				strip: stripView({ agent, terminal: teacherTerminalState(facts), working: !!doing?.working, work: null, ready: [], asking: [], panelOpen: false }).square,
 				panel: agentLine(agent, "Teacher", doing),
-				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null, teacher: "Teacher" }).chip,
-				lessonWaits: lessonAgentWaiting(agent),
+				tile: teacherTile(doing, false).chip,
 			};
 		};
-		const busy = { connected: true, teaching: true, name: "Claude Code", pendingWork: 1, pendingTurns: 1 };
+		const busy = { connected: true, name: "Claude Code", turnsRunning: 1 };
 		let root: Root | null = null;
 		try {
 			await mounted(
@@ -384,39 +301,11 @@ describe("after godspeed's teacher ended, though the server still says connected
 					await act(async () => r.render(page(access({ ...busy, terminals: [{ id: "t1", here: true }] }))));
 				},
 				async () => {
-					assert.deepEqual(words(), { strip: "working", panel: "Working", tile: "Teaching", lessonWaits: false });
+					assert.deepEqual(words(), { strip: "working", panel: "Working", tile: "Teaching" });
 					await act(async () => shell.push({ id: "t1", ended: { stopped: true, code: null }, prompt: null, url: false }));
 					await act(async () => root!.render(page(access(busy))));
-					assert.deepEqual(words(), { strip: "off", panel: "Turn on Teacher to begin.", tile: "Stopped", lessonWaits: true });
-				},
-			);
-		} finally {
-			shell.remove();
-		}
-	});
-});
-
-describe("the helper", () => {
-	it("waits for the teacher's first check-in, though background jobs wait", async () => {
-		const shell = fakeShell([{ id: "t1", role: "teacher", agent: "claude", startedAt: Date.now() - 1000, ended: null, prompt: null, url: false }]);
-		const page = (here: boolean) => (
-			<TerminalsProvider status={access({ pendingWork: 2, helperWork: 2, terminals: [{ id: "t1", here }] })}>
-				<span />
-			</TerminalsProvider>
-		);
-		let root: Root | null = null;
-		try {
-			await mounted(
-				async (r) => {
-					root = r;
-					await act(async () => r.render(page(false)));
-				},
-				async () => {
-					await settle();
-					assert.ok(!shell.calls.some((c) => c.startsWith("start helper")), shell.calls.join(", "));
-					await act(async () => root!.render(page(true)));
-					await settle();
-					assert.ok(shell.calls.includes("start helper claude"), shell.calls.join(", "));
+					assert.deepEqual(words(), { strip: "working", panel: "Working", tile: "Teaching" });
+					assert.equal(status()!.connected, false, "the terminals know it ended");
 				},
 			);
 		} finally {
@@ -433,10 +322,10 @@ describe("the records", () => {
 		let started: ((v: { id: string }) => void) | null = null;
 		const t = (dom.window as unknown as { lh: { terminals: Record<string, unknown> } }).lh.terminals;
 		t.list = () => new Promise((r) => lists.push(r));
-		t.start = (role: string, agent: string) => (shell.calls.push(`start ${role} ${agent}`), new Promise((r) => (started = r)));
+		t.start = (agent: string) => (shell.calls.push(`start ${agent}`), new Promise((r) => (started = r)));
 		return { shell, lists, start: (id: string) => started!({ id }) };
 	}
-	const gone = { id: "teacher-new", role: "teacher" as const, agent: "claude" as const, startedAt: Date.now(), ended: { stopped: false as const, code: 3 }, prompt: null, url: false };
+	const gone = { id: "teacher-new", agent: "claude" as const, startedAt: Date.now(), ended: { stopped: false as const, code: 3 }, prompt: null, url: false };
 
 	for (const order of ["the start answers first", "the list answers first"] as const) {
 		it(`an end always wins over a live record of the same terminal: ${order}`, async () => {
@@ -459,7 +348,7 @@ describe("the records", () => {
 					async () => {
 						await act(async () => lists.shift()!([]));
 						let why: Promise<string | null> | null = null;
-						await act(async () => void (why = api!.start("teacher", "claude")));
+						await act(async () => void (why = api!.start("claude")));
 						await settle();
 						// It ends at once (not installed): the push comes before the start's answer.
 						await act(async () => shell.push({ id: "teacher-new", ended: gone.ended, prompt: null, url: false }));
@@ -480,38 +369,4 @@ describe("the records", () => {
 			}
 		});
 	}
-
-	it("until the first list answers, nothing says no agent and nothing starts", async () => {
-		const { shell, lists } = slowShell();
-		let api: Api | null = null;
-		function Probe() {
-			api = useTerminals();
-			return null;
-		}
-		const status = access();
-		try {
-			await mounted(
-				(r) =>
-					act(async () =>
-						r.render(
-							<TerminalsProvider status={status}>
-								<Probe />
-							</TerminalsProvider>,
-						),
-					),
-				async () => {
-					assert.equal(agentHereNow(status, api), null, "no flash of the no-agent line");
-					await act(async () => api!.wake());
-					assert.ok(!shell.calls.some((c) => c.startsWith("start")), shell.calls.join(", "));
-					await act(async () => lists.shift()!([]));
-					await settle();
-					assert.equal(agentHereNow(status, api), false);
-					await act(async () => api!.wake());
-					assert.ok(shell.calls.includes("start teacher claude"), shell.calls.join(", "));
-				},
-			);
-		} finally {
-			shell.remove();
-		}
-	});
 });

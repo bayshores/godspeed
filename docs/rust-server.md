@@ -20,7 +20,7 @@ All Rust lives in `crates/`, a Cargo workspace (`Cargo.toml` at repo root, toolc
 | `web` | web page to markdown, PDF downloads, plugin zips, godspeed's plugin list from GitHub |
 | `transcribe` | recordings to captions with brew's ffmpeg and whisper |
 | `runtime` | the learner's Claude Code and Codex as child processes: environment and login-shell PATH, process groups and job objects, `codex app-server`'s JSON-RPC (in godspeed's own Codex settings folder, with its own ChatGPT sign-in), the bundled Claude helper's JSON lines, one event stream for both, health checks; knows nothing about lessons |
-| `engine` | turn loop, work bridge to the outside agent |
+| `engine` | a lesson's turn and a background job on the learner's agent: the session, godspeed's tools, the record |
 | `agent` | prompts, lesson tools, file tools, background jobs, extraction |
 | `services` | `App` (all server state) and the services |
 | `server` (gs-server, binary `godspeed-server`) | HTTP layer, /api routes, MCP endpoint |
@@ -68,7 +68,7 @@ Use `gs_base::re::Re::new(pattern, flags)` with the pattern as the screens' JS w
 
 ### No globals
 
-Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `locks`, `stores`, `pdf`, `search`, `bridge`, `shell` and one state struct per service package. Routes and MCP tools get `Arc<App>`. Service state is a field of its package's state struct, behind a `parking_lot::Mutex`.
+Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `locks`, `stores`, `pdf`, `search`, `terminals`, `agents`, `shell` and one state struct per service package. Routes and MCP tools get `Arc<App>`. Service state is a field of its package's state struct, behind a `parking_lot::Mutex`.
 
 ### Events, errors and concurrency
 
@@ -96,7 +96,7 @@ Where output must equal the original TypeScript's (formatting, ranking, merging,
 - `gs_json`: `Json`, `Obj`, `json!`, `parse`, `stringify`, `stringify_pretty`, `js_number`, `quote`, `to_json`, `from_json`, `lone`.
 - `gs_base`: `base64`, `clock`, `config` (`Paths`, `GraphFiles`, `resolve`, `VERSION`), `events` (`Events`, `EventKind`, `Event::sse_frame`), `fsx`, `hash`, `ids`, `locale`, `locks`, `num`, `posix`, `re`, `regexp`, `shutdown`, `tasks`, `text`, `time`.
 - `gs_core`: `contracts::{chat, space, graph}` (ids, versions, guards, space icons, deadline sort, scope parsing) and the pure logic above them.
-- `gs_store`: `Stores::new` with every store's constructor. `AgentSeenStore` implements `gs_core::records::agent_seen::SeenStore`.
+- `gs_store`: `Stores::new` with every store's constructor.
 - `gs_services`: `App::new(paths, shell)`.
 
 ### `gs_server::http`
@@ -194,7 +194,7 @@ On Mac and Linux, an advisory lock on the data folder itself (no lock file) keep
 ### Stopping
 
 - The server stops on SIGTERM or SIGINT (Ctrl-C on Windows), and at the end of stdin: always with `LH_SHELL=1`, otherwise when stdin is a pipe. With `LH_SHELL=1` it also stops if handling one of the shell's messages panics; the shell then starts it again.
-- `gs_base::shutdown::wait()` ends long waits (event streams, `wait_for_work`). Open requests get 2 s, then the process exits with 143.
+- `gs_base::shutdown::wait()` ends long waits (event streams). Open requests get 2 s, then the process exits with 143.
 - Log lines go to stderr; stdout belongs to the shell protocol.
 
 ### Shell protocol

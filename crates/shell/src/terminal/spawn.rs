@@ -1,6 +1,6 @@
 //! Starting one of the godspeed folder's start scripts in a pseudo-terminal: which script, the
 //! command line and environment for each OS, and stopping everything it started. The page names
-//! only a role and an agent; the program and its arguments are built here.
+//! only an agent; the program and its arguments are built here.
 
 use std::ffi::OsString;
 use std::io::{Read, Write};
@@ -12,29 +12,6 @@ use portable_pty::{Child, CommandBuilder, MasterPty, PtySize};
 /// The size a terminal starts at; the page that shows it then sizes it to its screen.
 pub const ROWS: u16 = 30;
 pub const COLS: u16 = 80;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Role {
-	Teacher,
-	Helper,
-}
-
-impl Role {
-	pub fn parse(text: &str) -> Option<Role> {
-		match text {
-			"teacher" => Some(Role::Teacher),
-			"helper" => Some(Role::Helper),
-			_ => None,
-		}
-	}
-
-	pub fn name(self) -> &'static str {
-		match self {
-			Role::Teacher => "teacher",
-			Role::Helper => "helper",
-		}
-	}
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Agent {
@@ -59,9 +36,9 @@ impl Agent {
 	}
 }
 
-/// The start script for this role and agent in an absolute folder, when it is there: a plain
+/// The teacher's start script for this agent in an absolute folder, when it is there: a plain
 /// file in a plain `.godspeed` folder, never a link that leads out of the folder.
-pub fn script(folder: &str, role: Role, agent: Agent, os: &str) -> Option<PathBuf> {
+pub fn script(folder: &str, agent: Agent, os: &str) -> Option<PathBuf> {
 	let folder = Path::new(folder);
 	if !folder.is_absolute() {
 		return None;
@@ -71,9 +48,8 @@ pub fn script(folder: &str, role: Role, agent: Agent, os: &str) -> Option<PathBu
 		"windows" => "cmd",
 		_ => "sh",
 	};
-	let helper = if role == Role::Helper { "-helper" } else { "" };
 	let dir = folder.join(".godspeed");
-	let script = dir.join(format!("start-{}{helper}.{extension}", agent.name()));
+	let script = dir.join(format!("start-{}.{extension}", agent.name()));
 	let plain = |path: &Path| path.symlink_metadata().is_ok_and(|meta| !meta.file_type().is_symlink());
 	(plain(&dir) && dir.is_dir() && plain(&script) && script.is_file()).then_some(script)
 }
@@ -178,11 +154,9 @@ mod tests {
 	}
 
 	#[test]
-	fn the_page_names_a_role_and_an_agent_never_a_program() {
-		assert_eq!((Role::parse("teacher"), Role::parse("helper")), (Some(Role::Teacher), Some(Role::Helper)));
+	fn the_page_names_an_agent_never_a_program() {
 		assert_eq!((Agent::parse("claude"), Agent::parse("codex")), (Some(Agent::Claude), Some(Agent::Codex)));
-		for refused in ["", "Teacher", "claude-helper", "rm -rf ~", "/bin/sh", "codex "] {
-			assert_eq!(Role::parse(refused), None, "{refused}");
+		for refused in ["", "Claude", "claude-helper", "rm -rf ~", "/bin/sh", "codex "] {
 			assert_eq!(Agent::parse(refused), None, "{refused}");
 		}
 	}
@@ -191,17 +165,16 @@ mod tests {
 	fn only_the_folders_own_start_scripts_run() {
 		let dir = temp("scripts");
 		let folder = dir.to_str().unwrap();
-		assert_eq!(script(folder, Role::Teacher, Agent::Claude, "linux"), None);
+		assert_eq!(script(folder, Agent::Claude, "linux"), None);
 		gs_base::fsx::write_text_atomic(&dir.join(".godspeed/start-claude.sh"), "#!/bin/sh\n").unwrap();
-		assert_eq!(script(folder, Role::Teacher, Agent::Claude, "linux"), Some(dir.join(".godspeed/start-claude.sh")));
-		assert_eq!(script(folder, Role::Helper, Agent::Claude, "linux"), None);
-		gs_base::fsx::write_text_atomic(&dir.join(".godspeed/start-codex-helper.command"), "").unwrap();
-		gs_base::fsx::write_text_atomic(&dir.join(".godspeed/start-codex-helper.cmd"), "").unwrap();
-		assert_eq!(script(folder, Role::Helper, Agent::Codex, "macos"), Some(dir.join(".godspeed/start-codex-helper.command")));
-		assert_eq!(script(folder, Role::Helper, Agent::Codex, "windows"), Some(dir.join(".godspeed/start-codex-helper.cmd")));
-		assert_eq!(script("relative", Role::Teacher, Agent::Claude, "linux"), None);
+		assert_eq!(script(folder, Agent::Claude, "linux"), Some(dir.join(".godspeed/start-claude.sh")));
+		gs_base::fsx::write_text_atomic(&dir.join(".godspeed/start-codex.command"), "").unwrap();
+		gs_base::fsx::write_text_atomic(&dir.join(".godspeed/start-codex.cmd"), "").unwrap();
+		assert_eq!(script(folder, Agent::Codex, "macos"), Some(dir.join(".godspeed/start-codex.command")));
+		assert_eq!(script(folder, Agent::Codex, "windows"), Some(dir.join(".godspeed/start-codex.cmd")));
+		assert_eq!(script("relative", Agent::Claude, "linux"), None);
 		std::fs::create_dir_all(dir.join(".godspeed/start-codex.sh")).unwrap();
-		assert_eq!(script(folder, Role::Teacher, Agent::Codex, "linux"), None, "a folder is not a script");
+		assert_eq!(script(folder, Agent::Codex, "linux"), None, "a folder is not a script");
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 
@@ -211,11 +184,11 @@ mod tests {
 		let (outside, dir) = (temp("outside"), temp("linked"));
 		gs_base::fsx::write_text_atomic(&outside.join(".godspeed/start-claude.sh"), "#!/bin/sh\n").unwrap();
 		std::os::unix::fs::symlink(outside.join(".godspeed/start-claude.sh"), dir.join(".godspeed/start-claude.sh")).unwrap();
-		assert_eq!(script(dir.to_str().unwrap(), Role::Teacher, Agent::Claude, "linux"), None, "a linked script");
+		assert_eq!(script(dir.to_str().unwrap(), Agent::Claude, "linux"), None, "a linked script");
 		std::fs::remove_dir_all(dir.join(".godspeed")).unwrap();
 		std::os::unix::fs::symlink(outside.join(".godspeed"), dir.join(".godspeed")).unwrap();
-		assert_eq!(script(dir.to_str().unwrap(), Role::Teacher, Agent::Claude, "linux"), None, "a linked .godspeed");
-		assert!(script(outside.to_str().unwrap(), Role::Teacher, Agent::Claude, "linux").is_some(), "the real one, from its own folder");
+		assert_eq!(script(dir.to_str().unwrap(), Agent::Claude, "linux"), None, "a linked .godspeed");
+		assert!(script(outside.to_str().unwrap(), Agent::Claude, "linux").is_some(), "the real one, from its own folder");
 		std::fs::remove_dir_all(dir).unwrap();
 		std::fs::remove_dir_all(outside).unwrap();
 	}

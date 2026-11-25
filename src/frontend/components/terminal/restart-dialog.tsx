@@ -2,8 +2,7 @@ import { createPortal } from "react-dom";
 import { usePresence } from "@/frontend/components/presence";
 import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
 
-/** Asked before Restart now while the teacher's terminal is answering a
- *  turn: restarting stops it, and godspeed never starts it again by itself. */
+/** Asked before Restart now while a lesson turn runs: restarting stops it. */
 export function RestartDialog({ name, open, onLater, onRestart }: { name: string; open: boolean; onLater: () => void; onRestart: () => void }) {
 	const presence = usePresence(open);
 	if (!presence.mounted || typeof document === "undefined") return null;
@@ -26,7 +25,7 @@ export function RestartDialog({ name, open, onLater, onRestart }: { name: string
 				</>
 			}
 		>
-			<p className="text-lg text-ink">{`${name} is answering you. Restarting stops ${name}. Start it again after godspeed opens.`}</p>
+			<p className="text-lg text-ink">{`${name} is answering you. Restarting stops ${name}.`}</p>
 		</DialogSheet>,
 		document.body,
 	);

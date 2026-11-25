@@ -21,7 +21,7 @@ Where the feature touches the app, the teacher's block and what it costs, the to
 
 ## Sending the notes and what it costs
 
-A notes block is self-contained: it never carries the lesson, so any agent writes it at the same cost. It rides in the space's next topic grouping item when a helper runs, so it pays no item of its own; otherwise it is an item of its own for the teacher once idle. A helper is never started for notes: a cold helper session pays godspeed's tool list (about 9,000 tokens), `CLAUDE.md` (about 1,000) and server instructions (about 1,000) before its agent's own system prompt, against the cheap single-agent rule. The steps are in 08.1.6.
+A notes block is self-contained: it never carries the lesson, so any agent writes it at the same cost. It rides in the space's next topic grouping job, so it pays no session of its own; when no grouping takes it within 3 minutes, it is a job of its own once no lesson turn runs. The steps are in 08.1.6.
 
 Cost for a lesson with three topics:
 

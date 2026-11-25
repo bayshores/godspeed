@@ -160,7 +160,7 @@ async fn group_once(app: &Arc<App>, space_id: &str) -> Result<(), String> {
 
 	let run_key = topic_run_key(space_id);
 	let abort = runs(app).start_background_graph_run(&app.events, &run_key, &format!("Topic grouping: {space_name}"));
-	let taken = crate::vault::take_for_grouping(app, space_id).await;
+	let taken = crate::vault::take_block(app, space_id).await;
 	let input = TopicGrouperInput {
 		space_name: space_name.to_owned(),
 		facts: graph.nodes.iter().map(|f| json!({ "id": f["id"], "name": f["name"], "statement": f["statement"] })).collect(),

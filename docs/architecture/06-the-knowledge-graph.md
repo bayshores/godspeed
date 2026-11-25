@@ -11,7 +11,7 @@ A graph folder holds `nodes.jsonl`, `chains.jsonl`, `sessions.jsonl` (run checkp
 
 1. After a turn, `trigger_extraction` (`services::turns::turn_service`) compares lesson with its coverage ledger (`coverage_of`). It starts a run when uncovered tokens reach 4096 (`graph.extractionChunkTokens` in `factory_settings`, not a setting). One run per source in flight.
 2. `batch_runs` (`core::graph::coverage`) fills token-budgeted batches with oldest uncovered teacher-prose messages.
-3. Per batch, extractor (outside agent, via a work item) submits new propositions, reasoning chains and `reteaches`.
+3. Per batch, extractor (a job on the learner's agent, [5.4](05.4-background-jobs.md)) submits new propositions, reasoning chains and `reteaches`.
 4. Merger (`merge_findings`, `core::graph::merge`, deterministic) appends results and runs chain simplification.
 5. Coverage is checkpointed for what merged.
 6. When run ends, topic grouping is scheduled for that graph (`schedule_topic_grouping`, debounced 20 s).

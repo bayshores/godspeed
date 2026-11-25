@@ -104,7 +104,7 @@ The top bar is the one place for a page's own actions and for where the learner 
 
 ## The strip
 
-The strip is the teacher's panel at its narrowest, down the window's right edge under the top bar. What it holds and does is in [08.1.2](architecture/08.1.2-the-work-loop.md#the-strip).
+The strip is the teacher's panel at its narrowest, down the window's right edge under the top bar. What it holds and does is in [08.1.2](architecture/08.1.2-the-teachers-round-and-the-strip.md#the-strip).
 
 - It is 28 points wide (`--lh-strip`) on every page in the app shell and made of the top bar's dark. Nothing else sits on the window's right edge, and no page draws under it: a page ends where the strip starts.
 - Its marks (the square, the name, the arrow, "needs you", "your turn", the notices' count, a deadline's countdown) are plain words and shapes, never a key. Anything that needs a key or a longer line goes in its peek, which is a pop-up and keeps its keys.

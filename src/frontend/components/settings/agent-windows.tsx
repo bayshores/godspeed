@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
-import { useActivity } from "@/frontend/components/activity-dock";
 import { AGENT_LABEL } from "@/frontend/components/agent-folder/agent-folder-model";
 import { Log, OtherAppSetup } from "@/frontend/components/agent-folder/agent-launcher";
 import { FolderLine } from "@/frontend/components/agent-folder/folder-line";
@@ -8,52 +7,29 @@ import { OldSetupWarning } from "@/frontend/components/agent-folder/old-setup";
 import { AgentMenu } from "@/frontend/components/agent-folder/start-agent-button";
 import { useAgentChoice, useAgentFolder } from "@/frontend/components/agent-folder/use-agent-folder";
 import type { AgentStatus } from "@/frontend/components/agent-status";
-import { backgroundLine } from "@/frontend/components/teacher/follow-status";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { useSpaces } from "@/frontend/components/space-context";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { TeacherStatus } from "@/frontend/components/terminal/teacher-status";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
-import { HELPER_NAME, filesProgress } from "@/frontend/components/work/work-model";
-import { cn } from "@/frontend/lib/utils";
-import { filesLine, helperTile, teacherTile, type AgentTile, type TermState } from "./agent-windows-model";
+import { teacherTile, type AgentTile } from "./agent-windows-model";
 
 /**
- * "Your agent": whether the teacher and the helper run and what each is
- * doing. The teacher starts from its own window, so only the helper's
- * tile carries a button, and only when godspeed can't start it by itself.
- * The teacher's line shows its screen while godspeed runs it. Under the
- * tiles, the folder they run in. "Other app" shows the setup for any MCP app.
+ * "Your agent": whether the teacher runs and what it is doing. The teacher
+ * starts from its own window, so its tile has no button. Its line shows its
+ * screen while godspeed runs it. Under the tile, the folder it runs in.
+ * "Other app" shows the setup for any MCP app.
  */
 export function AgentWindows({ agent }: { agent: AgentStatus }) {
-	const { view, lines, busy, error: startError, openHelper, change, setStartCommand } = useAgentFolder();
+	const { view, lines, error: startError, change, setStartCommand } = useAgentFolder();
 	const terminals = useTerminals();
 	const outside = !!terminals?.outsideHere;
 	const panel = useTeacher();
-	const { spaces } = useSpaces();
-	const { feed } = useActivity();
 	const [choice, setChoice] = useAgentChoice();
 	const [error, setError] = useState<string | null>(null);
 
 	const folderAgent = choice === "other" ? null : choice;
 	const teacherName = panel?.name ?? DEFAULT_TEACHER_NAME;
-	const { left: filesLeft } = filesProgress(spaces);
-	const ownTeacher = terminals?.teacher ?? null;
-	const ownHelper = terminals?.helper ?? null;
-	const teacherLive = !!ownTeacher && !ownTeacher.ended;
-	const teacherTerm: TermState = !ownTeacher ? null : ownTeacher.ended ? "ended" : terminals?.facts.teacher?.checkedIn ? null : "starting";
-	// A helper that ended with its teacher starts again by itself with the next one.
-	const helperTerm: TermState = !ownHelper ? null : !ownHelper.ended ? (agent.helperHere ? null : "starting") : teacherLive ? "ended" : null;
-	const teacher = teacherTile(agent, panel?.doing ?? null, { outside, term: teacherTerm, teacher: teacherName });
-	const helper = helperTile({
-		agent,
-		background: backgroundLine(feed.extractions, feed.jobs),
-		files: filesLine(spaces),
-		filesLeft,
-		teacher: teacherName,
-		term: helperTerm,
-		autoStart: !!terminals?.available && !outside,
-	});
+	const teacher = teacherTile(panel?.doing ?? null, outside);
 
 	return (
 		<section data-testid="agent-windows" className="@container lh-sheet lh-card">
@@ -73,19 +49,7 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 					className="shrink-0"
 				/>
 			</div>
-			{/* Side by side only while the section is wide: the teacher's panel can narrow the page. */}
-			<div className="grid gap-4 @min-[640px]:grid-cols-2">
-				<Tile
-					id="teacher"
-					name={teacherName}
-					icon="window"
-					tile={teacher}
-					busy={busy}
-					status={teacherName}
-					said={!!panel?.panelOpen}
-				/>
-				<Tile id="helper" name={HELPER_NAME} icon="pages" tile={helper} onOpen={folderAgent && (() => void openHelper(folderAgent))} busy={busy} quiet />
-			</div>
+			<Tile name={teacherName} tile={teacher} said={!!panel?.panelOpen} />
 			<OldSetupWarning />
 			{choice === "other" ? <OtherAppSetup /> : lines.length > 0 && <Log lines={lines} />}
 			{(error ?? (lines.length === 0 && startError)) && (
@@ -103,70 +67,29 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	);
 }
 
-const CHIP: Record<string, string> = {
-	Teaching: "bg-ans-right text-background",
-	Running: "bg-ans-right text-background",
-	Stopped: "bg-tone text-ink",
-};
 
-/** One agent: its icon, name and status chip, then what it is doing.
- *  `status`: the teacher's name, for its status line (TeacherStatus).
+/** The teacher: its icon, name and status chip, then what it is doing.
  *  `said`: the teacher's open panel beside it says its status, so the
- *  tile leaves out its chip and line. 
- *  `quiet`: its button is a plain word (the helper is never the main thing). */
-function Tile({
-	id,
-	name,
-	icon,
-	tile,
-	onOpen,
-	busy,
-	status,
-	said = false,
-	quiet = false,
-}: {
-	id: string;
-	name: string;
-	icon: "window" | "pages";
-	tile: AgentTile;
-	onOpen?: (() => void) | null;
-	busy: boolean;
-	status?: string;
-	said?: boolean;
-	quiet?: boolean;
-}) {
-	const off = tile.tone === "off";
+ *  tile leaves out its chip and line. */
+function Tile({ name, tile, said }: { name: string; tile: AgentTile; said: boolean }) {
 	return (
-		<div data-testid={`agent-window-${id}`} data-tone={tile.tone} className="lh-well flex min-w-0 flex-col overflow-hidden rounded">
-			<div aria-hidden className={cn("h-3 shrink-0", tile.tone === "busy" ? "lh-work-stripes" : off ? "bg-tone-2" : "bg-ink")} />
+		<div data-testid="agent-window-teacher" className="lh-well flex min-w-0 flex-col overflow-hidden rounded">
+			<div aria-hidden className="h-3 shrink-0 bg-ink" />
 			<div className="flex min-w-0 items-start gap-4 p-4">
-				<span aria-hidden className={cn("flex size-16 shrink-0 items-center justify-center", tile.tone === "busy" ? "bg-highlight text-ink" : off ? "bg-tone text-ink-2" : "bg-ink text-background")}>
-					<PixelIcon name={icon} className="h-9" />
+				<span aria-hidden className="flex size-16 shrink-0 items-center justify-center bg-ink text-background">
+					<PixelIcon name="window" className="h-9" />
 				</span>
 				<div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
 					<div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-						<h3 className={cn("text-[22px] leading-tight", off ? "text-ink-2" : "text-ink")}>{name}</h3>
-						{!said && tile.chip && (
-							<span data-testid={`agent-window-${id}-chip`} className={cn("px-2 py-0.5 text-sm", CHIP[tile.chip] ?? "bg-highlight text-ink")}>
+						<h3 className="text-[22px] leading-tight text-ink">{name}</h3>
+						{!said && (
+							<span data-testid="agent-window-teacher-chip" className="bg-ans-right px-2 py-0.5 text-sm text-background">
 								{tile.chip}
 							</span>
 						)}
 					</div>
-					{said ? null : status ? (
-						<TeacherStatus name={status} line={tile.line} testid={`agent-window-${id}-line`} className={cn("max-w-full truncate text-base", off ? "text-ink-2" : "text-ink")} />
-					) : (
-						tile.line && (
-							<p data-testid={`agent-window-${id}-line`} title={tile.line} className={cn("max-w-full truncate text-base", off ? "text-ink-2" : "text-ink")}>
-								{tile.line}
-							</p>
-						)
-					)}
+					{!said && <TeacherStatus name={name} line={tile.line} testid="agent-window-teacher-line" className="max-w-full truncate text-base text-ink" />}
 					<p className="text-[15px] text-ink-2">{tile.note}</p>
-					{tile.start && onOpen && (
-						<button type="button" data-testid={`agent-window-${id}-open`} disabled={busy} onClick={onOpen} className={cn("lh-btn mt-2", quiet ? "lh-btn-quiet" : "lh-btn-main")}>
-							{tile.start}
-						</button>
-					)}
 				</div>
 			</div>
 		</div>

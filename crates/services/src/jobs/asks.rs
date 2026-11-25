@@ -96,3 +96,50 @@ fn told(app: &App, on: &AskedOn) {
 		AskedOn::Sheet(deadline_id) => crate::cheat_sheets::changed(app, deadline_id),
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use std::sync::Arc;
+
+	use gs_json::json;
+	use gs_runtime::{Ask, Verdict};
+
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	fn bash(command: &str) -> Ask {
+		Ask::Tool { name: "Bash".to_owned(), input: json!({ "command": command }) }
+	}
+
+	#[tokio::test]
+	async fn a_sheet_s_question_shows_on_that_sheet_until_the_learner_answers() {
+		let root = scratch_dir("job-asks");
+		let app = test_app(&root);
+		let sheet = AskedOn::Sheet("dl_1".to_owned());
+		let asked = gs_base::tasks::spawn("test", approve_on(&app, sheet.clone())(bash("latexmk sheet.tex")));
+		while asks_on(&app, &sheet).is_empty() {
+			tokio::task::yield_now().await;
+		}
+		assert!(asks_on(&app, &AskedOn::Sheet("dl_2".to_owned())).is_empty(), "another sheet shows nothing");
+		assert!(asks_on(&app, &AskedOn::Lesson("dl_1".to_owned())).is_empty());
+		let id = asks_on(&app, &sheet)[0]["id"].str_or_empty().to_owned();
+		assert!(!answer_job_ask(&app, &AskedOn::Sheet("dl_2".to_owned()), &id, true), "answered only where it shows");
+		assert!(answer_job_ask(&app, &sheet, &id, true));
+		assert_eq!(asked.await.unwrap(), Verdict { allow: true, message: None });
+		assert!(asks_on(&app, &sheet).is_empty());
+	}
+
+	#[tokio::test]
+	async fn a_job_that_ends_takes_its_question_off_the_page() {
+		let root = scratch_dir("job-asks-gone");
+		let app: Arc<App> = test_app(&root);
+		let lesson = AskedOn::Lesson("chat_1".to_owned());
+		let asked = gs_base::tasks::spawn("test", approve_on(&app, lesson.clone())(bash("curl example.com")));
+		while asks_on(&app, &lesson).is_empty() {
+			tokio::task::yield_now().await;
+		}
+		asked.abort();
+		let _ = asked.await;
+		assert!(asks_on(&app, &lesson).is_empty());
+	}
+}

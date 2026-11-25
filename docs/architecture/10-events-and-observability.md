@@ -24,10 +24,10 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 | `turn-started` | `{chatId}` | `begin_turn` succeeds, for every turn. The 409 path is silent |
 | `turn-settled` | `{chatId}` | `end_turn` on a live entry, after `persist_turn`, so fetches read saved data |
 | `jobs-changed` | `{chatId?}` | every job-store write that changed something |
-| `activity-changed` | `{}` | an extraction run changed phase, a deadline request or space check started or ended, or a background work item was queued, taken or dropped (`engine::bridge`, `agent::extraction::extraction_runs`, `services::spaces::deadline_requests`) |
+| `activity-changed` | `{}` | an extraction run changed phase, a deadline request, space check, topic grouping or plugin question started or ended (`agent::extraction::extraction_runs`, `services::spaces::deadline_requests`, `services::spaces::space_checks`, `services::graph::topics`, `services::plugins::ask`) |
 | `chats-changed` | `{}` | a lesson was created, renamed, moved to another space or deleted. The lesson list and the progress hook (`use-progress.tsx`) read it |
 | `spaces-changed` | `{}` | a space was created, edited, closed or deleted, or its files changed |
-| `agent-changed` | `{}` | outside agent connected, started or stopped teaching, was renamed or lapsed, a helper arrived, or compacting started or lapsed |
+| `agent-changed` | `{}` | an agent connected, was renamed or lapsed, or a request came from a terminal that had been quiet for 3 minutes (`services::app::terminal_state`) |
 | `record-changed` | `{chatId}` | a lesson record changed without a turn: a problem discard, Keep going at a stop, an answer to a question from earlier, a kept sentence's part dropped or brought back, an answer that leaves a sibling question open, or a finished compaction. The `keep-going`, `review` and `kept` routes also emit it during a turn |
 | `agent-action` | action | a new line in activity log (`services::app::agent_actions`, saved in `data/agent-actions.json`) |
 | `rules-changed` | `{saved?}` | a teaching rule was saved, undone or edited (`services::app::agent_rules`). `saved` carries rule when an outside agent saved it from terminal |
@@ -38,8 +38,8 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 | `deadline-request-changed` | `{spaceId, deadlineId}` | a deadline request started or ended (`services::spaces::deadline_requests`) |
 | `space-checked` | `{run, spaceId, agent, lines, said}` | a space check changed something: `lines` for the learner, `said` the agent's last line or null (`services::spaces::space_checks`) |
 | `vault-notes-changed` | `{}` | the notes folder setting changed, or a note godspeed writes there was written, found again, marked removed or began waiting (`services::vault`) |
-| `teacher-work` | `{}` | the teacher's round of work began, gained a step or ended (`engine::bridge::steps`); the window reads it at `GET /api/teacher-work` |
-| `lesson-work` | `{chatId}` | a lesson's running turn began, was taken, gained a step or a plan, or ended (`services::turns::turn_work`); the lesson's desk reads it at `GET /api/chats/{id}/work` |
+| `teacher-work` | `{}` | the teacher's round of work began, gained a step or ended (`services::app::terminal_state`); the window reads it at `GET /api/teacher-work` |
+| `lesson-work` | `{chatId}` | a lesson's running turn began, gained a step or a plan, or ended (`services::turns::turn_work`); the lesson's desk reads it at `GET /api/chats/{id}/work` |
 
 ### 10.3 Rules for emitters
 

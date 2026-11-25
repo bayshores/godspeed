@@ -16,6 +16,7 @@ use parking_lot::Mutex;
 use tokio::task::JoinHandle;
 
 pub use checkin::display_agent_name;
+pub use steps::{OUTSIDE_QUIET_MS, ROUND_STALE_MS};
 pub use terminals::WindowPage;
 
 /// The agents' state. Cloning shares it.

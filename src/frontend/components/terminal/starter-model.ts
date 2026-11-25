@@ -153,10 +153,10 @@ export function everything(f: IdeaFacts): IdeaGroup[] {
 	];
 }
 
-/** A terminal can take a line now: it runs and has checked in, nothing on its
- *  screen asks the learner and no lesson turn waits. */
+/** A terminal can take a line now: it runs and has checked in, and nothing on its
+ *  screen asks the learner. */
 export function takesLine(f: TerminalFacts | null): boolean {
 	if (!f) return false;
 	const { term } = f;
-	return !term.ended && f.checkedIn && !term.prompt && !term.url && !f.turnWaits;
+	return !term.ended && f.checkedIn && !term.prompt && !term.url;
 }

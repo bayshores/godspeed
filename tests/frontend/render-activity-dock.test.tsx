@@ -5,27 +5,12 @@ import type { ActivityFeed, FeedExtraction } from "../../src/frontend/components
 import { agoLabel, blobLabel, formatElapsed, toBlobs } from "../../src/frontend/components/teacher/activity-model.ts";
 import { BackgroundJobs } from "../../src/frontend/components/teacher/background-jobs.tsx";
 import { formatTokens, pagesLabel } from "../../src/frontend/components/usage-format.ts";
-import { agentWaiting, parseAgentStatus, teachStep, waitingNotice, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
+import { parseAgentStatus, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
 
-describe("the waiting-for-your-agent notice", () => {
-	const status = (over: Partial<AgentStatus> = {}): AgentStatus => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [], ...over });
-	it("shows only while work waits and no agent is teaching", () => {
-		assert.equal(agentWaiting(status({ pendingWork: 1 })), true);
-		assert.equal(agentWaiting(status({ connected: true, teaching: true, pendingWork: 1 })), false);
-		assert.equal(agentWaiting(status({ connected: true, pendingWork: 1 })), true, "connected but not teaching still waits");
-		assert.equal(agentWaiting(status()), false);
-		assert.equal(agentWaiting(null), false);
-	});
-	it("says to turn the teacher on, or to tell the connected one to start", () => {
-		assert.equal(waitingNotice("Ada", false), "Turn on Ada to begin.");
-		assert.equal(waitingNotice("Ada", true), "Waiting for Ada. Tell it to start teaching.");
-		assert.equal(teachStep("Ada", true), "Tell Ada to start teaching.");
-	});
+describe("the agent's status", () => {
+	const status = (over: Partial<AgentStatus> = {}): AgentStatus => ({ connected: false, turnsRunning: 0, ...over });
 	it("reads the /api/mcp-access body", () => {
-		assert.deepEqual(
-			parseAgentStatus({ agentConnected: true, agentTeaching: true, agentName: "Claude Code", helperHere: true, helperCovering: "yes", pendingWork: 2, pendingTurns: 1, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }, { lessonId: 3 }] }),
-			{ connected: true, teaching: true, name: "Claude Code", helperHere: true, helperCovering: false, pendingWork: 2, pendingTurns: 1, helperWork: 0, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }] },
-		);
+		assert.deepEqual(parseAgentStatus({ agentConnected: true, agentName: "Claude Code", turnsRunning: 2 }), { connected: true, name: "Claude Code", turnsRunning: 2 });
 		assert.deepEqual(parseAgentStatus({ agentConnected: false, agentName: null }), status());
 		assert.equal(parseAgentStatus(null), null);
 	});
@@ -35,12 +20,6 @@ describe("the waiting-for-your-agent notice", () => {
 		assert.equal(s?.outsideHere, false);
 		const old = parseAgentStatus({ agentConnected: true });
 		assert.ok(old !== null && old.terminals === undefined && old.outsideHere === undefined);
-	});
-	it("the background jobs show the notice text", () => {
-		const html = renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} waiting={waitingNotice("Ada", false)} />);
-		assert.ok(html.includes('data-testid="activity-waiting"'));
-		assert.ok(html.includes(waitingNotice("Ada", false)));
-		assert.ok(!renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} waiting={null} />).includes("activity-waiting"));
 	});
 });
 
@@ -208,7 +187,7 @@ describe("activity dock pure layer", () => {
 
 describe("background jobs render", () => {
 	it("renders nothing while idle", () => {
-		assert.equal(renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} waiting={null} />), "");
+		assert.equal(renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} />), "");
 	});
 
 	it("one row per running job: name, what it is with elapsed, and Stop", () => {
@@ -218,7 +197,6 @@ describe("background jobs render", () => {
 					jobs: [job({ id: "j1", kind: "demo", activity: "building sandbox…", title: "Chain-rule demo" })],
 					extractions: [{ id: "cx", chatId: "cx", kind: "chat", title: "Old lesson", phase: "merging", startedAt: NOW - 60_000 }],
 				}}
-				waiting={null}
 			/>,
 		);
 		assert.match(html, /data-testid="activity-section"/);
@@ -240,7 +218,7 @@ describe("background jobs render", () => {
 	it("a deadline request is a row by its name, oldest first, with no Stop", () => {
 		const feed = { jobs: [], extractions: [], requests: [{ id: "d1", title: "Deadline: Wave Optics Final", startedAt: NOW - 30_000 }] };
 		assert.deepEqual(toBlobs(feed).map((b) => [b.process, b.title]), [["request", "Deadline: Wave Optics Final"]]);
-		const html = renderToStaticMarkup(<BackgroundJobs feed={feed} waiting={null} />);
+		const html = renderToStaticMarkup(<BackgroundJobs feed={feed} />);
 		assert.match(html, /data-testid="activity-blob-request"/);
 		assert.match(html, /Teacher, <span data-testid="activity-blob-elapsed">/);
 		assert.doesNotMatch(html, /activity-abort/);
@@ -265,7 +243,6 @@ describe("background jobs render", () => {
 					],
 					extractions: [],
 				}}
-				waiting={null}
 			/>,
 		);
 		assert.match(html, /activity-total-cost[^>]*>Your agent</);

@@ -131,15 +131,6 @@ const closedSpace = `const { settings } = await fetch("/api/settings")${HTTP_OK}
 await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, activeSpace: "{space}" }) })${HTTP_OK};
 await fetch("/api/spaces/{pathSpace}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ closed: true }) })${HTTP_OK};`;
 
-/** A file added to the space with no agent to read it, so the strip says that work waits. It
- *  can't be removed while it waits, so the stand-in agent started later takes it. */
-const waitingFile = `const form = new FormData();
-form.append("files", new File(["# Slopes\\n\\nRise over run."], "waiting-notes.md", { type: "text/markdown" }));
-await fetch("/api/spaces/{space}/files", { method: "POST", body: form })${HTTP_OK};`;
-/** The deadline asks for a study guide with no agent to make it. The deadline is deleted for
- *  "Home with no deadline", which ends the request. */
-const waitingRequest = `await fetch("/api/spaces/{space}/deadlines/{deadline}/request", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "guide" }) })${HTTP_OK};`;
-
 /** The lesson made and never sent: opened at this address, the window sends its first message once,
  *  as Study does, and with no agent connected its reply waits. */
 const waitingLesson = `/chat/{pending}?prompt=${encodeURIComponent(WAITING_TOPIC)}`;
@@ -234,10 +225,10 @@ const longTitle = `await fetch("/api/chats/{lesson}", { method: "PUT", headers: 
 /** The written-answer lesson moved out of its space, so the bar lights the + with the lesson's title after it. */
 const noSpace = `await fetch("/api/chats/{written}/space", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ spaceId: "none" }) })${HTTP_OK};`;
 
-/** A deadline with nothing made asks for its cheat sheet and for a mock, with no agent to answer. */
+/** A deadline with nothing made asks for its cheat sheet and for a mock, which the stand-in helper holds unanswered. */
 const askSheet = `await fetch("/api/spaces/{space}/deadlines/{waitingDeadline}/cheat-sheet", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "ask", text: "Make my cheat sheet for the spring exam." }) })${HTTP_OK};`;
 const askMock = `await fetch("/api/spaces/{space}/mocks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ deadlineId: "{waitingDeadline}", questions: 5, minutes: 60 }) })${HTTP_OK};`;
-/** Both requests ended, so no agent that starts later takes them and the screens after are as before. */
+/** Both requests ended, so the stand-in helper lets them go and the screens after are as before. */
 const dropAskedRequests = `await fetch("/api/spaces/{space}/deadlines/{waitingDeadline}/cheat-sheet", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "stop" }) })${HTTP_OK};
 const { mocks } = await fetch("/api/spaces/{space}/mocks?deadline={waitingDeadline}")${HTTP_OK}.then((r) => r.json());
 for (const mock of mocks) await fetch("/api/spaces/{space}/mocks/" + mock.id, { method: "DELETE" })${HTTP_OK};`;
@@ -554,7 +545,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		shows: "[data-testid=noise-word][aria-pressed=true]",
 	},
 	// The two screens below leave requests waiting for an agent; the lesson that follows them ends them.
-	{ name: "Cheat sheet while no agent is on it", before: `${sounds(false)}; ${askSheet}`, url: sheetPage("{waitingDeadline}"), ready: "[data-testid=sheet-working]" },
+	{ name: "Cheat sheet being made", before: `${sounds(false)}; ${askSheet}`, url: sheetPage("{waitingDeadline}"), ready: "[data-testid=sheet-working]" },
 	{ name: "Mock being written", before: askMock, url: "/space/deadline/{waitingDeadline}", ready: "[data-testid=deadline-mock-continue]", setup: `document.querySelector("[data-testid=deadline-mock-continue]").click()`, shows: "[data-testid=mock-writing]" },
 	{ name: "Lesson whose first reply waits for an agent", before: dropAskedRequests, url: waitingLesson, ready: deskUp },
 	{
@@ -564,9 +555,6 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: openTeacher,
 		shows: "[data-testid=terminal-none] [data-testid=open-agent]",
 	},
-	{ name: "Progress while a file waits for an agent", before: waitingFile, url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
-	{ name: "Graph while a file waits for an agent", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]" },
-	{ name: "Deadline while its request waits for an agent", before: waitingRequest, url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-when]" },
 	// The stand-in agent is started from the waiting lesson's teacher window, and the lesson's start key goes.
 	{
 		name: "Lesson whose first reply an agent took",

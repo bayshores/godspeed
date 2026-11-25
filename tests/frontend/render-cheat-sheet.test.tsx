@@ -91,6 +91,7 @@ const view = (over: Partial<CheatSheetView> = {}): CheatSheetView => ({
 	date: "2026-11-04",
 	sheet: newCheatSheet("ddl_1", "t"),
 	running: null,
+	approvals: [],
 	error: null,
 	...over,
 });
@@ -141,7 +142,7 @@ const chatView = view({
 describe("the sheet's chat", () => {
 	const render = (v: CheatSheetView, over: Partial<React.ComponentProps<typeof SheetChat>> = {}) =>
 		renderToStaticMarkup(
-			inEvents(<SheetChat view={v} spaceId="cls_1" deadlineId="ddl_1" act={async () => null} agentName="Claude Code" agentGone={false} pointed={null} onClearPointed={() => {}} empty="Say what you want on it." {...over} />),
+			inEvents(<SheetChat view={v} spaceId="cls_1" deadlineId="ddl_1" act={async () => null} agentName="Claude Code" pointed={null} onClearPointed={() => {}} empty="Say what you want on it." {...over} />),
 		);
 
 	it("shows the sheet's rules, the learner's messages with what they pointed at and their files, and the agent's answers", () => {
@@ -159,11 +160,10 @@ describe("the sheet's chat", () => {
 		assert.doesNotMatch(render(view(), { empty: undefined }), /sheet-chat-empty/, "the studio says it on the canvas instead");
 	});
 
-	it("says the agent is on a message or waiting for one, why one failed with Try again, and shows Stop while it works", () => {
+	it("says the agent is on a message, why one failed with Try again, and shows Stop while it works", () => {
 		const working = render({ ...chatView, running: { messageId: "m3" } });
 		assert.match(working, /according to the cheat sheet.*Claude Code is on it/);
 		assert.match(working, /Claude Code is on it<\/span><button[^>]*data-testid="sheet-stop"[^>]*>Stop</, "Stop beside the working line");
-		assert.match(render({ ...chatView, running: { messageId: "m3" } }, { agentGone: true }), />Waiting</);
 		const failed = render({ ...chatView, error: { messageId: "m3", text: "the agent never answered" } });
 		assert.match(failed, /according to the cheat sheet.*Claude Code couldn&#x27;t finish that\..*the agent never answered.*Try again/);
 	});
@@ -192,7 +192,7 @@ describe("the sheet's chat", () => {
 			return answer;
 		};
 		try {
-			const el = mount(<SheetChat view={chatView} spaceId="cls_1" deadlineId="ddl_1" act={act_} agentName="Claude Code" agentGone={false} pointed={pointed} onClearPointed={() => cleared++} empty="" />);
+			const el = mount(<SheetChat view={chatView} spaceId="cls_1" deadlineId="ddl_1" act={act_} agentName="Claude Code" pointed={pointed} onClearPointed={() => cleared++} empty="" />);
 			await settle();
 			assert.deepEqual(confirmed.at(-1), { url: "/api/talk-page", body: { page: "cheat sheet", path: null, space: null } }, "the page says it takes lines");
 			const picture = { name: "graph.png", mimeType: "image/png", data: "R1JB" };
@@ -220,7 +220,7 @@ describe("the sheet's chat", () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = (async () => Response.json({})) as typeof fetch;
 		try {
-			const el = mount(<SheetChat view={chatView} spaceId="cls_1" deadlineId="ddl_1" act={async (b) => (posted.push(b), answer)} agentName="Claude Code" agentGone={false} pointed={pointed} onClearPointed={() => cleared++} empty="" />);
+			const el = mount(<SheetChat view={chatView} spaceId="cls_1" deadlineId="ddl_1" act={async (b) => (posted.push(b), answer)} agentName="Claude Code" pointed={pointed} onClearPointed={() => cleared++} empty="" />);
 			const box = await mathBoxView(el);
 			const send = () => el.querySelector<HTMLButtonElement>("[data-testid=composer-send]")!;
 			assert.equal(send().disabled, false, "the part pointed at can go alone");
@@ -247,7 +247,7 @@ describe("the sheet's chat", () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = (async (_url: string, init?: RequestInit) => (confirmed.push(init?.body ? JSON.parse(String(init.body)) : null), Response.json({}))) as typeof fetch;
 		try {
-			const el = mount(<SheetChat view={{ ...chatView, running: { messageId: "m3" } }} spaceId="cls_1" deadlineId="ddl_1" act={async (b) => (posted.push(b), null)} agentName="Claude Code" agentGone={false} pointed={null} onClearPointed={() => {}} empty="" />);
+			const el = mount(<SheetChat view={{ ...chatView, running: { messageId: "m3" } }} spaceId="cls_1" deadlineId="ddl_1" act={async (b) => (posted.push(b), null)} agentName="Claude Code" pointed={null} onClearPointed={() => {}} empty="" />);
 			const box = await mathBoxView(el);
 			await act(async () => box.dispatch({ changes: { from: 0, insert: "hurry" } }));
 			assert.equal(el.querySelector<HTMLButtonElement>("[data-testid=composer-send]")!.disabled, true);
@@ -264,7 +264,7 @@ describe("the sheet's chat", () => {
 		const posted: Record<string, unknown>[] = [];
 		const shown: number[] = [];
 		const el = mount(
-			<SheetChat view={chatView} spaceId="cls_1" deadlineId="ddl_1" act={async (b) => (posted.push(b), null)} agentName="Claude Code" agentGone={false} pointed={null} onClearPointed={() => {}} onShowVersion={(n) => shown.push(n)} empty="" />,
+			<SheetChat view={chatView} spaceId="cls_1" deadlineId="ddl_1" act={async (b) => (posted.push(b), null)} agentName="Claude Code" pointed={null} onClearPointed={() => {}} onShowVersion={(n) => shown.push(n)} empty="" />,
 		);
 		await click(el.querySelector("[aria-label='Remove rule: American spelling']"));
 		await click(el.querySelector("[data-testid='sheet-made']"));
@@ -272,10 +272,20 @@ describe("the sheet's chat", () => {
 		assert.deepEqual(shown, [2]);
 	});
 
+	it("shows what the agent waits to be allowed under the working line, and posts the answer", async () => {
+		const posted: Record<string, unknown>[] = [];
+		const ask = { id: "approval_1", text: "Claude Code wants to run a command.", subject: { kind: "command" as const, text: "latexmk -pdf sheet.tex" } };
+		const props = { spaceId: "cls_1", deadlineId: "ddl_2", act: async (b: Record<string, unknown>) => (posted.push(b), null), agentName: "Claude Code", pointed: null, onClearPointed: () => {}, empty: "" };
+		const el = mount(<SheetChat view={{ ...chatView, running: { messageId: "m3" }, approvals: [ask] }} {...props} />);
+		assert.match(el.querySelector("[data-testid=approval-card]")!.textContent!, /wants to run a command\.latexmk -pdf sheet\.tex/);
+		await click(el.querySelector("[data-testid='approval-allow']"));
+		assert.deepEqual(posted, [{ action: "approval", id: "approval_1", allow: true }]);
+	});
+
 	it("Stop and Try again post their actions", async () => {
 		const posted: Record<string, unknown>[] = [];
 		const act_ = async (body: Record<string, unknown>) => (posted.push(body), null);
-		const props = { spaceId: "cls_1", deadlineId: "ddl_2", act: act_, agentName: "Claude Code", agentGone: false, pointed: null, onClearPointed: () => {}, empty: "" };
+		const props = { spaceId: "cls_1", deadlineId: "ddl_2", act: act_, agentName: "Claude Code", pointed: null, onClearPointed: () => {}, empty: "" };
 		const el = mount(<SheetChat view={{ ...chatView, running: { messageId: "m3" } }} {...props} />);
 		await click(el.querySelector("[data-testid='sheet-stop']"));
 		act(() => root!.render(inEvents(<SheetChat view={{ ...chatView, error: { messageId: "m3", text: "x" } }} {...props} />)));

@@ -319,7 +319,7 @@ mod tests {
 
 	use super::*;
 	use crate::app::agent_actions::recent_agent_actions;
-	use crate::app::agents::pick_stand_in;
+	use crate::app::agents::use_runtime;
 	use crate::app::test_support::{scratch_dir, test_app};
 
 	/// A space with a ready study file and an open exam with nothing linked: its id and the exam's.
@@ -536,18 +536,21 @@ mod tests {
 			call(json!({ "space_id": space_id, "deadline_id": exam, "file_ids": ["f1"] })),
 			FakeStep::Text("Linked Notes.md.".to_owned()),
 		]]);
-		pick_stand_in(&app, agent.runtime());
+		use_runtime(&app, agent.runtime());
 		let mut events = app.events.subscribe();
 		check_spaces(&app, clock::now_ms());
-		let checked = tokio::time::timeout(std::time::Duration::from_secs(10), async {
+		let heard = async {
 			loop {
 				let event = events.recv().await.expect("the app is alive");
 				if event.kind == EventKind::SpaceChecked {
 					return event;
 				}
 			}
-		});
-		let checked = checked.await.expect("the check ends");
+		};
+		let checked = tokio::select! {
+			event = heard => event,
+			() = clock::sleep(10_000) => panic!("the check never ended"),
+		};
 		assert_eq!(checked.payload["lines"], json!(["Linked Notes.md to Final"]));
 		assert_eq!((checked.payload["agent"].as_str(), checked.payload["said"].as_str()), (Some("Teacher"), Some("Linked Notes.md.")), "the work is the teacher's");
 		let results: Vec<Json> = agent.sent().into_iter().filter(|m| m["type"].as_str() == Some("tool_result")).collect();

@@ -26,7 +26,7 @@ use index::VaultReader;
 pub use lesson_tool::lesson_vault_tool;
 pub use maintain::{minute_check, reviewed};
 pub use notes_list::space_vault_notes;
-pub use pass::{Ask, AskReply, PassState, Taken, answer_ask, catch_up, lesson_left, lesson_vault_notes, queue_lesson, send_waiting, take_for_grouping};
+pub use pass::{Ask, AskReply, PassState, Taken, answer_ask, catch_up, lesson_left, lesson_vault_notes, queue_lesson, send_waiting, take_block};
 pub use search::search_vault;
 pub use setup::{change_vault, notes_in_obsidian, retry_vault, vault_status};
 pub use write::{picked_vault, write_vault_note, write_vault_words};

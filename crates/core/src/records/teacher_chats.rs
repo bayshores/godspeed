@@ -1,8 +1,6 @@
 //! data/teacher-chats.json: the chats the teacher had in godspeed's terminal, so the learner can
-//! pick one to go back to. A chat is listed once something happened in it (a line typed to it, a
-//! lesson it taught); its name is the last lesson it taught, else the first line typed to it
-//! (its words, not its attached files), and it keeps that lesson's id so the learner can go back
-//! to it.
+//! pick one to go back to. A chat is listed once a line was typed to it, and named by the first
+//! one (its words, not its attached files). A file from an older godspeed keeps the names it has.
 //! Pure: the store reads and writes the file.
 
 use gs_base::ids::is_uuid;
@@ -26,8 +24,6 @@ pub struct TeacherChat {
 	/// The folder it ran in: an agent keeps its chats per folder.
 	pub folder: String,
 	pub name: Option<String>,
-	/// The last lesson it taught.
-	pub lesson: Option<String>,
 	pub used: bool,
 	/// Last start or use, ms since the epoch.
 	pub at: i64,
@@ -35,7 +31,7 @@ pub struct TeacherChat {
 
 impl TeacherChat {
 	fn to_json(&self) -> Json {
-		json!({ "id": self.id.as_str(), "agent": self.agent.as_str(), "folder": self.folder.as_str(), "name": self.name.clone(), "lesson": self.lesson.clone(), "used": self.used, "at": self.at })
+		json!({ "id": self.id.as_str(), "agent": self.agent.as_str(), "folder": self.folder.as_str(), "name": self.name.clone(), "used": self.used, "at": self.at })
 	}
 
 	fn from_json(chat: &Json) -> Option<TeacherChat> {
@@ -46,7 +42,6 @@ impl TeacherChat {
 			agent: agent.to_owned(),
 			folder: chat["folder"].as_str()?.to_owned(),
 			name: chat["name"].as_str().map(str::to_owned),
-			lesson: chat["lesson"].as_str().map(str::to_owned),
 			used: chat["used"] == Json::Bool(true),
 			at: chat["at"].as_i64()?,
 		})
@@ -68,7 +63,7 @@ pub fn started(chats: &mut Vec<TeacherChat>, id: &str, agent: &str, folder: &str
 	chats.retain(|c| c.used || c.id == id);
 	let chat = match chats.iter().position(|c| c.id == id) {
 		Some(at) => TeacherChat { at: now, ..chats.remove(at) },
-		None => TeacherChat { id: id.to_owned(), agent: agent.to_owned(), folder: folder.to_owned(), name: None, lesson: None, used: false, at: now },
+		None => TeacherChat { id: id.to_owned(), agent: agent.to_owned(), folder: folder.to_owned(), name: None, used: false, at: now },
 	};
 	chats.insert(0, chat);
 	chats.truncate(KEPT);
@@ -83,8 +78,8 @@ pub(crate) fn cut_name(name: &str) -> String {
 	format!("{}…", line.chars().take(NAME_MAX - 1).collect::<String>().trim_end())
 }
 
-/// The learner typed a line to the chat: used, and named by its words while nothing else named
-/// it. A line of attached files only names nothing.
+/// The learner typed a line to the chat: used, and named by its words while nothing named it yet.
+/// A line of attached files only names nothing.
 pub fn typed(chats: &mut [TeacherChat], id: &str, line: &str, now: i64) {
 	if let Some(chat) = chats.iter_mut().find(|c| c.id == id) {
 		let words = typed_attachments(line).0;
@@ -96,32 +91,10 @@ pub fn typed(chats: &mut [TeacherChat], id: &str, line: &str, now: i64) {
 	}
 }
 
-/// The chat taught a lesson: used, named after its title and pointing at it.
-pub fn taught(chats: &mut [TeacherChat], id: &str, lesson_id: &str, title: &str, now: i64) {
-	if let Some(chat) = chats.iter_mut().find(|c| c.id == id) {
-		if !title.trim().is_empty() {
-			chat.name = Some(cut_name(title));
-		}
-		chat.lesson = Some(lesson_id.to_owned());
-		chat.used = true;
-		chat.at = now;
-	}
-}
-
-/// What the terminal offers: used chats from this folder, newest first, the newest one only of
-/// chats that taught the same lesson.
+/// What the terminal offers: used chats from this folder, newest first.
 pub fn shown(chats: &[TeacherChat], folder: &str) -> Vec<TeacherChat> {
 	let mut list: Vec<TeacherChat> = chats.iter().filter(|c| c.used && c.folder == folder).cloned().collect();
 	list.sort_by_key(|chat| std::cmp::Reverse(chat.at));
-	let mut lessons: Vec<String> = Vec::new();
-	list.retain(|chat| match &chat.lesson {
-		Some(lesson) if lessons.contains(lesson) => false,
-		Some(lesson) => {
-			lessons.push(lesson.clone());
-			true
-		}
-		None => true,
-	});
 	list.truncate(SHOWN);
 	list
 }
@@ -134,20 +107,21 @@ mod tests {
 	const B: &str = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 
 	#[test]
-	fn a_chat_shows_once_used_named_by_its_first_line_then_its_lesson() {
+	fn a_chat_shows_once_used_named_by_its_first_line() {
 		let mut chats = Vec::new();
 		started(&mut chats, A, "claude", "/f", 1);
 		assert!(shown(&chats, "/f").is_empty(), "nothing happened in it yet");
 		typed(&mut chats, A, "  why is   the sky\nblue?", 2);
 		typed(&mut chats, A, "and the sea?", 3);
 		assert_eq!(shown(&chats, "/f")[0].name.as_deref(), Some("why is the sky blue?"));
-		taught(&mut chats, A, "chat_limits", "Limits proof", 4);
-		typed(&mut chats, A, "thanks", 5);
-		assert_eq!(shown(&chats, "/f")[0].name.as_deref(), Some("Limits proof"));
-		assert_eq!(shown(&chats, "/f")[0].lesson.as_deref(), Some("chat_limits"), "a line after it keeps the lesson");
-		let back = parse_teacher_chats(&teacher_chats_json(&chats));
-		assert_eq!(back[0].lesson.as_deref(), Some("chat_limits"));
 		assert!(shown(&chats, "/other").is_empty(), "another folder's chats can't be opened here");
+	}
+
+	#[test]
+	fn a_file_from_an_older_godspeed_keeps_its_names() {
+		let old = json!({ "chats": [{ "id": A, "agent": "claude", "folder": "/f", "name": "Limits proof", "lesson": "chat_limits", "used": true, "at": 4 }] });
+		let chats = parse_teacher_chats(&old);
+		assert_eq!(shown(&chats, "/f")[0].name.as_deref(), Some("Limits proof"));
 	}
 
 	#[test]
@@ -177,20 +151,6 @@ mod tests {
 		assert!(chats[0].used);
 		typed(&mut chats, A, "what is this /f/.godspeed/attachments/0123456789ab-a.png", 3);
 		assert_eq!(chats[0].name.as_deref(), Some("what is this"));
-	}
-
-	#[test]
-	fn only_the_newest_chat_of_a_lesson_is_shown() {
-		let mut chats = Vec::new();
-		let c = "9b2e8c1a-6f4d-4e2b-8a3c-1d5e7f9a0b2c";
-		started(&mut chats, A, "claude", "/f", 1);
-		taught(&mut chats, A, "chat_limits", "Limits", 2);
-		started(&mut chats, B, "claude", "/f", 3);
-		taught(&mut chats, B, "chat_limits", "Limits", 4);
-		started(&mut chats, c, "claude", "/f", 5);
-		typed(&mut chats, c, "hello", 6);
-		let list = shown(&chats, "/f");
-		assert_eq!(list.iter().map(|chat| chat.id.as_str()).collect::<Vec<_>>(), vec![c, B]);
 	}
 
 	#[test]

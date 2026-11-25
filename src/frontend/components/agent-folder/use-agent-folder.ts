@@ -1,9 +1,8 @@
 import { useCallback, useState } from "react";
-import { DEFAULT_TEACHER_NAME, type FolderAgent } from "@/shared/core";
+import type { FolderAgent } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import type { TerminalRole } from "@/frontend/components/terminal/terminal-model";
 import { logLines, type Launch, type LaunchChoice } from "./agent-folder-model";
 import { useAgentFolderView } from "./agent-folder-context";
 
@@ -17,8 +16,7 @@ const logPickFailure = (err: unknown) => console.error("[agent folder] the picke
  * opens the teacher's panel on Terminal, so the learner sees it start
  * (onboarding has no panel: its step shows the screen). Outside the desktop app the
  * learner runs the command, and `lines` is the live log of that launch.
- * openHelper starts the helper alone. `busy` while a start runs, `error`
- * when it failed.
+ * `busy` while a start runs, `error` when it failed.
  */
 export function useAgentFolder() {
 	const { view, reload, post, pick } = useAgentFolderView();
@@ -32,37 +30,34 @@ export function useAgentFolder() {
 	/** Resolves to true once the agent starts (or, outside the desktop app, the folder is made).
 	 *  `resume`: the teacher's chat to go back to. `change`: a running teacher leaves its chat for it. */
 	const start = useCallback(
-		async (role: TerminalRole, agent: FolderAgent, resume?: string, change = false): Promise<boolean> => {
+		async (agent: FolderAgent, resume?: string, change = false): Promise<boolean> => {
 			if (view?.agent !== agent) void pick(agent).catch(logPickFailure);
 			if (terminals?.available) {
 				setStarting(true);
 				setFailed(null);
-				const why = await (change ? terminals.changeChat(agent, resume) : terminals.start(role, agent, resume));
+				const why = await (change ? terminals.changeChat(agent, resume) : terminals.start(agent, resume));
 				setStarting(false);
 				setFailed(why);
 				if (!why) void reload();
-				if (!why) showTerminal?.(role);
+				if (!why) showTerminal?.();
 				return !why;
 			}
-			const launch: Pick<Launch, "agent" | "helperOnly"> = role === "helper" ? { agent, helperOnly: true } : { agent };
-			setLaunch({ ...launch, made: "wait" });
+			setLaunch({ agent, made: "wait" });
 			try {
 				await post({ action: "setup" });
-				setLaunch({ ...launch, made: "done" });
+				setLaunch({ agent, made: "done" });
 				return true;
 			} catch (err) {
-				setLaunch({ ...launch, made: { error: (err as Error).message } });
+				setLaunch({ agent, made: { error: (err as Error).message } });
 				return false;
 			}
 		},
 		[terminals, reload, post, pick, view?.agent, showTerminal],
 	);
 
-	const open = useCallback((agent: FolderAgent, resume?: string) => start("teacher", agent, resume), [start]);
+	const open = useCallback((agent: FolderAgent, resume?: string) => start(agent, resume), [start]);
 	/** While the teacher runs: a new chat, or back to `resume`. */
-	const changeChat = useCallback((agent: FolderAgent, resume?: string) => start("teacher", agent, resume, true), [start]);
-	/** Start the helper alone. */
-	const openHelper = useCallback((agent: FolderAgent) => start("helper", agent), [start]);
+	const changeChat = useCallback((agent: FolderAgent, resume?: string) => start(agent, resume, true), [start]);
 
 	/** Use another folder (the native picker); null when cancelled. Resolves to an error message, if any. */
 	const change = useCallback(async (): Promise<string | null> => {
@@ -87,13 +82,13 @@ export function useAgentFolder() {
 		}
 	}, [post]);
 
-	const lines = launch && view ? logLines(launch, { connected: !!status?.connected, teaching: !!status?.teaching, helperHere: !!status?.helperHere }, view.short) : [];
+	const lines = launch && view ? logLines(launch, !!status?.connected, view.short) : [];
 	const busy = starting || launch?.made === "wait";
 	const error = failed ?? (typeof launch?.made === "object" ? launch.made.error : null);
 	/** Outside the desktop app the folder is made: the learner runs the command. */
 	const manual = launch?.made === "done";
 
-	return { view, lines, busy, error, manual, open, changeChat, openHelper, change, setStartCommand };
+	return { view, lines, busy, error, manual, open, changeChat, change, setStartCommand };
 }
 
 /** The agent picked beside "Use another agent": the server's (Claude Code before a pick), which a
@@ -110,15 +105,4 @@ export function useAgentChoice() {
 		[pick, view?.agent],
 	);
 	return [choice, setChoice] as const;
-}
-
-/** "Turn on Teacher": starts the server's agent (Claude Code before a pick), the button on
- *  the "Teacher is off" lines. `starting` while godspeed's own teacher runs but has not connected:
- *  the teacher's status line says so, and the lines show nothing. */
-export function useStartAgent() {
-	const { view, busy, error, manual, open } = useAgentFolder();
-	const agent = view?.agent ?? "claude";
-	const teacher = useTerminals()?.teacher;
-	const name = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
-	return { label: `Turn on ${name}`, start: () => void open(agent), busy, error, manual, starting: !!teacher && !teacher.ended };
 }

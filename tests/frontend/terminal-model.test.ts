@@ -2,25 +2,21 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
 	CHECK_IN_WAIT_MS,
-	TEACH_WAIT_MS,
 	firstRunFooter,
 	gridSize,
-	helperShouldStart,
 	needsYou,
-	restartAsks,
 	statusFromTerminals,
 	teacherStartRefused,
 	screenStatusLine,
 	terminalFooter,
-	wakeAgent,
 	type TerminalFacts,
 	type TerminalRecord,
 } from "../../src/frontend/components/terminal/terminal-model.ts";
 
 const T0 = 1_000_000;
-const term = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", role: "teacher", agent: "claude", startedAt: T0, ended: null, prompt: null, url: false, ...over });
-const facts = (over: Partial<TerminalFacts> = {}, t: Partial<TerminalRecord> = {}): TerminalFacts => ({ term: term(t), checkedIn: true, outsideHere: false, teaching: true, now: T0 + 1000, quietSince: null, helperBusy: false, turnWaits: false, ...over });
-/** The full words (the helper, onboarding), and the panel's under the status line. */
+const term = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", agent: "claude", startedAt: T0, ended: null, prompt: null, url: false, ...over });
+const facts = (over: Partial<TerminalFacts> = {}, t: Partial<TerminalRecord> = {}): TerminalFacts => ({ term: term(t), checkedIn: true, outsideHere: false, now: T0 + 1000, ...over });
+/** The full words (onboarding), and the panel's under the status line. */
 const words = (f: TerminalFacts) => terminalFooter(f, "Ada", false);
 const tab = (f: TerminalFacts) => terminalFooter(f, "Ada", true);
 
@@ -44,24 +40,11 @@ describe("when the screen opens by itself", () => {
 		assert.equal(needsYou(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })), "no-check-in");
 	});
 
-	it("checked in but not teaching for 30 s while a turn waits opens it", () => {
-		const quiet = { teaching: false, quietSince: T0 };
-		assert.equal(needsYou(facts({ ...quiet, now: T0 + TEACH_WAIT_MS - 1 })), null);
-		assert.equal(needsYou(facts({ ...quiet, now: T0 + TEACH_WAIT_MS })), "not-teaching");
-		assert.equal(needsYou(facts({ teaching: false, now: T0 + 10 * TEACH_WAIT_MS })), null, "no turn waits");
-	});
-
-	it("after the first check-in, a long wait or turn with no request is no reason to open it", () => {
+	it("after the first check-in, a long quiet is no reason to open it", () => {
 		const later = { checkedIn: true, now: T0 + 10 * 60_000 };
-		assert.equal(needsYou(facts(later)), null, "10 minutes into one wait_for_work");
-		assert.equal(needsYou(facts({ ...later, teaching: false })), null, "idle, no turn waits");
+		assert.equal(needsYou(facts(later)), null);
 		assert.equal(tab(facts(later)).text, null);
 		assert.equal(screenStatusLine(facts(later), "Ada"), null);
-	});
-
-	it("the timers count only for the teacher", () => {
-		assert.equal(needsYou(facts({ checkedIn: false, now: T0 + 10 * CHECK_IN_WAIT_MS }, { role: "helper" })), null);
-		assert.equal(needsYou(facts({}, { role: "helper", prompt: "trust" })), "prompt");
 	});
 });
 
@@ -93,10 +76,9 @@ describe("the footer's words", () => {
 		assert.equal(tab(facts({}, { prompt: "menu" })).text, null);
 	});
 
-	it("the timers", () => {
+	it("the check-in timer", () => {
 		const late = "Ada hasn't started teaching yet.";
 		assert.equal(words(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, late);
-		assert.equal(words(facts({ teaching: false, quietSince: T0, now: T0 + TEACH_WAIT_MS })).text, late);
 		assert.equal(tab(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, null);
 	});
 
@@ -120,14 +102,6 @@ describe("the footer's words", () => {
 		assert.deepEqual([old.text, old.get, old.startAgain], ["Claude Code needs an update.", null, true]);
 		const gone = words(facts({}, { ended: { stopped: false, code: 5 } }));
 		assert.deepEqual([gone.text, gone.startAgain], ["Couldn't open that chat.", true]);
-	});
-
-	it("background work's footer leaves out what its own status chip says", () => {
-		assert.equal(tab(facts({ helperBusy: true }, { role: "helper" })).text, "Reading your files.");
-		assert.equal(tab(facts({}, { role: "helper" })).text, "Waiting for files.");
-		assert.equal(tab(facts({}, { role: "helper", ended: { stopped: true, code: null } })).text, "Stopped.");
-		assert.equal(tab(facts({}, { role: "helper", prompt: "trust" })).text, null);
-		assert.equal(screenStatusLine(facts({}, { role: "helper", prompt: "trust" }), "Background work"), "Background work asks to trust its folder.");
 	});
 
 	it("an agent outside godspeed teaches: the status line says nothing of the old screen, so its footer says it all", () => {
@@ -162,7 +136,6 @@ describe("the teacher's status line", () => {
 		assert.equal(screenStatusLine(facts({}, { prompt: "menu" }), "Ada"), "Ada is asking you something.");
 		assert.equal(screenStatusLine(facts({ checkedIn: false }, { prompt: "menu" }), "Ada"), "Ada is asking you something.");
 		assert.equal(screenStatusLine(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS }), "Ada"), "Ada hasn't started teaching yet.");
-		assert.equal(screenStatusLine(facts({ teaching: false, quietSince: T0, now: T0 + TEACH_WAIT_MS }), "Ada"), "Ada hasn't started teaching yet.");
 		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 1 } }), "Ada"), "Ada closed with an error.");
 		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 3 } }), "Ada"), "Claude Code isn't installed on this computer.");
 		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 4 } }), "Ada"), "godspeed needs Node.js to connect Claude Code.");
@@ -179,20 +152,6 @@ describe("which start is allowed", () => {
 		assert.equal(teacherStartRefused(term(), false), "running");
 		assert.equal(teacherStartRefused(term({ ended: { stopped: true, code: null } }), false), null);
 		assert.equal(teacherStartRefused(null, true), "outside");
-	});
-
-	it("the helper starts once per teacher run, after the check-in, while jobs wait", () => {
-		const teacher = term();
-		const base = { teacher, teacherCheckedIn: true, helper: null, helperHere: false, helperWork: 2 };
-		assert.equal(helperShouldStart(base), true);
-		assert.equal(helperShouldStart({ ...base, teacherCheckedIn: false }), false);
-		assert.equal(helperShouldStart({ ...base, helperWork: 0 }), false);
-		assert.equal(helperShouldStart({ ...base, helperHere: true }), false, "a helper from outside is here");
-		assert.equal(helperShouldStart({ ...base, teacher: term({ ended: { stopped: true, code: null } }) }), false);
-		const helper = term({ id: "h1", role: "helper", startedAt: T0 + 5 });
-		assert.equal(helperShouldStart({ ...base, helper }), false, "one runs");
-		assert.equal(helperShouldStart({ ...base, helper: { ...helper, ended: { stopped: false, code: 1 } } }), false, "never restarted in the same run");
-		assert.equal(helperShouldStart({ ...base, helper: { ...helper, startedAt: T0 - 5, ended: { stopped: true, code: null } } }), true, "a new teacher run");
 	});
 });
 
@@ -220,39 +179,16 @@ describe("onboarding's first start", () => {
 	});
 });
 
-describe("starting the teacher hidden, and restarting", () => {
-	it("Start lesson and a lesson's send start the picked agent, only when nothing is here, runs or starts", () => {
-		const base = { teacher: null, agentHere: false, outsideHere: false, picked: "codex" as const };
-		assert.equal(wakeAgent(base), "codex");
-		assert.equal(wakeAgent({ ...base, picked: null }), null, "never picked: the no-agent line offers Start");
-		assert.equal(wakeAgent({ ...base, agentHere: true }), null);
-		assert.equal(wakeAgent({ ...base, outsideHere: true }), null);
-		assert.equal(wakeAgent({ ...base, teacher: term() }), null, "one already runs or starts");
-		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: true, code: null } }) }), "codex");
-		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: 0 } }) }), "codex", "it closed itself");
-		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: 1 } }) }), null, "a crash waits for Start again");
-		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: null } }) }), null, "a screen godspeed could not read");
-		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: 3 } }) }), null, "not installed");
-		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: 4 } }) }), null, "no Node.js");
-		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: 6 } }) }), null, "too old");
-	});
-
-	it("the status says no agent once godspeed's teacher ended or before it checked in, though the server still says connected", () => {
-		const server = { connected: true, teaching: true, helperHere: true, helperCovering: true, name: "Claude Code", pendingWork: 1 };
-		const none = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1 };
+describe("the status the terminals correct", () => {
+	it("says none connected once godspeed's teacher ended or before it checked in, though the server still says connected; the pick stays", () => {
+		const server = { connected: true, name: "Claude Code" };
+		const none = { connected: false };
 		assert.deepEqual(statusFromTerminals(server, term({ ended: { stopped: true, code: null } }), false), none);
 		assert.deepEqual(statusFromTerminals(server, term(), false), none, "starting, not checked in");
 		assert.ok(statusFromTerminals(server, term(), true) === server, "checked in: the server's word");
 		assert.ok(statusFromTerminals(server, null, false) === server, "never started here: the server's word");
 		assert.equal(statusFromTerminals(null, term(), false), null);
-		const quiet = { ...server, connected: false, teaching: false };
-		assert.deepEqual(statusFromTerminals(quiet, term(), true), { ...quiet, connected: true, teaching: true }, "its own teacher, checked in and quiet, is ready");
-	});
-
-	it("Restart now asks first only while the teacher's terminal runs and a turn waits", () => {
-		assert.equal(restartAsks(term(), 1), true);
-		assert.equal(restartAsks(term(), 0), false);
-		assert.equal(restartAsks(null, 2), false);
-		assert.equal(restartAsks(term({ ended: { stopped: false, code: 1 } }), 2), false);
+		const quiet = { connected: false };
+		assert.deepEqual(statusFromTerminals(quiet, term(), true), { connected: true }, "its own teacher, checked in, is connected; picking is the server's");
 	});
 });

@@ -17,9 +17,9 @@ use super::{Inner, State, TerminalState};
 
 /// An agent outside godspeed's terminal has no Stop hook: its round ends this long after its last
 /// counted call.
-const OUTSIDE_QUIET_MS: i64 = 20_000;
+pub const OUTSIDE_QUIET_MS: i64 = 20_000;
 /// A round with no step for this long has ended, though nothing said so.
-const ROUND_STALE_MS: i64 = 5 * 60_000;
+pub const ROUND_STALE_MS: i64 = 5 * 60_000;
 
 pub(super) struct Round {
 	/// Its number among the rounds, so its watch ends with it.

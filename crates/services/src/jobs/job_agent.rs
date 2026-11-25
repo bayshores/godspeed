@@ -1,5 +1,5 @@
-//! The agent background jobs run on: the learner's picked agent, on the same runtime as lessons,
-//! one session per job. A job waits until an agent is picked, then for one of the pool's permits.
+//! The agent background jobs run on: the lessons' agent, on the same runtime, one session per
+//! job. A job waits only for one of the pool's permits.
 
 use std::sync::Arc;
 
@@ -7,11 +7,9 @@ use futures_util::future::BoxFuture;
 use gs_agent::subagents::bg_llm_semaphore::with_bg_llm_slot;
 use gs_agent::subagents::job_agent::{JobAgent, Priority};
 use gs_base::ids::uuid_hex;
-use gs_engine::turn::abort::Abort;
 use gs_engine::turn::job_session::{Finished, OneOff, RunError, run_once};
 
 use crate::App;
-use crate::app::agent_folder::picked_agent;
 use crate::app::agents::runtime;
 
 struct AppJobAgent(Arc<App>);
@@ -26,9 +24,6 @@ impl JobAgent for AppJobAgent {
 		Box::pin(async move {
 			let app = &self.0;
 			let abort = job.abort.clone();
-			if !agent_picked(app, &abort).await {
-				return Err(RunError::Aborted);
-			}
 			let ran = with_bg_llm_slot(&app.jobs.pool, priority, Some(&abort), || async {
 				// A job with no folder of its own works in a new empty one, removed after.
 				let (folder, made) = match &job.cwd {
@@ -54,18 +49,33 @@ impl JobAgent for AppJobAgent {
 	}
 }
 
-/// Waits until the learner has picked an agent; false when the job stopped first.
-async fn agent_picked(app: &App, abort: &Abort) -> bool {
-	loop {
-		let notified = app.agents.picked.notified();
-		tokio::pin!(notified);
-		notified.as_mut().enable();
-		if picked_agent(app).is_some() {
-			return true;
-		}
-		tokio::select! {
-			() = notified => {}
-			() = abort.aborted() => return false,
-		}
+#[cfg(test)]
+mod tests {
+	use std::collections::HashSet;
+
+	use gs_engine::turn::abort::Abort;
+	use gs_engine::turn::tool_host::ToolHost;
+	use gs_runtime::Part;
+	use gs_runtime::fake::{FakeAgent, FakeStep};
+
+	use super::*;
+	use crate::app::agents::use_runtime;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	fn job(abort: &Abort) -> OneOff {
+		OneOff::new("You read a file.".to_owned(), vec![Part::Text("Read it.".to_owned())], ToolHost::new(Vec::new(), None, HashSet::new()), 5, abort.clone())
+	}
+
+	#[tokio::test]
+	async fn a_job_runs_on_the_lessons_agent_in_a_folder_of_its_own() {
+		let root = scratch_dir("job-agent");
+		let app = test_app(&root);
+		let agent = FakeAgent::default();
+		agent.push(vec![FakeStep::Text("Read.".to_owned())]);
+		use_runtime(&app, agent.runtime());
+		let abort = Abort::new();
+		assert_eq!(job_agent(&app).run(job(&abort), Priority::Own, "Reading").await.map(|done| done.text), Ok("Read.".to_owned()));
+		let jobs = app.paths.tmp.join("godspeed-jobs");
+		assert!(std::fs::read_dir(&jobs).unwrap().next().is_none(), "its folder is removed");
 	}
 }

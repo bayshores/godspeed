@@ -11,7 +11,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { reuseUnchangedMessages, type ChatAttachment, type ChatInput, type KeptPart, type LhMessage, type QuestionAnswerData } from "@/shared/core";
 import { SessionModel, type SessionState } from "@/frontend/components/session-core";
-import { useWake } from "@/frontend/components/teacher/use-wake";
 
 /** The streaming redraw's safety net when animation frames pause (a
  *  hidden window): the update still lands within this many ms. */
@@ -106,12 +105,6 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		},
 		[model],
 	);
-
-	// Anything taken that waits for the teacher starts godspeed's own when no agent is here.
-	const wake = useWake();
-	useEffect(() => {
-		model.onSent = wake;
-	}, [model, wake]);
 
 	// Stable for the model's life, so a consumer's effects don't re-run on every render.
 	const api = useMemo(

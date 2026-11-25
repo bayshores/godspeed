@@ -102,7 +102,6 @@ let started: Response | (() => Response) = () => Response.json({ id: "chat_new",
 const went: string[] = [];
 let folderProblem: string | null = null;
 let recordFails = false;
-let agentTeaching = true;
 let recordReads = 0;
 const originalFetch = globalThis.fetch;
 function fakeFetch() {
@@ -111,7 +110,7 @@ function fakeFetch() {
 		const method = init?.method ?? "GET";
 		if (method !== "GET") calls.push({ method, url, body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined });
 		if (url === "/api/spaces") return Response.json({ spaces: [{ id: "cls_a", name: "CSE 21" }] });
-		if (url === "/api/mcp-access") return Response.json({ agentConnected: true, agentTeaching, pendingWork: 0 });
+		if (url === "/api/mcp-access") return Response.json({ agentConnected: true });
 		if (url.startsWith("/api/spaces/cls_a") && method === "GET") {
 			recordReads++;
 			return recordFails ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({ space: record, folder: { problem: folderProblem, checkedAt: null, settling: 0 } });
@@ -193,7 +192,6 @@ afterEach(async () => {
 	went.length = 0;
 	folderProblem = null;
 	recordFails = false;
-	agentTeaching = true;
 	recordReads = 0;
 	globalThis.fetch = originalFetch;
 	stored.clear();
@@ -278,8 +276,7 @@ describe("FilesPage", () => {
 		assert.match(page.textContent!, /Loading…/);
 	});
 
-	it("a waiting file says Waiting, teaching or not: the space's work frame says when the teacher is off", async () => {
-		agentTeaching = false;
+	it("a waiting file says Waiting", async () => {
 		fakeFetch();
 		await mount();
 		assert.equal(q("space-file-status-f7")!.textContent, "Waiting");

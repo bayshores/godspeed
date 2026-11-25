@@ -88,7 +88,7 @@ fn agent_folder_text_matches_node() {
 		}
 	}
 	if recording {
-		std::fs::write(GOLDEN, format!("{}\n", stringify_pretty(&all, "\t"))).unwrap();
+		gs_base::fsx::write_text_atomic(std::path::Path::new(GOLDEN), &format!("{}\n", stringify_pretty(&all, "\t"))).unwrap();
 	}
 }
 
