@@ -1,5 +1,5 @@
 //! The setup card's routes for the picked agent: /api/agent/health, /api/agent/login,
-//! /api/agent/login/code, /api/agent/login/cancel and /api/agent/models.
+//! /api/agent/login/code, /api/agent/login/cancel, /api/agent/update and /api/agent/models.
 
 use std::sync::Arc;
 
@@ -12,6 +12,7 @@ use gs_services::App;
 use gs_services::app::agent_health::health_view;
 use gs_services::app::agent_login::{LoginError, cancel_login, send_login_code, start_login};
 use gs_services::app::agent_models::agent_models;
+use gs_services::app::agent_update::start_update;
 
 use crate::http::reply::{self, Unhandled, error, fields};
 use crate::http::route::ApiRoute;
@@ -22,6 +23,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/agent/login", ApiRoute::new().post(login).into_route())
 		.route("/api/agent/login/code", ApiRoute::new().post(login_code).into_route())
 		.route("/api/agent/login/cancel", ApiRoute::new().post(login_cancel).into_route())
+		.route("/api/agent/update", ApiRoute::new().post(update).into_route())
 		.route("/api/agent/models", ApiRoute::new().get(models).into_route())
 }
 
@@ -55,6 +57,14 @@ async fn login_cancel(State(app): State<Arc<App>>) -> Response {
 	match cancel_login(&app).await {
 		Ok(()) => reply::no_store(reply::ok()),
 		Err(err) => refused(&err),
+	}
+}
+
+/// `{state, line, command}`; 409 with the reason when no update can start.
+async fn update(State(app): State<Arc<App>>) -> Response {
+	match start_update(&app).await {
+		Ok(update) => reply::json_no_store(200, &update),
+		Err(reason) => reply::no_store(error(409, &reason)),
 	}
 }
 

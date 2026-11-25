@@ -14,6 +14,7 @@ use parking_lot::Mutex;
 use super::agent_folder::{folder_agent, start_command};
 use super::agent_health::{HealthState, check_health};
 use super::agent_login::LoginState;
+use super::agent_update::UpdateState;
 use crate::App;
 
 /// The runtime in use, with the agent and the start command it was made for.
@@ -26,6 +27,7 @@ pub struct AgentsState {
 	runtime: Mutex<Option<Made>>,
 	pub(super) health: HealthState,
 	pub(super) login: LoginState,
+	pub(super) update: UpdateState,
 }
 
 /// The runtime of the agent picked now. A new pick or start command makes a new one; a session

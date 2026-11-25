@@ -1,8 +1,8 @@
 //! The setup card's checks of the picked agent: installed, new enough, signed in and on which
 //! plan (gs-runtime runs them). One check runs at a time; one asked for while it runs follows it.
-//! They run at server start, when the agent or its start command changes, after a sign-in, and
-//! when a lesson's or job's session could not start or the agent refused its sign-in. Each start
-//! and end is told with `agent-health`.
+//! They run at server start, when the agent or its start command changes, after a sign-in or an
+//! update, and when a lesson's or job's session could not start or the agent refused its sign-in.
+//! Each start and end is told with `agent-health`.
 
 use std::sync::Arc;
 
@@ -14,6 +14,7 @@ use parking_lot::Mutex;
 
 use super::agent_folder::{folder_agent, start_command};
 use super::agent_login::{login_view, passed_login};
+use super::agent_update::{passed_update, update_view};
 use super::agents::runtime;
 use crate::App;
 
@@ -44,7 +45,8 @@ pub fn check_health(app: &Arc<App>) {
 		loop {
 			let Some(app) = app.upgrade() else { return };
 			let health = runtime(&app).health().await;
-			let logged_in = health.rows.iter().any(|row| row.check == Check::LoggedIn && row.outcome == Outcome::Passed);
+			let passed = |check: Check| health.rows.iter().any(|row| row.check == check && row.outcome == Outcome::Passed);
+			let (logged_in, up_to_date) = (passed(Check::LoggedIn), passed(Check::UpToDate));
 			let again = {
 				let mut checks = app.agents.health.0.lock();
 				checks.last = Some(health);
@@ -54,6 +56,9 @@ pub fn check_health(app: &Arc<App>) {
 			if logged_in {
 				passed_login(&app);
 			}
+			if up_to_date {
+				passed_update(&app);
+			}
 			app.events.emit(EventKind::AgentHealth, json!({}));
 			if !again {
 				return;
@@ -62,7 +67,8 @@ pub fn check_health(app: &Arc<App>) {
 	});
 }
 
-/// GET /api/agent/health: the picked agent's checks, the first that failed, and its sign-in.
+/// GET /api/agent/health: the picked agent's checks, the first that failed, its sign-in and its
+/// update.
 /// Before a check of this agent has ended its rows are unchecked; one starts if none runs.
 pub fn health_view(app: &Arc<App>) -> Json {
 	let agent = folder_agent(app);
@@ -96,6 +102,7 @@ pub fn health_view(app: &Arc<App>) -> Json {
 		"checks": checks,
 		"failing": failing,
 		"login": login_view(app, agent),
+		"update": update_view(app, agent),
 	})
 }
 
@@ -129,7 +136,7 @@ mod tests {
 		let first = health_view(&app);
 		assert_eq!(
 			stringify(&first),
-			r#"{"agent":"claude","checking":true,"ownCommand":false,"checks":[{"check":"installed","state":"unchecked","fact":null},{"check":"node","state":"unchecked","fact":null},{"check":"upToDate","state":"unchecked","fact":null},{"check":"loggedIn","state":"unchecked","fact":null}],"failing":null,"login":null}"#
+			r#"{"agent":"claude","checking":true,"ownCommand":false,"checks":[{"check":"installed","state":"unchecked","fact":null},{"check":"node","state":"unchecked","fact":null},{"check":"upToDate","state":"unchecked","fact":null},{"check":"loggedIn","state":"unchecked","fact":null}],"failing":null,"login":null,"update":null}"#
 		);
 		let view = checked(&app).await;
 		assert!(view["checks"].items().iter().all(|check| check["state"].as_str() == Some("passed")), "the stand-in agent is ready");

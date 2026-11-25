@@ -41,6 +41,7 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 | `teacher-work` | `{}` | the teacher's round of work began, gained a step or ended (`services::app::terminal_state`); the window reads it at `GET /api/teacher-work` |
 | `lesson-work` | `{chatId}` | a lesson's running turn began, gained a step or a plan, or ended (`services::turns::turn_work`); the lesson's desk reads it at `GET /api/chats/{id}/work` |
 | `agent-health` | `{}` | a check of the picked agent began or ended, or its sign-in started, ended or failed (`services::app::agent_health`, `agent_login`); the setup card reads it at `GET /api/agent/health` |
+| `agent-update` | `{state, line, command}` | the picked agent's update started, printed a line (`running`), finished (`done`) or failed (`failed`, with its last line); `command` is what it runs (`services::app::agent_update`), which the setup card offers to copy |
 
 ### 10.3 Rules for emitters
 

@@ -17,6 +17,7 @@ pub mod agent_login;
 pub mod agent_memory;
 pub mod agent_models;
 pub mod agent_rules;
+pub mod agent_update;
 pub mod agents;
 pub mod boot;
 pub mod deadline_reminder;

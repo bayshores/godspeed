@@ -1,5 +1,6 @@
 //! The setup card's routes over HTTP, on the stand-in agent a test build runs: the checks, the
-//! models, the model each agent's new lessons start on, and the sign-in routes' refusals.
+//! models, the model each agent's new lessons start on, and the sign-in and update routes'
+//! refusals.
 
 use std::sync::Arc;
 
@@ -50,7 +51,7 @@ async fn the_card_reads_the_checks_and_models_and_saves_a_model() {
 	let view = checked(port).await;
 	assert_eq!(
 		stringify(&view),
-		r#"{"agent":"claude","checking":false,"ownCommand":false,"checks":[{"check":"installed","state":"passed","fact":null},{"check":"node","state":"passed","fact":null},{"check":"upToDate","state":"passed","fact":null},{"check":"loggedIn","state":"passed","fact":null}],"failing":null,"login":null}"#
+		r#"{"agent":"claude","checking":false,"ownCommand":false,"checks":[{"check":"installed","state":"passed","fact":null},{"check":"node","state":"passed","fact":null},{"check":"upToDate","state":"passed","fact":null},{"check":"loggedIn","state":"passed","fact":null}],"failing":null,"login":null,"update":null}"#
 	);
 	let (code, models) = call(port, "GET", "/api/agent/models", "").await;
 	assert_eq!((code, stringify(&models)), (200, r#"{"agent":"claude","models":[{"id":"default","name":"Default (recommended)","default":true},{"id":"sonnet","name":"Sonnet 5.5","default":false}]}"#.to_owned()));
@@ -82,4 +83,13 @@ async fn the_sign_in_routes_refuse_what_they_cannot_do() {
 	assert_eq!((code, failed["error"].as_str()), (500, Some("the stand-in agent has no sign-in")));
 	let (_, view) = call(port, "GET", "/api/agent/health", "").await;
 	assert_eq!(view["login"]["failed"].as_str(), Some("the stand-in agent has no sign-in"));
+}
+
+#[tokio::test]
+async fn the_update_route_says_why_no_update_can_start() {
+	let port = serve().await;
+	let (code, refused) = call(port, "POST", "/api/agent/update", "").await;
+	assert_eq!((code, refused["error"].as_str()), (409, Some("the stand-in agent has no update")));
+	let (_, view) = call(port, "GET", "/api/agent/health", "").await;
+	assert_eq!(view["update"], Json::Null, "nothing ran, so the card shows no update");
 }

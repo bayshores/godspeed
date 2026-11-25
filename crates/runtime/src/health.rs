@@ -3,21 +3,26 @@
 //! whole of it takes 15 seconds at most.
 
 use std::ffi::OsString;
-use std::path::Path;
-use std::process::Stdio;
 
 use gs_base::clock;
 use gs_core::spaces::agent_folder::FolderAgent;
-use tokio::process::Command;
 
 use crate::codex::wire::{self, Account};
-use crate::process::{AgentEnv, Launch, hide_window};
+use crate::process::{AgentEnv, Launch, printed};
 use crate::session::{Runtime, codex_vars, debug_helper, helper_to_run};
 
 /// The oldest Claude Code the pinned Agent SDK was built with.
 const CLAUDE_FLOOR: &str = "2.1.331";
 /// The oldest Codex whose app-server has client tools as godspeed uses them.
 const CODEX_FLOOR: &str = "0.169.0";
+/// The oldest version of `agent` godspeed runs.
+pub(crate) fn floor(agent: FolderAgent) -> &'static str {
+	match agent {
+		FolderAgent::Claude => CLAUDE_FLOOR,
+		FolderAgent::Codex => CODEX_FLOOR,
+	}
+}
+
 /// The oldest Node.js the Claude helper runs on.
 const NODE_FLOOR: &str = "18.0.0";
 
@@ -190,7 +195,7 @@ async fn claude_rows(env: &AgentEnv, own_command: bool, deadline: &Deadline) -> 
 		Err(err) => return vec![row(Check::Installed, Outcome::Failed(Problem::Failed(err)), None), node, unchecked(Check::UpToDate), unchecked(Check::LoggedIn)],
 	};
 	let vars = env.vars().await;
-	let (installed, up_to_date) = version_rows("claude", run(&launch, &["--version"], vars, deadline).await, CLAUDE_FLOOR);
+	let (installed, up_to_date) = version_rows("claude", run(&launch, &["--version"], vars, deadline).await, floor(FolderAgent::Claude));
 	let logged_in = if installed.outcome == Outcome::Passed {
 		let (outcome, fact) = match run(&launch, &["auth", "status"], vars, deadline).await.and_then(|out| claude_login(&out)) {
 			Ok(plan) => (Outcome::Passed, plan),
@@ -228,7 +233,7 @@ async fn codex_rows(runtime: &Runtime, env: &AgentEnv, deadline: &Deadline) -> V
 		Ok(launch) => launch,
 		Err(err) => return vec![row(Check::Installed, Outcome::Failed(Problem::Failed(err)), None), unchecked(Check::UpToDate), unchecked(Check::LoggedIn)],
 	};
-	let (installed, up_to_date) = version_rows("codex", run(&launch, &["--version"], &codex_vars(env.vars().await, home), deadline).await, CODEX_FLOOR);
+	let (installed, up_to_date) = version_rows("codex", run(&launch, &["--version"], &codex_vars(env.vars().await, home), deadline).await, floor(FolderAgent::Codex));
 	if up_to_date.outcome != Outcome::Passed {
 		return vec![installed, up_to_date, unchecked(Check::LoggedIn)];
 	}
@@ -260,25 +265,18 @@ fn version_rows(name: &str, out: Result<String, Problem>, floor: &str) -> (Row, 
 /// What the program prints with `args`, whatever its exit code (`auth status` ends with 1 when
 /// signed out), within the check's time.
 async fn run(launch: &Launch, args: &[&str], vars: &[(OsString, OsString)], deadline: &Deadline) -> Result<String, Problem> {
-	let mut command = Command::new(&launch.program);
-	command.args(&launch.args).args(args).env_clear().envs(vars.iter().map(|(key, value)| (key, value)));
-	command.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null()).kill_on_drop(true);
-	hide_window(&mut command);
-	let name = Path::new(&launch.program).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
-	let said = format!("{name} {}", args.join(" "));
-	let output = clock::within(deadline.left(), command.output()).await.ok_or_else(|| Problem::Failed(format!("{said} took too long")))?.map_err(|err| Problem::Failed(format!("{said}: {err}")))?;
-	Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+	printed(launch, args, vars, deadline.left()).await.map_err(Problem::Failed)
 }
 
 /// The first `x.y.z` in a program's version line.
-fn version(text: &str) -> Option<String> {
+pub(crate) fn version(text: &str) -> Option<String> {
 	text.split(|c: char| !(c.is_ascii_digit() || c == '.')).find_map(|word| {
 		let parts: Vec<&str> = word.split('.').take(3).collect();
 		(parts.len() == 3 && parts.iter().all(|part| !part.is_empty())).then(|| parts.join("."))
 	})
 }
 
-fn at_least(version: &str, floor: &str) -> bool {
+pub(crate) fn at_least(version: &str, floor: &str) -> bool {
 	let numbers = |text: &str| text.split('.').map(|part| part.parse::<u64>().unwrap_or(0)).collect::<Vec<_>>();
 	numbers(version) >= numbers(floor)
 }

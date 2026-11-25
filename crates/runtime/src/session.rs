@@ -183,11 +183,16 @@ impl Runtime {
 		Ok(connection)
 	}
 
+	/// The next session starts a new connection; sessions open now keep theirs.
+	pub(crate) async fn forget_connection(&self) {
+		self.connection.lock().await.take();
+	}
+
 	async fn connect(&self) -> Result<Connection, String> {
 		match &self.start {
 			Start::Codex { env, home, own_command } => {
 				let launch = match own_command {
-					Some(command) => Launch::own_command(command, "app-server"),
+					Some(command) => Launch::shell(&format!("{command} app-server")),
 					None => {
 						let mut launch = env.launch(env.find("codex").await.ok_or(NO_CODEX)?).await?;
 						launch.args.push("app-server".into());
@@ -238,7 +243,7 @@ pub(crate) fn helper_to_run(bundled: &Path, named: Option<OsString>) -> PathBuf 
 	named.filter(|file| !file.is_empty()).map_or_else(|| bundled.to_path_buf(), PathBuf::from)
 }
 
-const NO_CODEX: &str = "godspeed couldn't find Codex on this computer.";
+pub(crate) const NO_CODEX: &str = "godspeed couldn't find Codex on this computer.";
 pub(crate) const NO_CLAUDE: &str = "godspeed couldn't find Claude Code on this computer.";
 const NO_NODE: &str = "godspeed couldn't find Node.js on this computer.";
 
