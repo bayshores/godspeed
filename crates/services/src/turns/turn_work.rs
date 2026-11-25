@@ -1,5 +1,5 @@
-//! What the teacher does in a lesson's running turn, for the lesson's desk (GET
-//! /api/chats/{id}/work): why the turn runs, whether the agent took it, its plan, its steps and
+//! What the teacher does in a chat's running turn, for the desk of the lesson or of the teacher
+//! panel's chat (GET /api/chats/{id}/work): why the turn runs, whether the agent took it, its plan, its steps and
 //! the permission questions waiting for the learner. A step comes from a godspeed tool call, one
 //! of the agent's own tools, or the PDF reader's progress. Made when the turn begins and dropped
 //! when it ends, so a restart loses it with the turn. Every change goes out as "lesson-work".
@@ -10,8 +10,8 @@ use std::sync::Arc;
 use gs_base::clock;
 use gs_base::events::EventKind;
 use gs_core::session::approval_card::approval_card;
-use gs_core::session::lesson_steps::{LessonCall, base_name, lesson_call, pdf_progress};
-use gs_core::session::teacher_steps::{TeacherStep, keep_step, own_tool_input_step, step_head};
+use gs_core::session::lesson_steps::{LessonCall, base_name, pdf_progress};
+use gs_core::session::teacher_steps::{StepNames, TeacherStep, keep_step, own_tool_input_step, step_head};
 use gs_core::session::turn_cause::TurnCause;
 use gs_engine::turn::events::{AgentEvent, Listener};
 use gs_engine::turn::session_turn::{DeskEvent, DeskListener};
@@ -72,14 +72,17 @@ pub fn note_step(app: &App, chat_id: &str, step: TeacherStep, call: Option<&str>
 	});
 }
 
+/// What a tool call is for the desk: `lesson_call` in a lesson, `talk_call` in a talk chat.
+pub(super) type DeskCalls = fn(&str, &Json, Option<&str>, &dyn StepNames) -> Option<LessonCall>;
+
 /// Hears the turn run godspeed's tools: a step per tool call (its call id with it, so the lesson
 /// text leaves out that call's card), or the plan.
-pub(super) fn listener(app: &Arc<App>, chat_id: &str, space_id: Option<&str>) -> Listener {
+pub(super) fn listener(app: &Arc<App>, chat_id: &str, space_id: Option<&str>, calls: DeskCalls) -> Listener {
 	let (app, chat_id, space_id) = (Arc::downgrade(app), chat_id.to_owned(), space_id.map(str::to_owned));
 	Arc::new(move |event: &AgentEvent| {
 		let AgentEvent::ToolExecutionStart { tool_call_id, tool_name, args } = event else { return };
 		let Some(app) = app.upgrade() else { return };
-		match lesson_call(tool_name, args, space_id.as_deref(), &AppStepNames(&app)) {
+		match calls(tool_name, args, space_id.as_deref(), &AppStepNames(&app)) {
 			Some(LessonCall::Plan(plan)) => update(&app, &chat_id, |work| {
 				work.plan = Some(plan);
 				true

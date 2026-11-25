@@ -4,131 +4,27 @@
 use std::sync::Arc;
 
 use gs_base::clock;
-use gs_core::messages::input_events::{ChatInput, TurnInput};
 use gs_core::messages::native_messages::new_user_steer;
 use gs_core::messages::role::Role;
 use gs_core::spaces::file_state::FileKind;
 use gs_core::spaces::today_note::local_day;
 use gs_core::study::reply_nudges::{LAST_REPLY_LEAD, Nudge, curve_refusal};
 use gs_json::{Json, json};
-use gs_runtime::Runtime;
 use gs_engine::turn::events::AgentEvent;
 use gs_runtime::fake::{FakeAgent, FakeStep};
 use parking_lot::Mutex;
 
-use super::chat_handler::handle_chat_input;
+use super::stand_in::{bash, lesson, lesson_in, lesson_on, text, tool};
 use super::turn_liveness::is_turn_running;
 use super::turn_runs::{abort_turn, answer_approval, running_turn};
 use super::turn_work::lesson_work;
 use crate::App;
-use crate::app::agent_folder::set_folder_agent;
-use crate::app::agents::use_runtime;
-use crate::app::test_support::{Scratch, scratch_dir, test_app};
+use crate::app::test_support::scratch_dir;
 use crate::jobs::steer_live_chat;
 use crate::spaces::write_agent_file;
 
 const CURVE: &str = "| lambda | error |\n|---|---|\n| 0.1 | 9 |\n| 1 | 4 |\n| 10 | 6 |";
 const QUESTIONS: &str = "1. What is the score?\n2. Which lambda wins?";
-
-struct Lesson {
-	app: Arc<App>,
-	agent: FakeAgent,
-	chat_id: String,
-	_root: Scratch,
-}
-
-fn text(text: &str) -> FakeStep {
-	FakeStep::Text(text.to_owned())
-}
-
-fn tool(name: &str, args: Json) -> FakeStep {
-	FakeStep::Tool { name: name.to_owned(), args }
-}
-
-fn bash() -> FakeStep {
-	FakeStep::Approval { tool: "Bash".to_owned(), input: json!({ "command": "ls" }) }
-}
-
-/// A lesson of `kind` whose agent plays `turns`, as Claude Code.
-fn lesson(label: &str, kind: Option<&str>, turns: Vec<Vec<FakeStep>>) -> Lesson {
-	lesson_on(label, kind, turns, FakeAgent::runtime)
-}
-
-/// A lesson of `kind` whose agent plays `turns` on the runtime `runtime` makes.
-fn lesson_on(label: &str, kind: Option<&str>, turns: Vec<Vec<FakeStep>>, runtime: fn(&FakeAgent) -> Runtime) -> Lesson {
-	let root = scratch_dir(label);
-	let app = test_app(&root);
-	lesson_in(app, root, kind, turns, runtime)
-}
-
-/// A lesson of `kind` in `app` whose agent plays `turns` on the runtime `runtime` makes.
-fn lesson_in(app: Arc<App>, root: Scratch, kind: Option<&str>, turns: Vec<Vec<FakeStep>>, runtime: fn(&FakeAgent) -> Runtime) -> Lesson {
-	let agent = FakeAgent::new(turns);
-	// The lesson runs on the agent the learner picked, so the pick matches the stand-in.
-	let runtime = runtime(&agent);
-	set_folder_agent(&app, runtime.agent()).unwrap();
-	use_runtime(&app, runtime);
-	let chat_id = app.stores.chats.create_chat("Sets", kind, None, None, &[]).unwrap()["id"].str_or_empty().to_owned();
-	Lesson { app, agent, chat_id, _root: root }
-}
-
-impl Lesson {
-	/// The learner's words; the turn they start runs in the background.
-	async fn say(&self, words: &str) {
-		let reply = handle_chat_input(&self.app, &self.chat_id, TurnInput::Chat(ChatInput::Text { text: words.to_owned(), attachments: None, about: None })).await;
-		assert!(reply.ok(), "{}", reply.text());
-	}
-
-	async fn settled(&self) {
-		for _ in 0..500 {
-			if !is_turn_running(&self.app, &self.chat_id) {
-				return;
-			}
-			clock::sleep(10).await;
-		}
-		panic!("the turn never settled");
-	}
-
-	fn record(&self) -> Json {
-		self.app.stores.chats.get_chat(&self.chat_id).unwrap()
-	}
-
-	fn messages(&self) -> Vec<Json> {
-		self.record()["messages"].as_arr().cloned().unwrap()
-	}
-
-	/// The words of the lesson's assistant messages, in order.
-	fn replies(&self) -> Vec<String> {
-		let messages = self.messages();
-		messages.iter().filter(|m| Role::Assistant.is(m)).flat_map(|m| m["content"].items().iter().filter_map(|b| b["text"].as_str().map(str::to_owned)).collect::<Vec<_>>()).collect()
-	}
-
-	/// What the agent was sent of each type, in order.
-	fn sent(&self, kind: &str) -> Vec<Json> {
-		self.agent.sent().into_iter().filter(|m| m["type"].as_str() == Some(kind)).collect()
-	}
-
-	/// What the Codex agent was sent as JSON-RPC `method`, in order.
-	fn requests(&self, method: &str) -> Vec<Json> {
-		self.agent.sent().into_iter().filter(|m| m["method"].as_str() == Some(method)).collect()
-	}
-
-	/// The words of each turn the agent was sent.
-	fn sends(&self) -> Vec<String> {
-		self.sent("send").iter().map(|m| m["content"].items().iter().filter_map(|p| p["text"].as_str()).collect::<Vec<_>>().join("\n")).collect()
-	}
-
-	/// The permission question the turn waits on.
-	async fn approval(&self) -> String {
-		for _ in 0..500 {
-			if let Some(id) = lesson_work(&self.app, &self.chat_id).and_then(|w| w["approvals"][0]["id"].as_str().map(str::to_owned)) {
-				return id;
-			}
-			clock::sleep(10).await;
-		}
-		panic!("no permission question came");
-	}
-}
 
 #[tokio::test(flavor = "multi_thread")]
 async fn a_question_ends_the_turn_and_the_next_turn_goes_on_with_what_is_new() {

@@ -1,10 +1,10 @@
 //! The menu bar countdown's words (Mac): the time left to the nearest deadline that is open and
 //! not yet due, and a menu row for each of the next few. The shell only draws them.
 
+use gs_base::text::one_line;
 use gs_json::Json;
 
 use crate::contracts::space::{due_at, is_upcoming};
-use crate::records::teacher_chats::cut_name;
 use crate::spaces::today_note::{due_sentence, local_day};
 use crate::study::progress::days_between;
 
@@ -13,6 +13,8 @@ const HOUR_MS: i64 = 60 * MINUTE_MS;
 const DAY_MS: i64 = 24 * HOUR_MS;
 /// Rows the menu shows.
 const ROWS: usize = 5;
+/// A deadline's name is cut to this many characters.
+const NAME_MAX: usize = 40;
 
 /// "3d" from 24 hours left on (calendar days, as the deadline's page counts them), "5h" from an
 /// hour on, else "45m". None without a deadline to count to. `deadlines` come soonest first.
@@ -32,7 +34,7 @@ pub fn countdown_title(deadlines: &[Json], now_ms: i64) -> Option<String> {
 /// page. Two rows with the same name each add their space, so the learner can tell them apart.
 pub fn countdown_rows(deadlines: &[Json], now_ms: i64) -> Vec<(String, String)> {
 	let today = local_day(now_ms);
-	let shown: Vec<(&Json, String)> = deadlines.iter().filter(|d| is_upcoming(d, now_ms)).take(ROWS).map(|d| (d, cut_name(d["name"].str_or_empty()))).collect();
+	let shown: Vec<(&Json, String)> = deadlines.iter().filter(|d| is_upcoming(d, now_ms)).take(ROWS).map(|d| (d, one_line(d["name"].str_or_empty(), NAME_MAX))).collect();
 	shown
 		.iter()
 		.map(|(d, name)| {

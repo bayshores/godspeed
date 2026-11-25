@@ -10,6 +10,7 @@ pub mod app;
 pub mod mocks;
 pub mod plugins;
 pub mod outcome;
+pub mod talk;
 
 use std::sync::Arc;
 

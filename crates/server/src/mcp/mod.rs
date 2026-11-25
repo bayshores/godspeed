@@ -3,22 +3,14 @@
 //! data/mcp-token. It speaks both MCP versions: 2026-07-28 (every request says who sent it;
 //! server/discover hands over the instructions) and the older one that starts with initialize.
 //!
-//! Its tools: lessons and graphs (`lessons`, `graph`), spaces (`spaces`), memory (`memory`) and
-//! the notes vault (`vault`). Deleting a space is app-only on purpose.
+//! Its tools are godspeed's data tools (`gs_services::talk::tools`), the ones free talk in the
+//! teacher panel uses.
 
 mod caller;
-mod spaces;
-mod graph;
 mod instructions;
-mod lessons;
-mod memory;
 mod protocol;
-mod reply;
-mod schema;
 mod teacher_work;
-mod tools;
 mod transport;
-mod vault;
 
 use std::sync::Arc;
 
@@ -147,10 +139,9 @@ pub async fn handle_terminal_line(app: &App, headers: &HeaderMap, body: Option<J
 }
 
 /// /api/mcp/agent-event: the godspeed folder's hook says the agent in a terminal started a chat
-/// (`{ "event": "session", "session": <id>, "agent": "claude" }`), stopped (`"stop"`), waits
-/// for the learner's say (`"needs"`) or uses one of its own tools (`{ "event": "tool", "tool":
-/// "WebSearch", "subject": "cse 21 hw7" }`). The teacher's chats are kept to go back to, and its
-/// own tools are steps of its round of work. The window may play its sound: for a stop only when
+/// (`{ "event": "session", ... }`), stopped (`"stop"`), waits for the learner's say (`"needs"`)
+/// or uses one of its own tools (`{ "event": "tool", "tool": "WebSearch", "subject": "cse 21
+/// hw7" }`). Its own tools are steps of its round of work. The window may play its sound: for a stop only when
 /// the teacher was answering a line typed to it there (a lesson's reply has its own turn), for a
 /// need only from the teacher's terminal.
 pub fn handle_agent_event(app: &App, headers: &HeaderMap, body: Option<Json>) -> Response {
@@ -160,11 +151,8 @@ pub fn handle_agent_event(app: &App, headers: &HeaderMap, body: Option<Json>) ->
 	let body = body.unwrap_or_default();
 	let terminal = terminal_of(headers);
 	let kind = match (body["event"].as_str(), terminal.as_deref()) {
-		(Some("session"), _) => {
-			let (session, agent) = (body["session"].as_str().unwrap_or_default(), body["agent"].as_str().unwrap_or_default());
-			gs_services::app::teacher_chats::session_started(app, terminal.as_deref(), session, agent);
-			None
-		}
+		// The teacher's chats are the panel's now; a terminal's own is not kept.
+		(Some("session"), _) => None,
 		(Some("stop"), Some(id)) => {
 			app.terminals.agent_stopped(id);
 			app.terminals.take_chat(id).then_some("done")

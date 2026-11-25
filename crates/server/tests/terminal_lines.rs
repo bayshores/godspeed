@@ -80,22 +80,3 @@ async fn a_line_reaches_the_agent_without_a_page_an_enter_or_the_window() {
 	app.terminals.typed(TEACHER, clock::now_ms());
 	assert_eq!(send_line(&app, TOKEN, "hi").await, (200, json!({ "sent": null })));
 }
-
-#[tokio::test]
-async fn the_window_hears_when_a_teacher_chat_starts_and_is_used() {
-	let app = app();
-	let mut events = app.events.subscribe();
-	let mut heard = move || std::iter::from_fn(|| events.try_recv().ok()).filter(|e| e.kind == EventKind::TeacherChatsChanged).count();
-	gs_services::app::teacher_chats::session_started(&app, Some(TEACHER), "0f8fad5b-d9cb-469f-a165-70867728950e", "claude");
-	assert_eq!(heard(), 1, "a chat started");
-	assert_eq!(gs_services::app::teacher_chats::shown(&app), json!([]), "not used yet");
-
-	app.terminals.typed(TEACHER, clock::now_ms());
-	assert_eq!(send_line(&app, TOKEN, "What's due?").await, (200, json!({ "sent": null })));
-	assert_eq!(heard(), 1, "a line typed to it");
-	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["name"], json!("What's due?"));
-	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["open"], json!(true), "the teacher's terminal runs it");
-
-	app.terminals.set_live_terminals(vec![], None);
-	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["open"], json!(false), "the terminal ended");
-}

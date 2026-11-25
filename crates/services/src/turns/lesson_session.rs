@@ -1,9 +1,11 @@
-//! Each lesson's agent session: the one it goes on with, a new one when it rolls over, and what
-//! each turn sends it. The record keeps `agentSession {agent, id, promptHash, seen}`: the agent
-//! and its session that hold the lesson, the hash of the instructions and tools it opened with,
-//! and the last message it saw. A changed agent or hash, a cut (compaction) after `seen`, a
-//! session the agent no longer has, or Try again start a new session, which gets the summary and
-//! the kept tail. An open session stays open between turns and closes after 10 idle minutes.
+//! Each chat's agent session, a lesson's or a talk chat's: the one it goes on with, a new one when
+//! it rolls over, and what each turn sends it. The record keeps `agentSession {agent, id,
+//! promptHash, seen}`: the agent and its session that hold the chat, the hash of the instructions
+//! and tools it opened with, and the last message it saw. A changed agent or hash, a cut
+//! (compaction) after `seen`, a session the agent no longer has, or Try again start a new session,
+//! which gets the summary and the kept tail. A session with no hash and nothing seen is a chat
+//! from the teacher's terminal, which goes on as it is. An open session stays open between turns
+//! and closes after 10 idle minutes.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -21,20 +23,23 @@ use crate::app::agent_folder::agent_folder;
 
 const IDLE_CLOSE_MS: i64 = 10 * 60_000;
 
-/// A lesson's open session, and the number of its last use.
+/// A chat's open session, the model it runs on, and the number of its last use.
 pub(super) struct Kept {
 	session: Arc<Session>,
+	model: Option<String>,
 	used: u64,
 }
 
 static USES: AtomicU64 = AtomicU64::new(0);
 
-/// What a lesson's turn opens its session with and sends it.
+/// What a chat's turn opens its session with and sends it.
 pub(super) struct SessionPlan {
 	pub chat_id: String,
 	pub runtime: Arc<Runtime>,
 	/// The folder the agent works in.
 	pub cwd: PathBuf,
+	/// None is the agent's own default.
+	pub model: Option<String>,
 	pub prompt: String,
 	pub tools: Vec<ToolSpec>,
 	/// The record's `agentSession`.
@@ -45,8 +50,10 @@ pub(super) struct SessionPlan {
 	pub fresh: bool,
 	/// The notes on the teacher's last reply, sent first.
 	pub notes: Option<String>,
-	/// The learner's rules, sent last to a session that read them only when it opened.
-	pub rules: String,
+	/// Sent first to a new session only: a talk chat's "Where you left off".
+	pub opening: Option<String>,
+	/// A lesson's rules, sent last to a session that read them only when it opened.
+	pub rules: Option<String>,
 	/// The time now and the time due, for a homework lesson on the day it is due: no stored
 	/// message keeps it current, so every turn ends with it.
 	pub due_today: Option<String>,
@@ -80,47 +87,64 @@ impl SessionPlan {
 		SessionPlanFacts { agent: self.runtime.agent().name(), hash: self.hash() }
 	}
 
-	/// The stored session and the last message it saw, when the lesson goes on with it.
-	fn goes_on(&self) -> Option<(&str, &str)> {
+	/// The stored session and the last message it saw, when the chat goes on with it. A chat from
+	/// the teacher's terminal (no hash, nothing seen) goes on with all of its record.
+	fn goes_on(&self) -> Option<(&str, Option<&str>)> {
 		let stored = &self.stored;
-		let same = stored["agent"].as_str() == Some(self.runtime.agent().name()) && stored["promptHash"].as_str() == Some(self.hash().as_str());
-		if self.fresh || !same {
+		let same_agent = stored["agent"].as_str() == Some(self.runtime.agent().name());
+		let from_terminal = stored["promptHash"].is_null() && stored["seen"].is_null();
+		if self.fresh || !same_agent {
 			return None;
 		}
-		let (id, seen) = (stored["id"].as_str()?, stored["seen"].as_str()?);
+		let id = stored["id"].as_str()?;
+		if from_terminal {
+			return Some((id, None));
+		}
+		if stored["promptHash"].as_str() != Some(self.hash().as_str()) {
+			return None;
+		}
+		let seen = stored["seen"].as_str()?;
 		let at = self.messages.iter().position(|m| m["id"].as_str() == Some(seen))?;
 		let cut = active_compaction_of(&self.messages).and_then(|marker| self.messages.iter().position(|m| m["id"] == marker["id"]));
-		cut.is_none_or(|cut| cut < at).then_some((id, seen))
+		cut.is_none_or(|cut| cut < at).then_some((id, Some(seen)))
 	}
 
 	fn spec(&self, resume: Option<&str>) -> SessionSpec {
-		SessionSpec { cwd: self.cwd.clone(), model: None, instructions: self.prompt.clone(), tools: self.tools.clone(), resume: resume.map(str::to_owned), persist: true }
+		SessionSpec { cwd: self.cwd.clone(), model: self.model.clone(), instructions: self.prompt.clone(), tools: self.tools.clone(), resume: resume.map(str::to_owned), persist: true }
 	}
 
-	/// The notes, what the session has not seen, the rules for a session that goes on, and the
-	/// clock on the day a homework lesson is due.
-	fn input(&self, seen: Option<&str>) -> Vec<Part> {
+	/// The notes, the opening for a new session, what the session has not seen, the rules for a
+	/// session that goes on, and the clock on the day a homework lesson is due.
+	fn input(&self, seen: Option<&str>, new_session: bool) -> Vec<Part> {
 		let notes = self.notes.iter().map(|notes| Part::Text(notes.clone()));
-		let rules = seen.map(|_| Part::Text(self.rules.clone()));
+		let opening = self.opening.iter().filter(|_| new_session).map(|opening| Part::Text(opening.clone()));
+		let rules = self.rules.iter().filter(|_| seen.is_some()).map(|rules| Part::Text(rules.clone()));
 		let due_today = self.due_today.iter().map(|line| Part::Text(line.clone()));
-		notes.chain(input_of(&self.messages, seen)).chain(rules).chain(due_today).collect()
+		notes.chain(opening).chain(input_of(&self.messages, seen)).chain(rules).chain(due_today).collect()
 	}
 }
 
-/// The lesson's open session, when it is the one named `id`.
-fn kept(app: &App, chat_id: &str, id: &str) -> Option<Arc<Session>> {
+/// The chat's open session, when it is the one named `id`, on `model` from now on: a model
+/// picked since its last turn applies from this one.
+fn kept(app: &App, chat_id: &str, id: &str, model: Option<&str>) -> Option<Arc<Session>> {
 	let mut sessions = app.turns.sessions.lock();
 	let kept = sessions.get_mut(chat_id).filter(|k| k.session.native_id() == id)?;
 	kept.used = USES.fetch_add(1, Ordering::SeqCst);
+	if let Some(model) = model.filter(|model| kept.model.as_deref() != Some(model)) {
+		match kept.session.set_model(model) {
+			Ok(()) => kept.model = Some(model.to_owned()),
+			Err(err) => eprintln!("[chat {chat_id}] the session could not change its model to {model}: {err}"),
+		}
+	}
 	Some(kept.session.clone())
 }
 
-fn keep(app: &App, chat_id: &str, session: &Arc<Session>) {
+fn keep(app: &App, chat_id: &str, session: &Arc<Session>, model: Option<&str>) {
 	let used = USES.fetch_add(1, Ordering::SeqCst);
-	app.turns.sessions.lock().insert(chat_id.to_owned(), Kept { session: session.clone(), used });
+	app.turns.sessions.lock().insert(chat_id.to_owned(), Kept { session: session.clone(), model: model.map(str::to_owned), used });
 }
 
-/// How a lesson's turn opens its session.
+/// How a chat's turn opens its session.
 pub(super) fn opener(app: &Arc<App>, plan: SessionPlan) -> OpenFn {
 	let (app, plan) = (Arc::downgrade(app), Arc::new(plan));
 	Box::new(move |opening| {
@@ -134,22 +158,24 @@ pub(super) fn opener(app: &Arc<App>, plan: SessionPlan) -> OpenFn {
 
 async fn open(app: &App, plan: &SessionPlan, opening: Opening) -> Result<Opened, String> {
 	let chat_id = plan.chat_id.as_str();
+	let model = plan.model.as_deref();
 	if let Some((id, seen)) = plan.goes_on().filter(|_| opening == Opening::GoOn) {
-		let session = match kept(app, chat_id, id) {
-			Some(session) => Ok(session),
-			None => plan.runtime.open(plan.spec(Some(id))).await.map(Arc::new),
+		let (session, resumed) = match kept(app, chat_id, id, model) {
+			Some(session) => (Ok(session), false),
+			None => (plan.runtime.open(plan.spec(Some(id))).await.map(Arc::new), true),
 		};
 		match session {
 			Ok(session) => {
-				keep(app, chat_id, &session);
-				return Ok(Opened { session, input: plan.input(Some(seen)), knew: true });
+				keep(app, chat_id, &session, model);
+				// A terminal chat resumed here hears where the learner is now, like a new session.
+				return Ok(Opened { session, input: plan.input(seen, resumed && seen.is_none()), knew: true });
 			}
-			Err(err) => eprintln!("[chat {chat_id}] the lesson's session could not go on ({err}); a new one starts"),
+			Err(err) => eprintln!("[chat {chat_id}] the chat's session could not go on ({err}); a new one starts"),
 		}
 	}
 	let session = Arc::new(plan.runtime.open(plan.spec(None)).await?);
-	keep(app, chat_id, &session);
-	Ok(Opened { session, input: plan.input(None), knew: false })
+	keep(app, chat_id, &session, model);
+	Ok(Opened { session, input: plan.input(None, true), knew: false })
 }
 
 /// After a turn: the session that ran it is saved on the record with the last message it saw (a
@@ -159,7 +185,7 @@ pub(super) fn settle_session(app: &Arc<App>, chat_id: &str, facts: &SessionPlanF
 	if let Some(id) = native_id.filter(|_| seen.is_some() || compacted) {
 		let stored = if compacted { Json::Null } else { json!({ "agent": facts.agent, "id": id, "promptHash": facts.hash, "seen": seen }) };
 		if let Err(err) = app.stores.chats.set_agent_session(chat_id, &stored) {
-			eprintln!("[chat {chat_id}] saving the lesson's agent session failed: {err}");
+			eprintln!("[chat {chat_id}] saving the chat's agent session failed: {err}");
 		}
 	}
 	close_when_idle(app, chat_id);
@@ -168,7 +194,7 @@ pub(super) fn settle_session(app: &Arc<App>, chat_id: &str, facts: &SessionPlanF
 fn close_when_idle(app: &Arc<App>, chat_id: &str) {
 	let Some(used) = app.turns.sessions.lock().get(chat_id).map(|k| k.used) else { return };
 	let (app, chat_id) = (Arc::downgrade(app), chat_id.to_owned());
-	tasks::detach("lesson session", async move {
+	tasks::detach("chat session", async move {
 		clock::sleep(IDLE_CLOSE_MS).await;
 		let Some(app) = app.upgrade() else { return };
 		let mut sessions = app.turns.sessions.lock();

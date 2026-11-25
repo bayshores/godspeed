@@ -100,9 +100,26 @@ pub fn from_utf8_lossy(bytes: &[u8]) -> String {
 	String::from_utf8_lossy(bytes).into_owned()
 }
 
+/// `text` on one line, cut to at most `max` characters with "…".
+pub fn one_line(text: &str, max: usize) -> String {
+	let line = text.split_whitespace().collect::<Vec<_>>().join(" ");
+	if line.chars().count() <= max {
+		return line;
+	}
+	format!("{}…", line.chars().take(max - 1).collect::<String>().trim_end())
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn one_line_joins_the_lines_and_cuts_a_long_one() {
+		assert_eq!(one_line("  why is   the sky\nblue?", 40), "why is the sky blue?");
+		let cut = one_line(&"word ".repeat(20), 40);
+		assert_eq!(cut.chars().count(), 40);
+		assert!(cut.ends_with("word…"));
+	}
 
 	#[test]
 	fn utf16_order_puts_astral_before_the_top_of_the_bmp() {

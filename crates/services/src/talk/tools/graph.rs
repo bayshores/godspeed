@@ -8,12 +8,13 @@ use gs_base::tasks::detach;
 use gs_core::contracts::space::safe_name;
 use gs_core::spaces::file_state::FileKind;
 use gs_json::{Json, json};
-use gs_services::App;
-use gs_services::app::agent_actions::note_agent_action;
-use gs_services::graph::extraction::extraction;
+
+use crate::App;
+use crate::app::agent_actions::note_agent_action;
+use crate::graph::extraction::extraction;
 
 use super::reply::{failure, result};
-use super::tools::{ToolCall, space_arg};
+use super::{ToolCall, space_arg};
 
 pub async fn search_graph(call: &ToolCall<'_>, args: &Json) -> Json {
 	let app = call.app;
@@ -22,7 +23,7 @@ pub async fn search_graph(call: &ToolCall<'_>, args: &Json) -> Json {
 		Err(error) => return failure(&error),
 	};
 	let limit = args["limit"].as_i64().unwrap_or(30) as usize;
-	match gs_services::graph::graph::search_graph(app, scope.as_deref(), args["query"].as_str(), limit).await {
+	match crate::graph::graph::search_graph(app, scope.as_deref(), args["query"].as_str(), limit).await {
 		Ok(found) => result(&found),
 		Err(error) => failure(&error),
 	}
@@ -45,7 +46,7 @@ pub fn import_notes(call: &ToolCall<'_>, args: &Json) -> Json {
 	let clean = safe_name(name);
 	let file_name = if Re::new(r"\.(md|markdown|txt)$", "i").test(&clean) { clean } else { format!("{clean}.md") };
 	// Only a note it imported or wrote before is replaced; the learner's own file never is.
-	let file = match gs_services::spaces::write_agent_file(app, &space_id, &file_name, &gs_base::text::utf8_bytes(text), FileKind::Study) {
+	let file = match crate::spaces::write_agent_file(app, &space_id, &file_name, &gs_base::text::utf8_bytes(text), FileKind::Study) {
 		Ok((file, _)) => file,
 		Err(refused) => return failure(&refused),
 	};
@@ -57,18 +58,18 @@ pub fn import_notes(call: &ToolCall<'_>, args: &Json) -> Json {
 /// No-space notes are read in the background, and a failure is only logged.
 fn import_in_background(app: &Arc<App>, name: &str, text: &str) {
 	let (app, name, text) = (app.clone(), name.to_owned(), text.to_owned());
-	detach("mcp", async move {
+	detach("import notes", async move {
 		let input = NotesImportInput { file_path: name.clone(), text, scope: None, source_id: None, may_be_space_info: false };
 		if let Err(err) = extraction(&app).import_notes(input).await {
-			eprintln!("[mcp] import of {name} failed: {err}");
+			eprintln!("[import notes] import of {name} failed: {err}");
 		}
 	});
 }
 
 #[cfg(test)]
 mod tests {
-	use gs_services::spaces::add_copied_file;
-	use gs_services::spaces::space_card::space_file_path;
+	use crate::spaces::add_copied_file;
+	use crate::spaces::space_card::space_file_path;
 
 	use super::*;
 
@@ -81,7 +82,7 @@ mod tests {
 		let app = App::new(gs_base::config::Paths::new(root.join("data"), root.join("home"), root.join("tmp"), root.join("res")), None);
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Botany" })).unwrap()["id"].as_str().unwrap().to_owned();
 		let own = add_copied_file(&app, &space_id, "notes.md", b"My own notes.").unwrap();
-		let call = ToolCall { app: &app, caller: None, terminal: None };
+		let call = ToolCall { app: &app, caller: None, asked_here: false };
 		let import = |name: &str, text: &str| import_notes(&call, &json!({ "space_id": space_id, "name": name, "text": text }));
 
 		let refused = import("notes", "The agent's notes.");

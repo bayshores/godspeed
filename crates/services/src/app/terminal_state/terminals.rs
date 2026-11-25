@@ -40,7 +40,6 @@ impl TerminalState {
 		s.terminal_contact.retain(|id, _| live.contains(id));
 		s.entered.retain(|id, _| live.contains(id));
 		s.chatting.retain(|id| live.contains(id));
-		s.terminal_chat.retain(|id, _| live.contains(id));
 		let gone = s.round.as_ref().and_then(|r| r.terminal()).is_some_and(|id| !live.contains(id));
 		let round_ended = gone && s.round.take().is_some();
 		s.teacher_terminal = teacher.filter(|id| live.contains(id));
@@ -129,21 +128,6 @@ impl TerminalState {
 		if end_round_of(&mut self.0.state.lock(), Some(terminal)) {
 			self.emit(EventKind::TeacherWork);
 		}
-	}
-
-	/// The agent's chat (session id) this terminal runs now.
-	pub fn set_terminal_chat(&self, terminal: &str, chat: &str) {
-		self.0.state.lock().terminal_chat.insert(terminal.to_owned(), chat.to_owned());
-	}
-
-	pub fn terminal_chat(&self, terminal: &str) -> Option<String> {
-		self.0.state.lock().terminal_chat.get(terminal).cloned()
-	}
-
-	/// The chat godspeed's own teacher terminal runs now.
-	pub fn teacher_chat(&self) -> Option<String> {
-		let s = self.0.state.lock();
-		s.teacher_terminal.as_ref().and_then(|terminal| s.terminal_chat.get(terminal).cloned())
 	}
 
 	/// The agent in this terminal stopped: whether it was answering the learner there.

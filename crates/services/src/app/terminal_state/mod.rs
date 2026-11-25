@@ -52,8 +52,6 @@ struct State {
 	entered: HashMap<String, i64>,
 	/// Teacher terminals whose agent is answering a line the learner typed to it there.
 	chatting: HashSet<String>,
-	/// teacher terminal → the agent's chat (session id) it runs now.
-	terminal_chat: HashMap<String, String>,
 	/// The last request from an agent outside the app's terminals.
 	outside_contact: i64,
 	/// The teacher's round of work, while it lasts.

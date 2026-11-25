@@ -1,22 +1,20 @@
-//! The space tools: agents set up the learner's spaces (create, edit, close, add files, link
+//! The space tools: the agent sets up the learner's spaces (create, edit, close, add files, link
 //! folders, deadlines) and start lessons in them. Deleting a space is app-only on purpose.
 
 use gs_core::spaces::space_tools::ToolOutcome;
 use gs_json::{Json, json};
-use gs_services::app::agent_actions::note_agent_action;
-use gs_services::spaces::space_actions::{Mark, space_actions, folder_name};
-use gs_services::spaces::{AGENT_FILE_READING_REFUSAL, unlink_folder};
-use gs_services::turns::send_first_message;
+
+use crate::app::agent_actions::note_agent_action;
+use crate::spaces::space_actions::{Mark, space_actions, folder_name};
+use crate::spaces::{AGENT_FILE_READING_REFUSAL, unlink_folder};
+use crate::turns::send_first_message;
 
 use super::reply::{failure, outcome, result};
-use super::tools::ToolCall;
+use super::ToolCall;
 
 /// Runs one space tool; None for a name that is not one.
 pub async fn space_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Option<Json> {
-	// From godspeed's own teacher terminal the learner asked for it there, so the window opens
-	// what it starts even with Follow off.
-	let asked_here = call.app.terminals.is_teacher_terminal(call.terminal);
-	let mark = if asked_here { Mark::Started } else { Mark::Asked };
+	let mark = if call.asked_here { Mark::Started } else { Mark::Asked };
 	let actions = space_actions(call.app, call.caller, send_first_message(call.app), mark);
 	match name {
 		"start_lesson" => Some(started(actions.start_lesson(args).await)),

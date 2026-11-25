@@ -1,12 +1,12 @@
 /**
- * What the teacher does in a lesson's running turn (GET /api/chats/{id}/work), for the lesson's
- * desk: why the turn runs, whether an agent took it, its plan, its steps in the server's words,
+ * What the teacher does in a chat's running turn (GET /api/chats/{id}/work), for the desk of the
+ * lesson or of the teacher panel's chat: why the turn runs, whether an agent took it, its plan, its steps in the server's words,
  * what it waits for the learner to allow, and the files on the desk.
  */
 import { isRecord } from "../is-record.ts";
 
 /** Why a turn runs. The server decides it from the turn's input; the window words it. */
-const TURN_CAUSES = ["first", "answer", "problem", "ask", "next", "retry", "open_problem", "job"] as const;
+const TURN_CAUSES = ["first", "answer", "problem", "ask", "next", "retry", "open_problem", "job", "talk"] as const;
 type TurnCause = (typeof TURN_CAUSES)[number];
 
 /** How the desk draws a file: pages of text, PDF pages, or no pages to show (Word, PowerPoint,
