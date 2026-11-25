@@ -18,7 +18,7 @@ import { titleEcho } from "../../src/frontend/components/lesson/wait-model.ts";
 import { AgentStatusContext, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
 import { TeacherContext, type TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 import { MessageRow, messageShows } from "../../src/frontend/components/lesson/message-row.tsx";
-import { NO_LESSON_WORK, type DeskFile, type LessonWork, newNextMessage, newUserMessage, projectView, type AttachmentPart, type LhViewMessage } from "../../src/shared/core/index.ts";
+import { NO_LESSON_WORK, type LessonWork, newNextMessage, newUserMessage, projectView, type AttachmentPart, type LhViewMessage } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 Object.assign(globalThis, {
@@ -86,13 +86,13 @@ const count = (html: string, pattern: RegExp) => [...html.matchAll(pattern)].len
 describe("the desk", () => {
 	type DeskStep = LessonWork["steps"][number];
 	const step = (id: string, text: string, over: Partial<DeskStep> = {}): DeskStep => ({ id, at: "2026-11-23T22:20:33.000Z", text, call: null, reads: null, ...over });
-	const pdf = (name: string): DeskFile => ({ name, path: `/h/${name}`, kind: "pdf" });
+	const pdf = (name: string): LessonWork["files"][number] => ({ name, path: `/h/${name}`, kind: "pdf" });
 	const work = (over: Partial<LessonWork> = {}): LessonWork => ({ ...NO_LESSON_WORK, live: true, cause: "first", taken: true, ...over });
 
 	it("opens on a new lesson as the desk: what the teacher does, the pencil writing on the current tile, no bubble for the title", () => {
 		const out = pane({ work: work() });
 		assert.match(out, /data-testid="agent-at-work" data-state="working"[\s\S]*Teacher is getting your first step ready\.[\s\S]*data-testid="desk-plan"[\s\S]*data-testid="pencil-line" data-state="working"[\s\S]*lh-pencil-ink/);
-		assert.doesNotMatch(out, /data-testid="desk-stack"/, "no files: no stack");
+		assert.doesNotMatch(out, /data-testid="desk-paper"/, "no files: no paper");
 		assert.doesNotMatch(out, /data-testid="user-message"/);
 		assert.doesNotMatch(out, /Space context/, "the scaffolding card is not drawn");
 		assert.doesNotMatch(out, /class="[^"]*empty:hidden/, "and leaves no hidden box behind");
@@ -135,21 +135,20 @@ describe("the desk", () => {
 		assert.doesNotMatch(out, /Reading a\.md/);
 	});
 
-	it("lays the files on the desk as a stack, still and dim before a read, the one being read in front", () => {
+	it("lays one sheet on the desk: the first file still before a read, then the file being read", () => {
 		const files = [pdf("a.pdf"), pdf("b.pdf"), pdf("c.pdf")];
 		const before = pane({ work: work({ files }) });
-		assert.match(before, /data-testid="desk-stack"[\s\S]*c\.pdf[\s\S]*b\.pdf[\s\S]*a\.pdf[\s\S]*data-still="true"/, "back first, the front sheet last, its pages still");
-		assert.doesNotMatch(before, /data-lifted/);
+		assert.match(before, /data-testid="desk-paper"/);
+		assert.doesNotMatch(before, /data-open/, "no read yet: the sheet lies still");
+		assert.doesNotMatch(before, /[abc]\.pdf/, "the sheet carries no file name");
 		const reads = { ...pdf("c.pdf"), from: null, to: null, page: 2 };
 		const reading = pane({ work: work({ files, steps: [step("1", "Reading c.pdf, page 2", { reads })] }) });
-		assert.match(reading, /b\.pdf[\s\S]*a\.pdf[\s\S]*data-path="\/h\/c\.pdf" data-lifted=""/, "the file read moves to the front");
-		assert.doesNotMatch(reading, /data-still/);
+		assert.match(reading, /data-testid="desk-paper" data-open=""/);
 	});
 
-	it("shows no paper for a file it cannot draw, only the sheet's name", () => {
+	it("shows no paper for a file it cannot draw", () => {
 		const out = pane({ work: work({ files: [{ name: "Week 8.pptx", path: "/h/Week 8.pptx", kind: "other" }] }) });
-		assert.match(out, /data-testid="desk-stack"[\s\S]*Week 8\.pptx/);
-		assert.doesNotMatch(out, /lh-desk-pages/);
+		assert.doesNotMatch(out, /data-testid="desk-paper"/);
 	});
 });
 

@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { deskCalls, deskHead, deskMark, deskReading, deskRows, deskStack, heldBack, nothingWritten, replyArrived, titleEcho } from "../../src/frontend/components/lesson/wait-model.ts";
-import { NO_LESSON_WORK, type DeskFile, type LessonWork, type LhViewMessage } from "../../src/shared/core/index.ts";
+import { deskCalls, deskHead, deskMark, deskPaper, deskRows, heldBack, nothingWritten, replyArrived, titleEcho } from "../../src/frontend/components/lesson/wait-model.ts";
+import { NO_LESSON_WORK, type LessonWork, type LhViewMessage } from "../../src/shared/core/index.ts";
 
 type DeskStep = LessonWork["steps"][number];
 
@@ -9,6 +9,7 @@ type DeskStep = LessonWork["steps"][number];
 
 const live = (over: Partial<LessonWork> = {}): LessonWork => ({ ...NO_LESSON_WORK, live: true, taken: true, cause: "first", ...over });
 const step = (id: string, text: string, over: Partial<DeskStep> = {}): DeskStep => ({ id, at: "2026-11-23T22:20:33.000Z", text, call: null, reads: null, ...over });
+type DeskFile = LessonWork["files"][number];
 const file = (name: string, kind: DeskFile["kind"] = "pdf"): DeskFile => ({ name, path: `/files/${name}`, kind });
 const user = (text: string, extra: LhViewMessage["parts"] = []): LhViewMessage => ({ id: `u:${text}`, role: "user", parts: [{ type: "text", text }, ...extra] });
 const teacher = (...parts: LhViewMessage["parts"]): LhViewMessage => ({ id: "a1", role: "assistant", parts });
@@ -83,35 +84,20 @@ describe("deskRows", () => {
 	});
 });
 
-describe("deskReading and deskCalls", () => {
-	it("is the place read last, and the calls the steps stand for", () => {
+describe("deskPaper and deskCalls", () => {
+	it("is the place read last in a file with pages, and the calls the steps stand for", () => {
 		const reads = { ...file("PA4.pdf"), from: null, to: null, page: 2 };
-		const work = live({ steps: [step("1", "Reading PA4.pdf, page 2", { reads, call: "c1" }), step("2", "Searching the web for “malloc”")] });
-		assert.deepEqual(deskReading(work), reads);
+		const slides = { name: "Week 8.pptx", path: "/h/Week 8.pptx", kind: "other" as const, from: null, to: null, page: null };
+		const work = live({ steps: [step("1", "Reading PA4.pdf, page 2", { reads, call: "c1" }), step("2", "Reading Week 8.pptx", { reads: slides }), step("3", "Searching the web for “malloc”")] });
+		assert.deepEqual(deskPaper(work), { reading: reads, still: false });
 		assert.deepEqual([...deskCalls(work)], ["c1"]);
-		assert.equal(deskReading(live()), null);
-	});
-});
-
-describe("deskStack", () => {
-	const files = ["a.pdf", "b.md", "c.pdf", "d.pdf", "e.pdf", "f.pdf"].map((name) => file(name));
-	it("lays five files at most, in the server's order", () => {
-		assert.deepEqual(
-			deskStack(files, null).map((f) => f.name),
-			["a.pdf", "b.md", "c.pdf", "d.pdf", "e.pdf"],
-		);
 	});
 
-	it("brings the file being read to the front, and one from outside joins in front", () => {
-		const reading = (name: string) => ({ ...file(name), from: null, to: null, page: null });
-		assert.deepEqual(
-			deskStack(files.slice(0, 3), reading("c.pdf")).map((f) => f.name),
-			["c.pdf", "a.pdf", "b.md"],
-		);
-		assert.deepEqual(
-			deskStack(files.slice(0, 5), reading("z.pdf")).map((f) => f.name),
-			["z.pdf", "a.pdf", "b.md", "c.pdf", "d.pdf"],
-		);
+	it("before any read is the first file with pages, still, and nothing with no such file", () => {
+		const slides = { name: "Week 8.pptx", path: "/h/Week 8.pptx", kind: "other" as const };
+		assert.deepEqual(deskPaper(live({ files: [slides, file("a.pdf"), file("b.md")] })), { reading: { ...file("a.pdf"), from: null, to: null, page: null }, still: true });
+		assert.equal(deskPaper(live({ files: [slides] })), null);
+		assert.equal(deskPaper(live()), null);
 	});
 });
 

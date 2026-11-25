@@ -19,7 +19,7 @@
  *
  * For the lesson's desk, "desk <space id>", typed while it holds the waiting lesson's reply, reads a
  * file of its own, told as the folder's tool hook tells it, then finds a passage of the space's
- * files and reads it: the desk lists the steps and lifts that file to the front of its stack.
+ * files and reads it: the desk lists the steps and its sheet shows that file.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";

@@ -575,13 +575,13 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]").click()`,
 		shows: "[data-testid=turn-row]:not(:has([data-testid=work-frame-open])) [data-testid=stop-turn]",
 	},
-	// The stand-in, holding that reply, reads a file of its own and a passage of the space's: the desk lists the steps and lifts the file.
+	// The stand-in, holding that reply, reads a file of its own and a passage of the space's: the desk lists the steps and its sheet shows the file.
 	{
-		name: "Lesson whose reply the teacher works on, a file lifted",
+		name: "Lesson whose reply the teacher works on, reading a file",
 		url: "/chat/{pending}",
 		ready: deskUp,
 		teacher: "desk {space}",
-		shows: "[data-testid=desk-stack] [data-lifted]",
+		shows: "[data-testid=desk-paper][data-open]",
 	},
 	// Stop is pressed at the first width; the widths after it open the lesson already stopped.
 	{
