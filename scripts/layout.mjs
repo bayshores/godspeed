@@ -402,7 +402,7 @@ async function main() {
 			},
 			json: async (url) => JSON.parse(await app.run(`return fetch(${JSON.stringify(url)})${HTTP_OK}.then((r) => r.text())`)),
 		};
-		ids = await seed(DATA, page, log).catch((err) => {
+		ids = await seed(DATA, HELPER_DIR, page, log).catch((err) => {
 			throw new Error(`${err.message}; steps: ${seedLog}`);
 		});
 		const { settings } = JSON.parse(await app.run(`return fetch("/api/settings")${HTTP_OK}.then((r) => r.text())`));
