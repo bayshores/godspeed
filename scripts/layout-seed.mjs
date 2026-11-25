@@ -97,11 +97,6 @@ function inDays(days) {
 	return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
 }
 
-/**
- * Writes the made-up data into the running app. `page.fetch(path, init)` runs fetch in the
- * window, as the page itself would, and answers the status. `log` keeps a line per step. Answers the ids the
- * screens' addresses use.
- */
 /** Two vaults Obsidian lists in the throwaway home, the first holding one note: Settings shows them
  *  as keys until a screen picks one. Returns the first vault's path. */
 function listVaults(dataDir) {
@@ -116,11 +111,16 @@ function listVaults(dataDir) {
 	return fs.realpathSync(vaults[0]);
 }
 
-export async function seed(dataDir, page, log) {
+/**
+ * Writes the made-up data into the running app. `helperDir` is the stand-in helper's folder
+ * (LAYOUT_HELPER_DIR), where the passage the lessons cite is left. `page.fetch(path, init)` runs
+ * fetch in the window, as the page itself would, and answers the status. `log` keeps a line per
+ * step. Answers the ids the screens' addresses use.
+ */
+export async function seed(dataDir, helperDir, page, log) {
 	const vault = listVaults(dataDir);
 	const agent = standIn(dataDir, log);
 	await agent.init();
-	const helperDir = path.join(dataDir, "..", "helper");
 	const date = inDays(3);
 	const { space } = await agent.json("create_space", {
 		name: "Lab Algebra",
