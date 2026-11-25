@@ -853,6 +853,9 @@ body {
 .lh-lesson-room {
 	--lh-pair: min(100cqw - 2 * var(--lh-page-side), var(--lh-page-w));
 	--lh-pair-gap: 48px;
+	/* An open problem beside the text: its sheet takes 58 parts of the pair, the text 42. */
+	--lh-problem: calc((var(--lh-pair) - var(--lh-pair-gap)) * 0.58);
+	--lh-talk: calc(var(--lh-pair) - var(--lh-pair-gap) - var(--lh-problem));
 }
 .lh-lesson-room,
 .lh-lesson-closed :is(.lh-text-sheets, .lh-turn-fit) {
@@ -926,17 +929,43 @@ body {
 .lh-turn-fit:has([data-kind="code"]) :is(.lh-turn-task, .lh-turn-body) {
 	flex: 1 1 auto;
 }
-/* An open problem pinned over the text in one column: as tall as what it holds, up to three
-   fifths of the room under the step line, where its problem scrolls in its own box. */
+/* An open problem pinned over the text in one column: as tall as what it holds, up to half the
+   room under the step line, where its problem scrolls in its own box. */
 .lh-turn-top {
-	max-height: 60%;
+	max-height: 50%;
+}
+/* An open problem beside the text, the page's left part: as tall as what it holds, up to the room
+   under the step line, where its problem scrolls in its own box. It starts no higher than the text
+   and rests on the room's foot, level with the writing row's, so the two parts share a top and a
+   foot. The text and the writing row are the right part, the text resting on the row. */
+.lh-turn-left {
+	position: absolute;
+	z-index: 1;
+	top: 0;
+	bottom: 0;
+	left: calc((100% - var(--lh-pair)) / 2);
+	width: var(--lh-problem);
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	padding: 24px 0 20px;
+}
+@container room (width >= 1000px) {
+	.lh-lesson-split :is(.lh-lesson-column, .lh-turn-foot > *) {
+		width: var(--lh-talk);
+		max-width: none;
+		margin-right: 0;
+	}
+	.lh-lesson-split .lh-lesson-column {
+		justify-content: flex-end;
+	}
 }
 /* Each box down to the problem is as tall as what it holds and may shrink: a box that grew to fill
    (flex: 1) would size the pin by the whole problem, though the problem is cut to its folded height. */
-.lh-turn-top :is(.lh-turn-task, [data-testid="your-turn"], [data-testid="turn-swap"], .lh-turn-body, .lh-turn-scroll) {
+:is(.lh-turn-top, .lh-turn-left) :is(.lh-turn-task, [data-testid="your-turn"], [data-testid="turn-swap"], .lh-turn-body, .lh-turn-scroll) {
 	flex: 0 1 auto;
 }
-.lh-turn-top .lh-turn-scroll {
+:is(.lh-turn-top, .lh-turn-left) .lh-turn-scroll {
 	overflow-y: auto;
 }
 /* The part shown alone holds still: "Whole problem" shows the rest. */
@@ -959,11 +988,11 @@ body {
 /* A problem lies on a plate, so the lesson's text is never read as part of it. A problem printed in
    its file is its page, edge to edge: the plate is the page's sheet. */
 .lh-lesson-room .lh-turn-fit .lh-turn-task[data-plate],
-.lh-turn-top .lh-turn-task[data-plate] {
+:is(.lh-turn-top, .lh-turn-left) .lh-turn-task[data-plate] {
 	background: var(--lh-well);
 	padding: 16px 20px 20px;
 }
-:is(.lh-lesson-room .lh-turn-fit, .lh-turn-top) .lh-turn-task[data-sheet] {
+:is(.lh-lesson-room .lh-turn-fit, .lh-turn-top, .lh-turn-left) .lh-turn-task[data-sheet] {
 	padding: 0;
 }
 /* The tag that names what waits: a question's kind, a problem's number. */

@@ -1,8 +1,9 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useContext, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { glideSheetAround } from "@/frontend/components/use-sheet-glide";
 import { cn } from "@/frontend/lib/utils";
 import { foldRoom } from "./turn-fold-model";
+import { TurnPlaceContext } from "./turn-place";
 
 const CUT = {
 	end: "[mask-image:linear-gradient(to_bottom,black_calc(100%-24px),transparent)]",
@@ -101,6 +102,12 @@ export function TurnScroll({ className, folded, onLong, children }: { className?
 		if (wasFolded.current !== folded && ref.current) glideSheetAround(ref.current);
 		wasFolded.current = folded;
 	}, [folded]);
+	// Beside the text the problem is moved to the page's left part once it is drawn: it opens there resting on the part.
+	const place = useContext(TurnPlaceContext);
+	useLayoutEffect(() => {
+		const start = place === "left" ? ref.current?.querySelector<HTMLElement>("[data-part-current]") : null;
+		if (start) restOnPart(start, false);
+	}, [place]);
 	// A problem is first drawn whole and cut after, so the cut box takes its place on the part itself.
 	const cutFolded = folded === true && foldedRoom !== null && partRoom === null;
 	useLayoutEffect(() => {

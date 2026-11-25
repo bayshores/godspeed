@@ -242,7 +242,7 @@ export function YourTurn({
 	const task = (
 		<aside ref={sheetRef} data-testid="turn-sheet" aria-label="Your turn" data-plate={plated || undefined} data-sheet={(plated && pieceShown) || undefined} {...stood} className={cn("lh-turn-task flex min-h-0 min-w-0 flex-col", stand, empty && "hidden")}>
 			<div data-testid="your-turn" data-mode={mode} className="flex min-h-0 flex-1 flex-col gap-5">
-				<TurnSwap key={place === "pinned" || place === "under" ? "column" : "page"} swapKey={empty ? "none" : swapKey}>
+				<TurnSwap key={place === "left" || place === "pinned" || place === "under" ? "column" : "page"} swapKey={empty ? "none" : swapKey}>
 					{empty ? null : (
 						<>
 							{(tag || (hasKeys && !corner)) && (

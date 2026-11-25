@@ -520,7 +520,7 @@ describe("Your turn in each state", () => {
 	it("a homework problem lies on a plate beside the text and pinned over it, with no key of its own for its page", () => {
 		const homework = { ...problem, line: null, part: "b" };
 		assert.doesNotMatch(html({ problem: homework }), /<h2/, "a homework problem has no tag");
-		for (const place of ["beside", "pinned"] as const) {
+		for (const place of ["beside", "pinned", "left"] as const) {
 			const plated = html({ problem: homework }, (n) => <TurnPlaceContext.Provider value={place}>{n}</TurnPlaceContext.Provider>);
 			assert.match(plated, /data-testid="turn-sheet"[^>]*data-plate="true"/, place);
 			assert.doesNotMatch(plated, /data-testid="turn-keys"|lesson-assignment/, "the top bar's Document opens its file");
@@ -1004,8 +1004,8 @@ describe("the turn sheet", () => {
 });
 
 describe("the lesson page's pair", () => {
-	const page = (turn: React.ReactNode | null, reading: React.ReactNode | null = <div data-testid="lesson-reading" />, open = true, place: TurnPlace = "beside") =>
-		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={reading} turn={turn} open={open} shutting={false} onShut={() => {}} onRest={() => {}} pin={false} place={place} onPlace={() => {}} />);
+	const page = (turn: React.ReactNode | null, reading: React.ReactNode | null = <div data-testid="lesson-reading" />, open = true, place: TurnPlace = "beside", pin = false) =>
+		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={reading} turn={turn} open={open} shutting={false} onShut={() => {}} onRest={() => {}} pin={pin} place={place} onPlace={() => {}} />);
 
 	it("draws Your turn alone, in the middle at its width in the pair, while the lesson text draws nothing", () => {
 		const alone = page(<aside data-testid="turn-sheet" />, null);
@@ -1021,6 +1021,15 @@ describe("the lesson page's pair", () => {
 		assert.match(started, /class="lh-turn-fit min-w-0[^"]*"[^>]*><aside data-testid="turn-sheet"/, "drawn in the page when there is no window to move its parts in");
 		assert.match(started, /class="lh-turn-top[^"]*"[\s\S]*class="lh-lesson-window[\s\S]*class="lh-turn-fit[\s\S]*class="lh-turn-foot/, "a top pin, the page and a pinned foot");
 		assert.doesNotMatch(started, /room:hidden|lh-lesson-closed/, "never hidden: the box is always there");
+	});
+
+	it("with an open problem, no book: a left part for the problem beside the text and its writing row, with or without text", () => {
+		for (const reading of [<div data-testid="lesson-reading" />, null]) {
+			const split = page(<aside data-testid="turn-sheet" />, reading, true, "left", true);
+			assert.match(split, /class="relative flex min-h-0 min-w-0 flex-1 flex-col lh-lesson-split"><div hidden="" class="lh-turn-left"><\/div>/, "the left part comes first, hidden until the page lays it out");
+			assert.doesNotMatch(split, /room:grid|lh-lesson-pair|lh-lesson-alone|lh-lesson-closed/);
+		}
+		assert.doesNotMatch(page(<aside data-testid="turn-sheet" />), /lh-lesson-split/);
 	});
 
 	it("shut, the text is one page as wide as the open book's left page, from before the lesson starts", () => {

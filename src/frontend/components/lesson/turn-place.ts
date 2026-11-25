@@ -2,9 +2,9 @@ import { createContext } from "react";
 
 /** Where the turn's task stands on the lesson page (LessonScroll): beside the lesson text as the
  *  right page of the open book (tight: in a room too low for the task he last finished), alone in
- *  the middle while the text draws nothing, pinned over the text (an open problem in one column),
- *  or in the page under the text. */
-export type TurnPlace = "beside" | "tight" | "alone" | "pinned" | "under";
+ *  the middle while the text draws nothing, the page's left part (an open problem in a wide room),
+ *  pinned over the text (an open problem in one column), or in the page under the text. */
+export type TurnPlace = "beside" | "tight" | "alone" | "left" | "pinned" | "under";
 
 /** The place the task is drawn in. Beside the text or alone it also keeps the task he last
  *  finished. With no page around it, it is drawn whole. */
