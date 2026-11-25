@@ -127,7 +127,7 @@ To add a row:
 | Edit full instructions | Settings, Teaching | `area-detail` | | learner | |
 | Web search key | Settings, Teaching | `web-search` | | learner | |
 | Access token | Settings, Connection | `agent-token` | | learner | |
-| Teacher folder and start command | Settings, Connection | `agent-folder-change` | | learner | |
+| Teacher folder and start command | Settings, Teacher | `agent-folder-change` | | learner | |
 | Welcome screen | First launch | `welcome-go` | | learner | |
 | Onboarding | First launch | `onboarding-intro` | Onboarding | learner | |
 | Page magnifier | Any page | `menu-shortcuts` | Home, the keyboard shortcuts list | learner | `page-magnify` |

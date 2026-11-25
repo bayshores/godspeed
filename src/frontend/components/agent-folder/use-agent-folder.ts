@@ -1,28 +1,26 @@
 import { useCallback, useState } from "react";
 import type { FolderAgent } from "@/shared/core";
-import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { logLines, type Launch, type LaunchChoice } from "./agent-folder-model";
+import type { Launch } from "./agent-folder-model";
 import { useAgentFolderView } from "./agent-folder-context";
 
 /** A pick the server did not take shows as the agent it still has; this says where it failed. */
 const logPickFailure = (err: unknown) => console.error("[agent folder] the picked agent could not be saved:", err);
 
 /**
- * The godspeed folder and its "Start Claude Code" button: open(agent)
- * makes or updates the folder and starts the agent in a terminal inside
- * the desktop app (terminal/use-terminals.ts), and the teacher's start
- * opens the teacher's panel, so the learner sees it start. Outside the desktop app the
- * learner runs the command, and `lines` is the live log of that launch.
- * `busy` while a start runs, `error` when it failed.
+ * The godspeed folder: open(agent) makes or updates it and starts the agent
+ * in a terminal inside the desktop app (terminal/use-terminals.ts), then
+ * opens the teacher's panel. Outside the desktop app the folder is made
+ * (`manual`) and the learner runs the command. `busy` while a start runs,
+ * `error` when it failed. change() picks another folder, setStartCommand()
+ * saves the learner's own command.
  */
 export function useAgentFolder() {
 	const { view, reload, post, pick } = useAgentFolderView();
 	const [launch, setLaunch] = useState<Launch | null>(null);
 	const [starting, setStarting] = useState(false);
 	const [failed, setFailed] = useState<string | null>(null);
-	const status = useAgentStatus();
 	const terminals = useTerminals();
 	const showChat = useTeacher()?.showChat;
 
@@ -77,27 +75,10 @@ export function useAgentFolder() {
 		}
 	}, [post]);
 
-	const lines = launch && view ? logLines(launch, !!status?.connected, view.short) : [];
 	const busy = starting || launch?.made === "wait";
 	const error = failed ?? (typeof launch?.made === "object" ? launch.made.error : null);
 	/** Outside the desktop app the folder is made: the learner runs the command. */
 	const manual = launch?.made === "done";
 
-	return { view, lines, busy, error, manual, open, change, setStartCommand };
-}
-
-/** The agent picked beside "Use another agent": the server's (Claude Code before a pick), which a
- *  pick of another agent changes. "Other app" is a pick of this window only. */
-export function useAgentChoice() {
-	const { view, pick } = useAgentFolderView();
-	const [other, setOther] = useState(false);
-	const choice: LaunchChoice = other ? "other" : (view?.agent ?? "claude");
-	const setChoice = useCallback(
-		(next: LaunchChoice) => {
-			setOther(next === "other");
-			if (next !== "other" && next !== view?.agent) void pick(next).catch(logPickFailure);
-		},
-		[pick, view?.agent],
-	);
-	return [choice, setChoice] as const;
+	return { view, busy, error, manual, open, change, setStartCommand };
 }

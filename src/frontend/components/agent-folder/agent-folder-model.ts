@@ -1,12 +1,10 @@
 /**
- * "Start Claude Code" (the godspeed folder): which agent the button starts,
- * and, outside the desktop app, the log under it. Pure: exported for tests.
+ * The godspeed folder in words: the agents' names, what the server says
+ * about the folder, a start outside the desktop app, and the old setup
+ * left on the computer. Pure.
  */
 
 import type { FolderAgent, OldSetup, StartCommands } from "@/shared/core";
-
-/** The button's menu: an agent the app starts, or the setup for any other MCP app. */
-export type LaunchChoice = FolderAgent | "other";
 
 export const AGENT_LABEL: Record<FolderAgent, string> = { claude: "Claude Code", codex: "Codex" };
 
@@ -30,29 +28,6 @@ export interface Launch {
 	agent: FolderAgent;
 	/** Running, done, or failed with a message. */
 	made: "wait" | "done" | { error: string };
-}
-
-export interface LogLine {
-	text: string;
-	state: "done" | "wait" | "error" | "note";
-}
-
-/** The log's lines for a launch and the live agent status. */
-export function logLines(launch: Launch, connected: boolean, short: string): LogLine[] {
-	const name = AGENT_LABEL[launch.agent];
-	if (typeof launch.made === "object") return [{ text: launch.made.error, state: "error" }];
-	if (launch.made === "wait") return [{ text: `Making ${short}…`, state: "wait" }];
-	const lines: LogLine[] = [
-		{ text: `Made ${short}`, state: "done" },
-		{ text: "Copy the command and run it in your terminal", state: connected ? "done" : "wait" },
-	];
-	if (!connected) {
-		lines.push({ text: `Waiting for ${name} to start…`, state: "wait" });
-		lines.push({ text: `If ${name} asks whether to trust the folder, choose Yes.`, state: "note" });
-		return lines;
-	}
-	lines.push({ text: `Started ${name}`, state: "done" });
-	return lines;
 }
 
 /** What is left of the old setup, one entry each: `short` for Settings,
