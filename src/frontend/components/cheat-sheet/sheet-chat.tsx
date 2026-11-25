@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { ChatAttachment, CheatSheetView, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
-import { AgentCompact, useCompactShown } from "@/frontend/components/agent-setup/agent-card";
+import { JobFailure } from "@/frontend/components/agent-setup/agent-card";
 import { ApprovalCards } from "@/frontend/components/lesson/approval-card";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
@@ -69,7 +69,6 @@ export function SheetChat({
 	const attachments = useAttachmentDraft(`cheat-sheet:${deadlineId}`);
 	const boxRef = useRef<{ focus(): void }>(null);
 	const busy = view.running !== null;
-	const compactShown = useCompactShown();
 	const messages = view.sheet.messages;
 	const endRef = useRef<HTMLDivElement>(null);
 	useEffect(() => {
@@ -178,12 +177,8 @@ export function SheetChat({
 								</p>
 							)}
 							{view.running && <ApprovalCards approvals={view.approvals} slot={slot} arrive={arrive} answer={answer} />}
-							{!busy &&
-								view.error &&
-								// The agent can't run: the setup card's compact form says why, with the key that fixes it.
-								(compactShown ? (
-									<AgentCompact />
-								) : (
+							{!busy && view.error && (
+								<JobFailure>
 									<p data-testid="sheet-failed" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
 										<span>
 											<span className="text-ans-wrong">{agentName} couldn&apos;t finish that.</span> {view.error.text}
@@ -192,7 +187,8 @@ export function SheetChat({
 											Try again
 										</button>
 									</p>
-								))}
+								</JobFailure>
+							)}
 						</>
 					}
 				/>

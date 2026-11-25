@@ -1,4 +1,5 @@
 import { useContext } from "react";
+import { JobFailure } from "@/frontend/components/agent-setup/agent-card";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { CARD } from "@/frontend/components/ui/card-parts";
 import { cn } from "@/frontend/lib/utils";
@@ -34,7 +35,7 @@ export function DispatchCard({ toolCallId, kind }: { toolCallId: string; kind: J
 		return <DispatchActivityCard job={job} label={label} />;
 	}
 	const failed = job.status === "error";
-	return (
+	const line = (
 		<div
 			className="flex items-center gap-2.5 text-[15px] text-ink-2"
 			data-testid="dispatch-settled"
@@ -44,6 +45,9 @@ export function DispatchCard({ toolCallId, kind }: { toolCallId: string; kind: J
 			<span className="text-sm">{failed ? "failed" : "finished"}</span>
 		</div>
 	);
+	// Only the lesson's newest job: an older failure is no news about the agent now.
+	const newest = jobs.reduce((last, j) => (j.createdAt > last.createdAt ? j : last), job);
+	return failed && newest === job ? <JobFailure>{line}</JobFailure> : line;
 }
 
 function DispatchActivityCard({ job, label }: { job: JobRecord | null; label: string }) {

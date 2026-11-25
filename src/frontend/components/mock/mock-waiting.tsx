@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { DEFAULT_TEACHER_NAME, type MockState, type MockView } from "@/shared/core";
+import { AgentCompact, useCompactShown } from "@/frontend/components/agent-setup/agent-card";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { useSpaceRecord } from "@/frontend/components/files/space-record";
@@ -20,6 +21,7 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 	const navigate = useNavigate();
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [error, setError] = useState<string | null>(null);
+	const compactShown = useCompactShown();
 	// The request a key started; its key shows it works and the others wait.
 	const [pending, setPending] = useState<"start" | "retry" | "remove" | null>(null);
 	const { spaceId, mock } = view;
@@ -75,20 +77,31 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 			</>
 		);
 	} else {
+		const removeKey = state === "writing" && (
+			<Key data-testid="mock-remove" busy={pending === "remove"} disabled={pending !== null} onClick={() => void remove()} className="text-[15px]">
+				Remove this mock
+			</Key>
+		);
 		body = (
 			<div role="alert" className="flex flex-col items-center gap-3.5">
 				<p className="text-[23px] leading-snug text-ink">{state === "writing" ? "The mock wasn't written" : "The mock wasn't graded"}</p>
-				<p className="text-[17px] text-ink-2">{view.error ? `What went wrong: ${view.error}.` : "The request stopped before the answer came back."}</p>
-				<div className="flex items-center gap-2.5">
-					<Key data-testid="mock-retry" busy={pending === "retry"} disabled={pending !== null} onClick={() => void act("retry")} className="lh-btn-main">
-						Try again
-					</Key>
-					{state === "writing" && (
-						<Key data-testid="mock-remove" busy={pending === "remove"} disabled={pending !== null} onClick={() => void remove()} className="text-[15px]">
-							Remove this mock
-						</Key>
-					)}
-				</div>
+				{/* The agent can't run: the compact card says why with the key that fixes it, and Try again waits for it. */}
+				{compactShown ? (
+					<>
+						<AgentCompact />
+						{removeKey}
+					</>
+				) : (
+					<>
+						<p className="text-[17px] text-ink-2">{view.error ? `What went wrong: ${view.error}.` : "The request stopped before the answer came back."}</p>
+						<div className="flex items-center gap-2.5">
+							<Key data-testid="mock-retry" busy={pending === "retry"} disabled={pending !== null} onClick={() => void act("retry")} className="lh-btn-main">
+								Try again
+							</Key>
+							{removeKey}
+						</div>
+					</>
+				)}
 			</div>
 		);
 	}

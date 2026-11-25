@@ -62,15 +62,21 @@ export function AgentCard({ foot }: { foot?: ReactNode }) {
 	);
 }
 
-/** The compact card stands in a failed send's error line while the agent can't run and the
- *  teacher's panel, which then shows the full card, is shut: one card per screen. */
+/** The compact card stands in a job's failure line while the agent can't run and the teacher's
+ *  panel, which then shows the full card, is shut: one card per screen. */
 export function useCompactShown(): boolean {
 	const { health } = useAgentSetup();
 	const panelOpen = useTeacher()?.panelOpen ?? false;
 	return cantRun(health) && !panelOpen;
 }
 
-/** The compact card where a send failed (see useCompactShown). */
+/** A failure line of a job the learner started (a send, a request, a dispatched job), or the
+ *  compact card in its place (see useCompactShown). */
+export function JobFailure({ children }: { children: ReactNode }) {
+	return useCompactShown() ? <AgentCompact /> : children;
+}
+
+/** The compact card where a job failed (see useCompactShown). */
 export function AgentCompact() {
 	const { health, update } = useAgentSetup();
 	useReadySound();
@@ -168,13 +174,14 @@ function Mark({ mark }: { mark: CardRow["mark"] }) {
 
 const keyLabel = (key: RowKey): string => (key.kind === "cancel" ? "Cancel" : key.kind === "check" ? "Check again" : key.label);
 
-/** What stands at the row's end: its keys, or a word in a key's place ("Updated"). */
+/** What stands at the row's end: its keys, or a word in a key's place ("Updated"). The key that
+ *  fixes the failing check is the view's main key; Check again only asks again. */
 function RowEnd({ row, action, main }: { row: CardRow; action: Action; main: boolean }) {
 	if (row.note) return <span className="text-[15px] text-ink-2">{row.note}</span>;
 	return (
 		<>
 			{row.keys.map((key, n) => (
-				<Key key={keyLabel(key)} k={key} action={action} className={cn("lh-btn lh-btn-small", main && n === 0 && "lh-btn-main")} />
+				<Key key={keyLabel(key)} k={key} action={action} className={cn("lh-btn lh-btn-small", main && n === 0 && key.kind !== "check" && "lh-btn-main")} />
 			))}
 		</>
 	);
@@ -243,8 +250,9 @@ function Signing({ code, keys, action }: { code: boolean; keys: RowKey[]; action
 				</form>
 			)}
 			<div className="flex flex-wrap items-center gap-2.5">
+				{/* Send leads; Open again is a plain key, Cancel a lesser one. */}
 				{keys.map((key) => (
-					<Key key={keyLabel(key)} k={key} action={action} className="lh-btn lh-btn-quiet" />
+					<Key key={keyLabel(key)} k={key} action={action} className={cn("lh-btn", key.kind === "cancel" && "lh-btn-quiet")} />
 				))}
 			</div>
 		</div>

@@ -1,7 +1,8 @@
 /**
  * The setup card in a DOM: Settings › Teacher holds it with the teacher's name, the folder and the
  * start command; its keys ask the server to sign in, send the code, cancel and update, and the
- * card follows the server's events; the compact card shows only while the panel is shut.
+ * card follows the server's events; a pick of the agent goes to the server; the compact card
+ * stands in a job's failure line only while the panel is shut.
  */
 import { dom } from "../terminal-dom.ts";
 import React, { act } from "react";
@@ -21,7 +22,7 @@ const { UpdateStateProvider } = await import("../../src/frontend/components/sett
 const { SettingsPage } = await import("../../src/frontend/components/settings/settings-page.tsx");
 const { AgentFolderProvider } = await import("../../src/frontend/components/agent-folder/agent-folder-context.tsx");
 const { AgentSetupProvider } = await import("../../src/frontend/components/agent-setup/agent-setup-context.tsx");
-const { AgentCompact, useCompactShown } = await import("../../src/frontend/components/agent-setup/agent-card.tsx");
+const { JobFailure } = await import("../../src/frontend/components/agent-setup/agent-card.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 type TeacherApi = NonNullable<React.ContextType<typeof TeacherContext>>;
 
@@ -140,6 +141,7 @@ describe("Settings › Teacher", () => {
 			const field = q("agent-login-code")!.querySelector("input")!;
 			assert.equal(field.getAttribute("placeholder"), "Code, if the page shows one");
 			assert.equal(keyNamed("Open again")?.getAttribute("href"), "https://claude.ai/oauth");
+			assert.ok(keyNamed("Cancel")?.classList.contains("lh-btn-quiet") && !keyNamed("Open again")?.classList.contains("lh-btn-quiet"), "Cancel is the lesser key");
 			await act(async () => {
 				Object.defineProperty(field, "value", { configurable: true, writable: true, value: "abc#123" });
 				field.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
@@ -154,6 +156,13 @@ describe("Settings › Teacher", () => {
 			assert.equal(q("agent-row-account")?.dataset.mark, "tick");
 			assert.equal(text("agent-row-account-fact"), "Max plan");
 			assert.equal((q("agent-model-select") as HTMLSelectElement | null)?.value, "default");
+		});
+	});
+
+	it("a pick of the other agent goes to the server", async () => {
+		await mounted(settings, async () => {
+			await click(q("agent-card-agent-codex")!);
+			assert.ok(sent.includes('PATCH /api/agent-folder {"agent":"codex"}'), sent.join(" | "));
 		});
 	});
 
@@ -176,11 +185,15 @@ describe("Settings › Teacher", () => {
 
 describe("the compact card", () => {
 	function Failed() {
-		return useCompactShown() ? <AgentCompact /> : <p data-testid="plain-error">couldn't finish that</p>;
+		return (
+			<JobFailure>
+				<p data-testid="plain-error">couldn&apos;t finish that</p>
+			</JobFailure>
+		);
 	}
 	const teacher = (panelOpen: boolean) => ({ panelOpen }) as TeacherApi;
 
-	it("stands in a failed send's line while the agent can't run and the panel is shut, naming the agent", async () => {
+	it("stands in a job's failure line while the agent can't run and the panel is shut, naming the agent", async () => {
 		await mounted(
 			<TeacherContext.Provider value={teacher(false)}>
 				<Failed />
