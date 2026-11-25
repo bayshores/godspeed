@@ -14,7 +14,7 @@ use gs_json::Json;
 use super::fn_tool::FnTool;
 use super::heal::heal_tool_record;
 use super::homework::ProblemList;
-use super::jobs::{JobToolContext, demo_tool, pdf_tool, research_tool, visual_tool};
+use super::jobs::{JobToolContext, demo_tool, pdf_tool, research_tool};
 use super::lesson_parts::LessonParts;
 use super::plan::{PlanContext, plan_init_tool};
 use super::plot::plot_tool;
@@ -130,7 +130,7 @@ fn teacher_tools_asking(ctx: &TeacherToolContext, enabled: Option<&Json>, questi
 		tools.push(plan_init_tool(&ctx.plan));
 	}
 	tools.push(work_plan_tool());
-	tools.extend([research_tool(&ctx.jobs), demo_tool(&ctx.jobs), visual_tool(&ctx.jobs), pdf_tool(&ctx.jobs)]);
+	tools.extend([research_tool(&ctx.jobs), demo_tool(&ctx.jobs), pdf_tool(&ctx.jobs)]);
 	tools.extend(ctx.side.tools());
 	filter_enabled(tools, without_mechanics(enabled).as_ref())
 }

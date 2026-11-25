@@ -71,7 +71,7 @@ export function NewLesson() {
 						<h1 className="lh-page-title">What do you want to study?</h1>
 					</div>
 					{/* Wide, the topic box with the suggestions under it is the left half and the deadlines are the right. */}
-					<div className="grid items-start gap-(--lh-gap) @[1100px]/page:grid-cols-2 @[1100px]/page:grid-rows-[auto_auto_1fr]">
+					<div className="grid grid-cols-1 items-start gap-(--lh-gap) @[1100px]/page:grid-cols-2 @[1100px]/page:grid-rows-[auto_auto_1fr]">
 						<TopicBox
 							text={topic}
 							onText={(t) => {

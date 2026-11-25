@@ -60,10 +60,6 @@
 	--lh-gap: 24px;
 	--lh-inset: 24px;
 	--lh-page-end: 64px;
-	/* Lesson text and "Your turn" are read like a page of a book, so their sheets keep a wider
-	   margin than a card's inset: 56, or 28 in a column under 640 (.lh-reading). */
-	--lh-reading-inset: 56px;
-	--lh-reading-inset-narrow: 28px;
 	/* The longest line of a sentence or paragraph outside lesson text. */
 	--lh-measure: 75ch;
 	--lh-title: clamp(34px, (100vw - var(--lh-strip) - var(--lh-dock-push, 0px) - 899px) * 999, 44px);
@@ -356,6 +352,10 @@ body {
 [data-part-head][aria-expanded="false"]:hover {
 	color: var(--color-ink);
 }
+/* Math in a line cut to one line stays inline: as a box of its own it makes WebKit cut the line lower than its letters. */
+[data-part-head][aria-expanded="false"] .katex {
+	display: inline;
+}
 [data-part-fold] {
 	display: none;
 }
@@ -475,7 +475,6 @@ body {
 	/* A row of tabs on its 2-point line: a space's pages, Settings' sections. */
 	.lh-tabs {
 		display: flex;
-		flex-wrap: wrap;
 		column-gap: 6px;
 		box-shadow: inset 0 -2px 0 var(--border);
 	}
@@ -750,11 +749,16 @@ body {
    and, when docked, the panel beside it (the cheat sheet or the Document panel) at the width the
    learner dragged it. */
 .lh-lesson-body {
+	/* An open page: plain, over the app's dotted ground. */
+	background: var(--background);
 	display: grid;
 	grid-template: "main" minmax(0, 1fr) / minmax(0, 1fr);
 }
 .lh-lesson-body[data-dock] {
 	grid-template: "main dock" minmax(0, 1fr) / minmax(0, 1fr) auto;
+}
+.lh-lesson-dock-cell {
+	grid-area: dock;
 }
 .lh-lesson-dock {
 	width: var(--lh-dock-w);
@@ -770,177 +774,177 @@ body {
 		display: none;
 	}
 }
+/* Where the page would keep under 480 points beside the panel, the panel covers the page until it is closed. The page keeps
+   its layout under it, so it is there as it was when the panel fades out. */
+@container lesson (max-width: 779px) {
+	.lh-lesson-body[data-dock] {
+		grid-template: "main" minmax(0, 1fr) / minmax(0, 1fr);
+	}
+	.lh-lesson-dock-cell {
+		position: relative;
+		z-index: 1;
+		grid-area: main;
+		padding-left: var(--lh-page-side);
+	}
+	.lh-lesson-dock-cell .lh-lesson-dock {
+		width: 100%;
+	}
+	.lh-lesson-dock-cell .lh-dock-resize {
+		display: none;
+	}
+	.lh-lesson-body[data-dock] .lh-lesson-room {
+		visibility: hidden;
+	}
+}
 
-/* The lesson's window (LessonScroll's scroller): it begins a gap under the step line and ends a
-   gap above the window's foot, and a sheet it cuts keeps its stepped corners at both edges, as
-   a whole sheet has them. The corners are cut at the column's sides, and side by side at the
-   lesson text's sides only, since "Your turn" fits the window whole. */
+/* The lesson's window (LessonScroll's scroller): text that scrolls past its top or foot dissolves,
+   so no edge cuts a line through its letters. The page's own padding is as tall as the fade, so
+   at rest nothing is faded. */
 .lh-lesson-window {
-	--lh-col: min(var(--lh-pair), 872px);
-	--lh-cut-l: calc((100cqw - var(--lh-col)) / 2);
-	--lh-cut-r: calc(var(--lh-cut-l) + var(--lh-col));
-	--lh-px: linear-gradient(#000, #000);
-	mask:
-		var(--lh-px) left var(--lh-cut-l) top 0 / 8px 4px no-repeat,
-		var(--lh-px) left var(--lh-cut-l) top 4px / 4px 4px no-repeat,
-		var(--lh-px) left calc(var(--lh-cut-r) - 8px) top 0 / 8px 4px no-repeat,
-		var(--lh-px) left calc(var(--lh-cut-r) - 4px) top 4px / 4px 4px no-repeat,
-		var(--lh-px) left var(--lh-cut-l) bottom 0 / 8px 4px no-repeat,
-		var(--lh-px) left var(--lh-cut-l) bottom 4px / 4px 4px no-repeat,
-		var(--lh-px) left calc(var(--lh-cut-r) - 8px) bottom 0 / 8px 4px no-repeat,
-		var(--lh-px) left calc(var(--lh-cut-r) - 4px) bottom 4px / 4px 4px no-repeat,
-		var(--lh-px) 0 0 / 100% 100% no-repeat;
-	mask-composite: exclude;
-}
-@container room (width >= 1280px) {
-	.lh-lesson-window.lh-lesson-closed {
-		--lh-col: var(--lh-text);
-	}
-	.lh-lesson-window.lh-lesson-pair {
-		--lh-col: var(--lh-pair);
-		--lh-cut-r: calc(var(--lh-cut-l) + var(--lh-pair) - var(--lh-gap) - var(--lh-turn));
-	}
-	/* "Your turn" alone fits the window whole, so nothing is cut. */
-	.lh-lesson-window.lh-lesson-alone {
-		mask: none;
-	}
+	mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 24px), transparent);
 }
 
-/* The lesson text and "Your turn" side by side (LessonScroll), measured on the page's room:
-   the pair is the page's column, and "Your turn" is 688 where there is room, giving way first
-   down to 560 so the text keeps at least 632 and is never narrower. The text's page is as wide
-   shut as it is open, so its lines never wrap anew when the book opens or shuts. */
+/* The lesson text and the turn side by side (LessonScroll), measured on the page's room: the pair
+   is the page's column, in two pages of one width with a gap between them, and the turn's page
+   stops growing at 688. The text's page is as wide shut as it is open, so its lines never wrap
+   anew when the book opens or shuts. */
 .lh-lesson-room {
 	--lh-pair: min(100cqw - 2 * var(--lh-page-side), var(--lh-page-w));
+	--lh-pair-gap: 48px;
 }
 .lh-lesson-room,
 .lh-lesson-closed :is(.lh-text-sheets, .lh-turn-fit) {
-	--lh-turn: clamp(560px, min((var(--lh-pair) - var(--lh-gap)) / 2, var(--lh-pair) - var(--lh-gap) - 632px), 688px);
-	--lh-text: calc(var(--lh-pair) - var(--lh-gap) - var(--lh-turn));
+	--lh-turn: clamp(420px, (var(--lh-pair) - var(--lh-pair-gap)) / 2, 688px);
+	--lh-text: calc(var(--lh-pair) - var(--lh-pair-gap) - var(--lh-turn));
 }
-/* Side by side, the two sheets are the pages of an open book: both fill the page's window (the
-   scroller is a size container, so 100cqh is its height), and the text's grows past it. "Your
-   turn" (.lh-turn-fit) holds still while the text scrolls. Its question or problem
-   (.lh-turn-scroll) takes the room that is left, so the box and the keys under it rest at the
-   sheet's foot, and scrolls in its own box when it is longer than that room. */
-@container room (width >= 1280px) {
-	.lh-text-fit {
-		min-height: 100cqh;
-	}
+/* Side by side, the text and the turn are the pages of an open book. The turn (.lh-turn-fit) is as
+   tall as the page's window (the scroller is a size container, so 100cqh is its height) and holds
+   still while the text scrolls. Its question or problem (.lh-turn-scroll) scrolls in its own box
+   when it is longer than the room over the writing row, which rests at the window's foot. */
+@container room (width >= 1000px) {
+	/* The page's own padding (24px over and under) stays clear, so the pair never scrolls by it. */
 	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit {
 		position: sticky;
-		top: 0;
+		top: 24px;
 		display: flex;
 		flex-direction: column;
-		height: 100cqh;
+		height: calc(100cqh - 48px);
 	}
 	.lh-turn-scroll {
 		flex: 1 1 auto;
 		overflow-y: auto;
 	}
-	/* The shut book: one page in the middle of the pair's width, with "Your turn" pinned under
-	   its window. With "Your turn" in the page instead (or none yet), the text fills what is left
-	   of the window, as in the one column of a narrow room. */
+	/* The shut book: one page in the middle of the pair's width, with the writing row pinned under
+	   its window. */
 	.lh-lesson-closed :is(.lh-text-sheets, .lh-turn-fit) {
 		/* Inside the column 100cqw is the column's own width, so the pair is the column's whole width here. */
 		--lh-pair: 100%;
 		width: var(--lh-text);
 		margin-inline: auto;
 	}
-	.lh-lesson-closed:not(.lh-lesson-pinned) .lh-lesson-column {
-		min-height: calc(100cqh - var(--lh-page-end));
+}
+/* The turn's task (YourTurn) rests on the writing row, so what is asked, its help keys and the field are
+   read as one thing; the text starts under the step line and blank room falls between the two. Under the
+   text the page is at least as tall as its window and the task keeps a step's distance from the text. As the
+   right page of the open book the task lies at the page's foot, over the row. */
+.lh-lesson-column {
+	min-height: calc(100cqh - 48px);
+}
+.lh-lesson-column > .lh-turn-fit {
+	margin-top: auto;
+}
+.lh-lesson-column > .lh-turn-fit .lh-turn-task {
+	padding-top: 40px;
+}
+@container room (width >= 1000px) {
+	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit {
+		justify-content: flex-end;
+		gap: 20px;
+		margin-top: 0;
 	}
-	.lh-lesson-closed:not(.lh-lesson-pinned) :is(.lh-text-sheets, .lh-text-fit) {
-		flex: 1 1 auto;
-		min-height: 0;
+	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit .lh-turn-task {
+		flex: 0 1 auto;
+		padding-top: 0;
 	}
 }
-/* In one column the lesson text's newest sheet fills what is left of its window as well, so a short lesson, or one
-   whose first reply is still written, shows no bare page under it. In a room high enough
-   (PIN_ROOM in LessonScroll) "Your turn" is pinned under
-   that window (.lh-turn-foot) and closer set, so the text keeps more of the room. A question is
-   shown whole before the text is: the text keeps a few lines, and only past that does the
-   question or problem scroll in its own box. */
-@container room (width < 1280px) {
-	.lh-lesson-column:has(> .lh-text-sheets) {
-		min-height: calc(100cqh - var(--lh-page-end));
-	}
-	.lh-lesson-pinned .lh-lesson-column:has(> .lh-text-sheets) {
-		min-height: 100cqh;
-	}
-	.lh-text-sheets,
-	.lh-text-fit {
-		flex: 1 1 auto;
+/* On a page of its own at least 584 wide, a short question is a headline. */
+@container room (width >= 1280px) {
+	:is(.lh-lesson-pair, .lh-lesson-alone) .lh-turn-fit {
+		--lh-question-size: 34px;
+		--lh-question-leading: 1.3;
 	}
 }
-.lh-turn-foot .lh-turn-fit {
+/* A question answered in the code editor: the editor takes the room left over the writing row, under the
+   text and beside it, so a short lesson leaves no blank band over the code. */
+.lh-lesson-column > .lh-turn-fit:has([data-kind="code"]) {
 	display: flex;
+	flex: 1 1 auto;
 	flex-direction: column;
-	min-height: 0;
 }
-/* Pinned, the sheet is as tall as what it holds and only gets lower to fit. */
-.lh-turn-foot [data-testid="turn-sheet"],
-.lh-turn-foot [data-testid="turn-sheet"] > .lh-sheet,
-.lh-turn-foot .lh-reading {
+.lh-turn-fit:has([data-kind="code"]) :is(.lh-turn-task, .lh-turn-body) {
+	flex: 1 1 auto;
+}
+/* An open problem pinned over the text in one column: as tall as what it holds, up to three
+   fifths of the room under the step line, where its problem scrolls in its own box. */
+.lh-turn-top {
+	max-height: 60%;
+}
+/* Each box down to the problem is as tall as what it holds and may shrink: a box that grew to fill
+   (flex: 1) would size the pin by the whole problem, though the problem is cut to its folded height. */
+.lh-turn-top :is(.lh-turn-task, [data-testid="your-turn"], [data-testid="turn-swap"], .lh-turn-body, .lh-turn-scroll) {
 	flex: 0 1 auto;
 }
-.lh-turn-foot .lh-turn-scroll {
-	flex: 1 1 auto;
+.lh-turn-top .lh-turn-scroll {
 	overflow-y: auto;
 }
-/* Of the room under the step line; the text's window keeps 88 points between its two gaps. */
-.lh-turn-foot {
-	max-height: calc(100% - 136px);
+/* The part shown alone holds still: "Whole problem" shows the rest. */
+.lh-turn-top .lh-turn-scroll[data-part-alone] {
+	overflow-y: hidden;
 }
-.lh-turn-foot .lh-reading {
-	padding-block: 28px;
+/* The task's body: what is asked, and for a pinned problem with no tag its keys in the corner beside it.
+   The row gives way when the pin is capped, so the problem scrolls in its own box. */
+.lh-turn-body {
+	display: grid;
+	min-height: 0;
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: minmax(0, 1fr);
 }
-.lh-turn-foot .lh-reading,
-.lh-turn-foot [data-testid="turn-swap"] {
-	gap: 20px;
+.lh-turn-cornered {
+	grid-template-columns: minmax(0, 1fr) fit-content(45%);
+	align-items: start;
+	column-gap: 16px;
+}
+/* A problem lies on a plate, so the lesson's text is never read as part of it. */
+.lh-lesson-room .lh-turn-fit .lh-turn-task[data-plate],
+.lh-turn-top .lh-turn-task[data-plate] {
+	background: var(--lh-well);
+	padding: 16px 20px 20px;
+}
+/* The tag that names what waits: a question's kind, a problem's number. */
+.lh-kind {
+	background: var(--color-highlight);
+	padding: 2px 8px;
+	font-size: 15px;
+	line-height: 1.4;
+	color: var(--color-ink);
 }
 
-/* A reading surface: the lesson text's sheet and "Your turn". */
-.lh-reading {
-	padding: 40px var(--lh-reading-inset);
-}
-@container column (width < 640px) {
-	.lh-reading {
-		padding: 28px var(--lh-reading-inset-narrow) 32px;
-	}
-}
-/* "Your turn" under the text with nothing to answer: a low sheet, so the lesson text keeps the window. */
-.lh-reading.lh-turn-quiet {
-	padding-block: 20px;
-}
-
-/* The answer box is as tall as its text, up to five lines, then scrolls. One line is as tall
-   as a key; three lines when the text is the answer or the work. */
-:is(.lh-answer-line, .lh-answer-lines) .cm-editor {
+/* The writing row's field is one line tall, as a key is, and as tall as its text up to five
+   lines, then scrolls. */
+.lh-answer-box .cm-editor {
 	height: auto;
 }
-.lh-answer-line .cm-editor .cm-content,
-.lh-answer-line [data-testid="math-box"] > div[aria-hidden] {
+.lh-answer-box .cm-editor .cm-content,
+.lh-answer-box [data-testid="math-box"] > div[aria-hidden] {
 	padding-block: 8px;
 }
-.lh-answer-line .cm-editor .cm-scroller {
+.lh-answer-box .cm-editor .cm-scroller {
 	max-height: 136px;
 }
-.lh-answer-lines .cm-editor .cm-scroller {
-	max-height: 144px;
-}
-.lh-answer-lines .cm-editor .cm-content,
-.lh-answer-lines [data-testid="math-box"] > div[aria-hidden] {
-	min-height: 96px;
-}
-/* The box keeps its lowest height itself as well. While its editor is put in, one layout pass
-   sees the box with nothing in it; a problem scrolled to its part beside it (.lh-turn-scroll)
-   would grow for that pass and lose its place. */
-.lh-answer-line [data-testid="math-box"] {
+/* The field keeps its lowest height itself as well. While its editor is put in, one layout pass
+   sees the field with nothing in it, and the row would jump for that pass. */
+.lh-answer-box [data-testid="math-box"] {
 	min-height: 40px;
-}
-.lh-answer-lines [data-testid="math-box"] {
-	min-height: 96px;
 }
 
 /* The block cursor at the end of the text the teacher is writing. */
@@ -1008,6 +1012,12 @@ body {
 	overflow-y: hidden;
 }
 
+/* Inline math stays whole on one line where it fits, so no equation is cut at its "=" while the line has room. */
+:not(.katex-display) > .katex {
+	display: inline-block;
+	max-width: 100%;
+}
+
 /* Inline math: a piece too wide to break scrolls too, since message
  * bodies hide overflow. Each base is the unbreakable run, so lines still
  * wrap between them; baseline-source keeps the scroller on the text line,
@@ -1053,6 +1063,20 @@ body {
 	border: 0;
 	background: transparent;
 	padding: 0.75rem 1rem;
+}
+/* A choice that is code lies bare on its plate: a box in a box is two things to read. Picked, the plate
+   turns to ink and the code keeps the page's color under it, so its colors still read. */
+.lh-choice [data-streamdown="code-block"] {
+	margin: 0;
+	border: 0;
+	background: transparent;
+	padding: 0;
+}
+.lh-choice[aria-checked="true"] [data-streamdown="code-block"] {
+	background: var(--background);
+}
+.lh-choice [data-streamdown="code-block-body"] {
+	padding: 0.5rem 0.75rem;
 }
 /* Each line is a span; streamdown makes it a block only with the gutter on. */
 [data-streamdown="code-block-body"] code > span {
@@ -1696,6 +1720,11 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 .lh-rise {
 	animation: lh-rise-in var(--lh-dur) var(--lh-ease-out) both;
 }
+/* A question that arrives sets its choices down one after another (--lh-choice-at: the choice's place). */
+.lh-rise .lh-choice {
+	animation: lh-rise-in var(--lh-dur) var(--lh-ease-out) backwards;
+	animation-delay: calc(var(--lh-dur-fast) + var(--lh-choice-at) * 45ms);
+}
 
 /* The open problem's box on its page in the Document panel: one that comes after the lesson
    opened closes in on it once. */
@@ -1734,13 +1763,15 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	transition-duration: var(--lh-dur-fast);
 }
 
+/* minmax(0, …) and not a bare fr: WebKit keeps a bare 1fr row at its first height when the window
+   narrows and the text inside wraps onto more lines, which cuts the new lines off. */
 .lh-collapse {
 	display: grid;
-	grid-template-rows: 0fr;
+	grid-template-rows: minmax(0, 0fr);
 	transition: grid-template-rows var(--lh-dur) var(--lh-ease-out);
 }
 .lh-collapse[data-state="open"] {
-	grid-template-rows: 1fr;
+	grid-template-rows: minmax(0, 1fr);
 }
 .lh-collapse > * {
 	overflow: hidden;
@@ -1756,16 +1787,16 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
 /* The mark of the lit one of a row of tabs (lit-marker.ts): one box under
    the tabs, moved to the lit one. It slides only when another tab lights. */
-/* The tab strip (SpaceTabs) fades out at an end that cuts tabs off. Its lit tab is never wider
+/* A tab strip (tab-strip.ts) fades out at an end that cuts tabs off. The top bar's lit tab is never wider
    than the strip, and while tabs are cut off, the strip less the fades' overhang past its padding
    (2 × (24 − 16) px), so centered its dot and name are clear of both fades. */
-.lh-tab-strip[data-cut="end"] {
+.lh-cut[data-cut="end"] {
 	mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
 }
-.lh-tab-strip[data-cut="start"] {
+.lh-cut[data-cut="start"] {
 	mask-image: linear-gradient(to left, black calc(100% - 24px), transparent);
 }
-.lh-tab-strip[data-cut="both"] {
+.lh-cut[data-cut="both"] {
 	mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
 }
 .lh-tab-strip[data-cut] > [data-lit] {
@@ -1873,6 +1904,7 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	.lh-dialog,
 	.lh-fade,
 	.lh-rise,
+	.lh-rise .lh-choice,
 	.lh-doc-box,
 	.lh-draw-in,
 	.lh-hang::before,

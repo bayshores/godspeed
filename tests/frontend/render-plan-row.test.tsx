@@ -94,19 +94,23 @@ describe("the folded line", () => {
 	const homework: RowProps = { ...base, kind: "homework", stepBar: null, problemList: { problems, open: "2", blocked: null } };
 	const line = (html: string) => html.match(/data-testid="plan-fold"[^>]*>([\s\S]*?)<\/button>/)![1]!.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
-	it("is folded by default: the step's place and name over a slim bar, and no list", () => {
+	const named = (html: string) => html.match(/data-testid="plan-fold"[^>]*aria-label="([^"]*)"/)![1];
+
+	it("is folded by default: a thin block per step across the page with the step's name and place at their end, and no list", () => {
 		const html = renderToStaticMarkup(<PlanRow {...base} />);
 		assert.match(html, /data-testid="plan-fold" aria-expanded="false"/);
-		assert.equal(line(html), "Step 2 of 3 Gradient as an expectation");
+		assert.equal(line(html), "Gradient as an expectation Step 2 of 3");
+		assert.equal(named(html), "Step 2 of 3, Gradient as an expectation");
 		assert.match(html, /class="shrink-0 font-count[^"]*">Step 2 of 3</, "the count keeps the count font");
-		assert.equal([...html.matchAll(/class="block h-1\.5 min-w-0 flex-1/g)].length, 3, "one bar segment per step");
+		assert.equal([...html.matchAll(/class="block h-\[5px\] min-w-0 flex-1/g)].length, 3, "one block per step");
 		assert.doesNotMatch(html, /plan-step|<ol/);
 	});
 
 	it("homework: the open problem and its title, the title dropped when it is only the number, and a done count with nothing open", () => {
-		assert.equal(line(renderToStaticMarkup(<PlanRow {...homework} />)), "Problem 2 Step size");
+		const titled = renderToStaticMarkup(<PlanRow {...homework} />);
+		assert.deepEqual([line(titled), named(titled)], ["Step size Problem 2", "Problem 2, Step size"]);
 		const untitled = [...problems, { number: "4", title: "4", text: "…", done: false }];
-		assert.equal(line(renderToStaticMarkup(<PlanRow {...homework} problemList={{ problems: untitled, open: "4", blocked: null }} />)), "Problem 4");
+		assert.equal(named(renderToStaticMarkup(<PlanRow {...homework} problemList={{ problems: untitled, open: "4", blocked: null }} />)), "Problem 4");
 		assert.equal(line(renderToStaticMarkup(<PlanRow {...homework} problemList={{ problems, open: null, blocked: null }} />)), "1 of 3 done");
 	});
 

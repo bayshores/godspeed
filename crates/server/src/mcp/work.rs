@@ -13,7 +13,7 @@ use gs_engine::bridge::{AgentReply, ReplyCall, UNNAMED_HELPER, WaitOptions, Work
 use gs_json::{Json, Obj, json, stringify};
 use gs_services::App;
 use gs_services::spaces::citations::{check_cites, mark_notes};
-use gs_services::turns::every_turn_rules_for;
+use gs_services::turns::{due_today_line_for, every_turn_rules_for};
 
 use super::TERMINAL_CLOSED;
 use super::reply::{failure, result, text_block};
@@ -69,7 +69,8 @@ fn idle(woken: bool, helper: bool) -> Json {
 /// A work item as text blocks: compact JSON naming its conversation, then its instructions and
 /// long message texts as plain text, where line breaks, quotes and LaTeX backslashes need no
 /// escaping. A lesson item without the instructions ends with the learner's rules again, since
-/// the rules at the end of instructions read once fade.
+/// the rules at the end of instructions read once fade. A homework lesson due today ends with
+/// the time now and the time due, which no stored message keeps current.
 fn describe(app: &App, view: &WorkView) -> Vec<String> {
 	let mut envelope = Obj::new();
 	envelope.insert("status", "work");
@@ -124,8 +125,11 @@ fn describe(app: &App, view: &WorkView) -> Vec<String> {
 		blocks.push(format!("Instructions (your system prompt for this conversation; follow them exactly):\n\n{instructions}"));
 	}
 	blocks.extend(texts);
-	if let Some(lesson) = lesson.filter(|_| instructions.is_none()) {
-		blocks.push(every_turn_rules_for(app, &lesson));
+	if let Some(lesson) = &lesson {
+		if instructions.is_none() {
+			blocks.push(every_turn_rules_for(app, lesson));
+		}
+		blocks.extend(due_today_line_for(app, lesson));
 	}
 	blocks
 }
@@ -327,13 +331,32 @@ mod tests {
 		std::fs::create_dir_all(dir.join("data")).unwrap();
 		let app = App::new(gs_base::config::Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.clone()), None);
 		let lesson = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
-		let shape = "One idea per reply, at most four short lines, then his move.";
-		assert_eq!(describe(&app, &view(&lesson, None)).last().map(String::as_str), Some(shape), "no rules: the shape alone");
-		app.stores.settings.write_settings(&json!({ "agent": { "rules": { "voice": ["Short."] } } })).unwrap();
-		assert_eq!(describe(&app, &view(&lesson, None)).last().map(String::as_str), Some(format!("His rules, every turn (they win):\n- Short.\n{shape}").as_str()));
+		let shape = "One idea per reply, at most four short lines, then his move. A worked example: one short line per step.";
+		let figure = "Your answer has a layout (a grid, a graph, a curve, forces, a structure, a tree): this reply carries a `visual`. Never describe what a figure would show.";
+		assert_eq!(describe(&app, &view(&lesson, None)).last().map(String::as_str), Some(format!("{shape}\n{figure}").as_str()), "no rules: the shape and the line on drawing");
+		app.stores.settings.write_settings(&json!({ "agent": { "rules": { "voice": ["Short."] }, "tools": { "visual": false } } })).unwrap();
+		assert_eq!(describe(&app, &view(&lesson, None)).last().map(String::as_str), Some(format!("His rules, every turn (they win):\n- Short.\n{shape}").as_str()), "figures switched off: no line on drawing");
 		let first = describe(&app, &view(&lesson, Some("The instructions.")));
 		assert!(first.last().unwrap().starts_with("Instructions"), "the instructions already end with the rules");
 		assert_eq!(describe(&app, &view("job_1", None)).len(), 1, "a background task gets none");
+		let _ = std::fs::remove_dir_all(&dir);
+	}
+
+	#[test]
+	fn a_homework_lesson_ends_with_the_clock_only_on_the_day_it_is_due() {
+		let dir = std::env::temp_dir().join(format!("gs-work-clock-{}", gs_base::ids::uuid()));
+		std::fs::create_dir_all(dir.join("data")).unwrap();
+		let app = App::new(gs_base::config::Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.clone()), None);
+		let space = app.stores.spaces.create_space(&json!({ "name": "CSE 21" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let lesson_due = |date: &str| {
+			let deadline = app.stores.spaces.add_deadline(&space, &json!({ "name": "HW 7", "kind": "homework", "date": date, "time": "23:59" })).unwrap()["id"].as_str().unwrap().to_owned();
+			app.stores.chats.create_chat("Work on HW 7", Some("homework"), Some(&space), Some(&deadline), &[]).unwrap()["id"].as_str().unwrap().to_owned()
+		};
+		let today = lesson_due(&gs_core::spaces::today_note::local_day(clock::now_ms()));
+		let last = |lesson: &str, instructions| describe(&app, &view(lesson, instructions)).pop().unwrap();
+		assert!(last(&today, None).starts_with("Now ") && last(&today, None).ends_with("; due 11:59 PM."), "{}", last(&today, None));
+		assert!(last(&today, Some("The instructions.")).ends_with("; due 11:59 PM."), "a full item has it too");
+		assert!(!last(&lesson_due("2099-01-15"), None).contains("; due "), "another day: the rules alone");
 		let _ = std::fs::remove_dir_all(&dir);
 	}
 

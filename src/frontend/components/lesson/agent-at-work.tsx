@@ -14,8 +14,8 @@ import { deskReading, deskRows, deskStack, type DeskRow, type DeskState } from "
  * what the teacher does; under it, its plan or its steps in the server's words, the current one on
  * a tile where the pencil writes, and under them a card for each thing it waits for the learner to
  * allow; beside them, the files it works from as a stack of paper, the one it reads in front.
- * `foot` rests under it: Stop and the lines typed to the teacher that wait for it. With no files
- * the rows stand alone in the middle of the sheet.
+ * `foot` rests under it: the lines typed to the teacher that wait for it. With no files the rows
+ * stand alone in the middle of the sheet.
  */
 export function AgentAtWork({ state, head, work, arrive, foot }: { state: DeskState; head: string | null; work: LessonWork; arrive: Arrive; foot: ReactNode }) {
 	// Each desk's own arrival slots, so the next turn's desk steps in again.

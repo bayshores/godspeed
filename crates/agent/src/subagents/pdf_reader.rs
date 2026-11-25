@@ -1,5 +1,5 @@
 //! The pdf job's agent. It reads a PDF on
-//! the teacher's behalf. The loop is hand-rolled like the visual maker's, because rendered pages
+//! the teacher's behalf. The loop is hand-rolled, because rendered pages
 //! are shown to this agent's eyes, never delivered onward.
 //!
 //! The prompt is the pdf-reader reading doctrine: triage with pdf_info first, then by size: short
@@ -156,6 +156,7 @@ pub async fn run_pdf_reader_agent(path: &str, question: &str, pdf: &Pdf, keeper:
 	let session_id = ids::uuid();
 	let name = pdf_path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
 	opts.bridge.label_conversation(&session_id, &format!("PDF reading: {name}"));
+	opts.bridge.mark_awaited(&session_id);
 	let asked = if question.is_empty() { "(no question — give a structural overview)" } else { question };
 	let prompt = [&format!("PDF path: {shown}"), &format!("Question (what the teacher needs from this document): {asked}"), "", "Read the document per your doctrine, then produce your final brief in the required format."].join("\n");
 	reader.messages.push(user_text(&prompt));

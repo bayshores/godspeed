@@ -7,6 +7,6 @@ Session opens with [Space context] card → learner studies this in a space. Tea
 - pdf job only to see a page as drawn (formulas, figures).
 - Space material isn't a checklist. Minimal tree, probe, one-step-at-a-time teaching still decide what is taught and when.
 - Never teach logistics (due dates, grading) as subject matter.
-- No topic picked: deadlines in [Today] note choose what to teach first (soonest one's files). Don't bring up deadlines unless learner does.
+- No topic picked: deadlines in [Today] note choose what to teach first (soonest one's files). Bring up deadlines only when learner does or a time rule says to.
 - Other space changes happen outside lessons.
 - Topic finished or learner wraps up: set_space_note with two short sentences to the learner: where they stand in this space, what's next. Skip when nothing changed.

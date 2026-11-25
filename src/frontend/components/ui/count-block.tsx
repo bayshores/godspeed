@@ -10,6 +10,14 @@ const SIZES = {
 	list: { box: "w-24", count: "text-[34px] leading-[1.2]", unit: "text-base" },
 };
 
+/** A list row with a block at its left. `BLOCK_ROW_BOX` goes on the row, whose width decides for every row of the list alike:
+ *  under 640 points the keys (`BLOCK_ROW_KEYS`) sit under the words (`BLOCK_ROW_WORDS`), at the row's end, so a name is never
+ *  squeezed by its keys. `BLOCK_ROW` is the part beside the block. */
+export const BLOCK_ROW_BOX = "@container/row";
+export const BLOCK_ROW = "flex min-w-0 flex-1 flex-col justify-center gap-x-(--lh-inset) gap-y-2.5 px-(--lh-inset) py-3 @min-[640px]/row:flex-row @min-[640px]/row:items-center";
+export const BLOCK_ROW_WORDS = "flex min-w-0 flex-col @min-[640px]/row:flex-1";
+export const BLOCK_ROW_KEYS = "flex shrink-0 items-center gap-2.5 self-end @min-[640px]/row:self-auto";
+
 /**
  * The block at a row's left: a big count over its unit ("6" over "days"),
  * on the space's color. `pale` washes the color out, for a row that can

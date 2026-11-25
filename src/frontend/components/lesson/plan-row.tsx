@@ -165,19 +165,17 @@ function StepsRow({
 	const line = foldedLine(steps, onPick !== null);
 	return (
 		<div className="flex min-w-0 shrink-0 flex-col">
-			<button type="button" data-testid="plan-fold" aria-expanded={open} onClick={onToggle} className="group flex min-w-0 items-center gap-4 text-left text-[15px] leading-snug">
-				<span className="flex min-w-0 items-baseline gap-2.5">
-					<span className="shrink-0 font-count text-ink-2 group-hover:text-ink">{line.count}</span>
-					{/* Unfolded, the row below names the step. */}
-					{!open && line.name && <span className="min-w-0 truncate text-ink">{line.name}</span>}
-				</span>
+			{/* Folded, the line is its blocks across the page and the count at their end. Unfolded, the row below names the steps. */}
+			<button type="button" data-testid="plan-fold" aria-expanded={open} aria-label={open ? undefined : [line.count, line.name].filter(Boolean).join(", ")} onClick={onToggle} className="group flex min-w-0 items-center gap-4 text-left leading-none">
 				{!open && (
-					<span aria-hidden className="ml-auto flex shrink-0 gap-[3px]" style={{ width: Math.min(320, Math.max(168, n * 24)) }}>
+					<span aria-hidden className="flex min-w-0 flex-1 gap-1">
 						{steps.map((s) => (
-							<span key={s.key} className={cn("block h-1.5 min-w-0 flex-1", TONE[s.tone])} style={s.tone === "current" ? { background: color } : undefined} />
+							<span key={s.key} className={cn("block h-[5px] min-w-0 flex-1", TONE[s.tone])} style={s.tone === "current" ? { background: color } : undefined} />
 						))}
 					</span>
 				)}
+				{!open && line.name && <span className="max-w-[45%] min-w-0 truncate text-[15px] text-ink-2 group-hover:text-ink">{line.name}</span>}
+				<span className="shrink-0 font-count text-[18px] text-ink-2 group-hover:text-ink">{line.count}</span>
 				<PixelIcon name="chevron" className={cn("h-2.5 shrink-0 text-ink-2 transition-transform duration-(--lh-dur) ease-(--lh-ease-out) group-hover:text-ink", open ? "ml-auto -rotate-90" : "rotate-90")} />
 			</button>
 			{fold.mounted && (

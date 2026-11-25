@@ -89,7 +89,7 @@ describe("upgraded KaTeX rendering on real question and practice surfaces", () =
 			for (const raw of [`$${formula}$`, `\\(${formula}\\)`, `$$\n${formula}\n$$`, `\\[\n${formula}\n\\]`]) {
 				for (const element of [
 					<MessageResponse mode="static">{raw}</MessageResponse>,
-					<QuestionDock toolName="ask_user_question" toolCallId="security_question" input={{ question: raw }} onSubmit={() => {}} onReady={() => {}} boxText="" onLeaveRows={() => {}} />,
+					<QuestionDock toolName="ask_user_question" toolCallId="security_question" input={{ question: raw }} onSubmit={() => {}} onReady={() => {}} tag={null} onSkip={() => {}} boxText="" onLeaveRows={() => {}} />,
 					problemPane({ statement: raw }),
 				]) {
 					const html = renderToStaticMarkup(element);
@@ -105,7 +105,7 @@ describe("upgraded KaTeX rendering on real question and practice surfaces", () =
 	}
 	it("preserves escaped currency and code on the question dock and the open problem pane", () => {
 		const raw = "Costs \\$5 and \\$10. `" + clean + "`\n\n```text\n" + doubled + "\n```";
-		for (const element of [problemPane({ statement: raw }), <QuestionDock toolName="ask_user_question" toolCallId="security_code" input={{ question: raw }} onSubmit={() => {}} onReady={() => {}} boxText="" onLeaveRows={() => {}} />]) {
+		for (const element of [problemPane({ statement: raw }), <QuestionDock toolName="ask_user_question" toolCallId="security_code" input={{ question: raw }} onSubmit={() => {}} onReady={() => {}} tag={null} onSkip={() => {}} boxText="" onLeaveRows={() => {}} />]) {
 			const html = renderToStaticMarkup(element);
 			assert.deepEqual(math(html).annotations, []);
 			assert.ok(parseHTML(html).document.firstElementChild?.textContent?.includes("$5 and $10"));

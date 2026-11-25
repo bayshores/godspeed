@@ -23,6 +23,7 @@ import {
 	ASKED_FIRST,
 	ASKED_FIRST_TOPIC,
 	CODE_CHOICES_TOPIC,
+	CODE_WRITE_TOPIC,
 	CONCLUDED_TOPIC,
 	DISCARDED_TOPIC,
 	EXPLAINED_TOPIC,
@@ -314,10 +315,11 @@ export async function seed(dataDir, page, log) {
 	const twoSheets = await startLesson(TWO_SHEETS_TOPIC);
 	const askedFirst = await startLesson(ASKED_FIRST_TOPIC);
 	const codeChoices = await startLesson(CODE_CHOICES_TOPIC);
+	const codeWrite = await startLesson(CODE_WRITE_TOPIC);
 	const turnStates = { explained: await startLesson(EXPLAINED_TOPIC), concluded: await startLesson(CONCLUDED_TOPIC), skipped: await startLesson(SKIPPED_TOPIC), discarded: await startLesson(DISCARDED_TOPIC), lastTopic: await startLesson(LAST_TOPIC) };
 
 	/** Every lesson made, so the seed can wait for their turns to end. */
-	const lessonIds = [lessonId, homeworkOpen, homeworkPrinted, homeworkFirst, homeworkMany, filesLesson, written, ...studied, ...open, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, ...Object.values(turnStates)];
+	const lessonIds = [lessonId, homeworkOpen, homeworkPrinted, homeworkFirst, homeworkMany, filesLesson, written, ...studied, ...open, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, codeWrite, ...Object.values(turnStates)];
 
 	// Answer every item until the queue stays empty for two teacher and two helper waits in a row.
 	// godspeed's own jobs (the graph, the space check, sheets and mocks) are work items; an empty
@@ -378,7 +380,7 @@ export async function seed(dataDir, page, log) {
 		const quiz = await lastCall(chatId, "quiz");
 		const { question, options, correctAnswer } = quiz.arguments;
 		const index = options.findIndex((option) => (option.value ?? option.label) === correctAnswer) + 1;
-		const answer = { kind: "quiz", tool: "quiz", questionText: question, dontKnow: false, options: options.map((option, at) => ({ index: at + 1, label: option.label })), answers: [{ label: correctAnswer, value: correctAnswer, index }], correct: true, answeredAt: new Date().toISOString() };
+		const answer = { kind: "quiz", tool: "quiz", questionText: question, dontKnow: false, options: options.map((option, at) => ({ index: at + 1, label: option.label })), answers: [{ label: correctAnswer, value: correctAnswer, index }], correctIndices: [index], correct: true, answeredAt: new Date().toISOString() };
 		await say(chatId, { type: "answer", toolCallId: quiz.id, answer });
 	};
 	// The learner answers the concluded lesson's problem, skips the skipped one's quiz, answers the last-topic one's quiz right and drops the discarded one's problem, as the window's Skip and Discard do.
@@ -449,5 +451,5 @@ export async function seed(dataDir, page, log) {
 		if (tries > 20) throw new Error("Lab Algebra's facts were never sorted into topics");
 		await drain();
 	}
-	return { vault, ...turnStates, quizAnswered: studied[0], sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
+	return { vault, ...turnStates, quizAnswered: studied[0], sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, codeWrite, pending, deadline: ids.deadline, homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
 }

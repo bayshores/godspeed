@@ -60,7 +60,7 @@ function askQD(): QuestionData {
 	};
 }
 
-const noop = { onSubmit: () => {}, onReady: () => {}, boxText: "", onLeaveRows: () => {} };
+const noop = { tag: null, onSkip: () => {}, onSubmit: () => {}, onReady: () => {}, boxText: "", onLeaveRows: () => {} };
 
 function renderDock(props: {
 	toolName: "quiz" | "probe" | "ask_user_question" | "explain" | "recall";
@@ -190,8 +190,8 @@ describe("render smoke tests", () => {
 			input: { question: "q?", options: JSON.stringify([{ label: "a" }, { label: "b" }]) } as never,
 		});
 		assert.ok(html.includes('data-testid="malformed-question"'));
-		assert.match(html, /This question came through broken\. Skip it to go on\./);
-		assert.ok(!html.includes('data-testid="skip-question"'), "the way out is the button beside Your turn");
+		assert.match(html, /This question came through broken\./);
+		assert.ok(html.includes('data-testid="skip-broken-question"'), "its own key skips it, since it has no answer to submit");
 	});
 
 	it("text-mode asks show the question alone; the answer is typed in the lesson's box", () => {
@@ -208,12 +208,12 @@ describe("render smoke tests", () => {
 		const answer = buildAnswer(quizQD(), { values: ["Venus"] });
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} />);
 		assert.match(html, /data-testid="answer-result"[^>]*>.*Wrong/, "the verdict chip");
-		assert.match(html, /data-testid="answer-kind"[^>]*>Quiz/, "the kind");
-		// The details sit behind the Why toggle — never center stage.
-		assert.match(html, /data-testid="answer-toggle"[^>]*>Why</);
+		// The details sit behind the line's key, never center stage.
+		assert.match(html, /data-testid="answer-toggle"[^>]*aria-expanded="false"[^>]*aria-label="Why"/);
 		assert.ok(!html.includes("innermost"), "explanation hidden until opened");
-		assert.ok(!html.includes("tucked-explanation"));
+		assert.ok(!html.includes("tucked-explanation") && !html.includes("answer-kind"), "one line until opened");
 		const open = renderToStaticMarkup(<AnsweredCard answer={answer} defaultOpen />);
+		assert.match(open, /data-testid="answer-kind"[^>]*>Quiz/, "opened: the kind");
 		assert.ok(open.includes("tucked-explanation") && open.includes("innermost"), "opened: the explanation");
 		// Glyph-shaped SVG marks — pinned via data-mark.
 		assert.ok(open.includes('data-mark="check"') && open.includes('data-mark="x"'));
@@ -223,7 +223,7 @@ describe("render smoke tests", () => {
 		const pick = (html: string) => [...html.matchAll(/data-testid="answered-pick"[^>]*>([\s\S]*?)<\/div>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, ""));
 		const right = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(quizQD(), { values: ["Mercury"] })} />);
 		assert.deepEqual(pick(right), ["Mercury"]);
-		assert.ok(right.indexOf("answered-pick") > right.indexOf("Which planet"), "under the question");
+		assert.ok(right.indexOf("answered-pick") > right.indexOf("Which planet"), "after the question, on its line");
 		const wrong = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(quizQD(), { values: ["Venus"] })} />);
 		assert.deepEqual(pick(wrong), ["Venus"]);
 		assert.doesNotMatch(wrong, /Mercury/, "the right answer waits behind Why");
@@ -233,10 +233,10 @@ describe("render smoke tests", () => {
 
 	it("AnsweredCard shows the confidence level on quiz answers", () => {
 		const answer = buildAnswer(quizQD(), { values: ["Venus"], confidence: 80 });
-		const html = renderToStaticMarkup(<AnsweredCard answer={answer} />);
+		const html = renderToStaticMarkup(<AnsweredCard answer={answer} defaultOpen />);
 		assert.match(html, /data-testid="answered-confidence"[^>]*>, sure 4 of 5</);
 		// Old-grid answers show at their nearest level (70% → 3).
-		const old = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(quizQD(), { values: ["Venus"], confidence: 70 })} />);
+		const old = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(quizQD(), { values: ["Venus"], confidence: 70 })} defaultOpen />);
 		assert.match(old, /sure 3 of 5/);
 		// It is a RECORD, not a control.
 		assert.ok(!html.includes('type="range"') && !html.includes("confidence-meter"));
@@ -290,7 +290,7 @@ describe("render smoke tests", () => {
 
 	it("AnsweredCard names its kind and not its step, which the sheet's tab says", () => {
 		const answer = buildAnswer(quizQD(), { values: ["Mercury"] });
-		const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={{ ...quizInput, nodeId: "n2" }} />);
+		const html = renderToStaticMarkup(<AnsweredCard answer={answer} input={{ ...quizInput, nodeId: "n2" }} defaultOpen />);
 		assert.match(html, /data-testid="answer-kind"[^>]*>Quiz</);
 		assert.match(html, />Right</);
 	});
@@ -501,7 +501,7 @@ describe("probe-phase naming: Warm-up/Recall labels", () => {
 			committedAnswer: "Mercury — closest orbit.",
 			explanation: "Mercury, always Mercury.",
 		};
-		const html = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: ["mercury"] }, "probe")} />);
+		const html = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: ["mercury"] }, "probe")} defaultOpen />);
 		assert.match(html, /Warm-up/);
 		assert.ok(!html.includes(">Quiz<"), "not the teach label");
 	});
@@ -514,7 +514,7 @@ describe("probe-phase naming: Warm-up/Recall labels", () => {
 			options: [],
 			committedAnswer: "It ruled out the luminiferous aether.",
 		};
-		const html = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(recallQD, { text: "A hand-wave." }, "recall")} />);
+		const html = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(recallQD, { text: "A hand-wave." }, "recall")} defaultOpen />);
 		assert.match(html, /Recall/);
 		assert.ok(!html.includes(">Explain<"), "not the teach label");
 	});
@@ -542,11 +542,12 @@ describe("predict vs check rendering", () => {
 		const qd: QuestionData = { ...quizQD(), questionType: "predict" };
 		const answer = buildAnswer(qd, { values: ["Venus"] }); // wrong on purpose
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} />);
-		assert.ok(html.includes("Your prediction"), "the kind distinguishes the card");
 		assert.ok(!html.includes('data-testid="answer-result"'), "a guess is never marked right or wrong");
 		assert.ok(!html.includes("innermost"), "the explanation is not center stage");
 		assert.ok(html.includes('data-testid="answer-toggle"'), "it sits behind the toggle");
-		assert.ok(renderToStaticMarkup(<AnsweredCard answer={answer} defaultOpen />).includes("tucked-explanation"));
+		const open = renderToStaticMarkup(<AnsweredCard answer={answer} defaultOpen />);
+		assert.ok(open.includes("Your prediction"), "opened, the kind distinguishes the card");
+		assert.ok(open.includes("tucked-explanation"));
 	});
 
 	it("a missed plain guess names the right answer; a right one adds nothing", () => {

@@ -82,8 +82,8 @@ export function PluginsSection() {
 	const busy = running !== null;
 	return (
 		<>
-			<div className="flex items-start gap-(--lh-gap)">
-				<Pane aria-label="Plugins" data-testid="plugins-list" className="flex w-[260px] shrink-0 flex-col p-2">
+			<div className="flex flex-col gap-(--lh-gap) @[760px]/page:flex-row @[760px]/page:items-start">
+				<Pane aria-label="Plugins" data-testid="plugins-list" className="flex shrink-0 flex-col p-2 @[760px]/page:w-[260px]">
 					{plugins.map((p) => {
 						const on = !sheetOpen && p === picked;
 						const off = "manifest" in p && !p.enabled;

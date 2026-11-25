@@ -70594,7 +70594,7 @@
 				"problems": [],
 				"topics": []
 			},
-			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09.\nIts assignment is the space file HW5.pdf (file id f_1).\nTrack record on its topics: none yet.\nNo problems are posted yet. Read the assignment and post them all with post_problems first."
+			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09.\nIts assignment is the space file HW5.pdf (file id f_1).\nTrack record on its topics: none yet, so every problem is Teach first.\nWhen this lesson started: no problems were posted. Read the assignment and post them all with post_problems first."
 		}
 	},
 	{
@@ -70645,7 +70645,7 @@
 					}
 				]
 			},
-			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09 23:59.\nNo assignment file is attached yet. Find it in the space files (search_space_files) and attach it with update_space_deadline (space_id spc_test_0000aaaa, deadline_id ddl_hw5, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.\nTrack record on its topics. Open right away: Logic, Counting.\nIts problems, posted before:\n- 1: Binary search (done)\nNext is the first one not done unless the learner picks another."
+			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09 23:59.\nWhen this lesson started: no assignment file was attached. Find it in the space files (search_space_files) and attach it with update_space_deadline (space_id spc_test_0000aaaa, deadline_id ddl_hw5, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.\nTrack record on its topics. Open right away: Logic, Counting.\nIts problems, posted before:\n- 1: Binary search (done)\nNext is the first one not done unless the learner picks another."
 		}
 	},
 	{

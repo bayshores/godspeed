@@ -57,15 +57,17 @@ export function problemInputForConclude(
  *  conclude call or a dismissal marker deactivates. The ack result at pose
  *  time does NOT (the problem stays on screen through nudges; the
  *  panel's subject is the call, not a dangling result). `details` is the
- *  ack's, where a problem printed in a file carries its piece. */
+ *  ack's, where a problem printed in a file carries its piece. `sent` says
+ *  the learner has sent something since the problem was posed. */
 export function activeProblemOf(
 	messages: readonly LhMessage[],
-): { toolCallId: string; input: unknown; details: unknown } | null {
+): { toolCallId: string; input: unknown; details: unknown; sent: boolean } | null {
 	// HONEST ACTIVATION:
 	// calls count only through their RESULTS — a problem activates on its
 	// clean ack, a conclude frees on its clean ack; errored and dangling
 	// calls are skipped ("either it goes through or it doesn't").
 	const clean = cleanToolCalls(messages);
+	let sent = false;
 	for (let mi = messages.length - 1; mi >= 0; mi--) {
 		const m = messages[mi]!;
 		const role = (m as { role?: string }).role;
@@ -74,6 +76,7 @@ export function activeProblemOf(
 			if (marker.customType === "problem-dismissed") return null;
 			continue;
 		}
+		if (role === "user") sent = true;
 		if (role === "assistant") {
 			const assistant = m as AssistantMessage & { id: string };
 			for (let bi = assistant.content.length - 1; bi >= 0; bi--) {
@@ -84,7 +87,7 @@ export function activeProblemOf(
 					continue; // errored/dangling conclude: the free never happened
 				}
 				if (block.name !== PRACTICE_PROBLEM_TOOL) continue;
-				if (clean.has(block.id)) return { toolCallId: block.id, input: block.arguments, details: clean.get(block.id) };
+				if (clean.has(block.id)) return { toolCallId: block.id, input: block.arguments, details: clean.get(block.id), sent };
 				// errored/dangling pose — it did not go through; keep scanning
 			}
 			continue;

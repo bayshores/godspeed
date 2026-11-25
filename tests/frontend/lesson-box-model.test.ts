@@ -1,4 +1,4 @@
-/** The lesson's box: its size, keys, Enter, the way out and the Stuck? keys per state. */
+/** The lesson's box: its keys, Enter, the way out and the Stuck? keys per state. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { lessonBox, lessonIdeas, questionTurn, type BoxTurn } from "../../src/frontend/components/lesson/lesson-box-model.ts";
@@ -39,10 +39,8 @@ describe("lessonBox, a problem", () => {
 		assert.equal(empty.placeholder, "Your work or a question");
 		assert.deepEqual(empty.keys, [{ action: "send", label: "Send", filled: false, disabled: true }]);
 		assert.equal(empty.enter, null);
-		assert.equal(empty.exit, "discard");
 		assert.deepEqual(box({ kind: "problem", picked: false }, { hasText: true }).keys, [{ action: "send", label: "Send", filled: true, disabled: false }]);
 		assert.equal(box({ kind: "problem", picked: false }, { hasFiles: true }).enter, "send", "a picture alone is work");
-		assert.equal(box({ kind: "problem", picked: false }, { busy: true }).exit, "discard");
 	});
 
 	it("a pick among the problem's choices is enough to send", () => {
@@ -72,10 +70,8 @@ describe("lessonBox, nothing waiting", () => {
 	it("one key that asks the teacher, by its name; no way out and no Stuck? keys", () => {
 		const empty = box({ kind: "ask", nextKey: false });
 		assert.equal(empty.placeholder, "Your question");
-		assert.equal(empty.size, "line");
 		assert.deepEqual(empty.keys, [{ action: "send", label: "Ask Teacher", filled: false, disabled: true }]);
 		assert.equal(empty.enter, null);
-		assert.equal(empty.exit, null);
 		assert.equal(empty.help, null);
 		assert.equal(empty.attach, true);
 		assert.equal(send(box({ kind: "ask", nextKey: false }, { teacher: "Marco" })).label, "Ask Marco");
@@ -154,7 +150,6 @@ describe("lessonBox, a question", () => {
 		assert.equal(asking.enter, "send");
 		assert.deepEqual([send(asking).filled, submit(asking).filled], [true, false], "the bright key is the one Enter presses");
 		assert.deepEqual([send(empty).filled, submit(empty).filled], [false, true]);
-		assert.equal(asking.exit, "skip", "the question stays open");
 		const busy = box({ kind: "choice", picked: false }, { hasText: true, busy: true });
 		assert.equal(send(busy).disabled, true, "a question beside the open one waits for the teacher");
 		assert.equal(busy.enter, null);
@@ -163,7 +158,6 @@ describe("lessonBox, a question", () => {
 		assert.equal(submit(picked).disabled, false);
 		assert.equal(send(picked).disabled, false, "the words can still be asked instead");
 		assert.equal(picked.enter, "submit");
-		assert.equal(picked.exit, "skip");
 		assert.equal(send(box({ kind: "choice", picked: true })).disabled, true);
 	});
 
@@ -184,23 +178,6 @@ describe("lessonBox, a question", () => {
 		assert.equal(submit(view).disabled, true);
 		assert.equal(send(view).disabled, true);
 		assert.equal(view.enter, null);
-		assert.equal(view.exit, "skip");
-	});
-});
-
-describe("lessonBox, the box's size", () => {
-	const quiz = { question: "q", options: [{ label: "a" }, { label: "b" }], correctAnswer: "a", explanation: "e" };
-
-	it("one line where the text is optional: choices and code", () => {
-		assert.equal(box(questionTurn("quiz", quiz, false)).size, "line");
-		assert.equal(box(questionTurn("ask_user_question", { question: "q", options: [{ label: "a" }, { label: "b" }] }, false)).size, "line", "an ask's own answer");
-		assert.equal(box(questionTurn("write_code", { question: "q" }, true)).size, "line");
-	});
-
-	it("three lines where the text is the answer or the work", () => {
-		assert.equal(box(questionTurn("explain", { question: "why?", correctAnswer: "because" }, false)).size, "lines");
-		assert.equal(box(questionTurn("ask_user_question", { question: "what next?" }, false)).size, "lines", "an open ask");
-		assert.equal(box({ kind: "problem", picked: false }).size, "lines");
 	});
 });
 
@@ -213,7 +190,6 @@ describe("lessonBox, the opener the app posed", () => {
 
 	it("keeps Skip question while a turn runs; Submit waits for the teacher", () => {
 		const view = box(questionTurn("quiz", quiz, true, "opener"), { busy: true, hasText: true });
-		assert.equal(view.exit, "skip");
 		assert.equal(submit(view).disabled, true);
 		assert.equal(box(questionTurn("quiz", quiz, false, "opener"), { busy: true }).enter, null);
 	});
@@ -238,7 +214,6 @@ describe("lessonBox, a question from earlier", () => {
 		const busy = box(questionTurn("quiz", quiz, true, "review"), { busy: true });
 		assert.equal(submit(busy).disabled, false);
 		assert.equal(busy.enter, "submit");
-		assert.equal(busy.exit, "skip");
 		assert.equal(submit(box(questionTurn("quiz", quiz, false, "review"), { busy: true })).disabled, true, "nothing picked");
 	});
 });

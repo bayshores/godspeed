@@ -7,6 +7,7 @@ use gs_base::clock;
 use gs_core::messages::input_events::{ChatInput, TurnInput};
 use gs_core::messages::native_messages::new_user_steer;
 use gs_core::messages::role::Role;
+use gs_core::spaces::today_note::local_day;
 use gs_core::study::reply_nudges::{LAST_REPLY_LEAD, Nudge, curve_refusal};
 use gs_json::{Json, json};
 use gs_runtime::Runtime;
@@ -140,8 +141,49 @@ async fn a_question_ends_the_turn_and_the_next_turn_goes_on_with_what_is_new() {
 	let sends = fx.sends();
 	assert!(sends[0].contains("Teach me sets"));
 	assert!(sends[1].contains("why?") && !sends[1].contains("Teach me sets"), "only what is new: {}", sends[1]);
-	assert!(sends[1].ends_with("One idea per reply, at most four short lines, then his move."), "his rules come last: {}", sends[1]);
+	assert!(sends[1].ends_with("One idea per reply, at most four short lines, then his move. A worked example: one short line per step."), "his rules come last: {}", sends[1]);
 	assert_eq!(fx.replies(), ["One check first.", "Unions, then."]);
+}
+
+/// A figure the teacher draws is stored with its svg, which the lesson shows, and ends the turn.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_drawn_figure_is_stored_with_its_svg_and_ends_the_turn() {
+	let svg = r#"<svg viewBox="0 0 100 40"><line x1="10" y1="20" x2="90" y2="20" stroke="var(--ink)" stroke-width="2"/></svg>"#;
+	let fx = lesson("session-figure", Some("study"), vec![vec![text("Here it is."), tool("visual", json!({ "svg": svg })), text("never played")]]);
+	fx.say("Draw the number line").await;
+	fx.settled().await;
+	assert_eq!(fx.replies(), ["Here it is."], "the figure ended the turn");
+	let result = fx.messages().into_iter().find(|m| Role::ToolResult.is(m) && m["toolName"].as_str() == Some("visual")).expect("the figure's result is stored");
+	assert_eq!(result["isError"], json!(false), "{result:?}");
+	assert!(result["details"]["svg"].str_or_empty().starts_with("<svg"), "{result:?}");
+}
+
+/// A homework lesson's turns end with the time now and the time due on the day it is due, after
+/// his rules when the session goes on, and never on another day.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_homework_lesson_ends_with_the_clock_only_on_the_day_it_is_due() {
+	let mut fx = lesson("session-due-today", None, vec![vec![text("Problem 1 first.")], vec![text("Good.")], vec![text("Later.")]]);
+	let space = fx.app.stores.spaces.create_space(&json!({ "name": "CSE 21" })).unwrap()["id"].str_or_empty().to_owned();
+	let homework_due = |date: &str| {
+		let deadline = fx.app.stores.spaces.add_deadline(&space, &json!({ "name": "HW 7", "kind": "homework", "date": date, "time": "23:59" })).unwrap()["id"].str_or_empty().to_owned();
+		fx.app.stores.chats.create_chat("Work on HW 7", Some("homework"), Some(&space), Some(&deadline), &[]).unwrap()["id"].str_or_empty().to_owned()
+	};
+	let (today, another_day) = (homework_due(&local_day(clock::now_ms())), homework_due("2099-01-15"));
+	let last_line = |send: &str| send.lines().last().unwrap_or_default().to_owned();
+	fx.chat_id = today;
+	for words in ["Start HW 7", "Done with 1"] {
+		fx.say(words).await;
+		fx.settled().await;
+	}
+	let sends = fx.sends();
+	for send in &sends {
+		assert!(last_line(send).starts_with("Now ") && send.ends_with("; due 11:59 PM."), "{send}");
+	}
+	assert!(sends[1].contains("then his move."), "the rules come before the clock: {}", sends[1]);
+	fx.chat_id = another_day;
+	fx.say("Start").await;
+	fx.settled().await;
+	assert!(!fx.sends()[2].contains("; due "), "another day: no clock: {}", fx.sends()[2]);
 }
 
 #[tokio::test(flavor = "multi_thread")]

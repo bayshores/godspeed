@@ -235,7 +235,7 @@ async fn remove(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -
 	})
 }
 
-/// POST /api/chats/{id}/artifact-ui: saves the learner's invert switch on a demo or figure
+/// POST /api/chats/{id}/artifact-ui: saves the learner's invert switch on a demo
 /// steer. Silent: no wake, no event.
 async fn artifact_ui(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
 	let body = json_body(body).await.unwrap_or(Json::Null);
@@ -247,8 +247,8 @@ async fn artifact_ui(State(app): State<Arc<App>>, Path(id): Path<String>, body: 
 	};
 	let messages = chat["messages"].items();
 	let target = messages.iter().find(|m| m["id"].as_str() == Some(message_id));
-	if !target.is_some_and(|m| matches!(m["details"]["kind"].as_str(), Some("demo" | "visual"))) {
-		return Ok(error(400, "No demo/figure steer with that message id"));
+	if target.is_none_or(|m| m["details"]["kind"].as_str() != Some("demo")) {
+		return Ok(error(400, "No demo steer with that message id"));
 	}
 	app.stores.chats.save_messages(&id, &set_steer_ui_inverted(messages, message_id, inverted))?;
 	Ok(reply::ok())

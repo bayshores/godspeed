@@ -76,19 +76,19 @@ The Graph page's picture (`src/frontend/components/graph/constellation.tsx`) is 
 
 ## Question rows
 
-While a question is open, `src/frontend/components/question-dock.tsx` owns these keys. The rows of a choice problem (`open-problem-pane.tsx`) use the same keys through `use-choice-keys.ts`; there Enter sends and Tab moves to the "Your work" box. They work only when focus is not in a text field, and never with a modifier held.
+While a question is open, `src/frontend/components/question-dock.tsx` owns these keys. The rows of a choice problem (`open-problem-pane.tsx`) use the same keys through `use-choice-keys.ts`; there Enter sends and Tab moves to the field in the lesson's writing row. They work only when focus is not in a text field, and never with a modifier held.
 
 | Key | What it does |
 |---|---|
 | 1 to 9 | Picks that option. Pressed again on a one-answer question, clears the pick. |
 | ↑/↓ | Walk the options. Stops at the ends. |
-| ←/→ | Change the "How sure are you?" level on a quiz, once an answer is picked. |
+| ←/→ | Change the "How sure?" level on a quiz, once an answer is picked. |
 | Space | Acts on the walked row like a click. |
 | Enter | Submits, once a row is walked and there is an answer. |
-| Tab | From the rows, moves focus to the lesson's writing box. With nothing focused, moves focus into the rows. |
+| Tab | From the rows, moves focus to the field in the lesson's writing row. With nothing focused, moves focus into the rows. |
 
-From the writing box, Tab moves on as usual, so it reaches Submit.
+From the field, Tab moves on as usual, so it reaches Submit answer.
 
-## The next key in Your turn
+## The next key in the writing row
 
-With no question or problem open, Enter away from a text field presses "Your turn"'s one key ("Continue", "Next problem", "Start problem N", "Done for today" or "Start again"), also at a stop.
+With no question or problem open, Enter away from a text field presses the next key at the end of the writing row ("Continue", "Next problem", "Start problem N", "Done for today" or "Start again"), also at a stop. Enter in the field submits, asks, sends or saves as `lessonBox` (`lesson-box-model.ts`) says, and makes a new line while it has nothing to do.

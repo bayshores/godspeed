@@ -1,9 +1,10 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { useLitMarker } from "@/frontend/components/lit-marker";
 import { useSpaces } from "@/frontend/components/space-context";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { SpaceDialog, type SpaceDialogMode } from "@/frontend/components/space-dialog";
+import { STRIP, useTabStrip, wheelSideways } from "@/frontend/components/tab-strip";
 import { tabWorkTag } from "@/frontend/components/work/work-model";
 import { cn } from "@/frontend/lib/utils";
 import { BAR_TAB, barTabState } from "./bar-look";
@@ -14,49 +15,8 @@ import { ClosedSpacesMenu } from "./closed-spaces-menu";
  *  last room goes to the ellipsis); past that the tabs scroll. */
 const TAB_NAME_LETTERS = 8;
 
-/** How wide (px) the strip fades out where it cuts tabs off (as in its classes). */
-const FADE = 24;
-
 // The dialog compares its mode by identity: one object for every open.
 const CREATE = { kind: "create" } as const;
-
-/** The tab strip's scroller: which of its ends cut tabs off (`data-cut`, which globals.css fades), and the lit
- *  tab (with the page's crumb) kept in sight as the window narrows or another tab lights. */
-function useTabStrip(selected: string, tabs: number) {
-	const ref = useRef<HTMLDivElement>(null);
-	// Marked on the strip itself, not kept in state: the mark narrows the lit tab's room, so it is
-	// there in the same layout that brings the tab into sight, not a frame later.
-	const measure = useCallback(() => {
-		const el = ref.current;
-		if (!el) return;
-		const start = el.scrollLeft > 1;
-		const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
-		if (start || end) el.dataset.cut = start && end ? "both" : start ? "start" : "end";
-		else delete el.dataset.cut;
-	}, []);
-	useLayoutEffect(() => {
-		const el = ref.current;
-		if (!el) return;
-		const show = () => {
-			const lit = el.querySelector<HTMLElement>("[data-lit]");
-			// Too narrow to keep the lit tab clear of both fades: centered, they fall on its padding.
-			const center = !!lit && lit.offsetWidth + 2 * FADE > el.clientWidth;
-			lit?.scrollIntoView?.({ block: "nearest", inline: center ? "center" : "nearest" });
-		};
-		const reveal = () => {
-			show();
-			measure();
-			// Again, in the room the mark left the lit tab.
-			show();
-		};
-		reveal();
-		const observer = new ResizeObserver(reveal);
-		observer.observe(el);
-		for (const tab of el.children) observer.observe(tab);
-		return () => observer.disconnect();
-	}, [selected, tabs, measure]);
-	return { ref, measure };
-}
 
 /**
  * Home, then one tab per open space, then the + (add a space, reopen a
@@ -70,7 +30,7 @@ export function SpaceTabs({ selected }: { selected: string }) {
 	const { spaces, setActive } = useSpaces();
 	const [dialog, setDialog] = useState<SpaceDialogMode | null>(null);
 	const openSpaces = spaces.filter((s) => !s.closed);
-	const strip = useTabStrip(selected, openSpaces.length);
+	const strip = useTabStrip("[data-lit]", `${selected} ${openSpaces.length}`);
 	const navRef = useRef<HTMLElement>(null);
 	// After the strip has brought the lit tab into sight. A page change slides it too, as the crumb comes or goes.
 	const { pathname } = useLocation();
@@ -90,13 +50,8 @@ export function SpaceTabs({ selected }: { selected: string }) {
 				ref={strip.ref}
 				data-testid="space-tabs-strip"
 				onScroll={strip.measure}
-				onWheel={(e) => {
-					// A mouse wheel only scrolls up and down.
-					if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY;
-				}}
-				className={cn(
-					"lh-tab-strip flex min-w-0 shrink-[9999] scroll-px-6 items-stretch overflow-x-auto [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden",
-				)}
+				onWheel={wheelSideways}
+				className={cn("lh-tab-strip flex shrink-[9999] items-stretch", STRIP)}
 			>
 				{openSpaces.map((c) => {
 					const tag = tabWorkTag(c);

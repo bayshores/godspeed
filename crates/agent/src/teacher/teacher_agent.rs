@@ -30,10 +30,12 @@ const SEPARATOR: &str = "\n\n---\n\n";
 
 const SIDE_TURN_REFUSAL: &str = "A question is already waiting for the learner. Answer the side question in text instead.";
 
-/// The switchable tools each agent's registry carries: demos and figures are teacher-only.
+/// The switchable tools each agent's registry carries: demos are teacher-only, and the prober
+/// draws nothing.
 fn switches(kind: AgentKind) -> &'static [&'static str] {
 	match kind {
-		AgentKind::Prober | AgentKind::Practice | AgentKind::Homework => &["research", "pdf"],
+		AgentKind::Prober => &["research", "pdf"],
+		AgentKind::Practice | AgentKind::Homework => &["research", "visual", "pdf"],
 		AgentKind::Teacher | AgentKind::Study | AgentKind::StudyFiles => &TOGGLEABLE_TOOLS,
 	}
 }

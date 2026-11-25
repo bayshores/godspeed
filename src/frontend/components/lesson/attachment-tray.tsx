@@ -160,7 +160,7 @@ function DraftChip({ file, onRemove }: { file: ChatAttachment; onRemove: () => v
 
 /** "Add pictures or PDFs": opens the file picker. A quiet word with a
  *  plus; `outlined` where it sits in a row of outlined buttons. */
-export function AttachButton({ draft, outlined }: { draft: AttachmentDraft; outlined?: boolean }) {
+export function AttachButton({ draft, outlined, glyph }: { draft: AttachmentDraft; outlined?: boolean; glyph?: boolean }) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	return (
 		<>
@@ -176,10 +176,16 @@ export function AttachButton({ draft, outlined }: { draft: AttachmentDraft; outl
 					e.target.value = "";
 				}}
 			/>
-			<button type="button" data-testid="attach-button" onClick={() => inputRef.current?.click()} className={cn("lh-btn shrink-0", !outlined && "lh-btn-quiet")}>
-				{!outlined && <PixelIcon name="plus" />}
-				Add pictures or PDFs
-			</button>
+			{glyph ? (
+				<button type="button" data-testid="attach-button" aria-label="Add pictures or PDFs" title="Add pictures or PDFs" onClick={() => inputRef.current?.click()} className="lh-press grid size-8 shrink-0 place-items-center text-ink-2 hover:text-ink">
+					<PixelIcon name="plus" />
+				</button>
+			) : (
+				<button type="button" data-testid="attach-button" onClick={() => inputRef.current?.click()} className={cn("lh-btn shrink-0", !outlined && "lh-btn-quiet")}>
+					{!outlined && <PixelIcon name="plus" />}
+					Add pictures or PDFs
+				</button>
+			)}
 		</>
 	);
 }

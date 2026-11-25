@@ -24,4 +24,5 @@ pub mod space_actions;
 mod test_record;
 pub mod topic_done;
 pub mod vault_note;
+pub mod visual;
 pub mod work_plan;

@@ -2,9 +2,10 @@ import type { RefObject } from "react";
 import { useSessionFind } from "@/frontend/components/session-find";
 import type { SessionScrollContext } from "@/frontend/components/session-navigation";
 import { BarFind } from "@/frontend/components/top-bar/bar-find";
+import { cn } from "@/frontend/lib/utils";
 import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { BarActions, BarCrumb, CrumbName } from "@/frontend/components/top-bar/bar-slots";
-import { LessonMore } from "./lesson-more";
+import { LessonMore, type LessonExit } from "./lesson-more";
 import type { LessonUsage } from "./lesson-stats";
 import { pluginWordTestId } from "./plugin-window";
 import { useLessonSpace } from "./use-lesson-space";
@@ -28,6 +29,7 @@ export function LessonBar({
 	usage,
 	scopeRef,
 	scrollContextRef,
+	exit,
 }: {
 	chatId: string;
 	rename: ReturnType<typeof useTitleRename>;
@@ -42,6 +44,8 @@ export function LessonBar({
 	usage: LessonUsage;
 	scopeRef: RefObject<HTMLDivElement | null>;
 	scrollContextRef: RefObject<SessionScrollContext | null>;
+	/** More's first line with a question or a problem waiting. */
+	exit: LessonExit | null;
 }) {
 	useLessonSpace(spaceId);
 	const find = useSessionFind(scopeRef, scrollContextRef);
@@ -71,8 +75,9 @@ export function LessonBar({
 				) : (
 					<>
 						{plugins.words.map((w) => (
-							<button key={w.id} type="button" data-testid={pluginWordTestId(w.id)} aria-pressed={plugins.open === w.id} onClick={() => plugins.onToggle(w.id)} className={barWord(plugins.open === w.id)}>
-								{w.label}
+							<button key={w.id} type="button" data-testid={pluginWordTestId(w.id)} aria-pressed={plugins.open === w.id} onClick={() => plugins.onToggle(w.id)} className={cn(barWord(plugins.open === w.id), "min-w-[5ch] shrink")}>
+								{/* A plugin's name gives way before the words after it reach the clock. */}
+								<span className="truncate">{w.label}</span>
 							</button>
 						))}
 						{findBar}
@@ -86,7 +91,7 @@ export function LessonBar({
 								Cheat sheet
 							</button>
 						)}
-						<LessonMore chatId={chatId} title={rename.title} spaceId={spaceId} usage={usage} onRename={rename.start} />
+						<LessonMore chatId={chatId} title={rename.title} spaceId={spaceId} usage={usage} onRename={rename.start} exit={exit} />
 					</>
 				)}
 			</BarActions>

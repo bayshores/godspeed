@@ -5,7 +5,8 @@ import { CoverageMenuBlock } from "@/frontend/components/extraction-coverage";
 import { dispositionFileName, saveBlob } from "@/frontend/components/artifacts/download";
 
 /**
- * THE LESSON MENU (a Progress row's More button, and the open lesson's More): Rename,
+ * THE LESSON MENU (a Progress row's More button, and the open lesson's More): the way out of a
+ * waiting question or problem (the open lesson only), Rename,
  * Export as Markdown, Move to another space, Lesson stats (the open lesson only), Delete (the destructive
  * action last), then below a gap the extraction coverage block. MenuShell owns
  * placement, focus and arrow keys; the list owns dismissal. From the open
@@ -36,6 +37,7 @@ export function LessonMenu({
 	onDelete,
 	onClose,
 	bar,
+	exit,
 }: {
 	chatId: string;
 	open: boolean;
@@ -47,6 +49,8 @@ export function LessonMenu({
 	onDelete: () => void;
 	onClose: () => void;
 	bar?: boolean;
+	/** The way out of what waits in the open lesson: "Skip question" or "Discard problem". */
+	exit?: { label: string; testId: string; onPick: () => void };
 }) {
 	return (
 		<MenuShell
@@ -57,6 +61,11 @@ export function LessonMenu({
 			hang={bar}
 			menuClass="lh-popup flex w-[250px] flex-col p-1.5 text-[15px]"
 		>
+			{exit && (
+				<button role="menuitem" type="button" data-testid={exit.testId} onClick={exit.onPick} className={`${ITEM} text-ink`}>
+					{exit.label}
+				</button>
+			)}
 			<button role="menuitem" type="button" data-testid="ctx-rename" onClick={onRename} {...(bar && keyShortcutProps("rename-session"))} className={`${ITEM} justify-between gap-2 text-ink`}>
 				Rename
 				{bar && <KeyHint action="rename-session" />}

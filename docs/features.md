@@ -75,14 +75,16 @@ To add a row:
 | Make a cheat sheet | Cheat sheet | `cheat-sheet-empty` | Cheat sheet, not made | teacher | |
 | Open a cheat sheet | Deadline, a lesson | `deadline-cheat-sheet` | | learner | `space/deadline/:id/cheat-sheet` |
 | Cheat sheet beside a lesson | Lesson | `lesson-cheat-sheet` | Lesson with a quiz and the cheat sheet docked | learner | |
-| Write to the teacher in a lesson: a question, or while it writes, what to focus on | Lesson | `composer` | | learner | |
-| The desk: while the teacher works on a reply, one sentence on what it does, its steps (its own web searches and file reads too) and the files it works from as a stack of paper | Lesson | `agent-at-work` | Lesson whose first reply waits for an agent | learner | |
-| The teacher's reply, written into the lesson as it comes, with Stop under it | Lesson | `composer` | | learner | |
+| Write to the teacher in a lesson, in the writing row at the window's foot: a question, or while it writes, what to focus on, with Stop at the row's end | Lesson | `composer` | | learner | |
+| The desk: while the teacher works on a reply, in the lesson text with no box, one sentence on what it does, its steps (its own web searches and file reads too) and the files it works from as a stack of paper | Lesson | `agent-at-work` | Lesson whose first reply waits for an agent | learner | |
+| The teacher's reply, written into the lesson as it comes | Lesson | `composer` | | learner | |
 | Allow or Deny what the teacher wants to run (a command, a file change, a web page), on a card on the desk | Lesson | `agent-at-work` | Lesson whose first reply waits for an agent | teacher | |
-| Stuck keys | Lesson | `help-hint` | | learner | |
+| Stuck keys, over the writing row while a question or problem waits | Lesson | `help-hint` | | learner | |
+| Whole problem: a long problem pinned over the lesson text in a narrow window folds, and one key on its plate opens it and folds it again | Lesson | `turn-whole` | Lesson with a long problem folded over the text | learner | |
+| A figure the teacher draws under its reply, in the theme's colors ("Draw it" asks for one) | Lesson | `lesson-idea` | Homework lesson with a figure under the method | teacher | |
 | Answer a question with the keyboard | Lesson | `question-option` | | learner | `question-focus`, `question-next-row`, `question-prev-row`, `question-pick-row`, `question-submit`, `question-pick-number` |
 | Rename a lesson | Lesson | `lesson-title` | Lesson with a 40-letter title among five open spaces | learner | `rename-session` |
-| Lesson menu: export, move, stats, delete | Lesson, Progress | `lesson-more` | Lesson, its menu | learner | |
+| Lesson menu: skip the waiting question or discard the open problem (its first line, in an open lesson), export, move, stats, delete | Lesson, Progress | `lesson-more` | Lesson, its menu | learner | |
 | Find in a lesson | Lesson | `lesson-find` | Lesson with Find open in the bar | learner | `find` |
 | Document panel | Lesson | `lesson-document` | Lesson on files with the Document panel open | learner | |
 | Attach pictures or PDFs | Lesson | `attach-button` | | learner | |
@@ -105,6 +107,7 @@ To add a row:
 | Add a remembered note | Settings, Teaching | none: only the teacher adds one; you can only delete | | teacher | `remember` |
 | Settings | Menu | `settings-entry` | | learner | `settings`, `open-settings` |
 | Teacher name and sounds | Settings, General | `teacher-name-row` | Settings, General | learner | |
+| Noise: soft brown noise to study to, on and off with one word, hidden while Sounds is off | Top bar | `noise-word` | Home with Sounds on, Noise in the top bar | learner | |
 | Deadline reminders | Settings, General | `deadline-reminders-row` | | learner | |
 | Menu bar countdown | Settings, General | `menu-bar-countdown-row` | | learner | |
 | Updates | Settings, General | `update-check` | | learner | |

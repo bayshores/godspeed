@@ -121,7 +121,7 @@ export function PluginSheet({
 							<span className="max-w-full shrink-0 text-[15px] text-ink-2">
 								{manifest.version} by {manifest.author}
 							</span>
-							<span className="flex shrink-0 items-center gap-2">
+							<span className="flex flex-wrap items-center justify-end gap-2">
 								{openPath && (
 									<button type="button" data-testid="plugin-show-folder" onClick={() => void openPath(folder)} className={QUIET_KEY}>
 										<PixelIcon name="folder" />

@@ -5,13 +5,14 @@ import { CodeEditor } from "./code-editor";
 import { QuestionText } from "./question-parts";
 
 /**
- * A write_code question above the lesson's writing box: the task and the
- * code editor (starting with the teacher's starter code). The writing box
+ * A write_code question above the lesson's writing row: the task and the
+ * code editor (starting with the teacher's starter code), which fills the room left. The writing box
  * under it holds the reasoning. Nothing is graded
  * here: the code goes to the teacher, who grades it in the next reply.
  */
 export function CodeQuestion({
 	toolName,
+	tag,
 	input,
 	onSubmit,
 	initialDraft,
@@ -22,6 +23,8 @@ export function CodeQuestion({
 	ref,
 }: {
 	toolName: string;
+	/** The question's kind in a word, set after its text. */
+	tag: string | null;
 	input: WriteCodeInput;
 	onSubmit: (output: QuestionAnswerData) => void;
 	/** The form as the learner left it (`code` is empty while it is still the starter code). */
@@ -69,9 +72,12 @@ export function CodeQuestion({
 	}));
 
 	return (
-		<div data-testid="question-dock" data-kind="code" className="flex flex-col gap-7">
-			<QuestionText>{input.question}</QuestionText>
-			<CodeEditor initialCode={initialCode} language={language} onChange={setCode} />
+		<div data-testid="question-dock" data-kind="code" className="flex flex-1 flex-col gap-6">
+			<QuestionText tag={tag}>{input.question}</QuestionText>
+			{/* The editor takes the room the page has left (globals.css), and never less than a few lines. */}
+			<div className="flex min-h-[260px] flex-1 flex-col">
+				<CodeEditor initialCode={initialCode} language={language} onChange={setCode} />
+			</div>
 		</div>
 	);
 }

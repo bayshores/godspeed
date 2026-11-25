@@ -91,10 +91,10 @@ const NO_PAGES: ReadonlyMap<string, string> = new Map();
 
 /**
  * THE LESSON: its title and words in the top bar (LessonBar), then one page that scrolls (LessonScroll):
- * the step line, the lesson text's sheet and "Your turn" beside it for the
- * whole lesson (or under it in a small room), with the panel beside both
+ * the step line, the lesson text and the learner's turn (what is asked over
+ * the writing row, beside the text in a wide room), with the panel beside both
  * when one is open: the lesson's document or the cheat sheet. The learner
- * talks to the teacher in "Your turn"'s box; a line typed in the teacher's
+ * talks to the teacher in the writing row's field; a line typed in the teacher's
  * terminal comes here the same way
  * (useTerminalLines). This component owns the lesson's state and
  * wiring; the pieces live in src/frontend/components/lesson/.
@@ -417,6 +417,7 @@ export function Chat({
 	const planEdges = useStableValue(planTree?.edges ?? null);
 	const stepIdsKey = stepBar ? stepBar.steps.map((s) => s.id).join("\n") : "";
 	const stepNumbers = useMemo(() => new Map(stepBar?.steps.map((s, i) => [s.id, i + 1]) ?? []), [stepIdsKey]);
+	const stepNames = useMemo(() => new Map(stepBar?.steps.map((s) => [s.id, s.title]) ?? []), [stepBar]);
 	// Problem numbers (and practice's plan row blocks).
 	const practice = useMemo(() => (kind === "teach" ? null : practiceProgress(messages, activeProblem !== null)), [kind, messages, activeProblem]);
 	const stablePractice = useStableValue(practice);
@@ -533,6 +534,7 @@ export function Chat({
 		line: !openProblem && practice ? `Problem ${practice.blocks.length}` : null,
 		part: openProblem ? (problems?.part ?? null) : null,
 		file: placeDoc ? { document: placeDoc, page: place?.page, first: placeDoc.id === listFileId, onShow: showProblem } : null,
+		sent: activeProblem.sent,
 	};
 
 	// The task he last finished stays beside the text until the lesson goes on from it.
@@ -564,7 +566,6 @@ export function Chat({
 	// While it is shut and the teacher works, a task that streams in waits for the reply to land.
 	const turnPending = open || pending?.appPosed?.kind === "review" ? pending : null;
 	const turnProblem = open ? problem : null;
-	const slim = turnPending === null && stuckLine === null && errorLine === null && !reviewRefused && attachments.files.length === 0;
 	// Where the page last laid "Your turn" out: only beside the text or alone does it keep the finished task,
 	// and the lesson's notes take its place there when they come.
 	const [turnPlace, setTurnPlace] = useState<TurnPlace>("under");
@@ -616,10 +617,17 @@ export function Chat({
 							usage={{ turns, contextTokens, summarizeAt, pricing }}
 							scopeRef={sessionFindScopeRef}
 							scrollContextRef={scrollContextRef}
+							exit={
+								turnPending
+									? { label: "Skip question", testId: "skip-question", onPick: () => setAbortAsk("question") }
+									: turnProblem
+										? { label: "Discard problem", testId: "discard-problem", onPick: () => setAbortAsk("problem") }
+										: null
+							}
 						/>
 						<PluginWindow plugin={openPlugin} context={pluginContext} onClose={closePlugin} />
 						<div className="min-h-0 flex-1">
-							<div ref={sessionFindScopeRef} data-dock={panel ? "" : undefined} className="lh-dots lh-lesson-body relative h-full">
+							<div ref={sessionFindScopeRef} data-dock={panel ? "" : undefined} className="lh-lesson-body relative h-full">
 								<LessonScroll
 									steps={<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} problemList={planProblems} practice={stablePractice} onJump={jumpToAnswer} onPick={openPick} onOpenPlan={overlays.openPlan} />}
 									restKey={[pending?.toolCallId, problem?.toolCallId, problem?.part, atStop?.stopOf].join(" ")}
@@ -629,7 +637,7 @@ export function Chat({
 									shutting={book.shutting}
 									onShut={book.shut}
 									onRest={book.rest}
-									slim={slim}
+									pin={turnProblem !== null && turnPending === null}
 									place={turnPlace}
 									onPlace={setTurnPlace}
 									reading={
@@ -637,6 +645,7 @@ export function Chat({
 										<ReadingPane
 											spaceId={spaceId}
 											stepNumbers={stepNumbers}
+											stepNames={stepNames}
 											echo={echo}
 											messages={messages}
 											phases={phases}
@@ -645,7 +654,6 @@ export function Chat({
 											stoppedEmpty={stoppedEmpty}
 											waitingForAgent={waitingForAgent}
 											work={work}
-											onStop={atStop ? null : abortInFlightTurn}
 											queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
 											arrivalsLive={arrivalsLive}
 											pageMarks={pageMarks}
@@ -671,11 +679,12 @@ export function Chat({
 												problem={turnProblem}
 												problemPicked={problemPicked}
 												onPickProblem={pickProblem}
-												onDiscardProblem={() => setAbortAsk("problem")}
 												next={book.shutting ? null : next}
 												kept={kept}
 												onNext={onNext}
 												busy={busy}
+												onStop={busy && !atStop ? abortInFlightTurn : null}
+												waitingForAgent={waitingForAgent}
 												boxRef={workBoxRef}
 												value={text}
 												onChange={editText}
@@ -692,7 +701,7 @@ export function Chat({
 									}
 								/>
 								{dock.mounted && (
-									<div data-state={dock.state} className={cn("flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap) [grid-area:dock]", !dockThere && "lh-fade")}>
+									<div data-state={dock.state} className={cn("lh-lesson-dock-cell flex min-h-0 pt-(--lh-gap) pr-(--lh-page-side) pb-(--lh-gap)", !dockThere && "lh-fade")}>
 										{lastPanel.current === "document" && shownDoc ? (
 											<DocumentPanel
 												choices={docChoices}

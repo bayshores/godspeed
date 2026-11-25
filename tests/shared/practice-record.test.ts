@@ -149,6 +149,11 @@ describe("activeProblemOf (the conclude-before-next-problem gate's fold)", () =>
 		assert.equal(activeProblemOf(messages)?.toolCallId, "call_p1");
 	});
 
+	it("says whether the learner has sent something since it was posed", () => {
+		assert.equal(activeProblemOf([newUserMessage("start"), ...problemPose()])?.sent, false, "what he sent before it does not count");
+		assert.equal(activeProblemOf([...problemPose(), newUserMessage("stuck at the second step")])?.sent, true);
+	});
+
 	it("a conclude call deactivates", () => {
 		const messages = [...problemPose(), ...concludeCall("solved")];
 		assert.equal(activeProblemOf(messages), null);

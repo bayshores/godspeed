@@ -311,8 +311,9 @@ function FilesPageBody() {
 								{record.files.length > 0 && (
 									<CountBlock color={color} count={String(record.files.length)} unit={record.files.length === 1 ? "file" : "files"} size="card" className="min-h-[96px]" />
 								)}
-								<div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 px-(--lh-inset) py-4">
-									<div className="flex min-w-0 flex-1 flex-col gap-1">
+								{/* The keys drop under the words where the words would be squeezed. */}
+								<div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-x-4 gap-y-2.5 px-(--lh-inset) py-4">
+									<div className="flex min-w-0 flex-1 basis-[240px] flex-col gap-1">
 										{record.files.length > 0 && (
 											<p data-testid="files-summary" className="text-[22px] leading-tight text-ink">
 												{filesSummary(record.files)}

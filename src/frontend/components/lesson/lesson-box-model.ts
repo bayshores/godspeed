@@ -1,7 +1,6 @@
 /**
  * The lesson's box, there for the whole lesson: for each state of "Your
- * turn", the box's size and keys, what Enter does in it, the way out at the
- * end of the title row and the "Stuck?" keys under it.
+ * turn", the box's keys, what Enter does in it and the "Stuck?" keys over it.
  * The learner talks to the teacher here: beside an answer key, the ask key
  * sends the box's words as a question and leaves what waits open. A
  * problem's box takes work and questions alike, plain messages the teacher
@@ -38,23 +37,18 @@ export interface BoxButton {
 
 export interface BoxView {
 	placeholder: string;
-	/** "line": optional text, one line. "lines": text that is the
-	 *  answer or the work, three lines. The keys sit inside the box; both grow to five. */
-	size: "line" | "lines";
 	/** The ask key, then the answer key; a problem and the ask state have one. At most one is filled. */
 	keys: BoxButton[];
 	/** What Enter in the box does; null makes a new line. */
 	enter: BoxAction | null;
-	/** The quiet way out at the end of the title row; none with nothing waiting. */
-	exit: "skip" | "discard" | null;
 	/** Whether what the box sends carries attached files, so the Attach button shows. */
 	attach: boolean;
 	/** The "Stuck?" keys; none with nothing waiting. */
 	help: HelpKeys | null;
 }
 
-/** What the teacher can be asked for in any lesson, and the background job each needs
- *  (Settings switches a job off). */
+/** What the teacher can be asked for in any lesson, and the tool each needs (Settings switches
+ *  a tool off). */
 const LESSON_IDEAS: readonly { line: string; tool: ToggleableTool | null }[] = [
 	{ line: "Draw it", tool: "visual" },
 	{ line: "Show a demo", tool: "demo" },
@@ -63,7 +57,7 @@ const LESSON_IDEAS: readonly { line: string; tool: ToggleableTool | null }[] = [
 ];
 
 /** The "Try asking" lines under the box while nothing waits, each sent as if typed in it.
- *  `tools`: the background jobs' switches from Settings; one not named is on. */
+ *  `tools`: the tools' switches from Settings; one not named is on. */
 export function lessonIdeas(tools: Readonly<Record<string, boolean>>): string[] {
 	return LESSON_IDEAS.filter((i) => i.tool === null || (tools[i.tool] ?? true)).map((i) => i.line);
 }
@@ -108,10 +102,8 @@ export function lessonBox(s: {
 		const canSend = (s.hasText || s.hasFiles || turn.picked) && steers;
 		return {
 			placeholder: "Your work or a question",
-			size: "lines",
 			keys: [{ action: "send", label: "Send", filled: canSend, disabled: !canSend }],
 			enter: canSend ? "send" : null,
-			exit: "discard",
 			attach: true,
 			help: { dontKnow: "send", dontKnowDisabled: s.busy, linesDisabled: s.busy },
 		};
@@ -119,14 +111,12 @@ export function lessonBox(s: {
 	if (turn.kind === "words") {
 		return {
 			placeholder: "One or two sentences",
-			size: "line",
 			keys: [
 				...(turn.leave ? [{ action: "leave" as const, label: turn.leave, filled: false, disabled: false }] : []),
 				{ action: "skip", label: "Skip", filled: false, disabled: false },
 				{ action: "save", label: "Save", filled: turn.ready, disabled: !turn.ready },
 			],
 			enter: turn.ready ? "save" : null,
-			exit: null,
 			attach: false,
 			help: null,
 		};
@@ -137,10 +127,8 @@ export function lessonBox(s: {
 		const canSend = s.hasText && steers;
 		return {
 			placeholder: `Tell ${s.teacher} what to focus on`,
-			size: "line",
 			keys: [{ action: "send", label: "Send", filled: canSend && !turn.nextKey, disabled: !canSend }],
 			enter: canSend ? "send" : null,
-			exit: null,
 			attach: false,
 			help: null,
 		};
@@ -149,10 +137,8 @@ export function lessonBox(s: {
 		const canAsk = (s.hasText || s.hasFiles) && steers;
 		return {
 			placeholder: "Your question",
-			size: "line",
 			keys: [ask(canAsk, canAsk && !turn.nextKey)],
 			enter: canAsk ? "send" : null,
-			exit: null,
 			attach: true,
 			help: null,
 		};
@@ -167,11 +153,9 @@ export function lessonBox(s: {
 	const asksOnEnter = turn.kind === "choice" && !turn.ownAnswer && !turn.picked && canAsk;
 	return {
 		placeholder: turn.kind === "written" || (turn.ownAnswer && !turn.picked) ? "An answer or a question" : "Your reasoning or a question",
-		size: turn.kind === "written" ? "lines" : "line",
 		// The bright key is the one Enter presses.
 		keys: [ask(canAsk, asksOnEnter), { action: "submit", label: "Submit answer", filled: !asksOnEnter, disabled: !canSubmit }],
 		enter: canSubmit ? "submit" : asksOnEnter ? "send" : null,
-		exit: "skip",
 		attach: turn.kind === "written" ? turn.takesFiles : turn.ownAnswer === true && !turn.appPosed,
 		help: { dontKnow: "answer", dontKnowDisabled: !canAnswer, linesDisabled: s.busy },
 	};

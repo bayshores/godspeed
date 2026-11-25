@@ -9,7 +9,7 @@ import { QuestionDock, type QuestionHandle } from "../../src/frontend/components
 import { AnsweredCard } from "../../src/frontend/components/answered-card.tsx";
 import { newAnswerResult, type QuestionAnswerData } from "../../src/shared/core/index.ts";
 
-const noop = { onSubmit: () => {}, onReady: () => {}, boxText: "", onLeaveRows: () => {} };
+const noop = { tag: null, onSkip: () => {}, onSubmit: () => {}, onReady: () => {}, boxText: "", onLeaveRows: () => {} };
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element,
@@ -47,7 +47,7 @@ test("actual select → submit → saved result → historical Why uses source d
 		assert.equal(persisted.details.explanation, explanation);
 		const saved = structuredClone(persisted.details);
 		await act(async () => root.render(<AnsweredCard answer={persisted.details} input={input} />));
-		const why = [...host.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent?.startsWith("Why"))!;
+		const why = host.querySelector<HTMLButtonElement>('button[aria-label="Why"]')!;
 		await act(async () => why.click());
 		assert.equal(host.querySelectorAll("mtr").length, 4, "question and revealed explanation retain their rows");
 		const paragraphs = host.querySelectorAll('[data-testid="tucked-explanation"] p');

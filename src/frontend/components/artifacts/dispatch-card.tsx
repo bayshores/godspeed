@@ -22,7 +22,6 @@ import { useNow } from "@/frontend/components/use-now";
 const KIND_LABEL: Record<JobKind, string> = {
 	research: "Research",
 	demo: "Demo builder",
-	visual: "Figure maker",
 	pdf: "PDF reader",
 };
 

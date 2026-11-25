@@ -1,12 +1,18 @@
 import { createContext } from "react";
 
-/** Where "Your turn" stands on the lesson page (LessonScroll): beside the lesson text as the
+/** Where the turn's task stands on the lesson page (LessonScroll): beside the lesson text as the
  *  right page of the open book (tight: in a room too low for the task he last finished), alone in
- *  the middle while the text draws nothing, pinned at the window's foot under the text, or in the
- *  page under the text. */
+ *  the middle while the text draws nothing, pinned over the text (an open problem in one column),
+ *  or in the page under the text. */
 export type TurnPlace = "beside" | "tight" | "alone" | "pinned" | "under";
 
-/** The place "Your turn" is drawn in. Under the text, pinned or in the page, it is only as tall
- *  as what the learner can do now; beside the text or alone it also keeps the task he last
+/** The place the task is drawn in. Beside the text or alone it also keeps the task he last
  *  finished. With no page around it, it is drawn whole. */
 export const TurnPlaceContext = createContext<TurnPlace>("beside");
+
+/** The boxes the lesson page moves the turn's two parts in (the task, the writing row), and how
+ *  the turn stands: leaving (a lesson reset) or stepping in after a reply. */
+type TurnSlots = { task?: HTMLElement; row?: HTMLElement; closing: boolean; stepIn: boolean };
+
+/** With no page around it, the turn draws its parts where it stands. */
+export const TurnSlotsContext = createContext<TurnSlots>({ closing: false, stepIn: false });

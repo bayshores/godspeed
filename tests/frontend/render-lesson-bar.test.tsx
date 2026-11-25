@@ -100,7 +100,7 @@ async function mount(props: Partial<React.ComponentProps<typeof LessonBar>> = {}
 				<BarSlotsProvider>
 					<AppBar />
 					<main>
-						<LessonBar chatId="ses_1" rename={rename()} spaceId="c21" plugins={{ words: [], open: null, onToggle() {} }} usage={{ turns: [], contextTokens: null, summarizeAt: null }} scopeRef={{ current: null }} scrollContextRef={{ current: null }} {...props} />
+						<LessonBar chatId="ses_1" exit={null} rename={rename()} spaceId="c21" plugins={{ words: [], open: null, onToggle() {} }} usage={{ turns: [], contextTokens: null, summarizeAt: null }} scopeRef={{ current: null }} scrollContextRef={{ current: null }} {...props} />
 						<ActiveSpace />
 					</main>
 				</BarSlotsProvider>
@@ -245,6 +245,17 @@ describe("More in the bar", () => {
 		const renameItem = q("ctx-rename")!;
 		assert.equal(renameItem.querySelector("kbd")!.textContent, "F2");
 		assert.equal(renameItem.getAttribute("aria-keyshortcuts"), "F2");
+	});
+
+	it("with a question waiting its first line skips it, and a pick closes the menu", async () => {
+		let skipped = 0;
+		await mount({ exit: { label: "Skip question", testId: "skip-question", onPick: () => void skipped++ } });
+		await click(q("lesson-more")!);
+		const first = document.querySelector("[data-testid=lesson-menu] [role=menuitem]")!;
+		assert.equal(first.textContent, "Skip question");
+		await pick("skip-question");
+		assert.equal(skipped, 1);
+		assert.equal(q("lesson-more")!.getAttribute("aria-expanded"), "false");
 	});
 
 	it("Rename closes the menu and starts the title rename", async () => {

@@ -33,7 +33,6 @@ use super::headless::HeadlessApi;
 use super::pdf_reader::{Keeper, run_pdf_reader_agent};
 use super::pi_run::{JobAgentOptions, OnActivity, OnToolStart, OnUsage, RunError};
 use super::researcher::{ResearcherRunOptions, run_researcher_agent};
-use super::visual_maker::run_visual_maker;
 use crate::fs_tools::fs_shared::resolve_source_path;
 
 /// What the runner needs from the server: its stores, `deliver`, the engine for a job, and the
@@ -49,7 +48,7 @@ pub trait JobHost: Send + Sync {
 	fn headless(&self) -> Arc<dyn HeadlessApi>;
 	/// The person's Tavily key, read when a research job starts.
 	fn search_key(&self) -> Option<String>;
-	/// The engine for a model role ("researcher", "demoBuilder", "visualMaker", "pdfReader");
+	/// The engine for a model role ("researcher", "demoBuilder", "pdfReader");
 	/// None refuses the job.
 	fn engine_for(&self, role: &str) -> Option<Engine>;
 	/// Hands a finished job's steer to the lesson's delivery. The runner never waits for it; the
@@ -60,7 +59,7 @@ pub trait JobHost: Send + Sync {
 	fn kept_pages(&self, path: &Path) -> BoxFuture<'static, Option<KeptPages>>;
 	/// Keeps one page of that file as Markdown, which search then gets.
 	fn keep_page(&self, file: &KeptPages, page: u32, markdown: &str) -> Result<(), String>;
-	/// A demo, visual or PDF job's new activity line, after it is saved: the PDF reader's lines
+	/// A demo or PDF job's new activity line, after it is saved: the PDF reader's lines
 	/// are steps on its lesson's desk.
 	fn job_activity(&self, job_id: &str, line: &str);
 }
@@ -88,7 +87,6 @@ fn kind_role(kind: &str) -> Option<&'static str> {
 	Some(match kind {
 		"research" => "researcher",
 		"demo" => "demoBuilder",
-		"visual" => "visualMaker",
 		"pdf" => "pdfReader",
 		_ => return None,
 	})
@@ -179,7 +177,6 @@ impl JobRunner {
 		match kind.as_str() {
 			"research" => self.run_research_job(&job_id, engine, input, &ctx).await,
 			"demo" => self.run_demo_job(&job_id, engine, input, &ctx).await,
-			"visual" => self.run_visual_job(&job_id, engine, input, &ctx).await,
 			_ => self.run_pdf_job(&job_id, engine, input, &ctx).await,
 		}
 		self.host.job_aborts().unregister_job_abort(&job_id);
@@ -252,7 +249,7 @@ impl JobRunner {
 		Some(job)
 	}
 
-	/// What the demo, visual and pdf job agents get.
+	/// What the demo and pdf job agents get.
 	fn job_agent_options(self: &Arc<Self>, job_id: &str, engine: Engine, ctx: &LoopContext) -> JobAgentOptions {
 		let runner = Arc::downgrade(self);
 		let id = job_id.to_owned();
@@ -352,15 +349,8 @@ impl JobRunner {
 		let _ = std::fs::remove_dir_all(&pdf_dir);
 	}
 
-	/// Stores a built job's result. A build whose `product` field is empty also records why on a job
-	/// still running, as `failed` when it left no notes.
-	fn finish_built(&self, job_id: &str, result: Json, product: &str, failed: &str) {
-		if result[product].as_str().is_none_or(str::is_empty) && self.still_running(job_id) {
-			self.update(job_id, json!({ "error": notes_or(&result, failed) }));
-		}
-		self.finish_job(job_id, result);
-	}
-
+	/// Builds a demo and stores it. A build that left no HTML also records why on a job still
+	/// running, as `failed` when it left no notes.
 	async fn run_demo_job(self: &Arc<Self>, job_id: &str, engine: Engine, passed: Option<Json>, ctx: &LoopContext) {
 		let Some(job) = self.job_context(job_id) else { return };
 		let input = self.resolve_input(&job, passed).unwrap_or(Json::Null);
@@ -368,16 +358,10 @@ impl JobRunner {
 		let brief = input["brief"].str_or_empty();
 		self.update(job_id, json!({ "activity": "building demo" }));
 		let result = run_demo_builder(title, brief, &self.job_agent_options(job_id, engine, ctx)).await;
-		self.finish_built(job_id, result, "html", "demo build failed");
-	}
-
-	async fn run_visual_job(self: &Arc<Self>, job_id: &str, engine: Engine, passed: Option<Json>, ctx: &LoopContext) {
-		let Some(job) = self.job_context(job_id) else { return };
-		let input = self.resolve_input(&job, passed).unwrap_or(Json::Null);
-		let brief = input["brief"].str_or_empty();
-		self.update(job_id, json!({ "activity": "drawing figure" }));
-		let result = run_visual_maker(brief, &self.job_agent_options(job_id, engine, ctx)).await;
-		self.finish_built(job_id, result, "svg", "visual build failed");
+		if result["html"].as_str().is_none_or(str::is_empty) && self.still_running(job_id) {
+			self.update(job_id, json!({ "error": notes_or(&result, "demo build failed") }));
+		}
+		self.finish_job(job_id, result);
 	}
 
 	async fn run_pdf_job(self: &Arc<Self>, job_id: &str, engine: Engine, passed: Option<Json>, ctx: &LoopContext) {
@@ -409,7 +393,6 @@ fn failure_result(kind: &str, input: Option<&Json>, reason: &str) -> Json {
 			let title = input["title"].as_str().filter(|t| !trim(t).is_empty()).unwrap_or("Interactive demo");
 			json!({ "title": title, "html": "", "tested": true, "notes": format!("FAILED: {reason}") })
 		}
-		"visual" => json!({ "svg": "", "notes": format!("FAILED: {reason}") }),
 		_ => json!({
 			"path": input["path"].as_str().map(trim).unwrap_or_default(),
 			"question": input["question"].str_or_empty(),

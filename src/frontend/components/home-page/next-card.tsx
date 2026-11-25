@@ -176,16 +176,19 @@ function CardFrame({
 	children: ReactNode;
 }) {
 	const row = (
-		<div className={cn("flex min-h-[104px] flex-col", outlined ? GAP_ROW : "@min-[540px]:flex-row @min-[540px]:items-center")}>
+		<div className={cn("flex min-h-[104px] flex-col", outlined ? GAP_ROW : "@min-[540px]:flex-row")}>
 			{block}
-			{/* The title's ink sits low in its line box, so the words sit 4px high to center on the keys. */}
-			<div className={cn("flex min-w-0 flex-1 flex-col gap-1 px-(--lh-inset) pt-3", outlined ? "pb-3 @min-[960px]:pb-1.5" : "pb-5")}>
-				<h2 className={cn("text-[28px] leading-tight break-words text-ink", struck && "line-through")}>{title}</h2>
-				<p data-testid="today-card-line" className="text-[17px] leading-snug text-ink-2">
-					{line}
-				</p>
+			{/* Beside the tile the keys end the words' row, and drop under them where the title would be squeezed. */}
+			<div className={cn("contents", !outlined && "@min-[540px]:flex @min-[540px]:min-w-0 @min-[540px]:flex-1 @min-[540px]:flex-wrap @min-[540px]:items-center @min-[540px]:justify-end @min-[540px]:gap-x-6 @min-[540px]:gap-y-2.5 @min-[540px]:px-(--lh-inset) @min-[540px]:py-3")}>
+				{/* The title's ink sits low in its line box, so the words sit 4px high to center on the keys. */}
+				<div className={cn("flex min-w-0 flex-1 flex-col gap-1 px-(--lh-inset) pt-3", outlined ? "pb-3 @min-[960px]:pb-1.5" : "pb-5 @min-[540px]:basis-[280px] @min-[540px]:px-0 @min-[540px]:pt-0 @min-[540px]:pb-2")}>
+					<h2 className={cn("text-[28px] leading-tight break-words text-ink", struck && "line-through")}>{title}</h2>
+					<p data-testid="today-card-line" className="text-[17px] leading-snug text-ink-2">
+						{line}
+					</p>
+				</div>
+				<span className={cn("flex shrink-0 flex-wrap items-center gap-3 px-(--lh-inset) pb-5", outlined ? "@min-[960px]:py-4 @min-[960px]:pl-0" : "@min-[540px]:p-0")}>{children}</span>
 			</div>
-			<span className={cn("flex shrink-0 flex-wrap items-center gap-3 px-(--lh-inset) pb-5", outlined ? "@min-[960px]:py-4 @min-[960px]:pl-0" : "@min-[540px]:py-4 @min-[540px]:pl-0")}>{children}</span>
 		</div>
 	);
 	return outlined ? (

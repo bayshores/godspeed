@@ -3,6 +3,7 @@
 use gs_json::{Json, Obj, json};
 
 use crate::messages::role::{Role, is_custom};
+use crate::spaces::today_note::{clock_label, wall_clock};
 use super::latest_session;
 use super::study::is_topic_latest_wrong;
 
@@ -55,7 +56,7 @@ pub fn picked_problem(messages: &[Json]) -> Option<&str> {
 /// the latest answer wrong), and the rest. `topics` are progress topics.
 fn track_record_line(topics: &[Json]) -> String {
 	if topics.is_empty() {
-		return "Track record on its topics: none yet.".to_owned();
+		return "Track record on its topics: none yet, so every problem is Teach first.".to_owned();
 	}
 	let (teach, open): (Vec<&Json>, Vec<&Json>) = topics.iter().partition(|t| t["status"].as_str() == Some("untested") || is_topic_latest_wrong(t));
 	let group = |label: &str, list: &[&Json]| (!list.is_empty()).then(|| format!(" {label}: {}.", list.iter().map(|t| t["name"].str_or_empty()).collect::<Vec<_>>().join(", ")));
@@ -70,7 +71,7 @@ pub fn homework_context_text(space_id: &str, deadline: &Json, assignment: &Json,
 	let mut lines = vec![format!("[Homework] The learner is working on {} ({}), due {}{time}.", text(&deadline["name"]), text(&deadline["kind"]), text(&deadline["date"]))];
 	if assignment.is_null() {
 		lines.push(format!(
-			"No assignment file is attached yet. Find it in the space files (search_space_files) and attach it with update_space_deadline (space_id {space_id}, deadline_id {}, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.",
+			"When this lesson started: no assignment file was attached. Find it in the space files (search_space_files) and attach it with update_space_deadline (space_id {space_id}, deadline_id {}, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.",
 			text(&deadline["id"])
 		));
 	} else {
@@ -79,7 +80,7 @@ pub fn homework_context_text(space_id: &str, deadline: &Json, assignment: &Json,
 	}
 	lines.push(track_record_line(topics));
 	if problems.is_empty() {
-		lines.push("No problems are posted yet. Read the assignment and post them all with post_problems first.".to_owned());
+		lines.push("When this lesson started: no problems were posted. Read the assignment and post them all with post_problems first.".to_owned());
 	} else {
 		lines.push("Its problems, posted before:".to_owned());
 		lines.extend(problem_lines(problems));
@@ -112,6 +113,17 @@ pub fn files_context_text(files: &[Json], problems: &[Json]) -> String {
 		lines.extend(problem_lines(problems));
 	}
 	lines.join("\n")
+}
+
+/// The clock a homework lesson's work items end with on the day it is due, so the teacher can
+/// pace it. None on any other day, or once the deadline is done.
+pub fn due_today_line(deadline: &Json, now_ms: i64) -> Option<String> {
+	let clock = wall_clock(now_ms);
+	if deadline["done"].truthy() || deadline["date"].as_str() != Some(clock.day.as_str()) {
+		return None;
+	}
+	let due = deadline["time"].as_str().filter(|t| !t.is_empty()).map_or_else(|| "today, no time set".to_owned(), clock_label);
+	Some(format!("Now {}; due {due}.", clock_label(&clock.time)))
 }
 
 #[cfg(test)]
@@ -157,7 +169,7 @@ mod tests {
 		let text = homework_context_text("spc_1", &deadline, &json!({ "id": "f1", "name": "hw4.pdf", "path": null }), &[json!({ "number": "1", "title": "Sums", "done": true })], &[]);
 		assert_eq!(
 			text,
-			"[Homework] The learner is working on HW 4 (homework), due 2026-11-20 17:00.\nIts assignment is the space file hw4.pdf (file id f1).\nTrack record on its topics: none yet.\nIts problems, posted before:\n- 1: Sums (done)\nNext is the first one not done unless the learner picks another."
+			"[Homework] The learner is working on HW 4 (homework), due 2026-11-20 17:00.\nIts assignment is the space file hw4.pdf (file id f1).\nTrack record on its topics: none yet, so every problem is Teach first.\nIts problems, posted before:\n- 1: Sums (done)\nNext is the first one not done unless the learner picks another."
 		);
 		let bare = homework_context_text("spc_1", &deadline, &Json::Null, &[], &[]);
 		assert!(bare.contains("update_space_deadline (space_id spc_1, deadline_id ddl_4, assignment_file_id)"));
@@ -178,7 +190,21 @@ mod tests {
 		assert_eq!(track_record(&both), "Track record on its topics. Teach first: Sets, Counting. Open right away: Logic.");
 		assert_eq!(track_record(&both[..1]), "Track record on its topics. Teach first: Sets.");
 		assert_eq!(track_record(&both[1..2]), "Track record on its topics. Open right away: Logic.");
-		assert_eq!(track_record(&[]), "Track record on its topics: none yet.");
+		assert_eq!(track_record(&[]), "Track record on its topics: none yet, so every problem is Teach first.");
+	}
+
+	#[test]
+	fn the_clock_line_shows_only_on_the_day_it_is_due() {
+		let now = gs_base::time::parse_date("2026-11-23T21:41:00-08:00").unwrap();
+		let due = |extra: Json| {
+			let mut deadline = json!({ "id": "d", "name": "HW 7", "kind": "homework", "date": "2026-11-23" });
+			deadline.as_obj_mut().unwrap().extend(extra.as_obj().unwrap().clone());
+			due_today_line(&deadline, now)
+		};
+		assert_eq!(due(json!({ "time": "23:59" })).as_deref(), Some("Now 9:41 PM; due 11:59 PM."));
+		assert_eq!(due(json!({})).as_deref(), Some("Now 9:41 PM; due today, no time set."));
+		assert_eq!(due(json!({ "time": "23:59", "done": true })), None);
+		assert_eq!(due(json!({ "date": "2026-11-24" })), None);
 	}
 
 	#[test]

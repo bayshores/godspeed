@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { GlyphMark } from "@/frontend/components/ui/glyph-mark";
-import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { ResultTag } from "@/frontend/components/result-tag";
 import { ThinkingBlock } from "@/frontend/components/thinking-block";
 import { useFold } from "@/frontend/components/use-fold";
@@ -77,19 +77,21 @@ export function QuizWhy({ answer }: { answer: QuestionAnswerData }) {
 	);
 }
 
+/** Text squeezed onto one line that ends in an ellipsis; its math and code still draw. */
+const ONE_LINE = "max-h-7 min-w-0 truncate [&>div]:inline [&>div]:whitespace-nowrap [&_p]:m-0 [&_p]:inline [&_pre]:inline [&_pre]:whitespace-pre";
+
 /**
- * An answered question in the lesson: one
- * compact card: the verdict, "Quiz, sure 4 of 5" and
- * a Why button over the question, and under it what he picked (a quiz or an
- * ask with choices). A prediction has no verdict; under his pick it names
- * the right answer when he missed, and on a plot what the line gives. The
- * rest opens under the toggle: the graded options and the explanation
- * (quiz), the committed answer (explain), the learner's thinking.
+ * An answered question in the lesson, shrunk to one line: the verdict, the
+ * question and what he picked or said, on a plate. A prediction has no
+ * verdict; under the line it names the right answer when he missed, and on
+ * a plot what the line gives. A click on the line opens the rest: the
+ * question whole, "Quiz, sure 4 of 5", his written answer or code, the
+ * graded options and the explanation (quiz), the committed answer
+ * (explain), his thinking.
  *
  * Quiz answers are GRADED; ask answers are a plain record of what was
  * said (never graded); explain and code answers are graded by the teacher
- * in its next reply, so the card shows no verdict.
- * A code answer shows the learner's code as a highlighted block.
+ * in its next reply, so the line shows no verdict.
  */
 export function AnsweredCard({
 	answer: savedAnswer,
@@ -111,8 +113,7 @@ export function AnsweredCard({
 		return (
 			<div data-testid="answered-card" className="flex items-baseline gap-1.5 text-[15px] text-ink-2">
 				<span className="shrink-0">Skipped:</span>
-				{/* The question's math and code still draw, squeezed onto one line that ends in an ellipsis. */}
-				<div className="max-h-7 min-w-0 flex-1 truncate [&_p]:m-0 [&_p]:inline [&_pre]:inline [&_pre]:whitespace-pre">
+				<div className={cn(ONE_LINE, "flex-1")}>
 					<ToolContentResponse>{answer.questionText}</ToolContentResponse>
 				</div>
 			</div>
@@ -130,81 +131,79 @@ export function AnsweredCard({
 	const parsedDetails = askInput?.details ?? (isQuiz ? parseQuizInput(input)?.details : undefined);
 	const descByIndex = new Map((askInput?.options ?? []).map((o, i) => [i + 1, o.description]));
 	const thinking = answer.thinking ?? answer.note;
-	const toggleLabel = isQuiz ? "Why" : isExplain ? "Answer" : "Details";
-	const hasDetails = isQuiz
-		? (answer.options?.length ?? 0) > 0 || !!answer.explanation || !!thinking
-		: isExplain
-			? !!answer.committed || !!thinking
-			: isCode
-				? !!thinking
-				: !!parsedDetails || descByIndex.size > 0 || !!thinking;
-	// What he picked or said stays in view (it is the record); a quiz's right answer waits behind Why.
+	// What he picked or said stays on the line (it is the record); a quiz's right answer waits behind it.
 	const said = isAsk || isQuiz ? (answer.options ?? []).filter((o) => selectedIdx.has(o.index)) : [];
 	const resultLine = guessResultLine(answer, input, plotValue);
+	const toggle = () => setOpen((v) => !v);
 
 	return (
-		<div data-testid="answered-card" className={cn(CARD, "flex flex-col gap-2.5 text-card-foreground")}>
-			<div className="flex flex-wrap items-center gap-2.5">
+		<div data-testid="answered-card" className="lh-well text-card-foreground">
+			{/* The whole line opens the card for the mouse; the key at its end is the one the keyboard and a reader find. */}
+			<div
+				onClick={(e) => {
+					if (!(e.target as Element).closest("a, button")) toggle();
+				}}
+				className="flex cursor-pointer items-baseline gap-3 px-4 py-2.5"
+			>
 				{isQuiz && !isPrediction(answer) && <ResultChip answer={answer} />}
-				<span className="font-count text-[15px] text-ink-2">
-					<span data-testid="answer-kind">
-						{kindWords(answeredKindLabel(answer))}
-					</span>
-					{isQuiz && !answer.dontKnow && answer.confidence != null && (
-						<span data-testid="answered-confidence">, sure {confidenceLevel(answer.confidence)} of 5</span>
-					)}
-				</span>
-				<span className="flex-1" aria-hidden />
-				{hasDetails && (
-					<button
-						type="button"
-						data-testid="answer-toggle"
-						aria-expanded={open}
-						onClick={(e) => {
-							setOpen((v) => !v);
-							blurAfterPointerClick(e);
-						}}
-						className={cn(SMALL_BTN, open && "bg-tone-2")}
-					>
-						{toggleLabel}
-					</button>
-				)}
-			</div>
-			<div className="text-ink-2" style={proseVars(16, 24, "var(--muted-foreground)")}>
-				<ToolContentResponse>{answer.questionText}</ToolContentResponse>
-			</div>
-			{(said.length > 0 || answer.other) && (
-				<div data-testid="answered-said" className="flex flex-col gap-1 text-[15px] text-ink">
-					{said.map((o) => (
-						<div key={o.index} data-testid="answered-pick" className="rounded-sm bg-panel px-3 py-2">
-							<ToolContentResponse>{o.label}</ToolContentResponse>
-						</div>
-					))}
-					{/* The learner's own typed answer: a row like its siblings,
-					    quoted (the learner's words). */}
-					{answer.other && (
-						<div data-testid="answered-other" className="rounded-sm bg-panel px-3 py-2">
-							“{answer.other}”
-						</div>
-					)}
+				<div className={cn("min-w-0 flex-1 text-ink-2", !open && ONE_LINE)} style={proseVars(16, 24, "var(--muted-foreground)")}>
+					<ToolContentResponse>{answer.questionText}</ToolContentResponse>
 				</div>
-			)}
+				{/* His written answer starts on the line and is whole once the card is open. */}
+				{answer.text && !open && (
+					<div data-testid="answered-text" className="max-w-[45%] min-w-0 truncate text-ink">
+						“{answer.text}”
+					</div>
+				)}
+				{(said.length > 0 || answer.other) && (
+					<div data-testid="answered-said" className={cn("flex max-w-[45%] min-w-0 flex-col items-end text-right text-ink", !open && ONE_LINE)} style={proseVars(16, 24, "var(--foreground)")}>
+						{said.map((o) => (
+							<div key={o.index} data-testid="answered-pick" className={cn(!open && "inline after:content-['_'] last:after:content-none")}>
+								<ToolContentResponse>{o.label}</ToolContentResponse>
+							</div>
+						))}
+						{/* The learner's own typed answer, quoted (the learner's words). */}
+						{answer.other && (
+							<div data-testid="answered-other" className={cn(!open && "inline")}>
+								“{answer.other}”
+							</div>
+						)}
+					</div>
+				)}
+				<button
+					type="button"
+					data-testid="answer-toggle"
+					aria-expanded={open}
+					aria-label={isQuiz ? "Why" : isExplain ? "Answer" : "Details"}
+					onClick={(e) => {
+						toggle();
+						blurAfterPointerClick(e);
+					}}
+					className="lh-press grid size-6 shrink-0 place-items-center self-center text-ink-2 outline-none"
+				>
+					<PixelIcon name="chevron" className={cn("h-2.5 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open ? "-rotate-90" : "rotate-90")} />
+				</button>
+			</div>
 			{resultLine && (
-				<div data-testid="guess-result" className="text-ink" style={proseVars(16, 24, "var(--foreground)")}>
+				<div data-testid="guess-result" className="px-4 pb-2.5 text-ink" style={proseVars(16, 24, "var(--foreground)")}>
 					<ToolContentResponse>{resultLine}</ToolContentResponse>
 				</div>
 			)}
-			{answer.text && <div className="lh-prose whitespace-pre-wrap border-l-2 border-tone-2 pl-3 text-ink">“{answer.text}”</div>}
-			{isCode && answer.code && (
-				<div data-testid="answered-code">
-					<MessageResponse>{fencedCode(answer.code, answer.language ?? "")}</MessageResponse>
-				</div>
-			)}
-			{(isCode || isExplain) && answer.dontKnow && <div className="text-[15px] text-ink-2">Answered “I don't know”.</div>}
 
 			{fold.mounted && (
 				<div className="lh-collapse" data-state={fold.state} data-testid="answer-details">
-					<div className="flex flex-col gap-2 pt-1">
+					<div className="flex flex-col gap-2.5 px-4 pb-4">
+						<span className="font-count text-[15px] text-ink-2">
+							<span data-testid="answer-kind">{kindWords(answeredKindLabel(answer))}</span>
+							{isQuiz && !answer.dontKnow && answer.confidence != null && <span data-testid="answered-confidence">, sure {confidenceLevel(answer.confidence)} of 5</span>}
+						</span>
+						{answer.text && <div className="lh-prose whitespace-pre-wrap text-ink">“{answer.text}”</div>}
+						{isCode && answer.code && (
+							<div data-testid="answered-code">
+								<MessageResponse>{fencedCode(answer.code, answer.language ?? "")}</MessageResponse>
+							</div>
+						)}
+						{(isCode || isExplain) && answer.dontKnow && <div className="text-[15px] text-ink-2">Answered “I don't know”.</div>}
 						{parsedDetails && (
 							<div className="text-ink-2" style={proseVars(15, 22, "var(--muted-foreground)")}>
 								<ToolContentResponse>{parsedDetails}</ToolContentResponse>

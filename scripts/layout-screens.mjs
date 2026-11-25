@@ -3,23 +3,26 @@ import { WAITING_TOPIC } from "./layout-lessons.mjs";
 /**
  * layout-screens.mjs — the screens `npm run layout` checks, in order.
  *
- * Every screen is checked at 1440, 1100 and 800 points wide, a lesson ("/chat/") at 1320 too
- * (widthsOf). A screen opens at `url`, waits for `ready`, runs `setup` in the page (clicks), then waits for
+ * Every screen is checked at 1440, 1100 and 640 points wide (640 is the narrowest window), a lesson ("/chat/")
+ * at 1320 and 800 too, and a screen with `widths` only at those (widthsOf). A screen opens at `url`, waits for `ready`, runs `setup` in the page (clicks), then waits for
  * `shows`; a `teacher` line is handed to the stand-in teacher before `shows`, as if typed in its terminal
  * (layout-agent.mjs), and `helper` asks the stand-in helper, holding a lesson's reply, to `read` files, `approve` a command it asks to run, or `stream` half a reply (layout-helper.mjs). `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `height` gives it a window higher than the
  * check's own. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
- * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, the lessons that stand at a state of "Your turn" `{explained}`, `{quizAnswered}`, `{concluded}`, `{skipped}`, `{discarded}` and `{lastTopic}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
+ * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, `{codeWrite}`, the lessons that stand at a state of "Your turn" `{explained}`, `{quizAnswered}`, `{concluded}`, `{skipped}`, `{discarded}` and `{lastTopic}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
-const WIDTHS = [1440, 1100, 800];
-/** A lesson is also checked at 1320: between 1280 and about 1367 its reading inset changes. */
-const LESSON_WIDTHS = [1440, 1320, 1100, 800];
+const WIDTHS = [1440, 1100, 640];
+/** A lesson is also checked at 1320, just past the room where a short question is set larger, and at 800, where its one
+ *  column is not yet at its narrowest. */
+const LESSON_WIDTHS = [1440, 1320, 1100, 800, 640];
+/** The widths at which "Your turn" is pinned under one column of lesson text. */
+const ONE_COLUMN = [800, 640];
 
 /** The widths a screen is checked at, widest first. */
 export function widthsOf(screen) {
-	return screen.url.startsWith("/chat/") ? LESSON_WIDTHS : WIDTHS;
+	return screen.widths ?? (screen.url.startsWith("/chat/") ? LESSON_WIDTHS : WIDTHS);
 }
 /** A window high enough for "Your turn" pinned under the lesson text (`height` on a screen). A screen too
  *  low for it, as GitHub's Mac runner has, leaves that screen unchecked with a warning. */
@@ -140,10 +143,10 @@ const waitingRequest = `await fetch("/api/spaces/{space}/deadlines/{deadline}/re
 /** The lesson made and never sent: opened at this address, the window sends its first message once,
  *  as Study does, and with no agent connected its reply waits. */
 const waitingLesson = `/chat/{pending}?prompt=${encodeURIComponent(WAITING_TOPIC)}`;
-/** A lesson turn running: Stop at the lesson's foot. */
+/** A lesson turn running: Stop in the writing row. */
 const turnRuns = "[data-testid=stop-turn]";
 /** The desk in that lesson's text, still while no agent takes the reply, at work once one does. */
-const deskUp = "[data-testid=agent-at-work] [data-testid=stop-turn]";
+const deskUp = "[data-testid=agent-at-work]";
 /** That lesson's reply stopped (a screen before may have stopped it already) and the lesson deleted, so the screens after it are as before. A
  *  lesson can't be deleted while its turn runs, so the delete is tried until the stop has ended it. */
 const dropWaitingLesson = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{pending}" }) });
@@ -242,6 +245,10 @@ for (const mock of mocks) await fetch("/api/spaces/{space}/mocks/" + mock.id, { 
 const sheetDrawn = (page) => `[data-testid=cheat-sheet-page]:nth-child(${page}) canvas`;
 const sheetPage = (deadline) => `/space/deadline/${deadline}/cheat-sheet`;
 const mockPage = (mock) => `/space/mock/{space}/${mock}`;
+/** The Sounds switch, which the run opens with off (layout.mjs); Noise's word shows only with it on. */
+const sounds = (on) => `await fetch("/api/settings/general", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ sounds: ${on} }) })${HTTP_OK}`;
+/** The window's sound goes nowhere, so Noise plays unheard. */
+const unheard = `window.AudioContext = class extends AudioContext { get destination() { return (this.sink ??= this.createMediaStreamDestination()); } }`;
 
 export const SCREENS = [
 	{ name: "Home with a deadline", url: "/", ready: deadlineCard },
@@ -425,10 +432,20 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	{ name: "Lesson with two steps beside the teacher's panel", url: "/chat/{twoSheets}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=sheet-step]", setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Lesson with a question of the learner's own before the step's answer", url: "/chat/{askedFirst}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=user-message]", shows: "[data-testid=question-dock]" },
 	{ name: "Lesson with a question whose choices are code, longer than the window", url: "/chat/{codeChoices}", ready: "[data-testid=question-dock] pre" },
+	{ name: "Lesson with a question answered in the code editor", url: "/chat/{codeWrite}", ready: "[data-testid=code-editor-host] .cm-content" },
 	{ name: "Lesson with a problem longer than the window", url: "/chat/{longProblem}", ready: "[data-testid=open-problem]" },
 	{ name: "Lesson with an open quiz in a tall window, Your turn pinned", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", height: TALL },
 	{ name: "Lesson with a question whose choices are code in a tall window", url: "/chat/{codeChoices}", ready: "[data-testid=question-dock] pre", height: TALL },
 	{ name: "Lesson with a problem longer than a tall window", url: "/chat/{longProblem}", ready: "[data-testid=open-problem]", height: TALL },
+	{
+		name: "Lesson with a long problem folded over the text",
+		url: "/chat/{longProblem}",
+		ready: "[data-testid=turn-whole][aria-expanded=true]",
+		setup: `document.querySelector("[data-testid=turn-whole]").click()`,
+		shows: "[data-testid=turn-whole][aria-expanded=false]",
+		height: TALL,
+		widths: ONE_COLUMN,
+	},
 	{ name: "Homework lesson before a problem opens, in a tall window", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]", height: TALL },
 	// "Your turn" with nothing to answer, after each way a step can end.
 	{ name: "Lesson where the teacher explained and asked nothing, Your turn holds Continue", url: "/chat/{explained}", ready: "[data-testid=next-problem-button][data-action=next]" },
@@ -437,8 +454,10 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	{ name: "Lesson with a question skipped and the teacher's reply landed", url: "/chat/{skipped}", ready: "[data-testid=next-problem-button][data-action=next]" },
 	{ name: "Lesson with a problem discarded", url: "/chat/{discarded}", ready: "[data-testid=next-problem-button]" },
 	{ name: "Lesson at the end of its last topic, Done for today", url: "/chat/{lastTopic}", ready: "[data-testid=next-problem-button][data-action=done-for-today]" },
-	{ name: "Lesson that opens with a problem, Your turn alone", url: "/chat/{problemFirst}", ready: ".lh-lesson-alone [data-testid=open-problem]" },
+	{ name: "Lesson that opens with a problem, Your turn alone", url: "/chat/{problemFirst}", ready: "[data-testid=open-problem]" },
 	{ name: "Homework lesson before a problem opens", url: "/chat/{homeworkFirst}", ready: "[data-testid=next-problem-button]" },
+	// The method is taught first with a figure the teacher drew; "Try asking" has the key that asks for one.
+	{ name: "Homework lesson with a figure under the method", url: "/chat/{homeworkFirst}", ready: "[data-testid=visual-svg] img", shows: "[data-testid=lesson-idea]" },
 	{ name: "Homework lesson with fourteen problems, the first done", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-fold]" },
 	{ name: "Homework with fourteen problems, unfolded", url: "/chat/{homeworkMany}", ready: "[data-testid=plan-fold]", setup: unfoldSteps, shows: "[data-testid=plan-step][data-status=done] [data-testid=problem-pick]" },
 	{ name: "Lesson with the steps unfolded", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: unfoldSteps, shows: "[data-testid=plan-step]" },
@@ -525,8 +544,17 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{ name: "Mock paused", url: mockPage("{mockPaused}"), ready: "[data-testid=mock-paused] [data-testid=mock-resume]" },
 	{ name: "Mock graded", url: mockPage("{mockGraded}"), ready: "[data-testid=mock-results] [data-testid=mock-feedback]" },
 	{ name: "Mock graded, an answer opened", url: mockPage("{mockGraded}"), ready: "[data-testid=mock-results] button[aria-expanded]", setup: `document.querySelector("[data-testid=mock-results] button[aria-expanded]").click()`, shows: "[data-testid=mock-results] .lh-collapse[data-state=open]" },
+	{ name: "Home with Sounds on, Noise in the top bar", before: sounds(true), url: "/", ready: "[data-testid=app-bar] [data-testid=noise-word]" },
+	{ name: "Mock ready to start, Noise in its bar", url: mockPage("{mockReady}"), ready: "[data-testid=mock-bar] [data-testid=noise-word]" },
+	{
+		name: "Home with Noise playing",
+		url: "/",
+		ready: "[data-testid=noise-word]",
+		setup: `${unheard}; document.querySelector("[data-testid=noise-word]").click()`,
+		shows: "[data-testid=noise-word][aria-pressed=true]",
+	},
 	// The two screens below leave requests waiting for an agent; the lesson that follows them ends them.
-	{ name: "Cheat sheet while no agent is on it", before: askSheet, url: sheetPage("{waitingDeadline}"), ready: "[data-testid=sheet-working]" },
+	{ name: "Cheat sheet while no agent is on it", before: `${sounds(false)}; ${askSheet}`, url: sheetPage("{waitingDeadline}"), ready: "[data-testid=sheet-working]" },
 	{ name: "Mock being written", before: askMock, url: "/space/deadline/{waitingDeadline}", ready: "[data-testid=deadline-mock-continue]", setup: `document.querySelector("[data-testid=deadline-mock-continue]").click()`, shows: "[data-testid=mock-writing]" },
 	{ name: "Lesson whose first reply waits for an agent", before: dropAskedRequests, url: waitingLesson, ready: deskUp },
 	{
@@ -545,7 +573,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		url: "/chat/{pending}",
 		ready: turnRuns,
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]").click()`,
-		shows: ".lh-reading:not(:has([data-testid=work-frame-open])) [data-testid=stop-turn]",
+		shows: "[data-testid=turn-row]:not(:has([data-testid=work-frame-open])) [data-testid=stop-turn]",
 	},
 	// The stand-in helper, holding that reply, reads a file of its own and a passage of the space's: the desk lists the steps and lifts the file.
 	{

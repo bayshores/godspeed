@@ -47,6 +47,9 @@ pub(super) struct SessionPlan {
 	pub notes: Option<String>,
 	/// The learner's rules, sent last to a session that read them only when it opened.
 	pub rules: String,
+	/// The time now and the time due, for a homework lesson on the day it is due: no stored
+	/// message keeps it current, so every turn ends with it.
+	pub due_today: Option<String>,
 }
 
 /// The folder the agent works in: the godspeed folder, made when it is missing.
@@ -94,11 +97,13 @@ impl SessionPlan {
 		SessionSpec { cwd: self.cwd.clone(), model: None, instructions: self.prompt.clone(), tools: self.tools.clone(), resume: resume.map(str::to_owned), persist: true }
 	}
 
-	/// The notes, what the session has not seen, and the rules for a session that goes on.
+	/// The notes, what the session has not seen, the rules for a session that goes on, and the
+	/// clock on the day a homework lesson is due.
 	fn input(&self, seen: Option<&str>) -> Vec<Part> {
 		let notes = self.notes.iter().map(|notes| Part::Text(notes.clone()));
 		let rules = seen.map(|_| Part::Text(self.rules.clone()));
-		notes.chain(input_of(&self.messages, seen)).chain(rules).collect()
+		let due_today = self.due_today.iter().map(|line| Part::Text(line.clone()));
+		notes.chain(input_of(&self.messages, seen)).chain(rules).chain(due_today).collect()
 	}
 }
 

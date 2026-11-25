@@ -46,16 +46,15 @@ function syntaxOf(language: string) {
 	return language === "python" ? python() : [];
 }
 
-/** The app's field: its surface, ink and mono tokens, square edges. It
- *  grows with the code up to a height, or with `fill` takes its box's. */
-const theme = (fill: boolean) => EditorView.theme(
+/** The app's field: its surface, ink and mono tokens, square edges. It takes its box's height. */
+const theme = EditorView.theme(
 	{
-		"&": { backgroundColor: "var(--background)", color: "var(--foreground)", fontSize: "13.5px", ...(fill ? { height: "100%" } : { maxHeight: "360px" }) },
+		"&": { backgroundColor: "var(--lh-well)", color: "var(--foreground)", fontSize: "13.5px", height: "100%" },
 		"&.cm-focused": { outline: "none" },
 		".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.6", minHeight: "200px" },
 		".cm-content": { caretColor: "var(--lh-ink-max)", padding: "10px 0" },
 		".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--lh-ink-max)" },
-		".cm-gutters": { backgroundColor: "var(--background)", color: "var(--lh-ink-3)", border: "none" },
+		".cm-gutters": { backgroundColor: "var(--lh-well)", color: "var(--lh-ink-3)", border: "none" },
 		".cm-lineNumbers .cm-gutterElement": { padding: "0 12px 0 14px" },
 		".cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
 			backgroundColor: "var(--border)",
@@ -83,7 +82,6 @@ export function mountCodeEditor(
 		language: string;
 		vim: boolean;
 		/** Take the whole height of `parent`. */
-		fill: boolean;
 		onChange: (code: string) => void;
 		onVimMode: (label: string) => void;
 	},
@@ -107,7 +105,7 @@ export function mountCodeEditor(
 				keymap.of([...defaultKeymap, ...historyKeymap]),
 				syntaxOf(opts.language),
 				syntaxHighlighting(highlight),
-				theme(opts.fill),
+				theme,
 				EditorView.contentAttributes.of({ "aria-label": "Your code", spellcheck: "false", autocorrect: "off", autocapitalize: "off" }),
 				EditorView.updateListener.of((u) => {
 					if (u.docChanged) opts.onChange(u.state.doc.toString());

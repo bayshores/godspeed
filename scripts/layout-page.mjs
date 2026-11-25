@@ -16,11 +16,10 @@
  *   edge).
  * - cut-off letters: a box that clips (truncate, line-clamp, overflow-hidden) cuts off the top or
  *   bottom of letters it shows, such as the tail of a "g".
- * - turn foot: beside the lesson text, the foot of "Your turn" (the Stuck? keys and the way out)
- *   reaches past the lesson's window, so the learner would scroll to answer.
+ * - turn foot: the lesson's writing row (its field, its keys and the help keys over it) reaches
+ *   past the lesson's window, so the learner would scroll to answer.
  * - spacing: a page leaves the shared spacing (globals.css :root): a card (.lh-card) whose sides
- *   or bottom are not the inset, a reading surface (.lh-reading, the lesson text and "Your
- *   turn") whose sides are not the reading inset or its narrow step, two sheets in one page
+ *   or bottom are not the inset, two sheets in one page
  *   column side by side or one above the other at a gap that is not the shared one, or a page
  *   title not in the shared title class.
  * - bar key: a key (.lh-btn) in the app's top bar or a page's own bar, where words are flat
@@ -496,9 +495,9 @@ function floats(el) {
 	return false;
 }
 
-/** Whether a box's sides match none of the allowed insets; all sides must match the same one. */
-export function offInset(sides, insets) {
-	return !insets.some((inset) => sides.every((side) => Math.abs(side - inset) <= 0.5));
+/** Whether one of a box's sides is not the inset. */
+export function offInset(sides, inset) {
+	return sides.some((side) => Math.abs(side - inset) > 0.5);
 }
 
 function spacings() {
@@ -510,15 +509,8 @@ function spacings() {
 		if (!shown(card)) continue;
 		const style = getComputedStyle(card);
 		const sides = { left: style.paddingLeft, right: style.paddingRight, bottom: style.paddingBottom };
-		const off = Object.entries(sides).filter(([, side]) => offInset([parseFloat(side)], [inset]));
+		const off = Object.entries(sides).filter(([, side]) => offInset([parseFloat(side)], inset));
 		if (off.length > 0) found.push(finding("spacing", [card], `${label(card)} is a card inset ${off.map(([name, side]) => `${side} on the ${name}`).join(", ")}; every card is inset ${inset}px (--lh-inset)`));
-	}
-	const reading = ["--lh-reading-inset", "--lh-reading-inset-narrow"].map((name) => parseFloat(root.getPropertyValue(name)));
-	for (const surface of document.querySelectorAll(".lh-page .lh-reading")) {
-		if (!shown(surface)) continue;
-		const style = getComputedStyle(surface);
-		const sides = [style.paddingLeft, style.paddingRight].map(parseFloat);
-		if (offInset(sides, reading)) found.push(finding("spacing", [surface], `${label(surface)} is a reading surface inset ${sides[0]}px on the left, ${sides[1]}px on the right; every reading surface is inset ${reading[0]}px (--lh-reading-inset), or ${reading[1]}px in a narrow column (--lh-reading-inset-narrow)`));
 	}
 	const sheets = [...document.querySelectorAll(".lh-page .lh-sheet")].filter((el) => shown(el) && !el.parentElement.closest(".lh-sheet, [role=dialog], [role=menu]") && !floats(el));
 	for (const a of sheets) {
@@ -543,12 +535,11 @@ function spacings() {
 	return found;
 }
 
-/** Turn foot: side by side with the lesson text, "Your turn" fits the lesson's window, its foot
- *  row included, at every scroll. */
+/** Turn foot: the lesson's writing row is whole in the lesson's window at every scroll, under the
+ *  text as beside it. */
 function turnFoot() {
-	const foot = document.querySelector("[data-testid=turn-foot]");
-	const column = document.querySelector("[data-testid=lesson-column]");
-	if (!foot || !column || getComputedStyle(column).display !== "grid" || !shown(foot)) return [];
+	const foot = document.querySelector("[data-testid=turn-row]");
+	if (!foot || !shown(foot)) return [];
 	let view = { top: 0, bottom: innerHeight };
 	for (let node = foot.parentElement; node; node = node.parentElement) {
 		if (!SCROLLS.includes(getComputedStyle(node).overflowY)) continue;
@@ -558,7 +549,7 @@ function turnFoot() {
 	}
 	const box = foot.getBoundingClientRect();
 	if (box.top >= view.top - SLACK && box.bottom <= view.bottom + SLACK) return [];
-	return [finding("turn foot", [foot], `${label(foot)} spans ${Math.round(box.top)} to ${Math.round(box.bottom)} px, outside the lesson's window (${Math.round(view.top)} to ${Math.round(view.bottom)} px) beside the lesson text`)];
+	return [finding("turn foot", [foot], `${label(foot)} spans ${Math.round(box.top)} to ${Math.round(box.bottom)} px, outside the lesson's window (${Math.round(view.top)} to ${Math.round(view.bottom)} px)`)];
 }
 
 /** Bar key: a bar's words are flat like its tabs; a pop-up that hangs from the bar keeps its keys. */

@@ -1,29 +1,27 @@
-import { MessageResponse, ToolContentResponse } from "@/frontend/components/ai-elements/message";
+import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { ResultChip } from "@/frontend/components/answered-card";
 import { isPrediction } from "@/frontend/components/answered-card-model";
-import { cn } from "@/frontend/lib/utils";
 import { fencedCode, type QuestionAnswerData } from "@/shared/core";
-import { OptionMark } from "./choice-rows";
-import { choiceLetter } from "./problem-choices-model";
-import { PICKED, proseVars, QuestionText } from "./question-parts";
-
-/** A choice row as the waiting question draws it, with nothing to press. */
-const ROW = "flex w-full items-start gap-3 px-3 py-3.5";
+import { ChoiceRows } from "./choice-rows";
+import { QuestionText } from "./question-parts";
 
 /**
  * The question the learner just answered or skipped, as it stays in "Your
- * turn" while the teacher writes: dimmed and not pressable, with his pick and
- * the verdict beside it. A skip says so instead of a pick; "I don't know" is
- * its verdict alone. The answer is the record the answered card reads.
+ * turn" while the teacher writes: as it stood when he sent it, quiet and not
+ * pressable, with the verdict on his pick. A skip says so instead of a pick;
+ * "I don't know" is its verdict alone. The answer is the record the answered
+ * card reads.
  */
-export function AnsweredTurn({ answer }: { answer: QuestionAnswerData }) {
+export function AnsweredTurn({ answer, tag }: { answer: QuestionAnswerData; tag: string | null }) {
 	const picked = new Set(answer.answers.map((a) => a.index));
 	const graded = answer.kind === "quiz" && !isPrediction(answer);
 	const options = answer.options ?? [];
-	const firstPick = options.find((o) => picked.has(o.index))?.index;
+	const said = answer.other ?? answer.text;
 	return (
 		<div data-testid="answered-turn" inert className="flex flex-col gap-7">
-			<QuestionText quiet>{answer.questionText}</QuestionText>
+			<QuestionText quiet tag={tag}>
+				{answer.questionText}
+			</QuestionText>
 			{answer.dismissed ? (
 				<p data-testid="answered-turn-skipped" className="text-[18px] leading-[28px] text-ink-2">
 					Skipped
@@ -35,26 +33,14 @@ export function AnsweredTurn({ answer }: { answer: QuestionAnswerData }) {
 			) : (
 				<>
 					{options.length > 0 && (
-						<div className="flex flex-col gap-1">
-							{options.map((opt, i) => {
-								const isPicked = picked.has(opt.index);
-								return (
-									<div key={opt.index} data-testid="answered-turn-option" data-picked={isPicked || undefined} className={cn(ROW, isPicked && PICKED)}>
-										<OptionMark picked={isPicked}>{choiceLetter(i)}</OptionMark>
-										<span className="min-w-0 flex-1" style={proseVars(18, 28, true)}>
-											<ToolContentResponse>{opt.label}</ToolContentResponse>
-										</span>
-										{graded && opt.index === firstPick && <ResultChip answer={answer} />}
-									</div>
-								);
-							})}
-						</div>
+						<ChoiceRows
+							options={options}
+							selected={new Set(options.flatMap((opt, i) => (picked.has(opt.index) ? [i] : [])))}
+							multi={picked.size > 1}
+							verdict={graded && <ResultChip answer={answer} />}
+						/>
 					)}
-					{(answer.other ?? answer.text) && (
-						<div className="whitespace-pre-wrap border-l-2 border-tone-2 pl-3 text-ink-2" style={proseVars(18, 28, true)}>
-							“{answer.other ?? answer.text}”
-						</div>
-					)}
+					{said && <p className="self-start whitespace-pre-wrap lh-well px-4 py-2.5 font-prose text-[18px] leading-[28px] text-ink-2">{said}</p>}
 					{answer.code && <MessageResponse>{fencedCode(answer.code, answer.language ?? "")}</MessageResponse>}
 				</>
 			)}

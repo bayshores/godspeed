@@ -43,9 +43,10 @@ import {
 import { CodeQuestion } from "@/frontend/components/lesson/code-question";
 
 /**
- * THE WAITING QUESTION, above the lesson's writing box: the question, its
- * lettered choices (keys 1–n) and, once a quiz answer is picked, the
- * "How sure are you?" line (←/→ or click). It holds no text box
+ * THE WAITING QUESTION, above the lesson's writing row: the question, the
+ * largest text on the page, with its kind as a small tag; its lettered
+ * choices (keys 1–n); and, once a quiz answer is picked, the "How sure?"
+ * line (←/→ or click). It holds no text box
  * and no buttons of its own: the writing box under it carries the
  * reasoning (or the whole answer, for a question answered in words) and
  * "Submit answer". An ask with choices takes the box's text as the
@@ -69,6 +70,10 @@ export interface QuestionHandle {
 export interface QuestionDockProps {
 	toolName: "quiz" | "probe" | "ask_user_question" | "explain" | "recall" | "write_code";
 	toolCallId: string;
+	/** The question's kind in a word ("Quiz", "From earlier"), set after its text. */
+	tag: string | null;
+	/** Skips a question that came through broken, which cannot be answered. */
+	onSkip: () => void;
 	input: unknown;
 	onSubmit: (output: QuestionAnswerData) => void;
 	/** The picks as the learner left them (this call's saved draft). */
@@ -102,8 +107,11 @@ export function QuestionDock(props: QuestionDockProps) {
 					: parseAskInput(input);
 	if (!parsed) {
 		return (
-			<div data-testid="malformed-question" className="shrink-0 bg-tone px-3.5 py-3 text-base text-ink-2">
-				This question came through broken. Skip it to go on.
+			<div data-testid="malformed-question" className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well px-4 py-3 text-base text-ink-2">
+				This question came through broken.
+				<button type="button" data-testid="skip-broken-question" onClick={props.onSkip} className="lh-btn lh-btn-small shrink-0">
+					Skip question
+				</button>
 			</div>
 		);
 	}
@@ -115,6 +123,7 @@ export function QuestionDock(props: QuestionDockProps) {
 function QuestionDockForm({
 	toolName,
 	toolCallId,
+	tag,
 	input,
 	onSubmit,
 	initialDraft,
@@ -124,7 +133,7 @@ function QuestionDockForm({
 	onLeaveRows,
 	busy = false,
 	ref,
-}: Omit<QuestionDockProps, "input"> & { input: QuizDisplayInput | AskToolInput | ExplainDisplayInput }) {
+}: Omit<QuestionDockProps, "input" | "onSkip"> & { input: QuizDisplayInput | AskToolInput | ExplainDisplayInput }) {
 	const kind = toolQuestionKind(toolName);
 	const play = useSound();
 
@@ -251,8 +260,8 @@ function QuestionDockForm({
 	));
 
 	return (
-		<div ref={rootRef} data-testid="question-dock" className="flex flex-col gap-7">
-			<QuestionText>{qd.question}</QuestionText>
+		<div ref={rootRef} data-testid="question-dock" className="flex flex-col gap-6">
+			<QuestionText tag={tag}>{qd.question}</QuestionText>
 			{qd.context && (
 				<div className="-mt-4" style={proseVars(16, 24, true)}>
 					<ToolContentResponse>{qd.context}</ToolContentResponse>

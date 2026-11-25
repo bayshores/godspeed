@@ -56,11 +56,9 @@ describe("spacing", () => {
 		assert.equal(roomUnder(500, 584), 0, "what it holds may reach past it");
 	});
 
-	it("a box's sides are off unless all of them match one of the allowed insets", () => {
-		assert.ok(!offInset([24, 24, 24.4], [24]));
-		assert.ok(offInset([24, 20, 24], [24]));
-		assert.ok(!offInset([28, 28], [56, 28]), "a reading surface in a narrow column");
-		assert.ok(offInset([56, 28], [56, 28]), "both sides take the same step");
+	it("a box's sides are off unless every one is the inset", () => {
+		assert.ok(!offInset([24, 24, 24.4], 24));
+		assert.ok(offInset([24, 20, 24], 24));
 	});
 });
 
@@ -244,9 +242,10 @@ describe("the walk", () => {
 		assert.equal(scrolledWords("end"), "scrolled to the end");
 	});
 
-	it("checks lessons at 1320 too, where the lesson's reading inset changes", () => {
-		assert.deepEqual(widthsOf({ url: "/chat/{lesson}" }), [1440, 1320, 1100, 800]);
-		assert.deepEqual(widthsOf({ url: "/space" }), [1440, 1100, 800]);
+	it("checks every screen down to 640, the narrowest window, lessons at 1320 and 800 too, and a screen with widths of its own only at those", () => {
+		assert.deepEqual(widthsOf({ url: "/chat/{lesson}" }), [1440, 1320, 1100, 800, 640]);
+		assert.deepEqual(widthsOf({ url: "/space" }), [1440, 1100, 640]);
+		assert.deepEqual(widthsOf({ url: "/chat/{lesson}", widths: [800, 640] }), [800, 640]);
 	});
 
 	it("every screen has a name, an address and a selector to wait for", () => {

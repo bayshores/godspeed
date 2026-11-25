@@ -3,6 +3,7 @@
 
 use gs_core::messages::native_messages::render_message;
 use gs_core::messages::role::Role;
+use gs_core::session::tool_switches::VISUAL_TOOL;
 use gs_core::contracts::chat::CHAT_ID_PREFIX;
 use gs_core::records::agent_seen::{SeenMark, SeenStore, print_hash, resume_at};
 use gs_json::{Json, stringify};
@@ -69,7 +70,18 @@ impl Bridge {
 		let continued = from.is_some();
 		let fresh = &all[from.unwrap_or(0)..];
 		let mut images = Vec::new();
-		let messages = fresh.iter().filter(|m| continued || !Role::System.is(m)).filter_map(|m| render_message(m, Some(&mut images))).collect();
+		// A figure's render is for one look: once the teacher has replied after it, only its
+		// mark is sent again.
+		let looked_before = all.iter().rposition(|m| Role::Assistant.is(m)).unwrap_or(0).saturating_sub(from.unwrap_or(0));
+		let messages = fresh
+			.iter()
+			.enumerate()
+			.filter(|(_, m)| continued || !Role::System.is(m))
+			.filter_map(|(i, m)| {
+				let looked = i < looked_before && m["toolName"].as_str() == Some(VISUAL_TOOL);
+				render_message(m, if looked { None } else { Some(&mut images) })
+			})
+			.collect();
 		let mut view = WorkView {
 			work_id: work_id.clone(),
 			conversation: conversation.clone(),

@@ -121,7 +121,7 @@ describe("the studio's status", () => {
 		const blocked = box({ hasText: true, blocked: true });
 		assert.equal(blocked.keys[0]!.disabled, true, "the sheet is being worked on");
 		assert.equal(blocked.enter, null);
-		assert.deepEqual([box().attach, box().size, box().help, box().exit], [true, "line", null, null]);
+		assert.deepEqual([box().attach, box().help], [true, null]);
 	});
 });
 

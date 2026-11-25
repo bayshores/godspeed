@@ -100,7 +100,6 @@ export function formatElapsed(ms: number): string {
 const JOB_LABEL: Record<JobKind, string> = {
 	research: "Research",
 	demo: "Demo builder",
-	visual: "Figure maker",
 	pdf: "PDF reader",
 };
 

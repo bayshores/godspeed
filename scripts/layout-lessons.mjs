@@ -24,6 +24,18 @@ export const WAITING_TOPIC = "Graphing two lines to find where they cross";
 /** A lesson in the second space, which has no deadline. */
 export const SHEETLESS_TOPIC = "Git and pull requests";
 
+/** The figure under the method the second homework lesson teaches first: 19 back to 15, then to 5. */
+const METHOD_FIGURE = `<svg viewBox="0 0 640 200"><title>Undoing 3x + 4 = 19 on a number line</title>
+<line x1="40" y1="130" x2="600" y2="130" stroke="var(--soft)" stroke-width="2"/>
+${[0, 5, 10, 15, 20].map((n) => `<line x1="${60 + n * 26}" y1="122" x2="${60 + n * 26}" y2="138" stroke="var(--soft)" stroke-width="2"/><text x="${60 + n * 26}" y="162" text-anchor="middle" font-size="15" fill="var(--soft)">${n}</text>`).join("")}
+<path d="M554 118 Q502 60 454 114" fill="none" stroke="var(--ink)" stroke-width="2"/><path d="M454 114 l2 -12 M454 114 l11 -5" fill="none" stroke="var(--ink)" stroke-width="2"/>
+<text x="504" y="62" text-anchor="middle" font-size="16">1. subtract 4</text>
+<path d="M446 118 Q318 20 194 114" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M194 114 l3 -12 M194 114 l12 -4" fill="none" stroke="var(--accent)" stroke-width="2"/>
+<text x="300" y="40" text-anchor="middle" font-size="16" fill="var(--accent)">2. divide by 3</text>
+<circle cx="554" cy="130" r="5"/><circle cx="450" cy="130" r="5"/><circle cx="190" cy="130" r="6" fill="var(--accent)"/>
+<text x="554" y="186" text-anchor="middle" font-size="15">3x + 4</text><text x="450" y="186" text-anchor="middle" font-size="15">3x</text><text x="190" y="186" text-anchor="middle" font-size="15" fill="var(--accent)">x</text>
+</svg>`;
+
 /** The homework deadlines, each worked in its own lesson ("Work on <name>"). */
 export const HOMEWORK_OPEN = "Homework 3: graphing lines";
 export const HOMEWORK_FIRST = "Homework 4: solving equations";
@@ -134,6 +146,13 @@ const CODE_QUIZ = {
 	correctAnswer: CODE_CHOICES[0],
 	explanation: "Subtract b first, then divide by a.",
 };
+/** A lesson whose question is answered in the code editor, which starts with the teacher's code. */
+export const CODE_WRITE_TOPIC = "Writing the solver";
+const CODE_WRITE = {
+	question: "Finish `solveLinear` so it returns the number that solves $ax + b = c$.",
+	language: "javascript",
+	starter: "function solveLinear(a, b, c) {\n\t// undo the adding, then the multiplying\n\t\n}\n\nconsole.log(solveLinear(2, 3, 11)); // 4",
+};
 
 /** Lessons that each stop at one state of "Your turn" with nothing to answer: the teacher
  *  explained and asked nothing; a problem concluded, which ends its topic; a question skipped
@@ -202,10 +221,13 @@ export const LESSONS = [
 			say("Part (b) it is. Undo the subtraction first."),
 		],
 	},
-	// Posts its problems, then teaches the method first, with no problem open.
+	// Posts its problems, then teaches the method first with a figure, with no problem open.
 	{
 		is: homework(HOMEWORK_FIRST),
-		replies: [asking("", "post_problems", { problems: HOMEWORK_PROBLEMS[HOMEWORK_FIRST] }), say("Before problem 1, here is the method. To solve $3x + 4 = 19$, undo each step in reverse: subtract 4 from both sides to get $3x = 15$, then divide both sides by 3 to get $x = 5$.")],
+		replies: [
+			asking("", "post_problems", { problems: HOMEWORK_PROBLEMS[HOMEWORK_FIRST] }),
+			asking("Before problem 1, here is the method. To solve $3x + 4 = 19$, undo each step in reverse: subtract 4 from both sides to get $3x = 15$, then divide both sides by 3 to get $x = 5$. The figure shows both steps on a number line.", "visual", { svg: METHOD_FIGURE }),
+		],
 	},
 	// Posts the worksheet's problems by where they are printed and opens the second; after the
 	// learner says which part they start, marks part (b).
@@ -239,6 +261,7 @@ export const LESSONS = [
 	{ is: topic(TWO_SHEETS_TOPIC), replies: sheetLesson(false) },
 	{ is: topic(ASKED_FIRST_TOPIC), replies: sheetLesson(true) },
 	{ is: topic(CODE_CHOICES_TOPIC), replies: [plan(), asking("Here is the function from your notes, written four ways.", "quiz", CODE_QUIZ)] },
+	{ is: topic(CODE_WRITE_TOPIC), replies: [plan(), asking("You picked the right version before. Now write it yourself.", "write_code", CODE_WRITE)] },
 	{
 		is: topic(PROBLEM_FIRST_TOPIC),
 		replies: [asking("", "plan_init", { mermaid: TWO_STEPS }), asking("", "problem", { nodeId: "first-step", statement: PROBLEM_FIRST, mode: "recall", modelSolution: "(a) (11 - 2) / (4 - 1) = 3. (b) 2 = 3(1) + b, so b = -1: y = 3x - 1." })],

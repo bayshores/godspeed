@@ -64,6 +64,7 @@ describe("the approval card", () => {
 	const props = (over: Partial<Props> = {}): Props => ({
 		spaceId: undefined,
 		stepNumbers: new Map(),
+		stepNames: new Map(),
 		echo: -1,
 		messages: [card, first],
 		phases: [],
@@ -72,7 +73,6 @@ describe("the approval card", () => {
 		stoppedEmpty: false,
 		waitingForAgent: false,
 		work: work([]),
-		onStop: () => {},
 		queuedSteers: [],
 		arrivalsLive: true,
 		pageMarks: new Map(),

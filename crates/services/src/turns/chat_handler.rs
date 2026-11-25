@@ -35,6 +35,7 @@ use parking_lot::Mutex;
 use super::attachments::{AttachmentError, store_attachments};
 use super::compaction::{CompactionDeps, ensure_compacted, kick_compaction, summarize_at_tokens};
 use super::dismissal_park::apply_parked_dismissal;
+use super::homework::due_today_line_for;
 use super::lesson_problems::problems_view;
 use super::job_host::run_job;
 use super::lesson_session::{SessionPlan, SessionPlanFacts, agent_cwd, opener, settle_session};
@@ -341,6 +342,7 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 		fresh,
 		notes: take_notes(app, chat_id),
 		rules: every_turn_rules_for(app, &record),
+		due_today: due_today_line_for(app, &record),
 	};
 	let facts = plan.facts();
 	let parts = setup.parts;

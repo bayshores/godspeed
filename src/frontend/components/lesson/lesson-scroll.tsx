@@ -1,50 +1,44 @@
-import { useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type RefObject } from "react";
-import { createPortal } from "react-dom";
+import { useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/frontend/components/ai-elements/conversation";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { SessionMessageNavigation } from "@/frontend/components/session-navigation";
 import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
-import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
-import { TurnPlaceContext, type TurnPlace } from "./turn-place";
+import { TurnPlaceContext, TurnSlotsContext, type TurnPlace } from "./turn-place";
 import { FilingContext } from "@/frontend/components/filed-card";
 import { AskShownContext } from "./approval-card";
 import { usePageRest } from "./use-page-rest";
 
 /**
  * The lesson text's reading measure: the page's one width of its own. Everything else takes
- * the shared page width and sides (`.lh-page`). With room for both (1280 = the text's 632, the
- * gap, "Your turn"'s 560 and two page sides; a container query cannot read the tokens), the lesson
- * is a book: open, the lesson text and "Your turn" sit side by side across the page's width, sized
+ * the shared page width and sides (`.lh-page`). With room for both (1000 points: two pages of 444
+ * with their gap and the page's sides; a container query cannot read the tokens), the lesson
+ * is a book: open, the lesson text and the task sit side by side across the page's width, sized
  * by `.lh-lesson-room`; shut, the text is one page in the middle, as wide as the open book's left
- * page (`.lh-lesson-closed`), with "Your turn" pinned under its window. With less room the text is
- * one column and "Your turn" is pinned under its window.
+ * page (`.lh-lesson-closed`). With less room the text is one column.
  */
-const READING_MEASURE = "mx-auto w-full max-w-[872px]";
-const PAIR = "@min-[1280px]/room:max-w-none";
-const PAIR_GRID = "@min-[1280px]/room:grid @min-[1280px]/room:grid-cols-[minmax(0,1fr)_var(--lh-turn)] @min-[1280px]/room:items-start";
-/** "Your turn" with no lesson text yet: in the middle, at the width it keeps in the pair. */
-const ALONE = "@min-[1280px]/room:max-w-(--lh-turn)";
-/** "Your turn" moving over as the lesson text's sheet arrives beside it. */
+const READING_MEASURE = "mx-auto w-full max-w-[760px]";
+const PAIR = "@min-[1000px]/room:max-w-none";
+const PAIR_GRID = "@min-[1000px]/room:grid @min-[1000px]/room:grid-cols-[minmax(0,1fr)_var(--lh-turn)] @min-[1000px]/room:items-start @min-[1000px]/room:gap-x-(--lh-pair-gap)";
+/** The task with no lesson text yet: in the middle, at the width it keeps in the pair. */
+const ALONE = "@min-[1000px]/room:max-w-(--lh-turn)";
+/** The task moving over as the lesson text arrives beside it. */
 const MAKE_ROOM = { duration: 240, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" };
 
-/** The jump key: in the gutter beside one column where the window leaves room, else in the sheet's side padding; in a pair, in the lesson text's. */
-const KEY = "@min-[688px]/room:right-[max(34px,calc((100%-872px)/2-48px))]";
-const PAIR_KEY = "@min-[1280px]/room:right-[calc((100%-var(--lh-pair))/2+var(--lh-turn)+38px)]";
-const SHUT_KEY = "@min-[1280px]/room:right-[calc((100%-var(--lh-text))/2-48px)]";
-/** The pinned "Your turn" under the shut book's one page: as wide as that page. */
-const SHUT_FOOT = "@min-[1280px]/room:max-w-(--lh-text)";
+/** The jump key: in the gutter beside one column where the room leaves one, else a slim tab in the page's side, clear of a docked panel's edge, so it never lies on words; in a pair, at the lesson text's side. */
+const KEY = "@max-[855px]/room:right-[calc(var(--lh-page-side)-18px)] @max-[855px]/room:w-4 @max-[855px]/room:[&_svg:not([class*='size-'])]:size-2.5 @min-[856px]/room:right-[calc((100%-760px)/2-44px)]";
+const PAIR_KEY = "@min-[1000px]/room:right-[calc((100%-var(--lh-pair))/2+var(--lh-turn)+38px)]";
+const SHUT_KEY = "@min-[1000px]/room:right-[calc((100%-var(--lh-text))/2-48px)]";
+/** The writing row under the shut book's one page: as wide as that page. */
+const SHUT_FOOT = "@min-[1000px]/room:max-w-(--lh-text)";
+/** Marks the room as wide enough for the book, for the layout to read. */
+const WIDE_MARK = "@min-[1000px]/room:[--lh-wide:1]";
 
 /** The glide to a new resting place: firm enough to arrive in about a third of a second, with no
  *  long creep at its end, which reads as the page shaking. */
 const SETTLE = { damping: 0.6, stiffness: 0.12, mass: 1 };
 
-
-/** The room under the step line at which "Your turn" is pinned under the text's window: lower, a question
- *  with its box and keys would leave the text a sliver, so there it stays in the page, under the text.
- *  Under the shut book's page it is pinned in any room while it is only its box and keys (`slim`). */
-const PIN_ROOM = 640;
 
 /** The room at which the right page keeps the task the learner last finished: lower, its box and keys
  *  leave that task a sliver, so it is drawn in the text as in a narrow window. */
@@ -53,33 +47,35 @@ const KEEP_ROOM = 520;
 /** Subscribes to what never changes. */
 const NO_CHANGE = () => () => {};
 
-/** Whether the column lays its sheets under each other (its container query decides). */
-function oneColumn(column: HTMLElement | null): boolean {
-	return column !== null && getComputedStyle(column).display === "flex";
+/** Whether the room is wide enough for the book (the column's container query marks it). */
+function wideRoom(column: HTMLElement | null): boolean {
+	return column !== null && getComputedStyle(column).getPropertyValue("--lh-wide").trim() === "1";
 }
 
-/** Moves "Your turn" to its other place in the page; the box the learner types in keeps the keyboard. */
-function moveTurn(box: HTMLElement, slot: HTMLElement): void {
-	const typing = box.contains(document.activeElement) ? (document.activeElement as HTMLElement) : null;
-	slot.append(box);
+/** Puts the turn's parts in `slot`, in order; the box the learner types in keeps the keyboard. */
+function moveTo(slot: HTMLElement, ...parts: HTMLElement[]): void {
+	if (parts.every((part, i) => slot.children[i] === part)) return;
+	const typing = parts.some((part) => part.contains(document.activeElement)) ? (document.activeElement as HTMLElement) : null;
+	slot.append(...parts);
 	typing?.focus({ preventScroll: true });
 }
 
+function turnBox(): HTMLElement {
+	return Object.assign(document.createElement("div"), { className: "contents" });
+}
 
 /**
- * THE LESSON PAGE: the step line pinned on top, then the page that scrolls as a whole: the
- * lesson text's sheet and, once the lesson has started, "Your turn". With room for both the
- * lesson is a book. While the learner has something to work on (`open`: a question, a problem, or
- * the task he last finished) it lies open: the two sit side by side and "Your turn" holds still
- * while the text scrolls, always inside the window, where only its question or problem scrolls
- * (.lh-turn-fit). With nothing to work on it is shut: one page in the middle with "Your turn" a
- * strip pinned under it. With less room it is
- * pinned at the window's foot, under the window the text scrolls in, only as tall as what the
- * learner can do now (TurnPlaceContext), so the text keeps the window, or, in a room too low for that
- * (PIN_ROOM), it sits in the page under the text. While the lesson text draws nothing (a
- * lesson that opens with a problem), its sheet is left out and "Your turn" sits alone in the
- * middle; when the text's sheet arrives, "Your turn" slides over to its side. Where the page
- * stands in its window is usePageRest's. "Your turn" fades out when it closes (a lesson reset)
+ * THE LESSON PAGE: the step line on top, then the lesson text, which scrolls, and the learner's
+ * turn, which has two parts (YourTurn): the task (a question, a problem, what is next) and the
+ * writing row. In one column the writing row is pinned at the window's foot for the whole lesson,
+ * a question stands in the page under the text, and an open problem is pinned over the text
+ * (`pin`), where it folds to leave the text its room. With room for both (the book) and something
+ * to work on (`open`), the text and the turn sit side by side: the turn holds still while the text
+ * scrolls, the task over the writing row. While the lesson text draws nothing (a lesson that opens
+ * with a problem), the turn sits alone in the middle; when the text arrives, it slides over to its
+ * side. The parts are drawn into boxes of their own, which this page moves between those places:
+ * moving a box keeps what the learner typed and picked, where drawing it anew would not. Where the
+ * page stands in its window is usePageRest's. The turn fades out when it closes (a lesson reset)
  * and, arriving with a reply, steps in after the reply's text. Scrolled up, the key in the corner
  * brings the learner back.
  */
@@ -94,7 +90,7 @@ export function LessonScroll({
 	shutting,
 	onShut,
 	onRest,
-	slim,
+	pin,
 	place,
 	onPlace,
 }: {
@@ -104,9 +100,9 @@ export function LessonScroll({
 	restKey: string;
 	busy: boolean;
 	contextRef: RefObject<StickToBottomContext | null>;
-	/** The lesson text's sheet; null while "Your turn" is up and the text draws nothing. */
+	/** The lesson text; null while the turn is up and the text draws nothing. */
 	reading: ReactNode | null;
-	/** "Your turn", once the lesson has started. */
+	/** The learner's turn (YourTurn), once the lesson has started. */
 	turn: ReactNode | null;
 	/** The book lies open: the learner has a question, a problem or the task he last finished to work on. */
 	open: boolean;
@@ -115,9 +111,9 @@ export function LessonScroll({
 	onShut: () => void;
 	/** The pages stand where the book now lies (useBook's `rest`). */
 	onRest: () => void;
-	/** "Your turn" holds only its box and keys. */
-	slim: boolean;
-	/** Where "Your turn" stands, as this page last laid it out, and the way to say so. */
+	/** The task is an open problem: in one column it is pinned over the text. */
+	pin: boolean;
+	/** Where the task stands, as this page last laid it out, and the way to say so. */
 	place: TurnPlace;
 	onPlace: (place: TurnPlace) => void;
 }) {
@@ -137,42 +133,45 @@ export function LessonScroll({
 
 	const columnRef = useRef<HTMLDivElement>(null);
 	const turnRef = useRef<HTMLDivElement>(null);
-	// "Your turn" is drawn into a box of its own, which stands in the page's column or at the window's
-	// foot. Moving the box keeps what the learner typed and picked, where drawing it anew would not.
 	const roomRef = useRef<HTMLDivElement>(null);
 	const underRef = useRef<HTMLDivElement>(null);
-	const pageSlot = useRef<HTMLDivElement>(null);
+	const topRef = useRef<HTMLDivElement>(null);
+	const topSlot = useRef<HTMLDivElement>(null);
 	const footRef = useRef<HTMLDivElement>(null);
 	const footSlot = useRef<HTMLDivElement>(null);
-	// A page drawn to text has no window to move it in: there it is drawn in the column.
+	// A page drawn to text has no window to move its parts in: there the turn is drawn in the column.
 	const inWindow = useSyncExternalStore(NO_CHANGE, () => true, () => false);
-	const [turnBox] = useState(() => (inWindow ? Object.assign(document.createElement("div"), { className: "contents" }) : null));
+	const [boxes] = useState(() => (inWindow ? { task: turnBox(), row: turnBox() } : null));
 	useLayoutEffect(() => {
 		const room = roomRef.current;
 		const under = underRef.current;
-		if (!room || !under || !hasTurn || !turnBox) return;
-		const place = () => {
-			const column = columnRef.current;
-			const stacked = pair && oneColumn(column);
-			// The room is wide enough for the book (the column's container query lifts its reading measure).
-			const wide = column !== null && getComputedStyle(column).maxWidth === "none";
-			const pin = stacked && (under.clientHeight >= PIN_ROOM || (wide && slim));
-			const slot = (pin ? footSlot : pageSlot).current;
+		const page = turnRef.current;
+		if (!room || !under || !page || !hasTurn || !boxes) return;
+		const lay = () => {
+			// Side by side, or alone in a wide room, the right page holds the task over the writing row.
+			const together = wideRoom(columnRef.current) && (beside || alone);
+			const pinned = !together && pin;
+			const top = topRef.current;
 			const foot = footRef.current;
-			// Shown and hidden here, with the move, so no frame draws the foot's room without its sheet. Shown before
-			// the sheet moves in: a box in a hidden place cannot take the keyboard back.
-			if (foot && pin) foot.hidden = false;
-			if (slot && turnBox.parentElement !== slot) moveTurn(turnBox, slot);
-			if (foot && !pin) foot.hidden = true;
-			onPlace(alone ? "alone" : pin ? "pinned" : stacked ? "under" : under.clientHeight < KEEP_ROOM ? "tight" : "beside");
+			// Shown before a part moves in: a box in a hidden place cannot take the keyboard back.
+			if (top && pinned) top.hidden = false;
+			if (foot && !together) foot.hidden = false;
+			if (together) moveTo(page, boxes.task, boxes.row);
+			else {
+				if (topSlot.current && footSlot.current) moveTo(pinned ? topSlot.current : page, boxes.task);
+				if (footSlot.current) moveTo(footSlot.current, boxes.row);
+			}
+			if (top && !pinned) top.hidden = true;
+			if (foot && together) foot.hidden = true;
+			onPlace(together ? (alone ? "alone" : under.clientHeight < KEEP_ROOM ? "tight" : "beside") : pinned ? "pinned" : "under");
 		};
-		place();
-		const ro = new ResizeObserver(place);
+		lay();
+		const ro = new ResizeObserver(lay);
 		ro.observe(room);
 		ro.observe(under);
 		return () => ro.disconnect();
-	}, [hasTurn, pair, alone, beside, slim, turnBox, onPlace]);
-	// Where "Your turn" stood alone, to slide it from there when the text's sheet takes its side.
+	}, [hasTurn, alone, beside, pin, boxes, onPlace]);
+	// Where the turn stood alone, to slide it from there when the text takes its side.
 	const aloneLeft = useRef<number | null>(null);
 	useLayoutEffect(() => {
 		const el = turnRef.current;
@@ -194,55 +193,44 @@ export function LessonScroll({
 	useLayoutEffect(() => setStepsLate(stepsRef.current?.getClientRects().length === 0), []);
 
 
-	const turnSheet = (
-		<TurnPlaceContext.Provider value={place}>
-			<div
-				ref={turnRef}
-				data-state={closing ? "closed" : "open"}
-				inert={closing}
-				className={cn("lh-turn-fit min-w-0", closing ? "lh-fade" : stepIn && "lh-block-in")}
-				style={{ "--lh-block-delay": "240ms" } as CSSProperties}
-			>
-				{shownTurn}
-			</div>
-		</TurnPlaceContext.Provider>
-	);
+	const slots = useMemo(() => ({ ...boxes, closing, stepIn: stepIn === true }), [boxes, closing, stepIn]);
 	return (
 		<div ref={roomRef} className="lh-lesson-room @container/room flex min-h-0 min-w-0 flex-col [grid-area:main]">
-			{/* A sheet of its own. The page scrolls in the window a gap under it, where every sheet's top edge stops, so the
-			    lesson text and "Your turn" begin at one height. Shown only when the step line draws something; one that
-			    arrives after the lesson opened steps in with the reply's text (the step plays when :has() shows it). */}
-			<div ref={stepsRef} className="lh-page shrink-0 pt-(--lh-gap) [&:not(:has(>section>div>*))]:hidden">
-				<Pane className={cn("@container/strip", stepsLate && "lh-block-in [--lh-block-delay:var(--lh-dur-fast)]", READING_MEASURE, PAIR)}>
-					<div className="px-(--lh-reading-inset) py-4 @max-[640px]/strip:px-(--lh-reading-inset-narrow)">{steps}</div>
-				</Pane>
+			{/* Shown only when the step line draws something; one that arrives after the lesson opened steps in with the
+			    reply's text (the step plays when :has() shows it). */}
+			<div ref={stepsRef} className="lh-page shrink-0 pt-5 [&:not(:has(>div>*))]:hidden">
+				<div className={cn(stepsLate && "lh-block-in [--lh-block-delay:var(--lh-dur-fast)]", READING_MEASURE, PAIR)}>{steps}</div>
 			</div>
 			<div ref={underRef} className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-				<Conversation className="my-(--lh-gap) min-h-0 min-w-0 flex-1" initial="instant" resize="instant" {...SETTLE} contextRef={contextRef} targetScrollTop={rest.target}>
+				{/* An open problem, pinned over the text in one column (its height: .lh-turn-top). */}
+				<div ref={topRef} hidden className="lh-turn-top lh-page flex min-h-0 shrink-0 flex-col pt-5">
+					<div ref={topSlot} className={cn("flex min-h-0 flex-col", READING_MEASURE)} />
+				</div>
+				<Conversation className="min-h-0 min-w-0 flex-1" initial="instant" resize="instant" {...SETTLE} contextRef={contextRef} targetScrollTop={rest.target}>
 					<SessionMessageNavigation />
 					<ConversationContent className="gap-0 p-0" scrollClassName={cn("lh-lesson-window [overflow-anchor:none] [container-type:size]", beside && "lh-lesson-pair", alone && "lh-lesson-alone", shut && "lh-lesson-closed", pinned && "lh-lesson-pinned")}>
-						{/* With "Your turn" beside it or pinned under its window, the text's sheet ends at the window's foot. */}
-						<div className={cn("lh-page", pinned ? "pb-0" : "pb-(--lh-page-end)", (beside || alone) && "@min-[1280px]/room:pb-0")}>
-							<div ref={columnRef} data-testid="lesson-column" className={cn("lh-lesson-column @container/column flex flex-col gap-(--lh-gap)", READING_MEASURE, reading !== null && PAIR, beside && PAIR_GRID, alone && ALONE)}>
+						<div className="lh-page py-6">
+							<div ref={columnRef} data-testid="lesson-column" className={cn("lh-lesson-column @container/column flex flex-col gap-8", READING_MEASURE, WIDE_MARK, reading !== null && PAIR, beside && PAIR_GRID, alone && ALONE)}>
 								<FilingContext.Provider value={rest.onFile}>
 									<AskShownContext.Provider value={rest.onAsk}>{reading}</AskShownContext.Provider>
 								</FilingContext.Provider>
 								{hasTurn && (
-									<div ref={pageSlot} className="contents">
-										{!turnBox && turnSheet}
-									</div>
+									<TurnPlaceContext.Provider value={place}>
+										<div ref={turnRef} className="lh-turn-fit min-w-0 [&:not(:has(>*>*))]:hidden">
+											<TurnSlotsContext.Provider value={slots}>{shownTurn}</TurnSlotsContext.Provider>
+										</div>
+									</TurnPlaceContext.Provider>
 								)}
 							</div>
 						</div>
 					</ConversationContent>
 					<ConversationScrollButton className={cn(KEY, shut && SHUT_KEY, (beside || alone) && PAIR_KEY)} />
 				</Conversation>
-				{/* "Your turn" pinned (its height: .lh-turn-foot). */}
-				<div ref={footRef} hidden className="lh-turn-foot lh-page flex min-h-0 shrink-0 flex-col pb-(--lh-gap)">
-					<div ref={footSlot} className={cn("flex min-h-0 flex-col", READING_MEASURE, SHUT_FOOT)} />
+				{/* The writing row, pinned for the whole lesson. */}
+				<div ref={footRef} hidden className="lh-turn-foot lh-page shrink-0 pt-1 pb-5">
+					<div ref={footSlot} className={cn("@container/foot", READING_MEASURE, SHUT_FOOT)} />
 				</div>
 			</div>
-			{hasTurn && turnBox && createPortal(turnSheet, turnBox)}
 		</div>
 	);
 }

@@ -14,7 +14,7 @@ import type { LhViewMessage } from "../../src/shared/core/index.ts";
 function row(streamingLast: boolean, text = "Here:\n\n```js\nconst x = 1;"): string {
 	const view: LhViewMessage = { id: "a1", role: "assistant", parts: [{ type: "text", text }] };
 	return renderToStaticMarkup(
-		<MessageRow message={view} spaceId={undefined} index={0} echo={false} teachSeam={false} streamingLast={streamingLast} hiddenCalls={null} pageMarks={new Map()} arrive={() => undefined} />,
+		<MessageRow message={view} index={0} echo={false} teachSeam={false} streamingLast={streamingLast} hiddenCalls={null} pageMarks={new Map()} arrive={() => undefined} />,
 	);
 }
 
