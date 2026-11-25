@@ -934,6 +934,14 @@ body {
 .lh-turn-top {
 	max-height: 50%;
 }
+/* Under it the problem's foot stays clean: text scrolled up is gone a band before the problem's
+   edge and dissolves under that band, and the page at rest starts below both. */
+.lh-turn-top:not([hidden]) ~ * .lh-lesson-window {
+	mask-image: linear-gradient(to bottom, transparent 16px, #000 40px, #000 calc(100% - 24px), transparent);
+}
+.lh-turn-top:not([hidden]) ~ * .lh-lesson-window > * > .lh-page {
+	padding-top: 40px;
+}
 /* An open problem beside the text, the page's left part: as tall as what it holds, up to the room
    under the step line, where its problem scrolls in its own box. It starts no higher than the text
    and rests on the room's foot, level with the writing row's, so the two parts share a top and a
@@ -986,7 +994,8 @@ body {
 	column-gap: 16px;
 }
 /* A problem lies on a plate, so the lesson's text is never read as part of it. A problem printed in
-   its file is its page, edge to edge: the plate is the page's sheet. */
+   its file is its page, edge to edge: the plate is the page's sheet, and its choices keep the
+   plate's inset under the page. */
 .lh-lesson-room .lh-turn-fit .lh-turn-task[data-plate],
 :is(.lh-turn-top, .lh-turn-left) .lh-turn-task[data-plate] {
 	background: var(--lh-well);
@@ -994,6 +1003,9 @@ body {
 }
 :is(.lh-lesson-room .lh-turn-fit, .lh-turn-top, .lh-turn-left) .lh-turn-task[data-sheet] {
 	padding: 0;
+}
+:is(.lh-lesson-room .lh-turn-fit, .lh-turn-top, .lh-turn-left) .lh-turn-task[data-sheet] [data-testid="problem-choices"] {
+	padding: 0 20px 20px;
 }
 /* The tag that names what waits: a question's kind, a problem's number. */
 .lh-kind {
