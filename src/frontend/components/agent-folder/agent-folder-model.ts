@@ -1,7 +1,6 @@
 /**
  * The godspeed folder in words: the agents' names, what the server says
- * about the folder, a start outside the desktop app, and the old setup
- * left on the computer. Pure.
+ * about the folder, and the old setup left on the computer. Pure.
  */
 
 import type { FolderAgent, OldSetup, StartCommands } from "@/shared/core";
@@ -20,14 +19,6 @@ export interface FolderView {
 	agent: FolderAgent | null;
 	/** The model each agent's new chats and lessons start on, where the learner picked one. */
 	model: Partial<Record<FolderAgent, string>>;
-}
-
-/** A click on the button outside the desktop app: the folder is made,
- *  then the learner runs the command. */
-export interface Launch {
-	agent: FolderAgent;
-	/** Running, done, or failed with a message. */
-	made: "wait" | "done" | { error: string };
 }
 
 /** What is left of the old setup, one entry each: `short` for Settings,
