@@ -97,7 +97,7 @@ Release builds register `tauri_plugin_single_instance` first. Debug builds skip 
 
 ### The terminal window
 
-The teacher's terminal popped out beside the main window. The page is `/terminal-window` (`routes/terminal-window.tsx`: the providers the main window has, from `routes/app-providers.tsx`, and no app frame, top bar or teacher provider); the shell only makes the window. The page is the teacher panel's head with the status line and "Put back", and the screen with its row. On the Mac the head is the title bar: it has the shim's drag class and the traffic lights' gutter.
+The teacher panel's chat popped out beside the main window (the shell still names it the terminal window). The page is `/terminal-window` (`routes/terminal-window.tsx`: the providers the main window has, from `routes/app-providers.tsx`, and no app frame, top bar or teacher provider); the shell only makes the window. The page is the teacher panel's head with only "Put back", and the chat the panel showed (`teacher/chat-window.tsx`). On the Mac the head is the title bar: it has the shim's drag class and the traffic lights' gutter.
 
 | Item | Value |
 |---|---|
@@ -113,7 +113,7 @@ The teacher's terminal popped out beside the main window. The page is `/terminal
 | Focus | The app counts as focused when either window is: `notify.rs` shows no notification then. |
 | Closing | Its close button, `terminal_window_close` from either window ("Put back"), or the main window being destroyed. Nothing is remembered and nothing asks. |
 
-The shell owns whether it is open. It pushes `terminal-window` `{open}` to the main window when the window is made, when it is destroyed and after every load of the main page, so a reloaded main page knows. `terminal_window_close` also pushes `{open: false, back: true}`: a page asked to put the terminal back, so the main page opens its panel on the screen, which the close button does not ask. When the window is destroyed the shell also detaches every terminal it showed (`Terminals::window_closed`), because its page cannot say so; the main page attaches again when its panel mounts the screen's view. Its page never starts the helper or wakes the teacher, so two windows never start two agents.
+The shell owns whether it is open. It pushes `terminal-window` `{open}` to the main window when the window is made, when it is destroyed and after every load of the main page, so a reloaded main page knows. `terminal_window_close` also pushes `{open: false, back: true}`: a page asked to put the chat back, so the main page opens its panel on the chat, which the close button does not ask. When the window is destroyed the shell also detaches every terminal it showed (`Terminals::window_closed`), because its page cannot say so; the main page attaches again when its panel mounts the screen's view. Its page never starts the helper or wakes the teacher, so two windows never start two agents.
 
 ### Links and navigation
 

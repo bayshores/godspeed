@@ -35,6 +35,7 @@ Read only the files your task touches. A "§N" in any doc is the file that start
 | [08.1.4-claude-codes-start.md](08.1.4-claude-codes-start.md) | You change the arguments, settings or flags every Claude Code start passes. |
 | [08.1.6-vault-notes.md](08.1.6-vault-notes.md) | You change the notes folder, Obsidian notes, `write_vault_note`, `search_vault` or the pass that sends them. |
 | [08.1.7-follows-slip.md](08.1.7-follows-slip.md) | You change Follow's slip at the page's foot, the teacher's timeline, or the marks on what it changed. |
+| [08.1.8-the-teacher-panels-chat.md](08.1.8-the-teacher-panels-chat.md) | You change the teacher panel's chat: talk chat records, their tools and prompt, the Chats list, the model key, pop out, or the old terminal chats carried over. |
 | [08.2-plugins.md](08.2-plugins.md) | You change how the app hosts a plugin. Writing one is in [plugins/README.md](../plugins/README.md). |
 | [09-invariants.md](09-invariants.md) | You want the rules that always hold and what the build enforces. |
 | [10-events-and-observability.md](10-events-and-observability.md) | You change logging, the events channel or what still polls. Also holds §10.1 to §10.5. |

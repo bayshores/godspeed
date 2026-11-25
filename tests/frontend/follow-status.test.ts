@@ -7,9 +7,14 @@ import { ANNOUNCE_GAP_MS, agentDoing, announceDelay } from "../../src/frontend/c
 
 const t = Date.parse("2026-11-02T12:00:00Z");
 const teaching = { turnsRunning: 0 };
-const none = { round: null, lesson: null, extractions: [], jobs: [] };
+const none = { round: null, lesson: null, extractions: [], jobs: [], talkTurns: 0 };
 
 describe("agentDoing", () => {
+	it("a reply in the teacher panel's chat is not work elsewhere", () => {
+		assert.deepEqual(agentDoing({ ...none, agent: { turnsRunning: 1 }, talkTurns: 1 }), { text: "Idle", working: false });
+		assert.equal(agentDoing({ ...none, agent: { turnsRunning: 2 }, talkTurns: 1 })?.text, "Working");
+	});
+
 	it("nothing before the first read of the agent, then idle", () => {
 		assert.equal(agentDoing({ ...none, agent: null }), null);
 		assert.deepEqual(agentDoing({ ...none, agent: teaching }), { text: "Idle", working: false });

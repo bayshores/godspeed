@@ -2,7 +2,7 @@ import type { ComponentProps } from "react";
 import { Link } from "react-router";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { PATH_LINE } from "@/frontend/components/terminal/starter-model";
+import { PATH_LINE } from "@/frontend/components/teacher/starter-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 

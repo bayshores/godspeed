@@ -22,7 +22,7 @@ async function readRecord(chatId: string): Promise<ChatRead | null> {
 export type LessonStats = Pick<ChatRead, "turns" | "pricing" | "summarizeAt">;
 
 /**
- * The lesson's server seams (split out of src/frontend/components/chat.tsx): record
+ * A chat's server seams, for a lesson and for the teacher panel's chat alike: record
  * sync and append-only adoption, the turn-start adoption window, the
  * session usage log, the central jobs fetch, and the events-channel
  * subscriptions (turn-started / turn-settled / compaction / record).

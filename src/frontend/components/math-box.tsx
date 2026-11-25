@@ -38,7 +38,18 @@ export function MathBox({
 	const latest = useRef({ value, onChange, onEnter, placeholder, ariaLabel });
 	latest.current = { value, onChange, onEnter, placeholder, ariaLabel };
 
-	useImperativeHandle(ref, () => ({ focus: () => handleRef.current?.focus() }), []);
+	// A focus asked before the editor has loaded waits for it, so a box shown with the keyboard still gets it.
+	const focusWhenLoaded = useRef(false);
+	useImperativeHandle(
+		ref,
+		() => ({
+			focus: () => {
+				if (handleRef.current) handleRef.current.focus();
+				else focusWhenLoaded.current = true;
+			},
+		}),
+		[],
+	);
 
 	// Mount once; the box reads the latest callbacks through the ref.
 	useEffect(() => {
@@ -58,6 +69,7 @@ export function MathBox({
 			});
 			// The stand-in text leaves in the frame the editor arrives in, or the box is twice as tall for one frame.
 			flushSync(() => setReady(true));
+			if (focusWhenLoaded.current) handleRef.current.focus();
 		});
 		return () => {
 			gone = true;

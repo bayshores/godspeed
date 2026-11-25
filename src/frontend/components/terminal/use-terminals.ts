@@ -1,32 +1,27 @@
 /**
  * The agents' terminals in the desktop app, shared by every surface: the
- * teacher's latest terminal, and starting and stopping it. Lessons and jobs
- * run without it; the learner starts it to talk outside lessons. The
- * teacher's earlier chats come along, to go back to one.
- * The teacher's terminal can pop out into a window of its own (`popped`).
- * Outside the desktop app `available` is false and nothing here runs.
+ * teacher's latest terminal, and starting and stopping it. Lessons, jobs and
+ * the teacher panel's chat run without it. The panel's chat can pop out into
+ * a window of its own (`popped`), which the shell still calls the terminal
+ * window. Outside the desktop app `available` is false and nothing here runs.
  */
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import type { FolderAgent } from "@/shared/core";
 import { useAgentFolderView } from "@/frontend/components/agent-folder/agent-folder-context";
 import { AgentStatusContext, type AgentStatus } from "@/frontend/components/agent-status";
-import { useServerEvent } from "@/frontend/components/server-events";
-import { send as sendRequest } from "@/frontend/lib/api";
 import { readBase64 } from "@/frontend/lib/read-base64";
 import {
 	ATTACH_MAX_BYTES,
 	ATTACH_TOO_BIG,
 	CHECK_IN_WAIT_MS,
 	OUTSIDE_REFUSAL,
-	chatGone,
 	statusFromTerminals,
 	teacherStartRefused,
-	type TeacherChat,
 	type TerminalFacts,
 	type TerminalRecord,
 } from "./terminal-model";
 
-export interface TerminalsApi {
+interface TerminalsApi {
 	/** The desktop app runs terminals; false in a browser. */
 	available: boolean;
 	teacher: TerminalRecord | null;
@@ -40,33 +35,25 @@ export interface TerminalsApi {
 	agentHere: boolean;
 	/** The shell's first list of terminals has answered. */
 	loaded: boolean;
-	/** The teacher's earlier chats, newest first (only in the desktop app). */
-	chats: readonly TeacherChat[];
-	/** Resolves to why it couldn't start, or null. `resume`: the teacher's chat to go back to. */
-	start: (agent: FolderAgent, resume?: string) => Promise<string | null>;
-	/** The teacher leaves the chat it runs for a new one, or for `resume`: the running teacher is
-	 *  turned off first. Resolves like `start`. */
-	changeChat: (agent: FolderAgent, resume?: string) => Promise<string | null>;
+	/** Resolves to why it couldn't start, or null. */
+	start: (agent: FolderAgent) => Promise<string | null>;
 	stop: () => void;
 	/** These resolve to why the shell refused, or null. */
 	answer: (kind: "trust" | "enter") => Promise<string | null>;
 	paste: () => Promise<string | null>;
-	/** A starter key: the line typed into the teacher's input and sent. */
-	send: (line: string) => Promise<string | null>;
 	/** Attach on the teacher's screen: the file's path typed into its input. */
 	addFile: (file: File) => Promise<string | null>;
-	/** The teacher's terminal is in its own window, which the main window hears of. While it is,
-	 *  the main window never shows that terminal. */
+	/** The panel's chat is in its own window, which the main window hears of. */
 	popped: boolean;
-	/** Pops the teacher's terminal out, or brings its window forward, titled with the teacher's
-	 *  name. Resolves to why the shell refused, or null. Null where there is no such window to
-	 *  make: a browser, an older shell, the terminal window itself. */
+	/** Pops the panel's chat out, or brings its window forward, titled with the teacher's name.
+	 *  Resolves to why the shell refused, or null. Null where there is no such window to make: a
+	 *  browser, an older shell, the window itself. */
 	popOut: ((name: string) => Promise<string | null>) | null;
-	/** Brings the terminal window forward. */
+	/** Brings the chat's window forward. */
 	focusWindow: () => void;
-	/** Closes the terminal window and has the main window show the terminal again. */
+	/** Closes the chat's window and has the main window's panel show the chat again. */
 	putBack: () => void;
-	/** How many times a page asked for that: the panel shows the teacher's screen at each. */
+	/** How many times a page asked for that: the panel shows its chat at each. */
 	putBacks: number;
 }
 
@@ -90,9 +77,6 @@ function useTerminalsState(status: AgentStatus | null, inTerminalWindow: boolean
 	const folder = folderView?.short ?? "~/godspeed";
 	// The terminals that have checked in at least once.
 	const [checked, setChecked] = useState<ReadonlySet<string>>(new Set());
-	const [chats, setChats] = useState<readonly TeacherChat[]>([]);
-	// terminal id → the chat it went back to.
-	const resumed = useRef(new Map<string, string>());
 	// Re-renders when a timer crosses its threshold, or to look for a closed dialog again.
 	const [tick, bump] = useReducer((n: number) => n + 1, 0);
 
@@ -132,7 +116,7 @@ function useTerminalsState(status: AgentStatus | null, inTerminalWindow: boolean
 		};
 	}, [lh, put]);
 
-	// Only the main window hears whether the terminal window is open (the shell also says so after
+	// Only the main window hears whether the chat's window is open (the shell also says so after
 	// each load of this page).
 	const [popped, setPopped] = useState(false);
 	const [putBacks, countPutBack] = useReducer((n: number) => n + 1, 0);
@@ -147,28 +131,6 @@ function useTerminalsState(status: AgentStatus | null, inTerminalWindow: boolean
 	// A window closed or not open any more is what these wanted.
 	const focusWindow = useCallback(() => void windowLh?.focus().catch(() => {/* it closed since */}), [windowLh]);
 	const putBack = useCallback(() => void windowLh?.close().catch(() => {/* it is gone already */}), [windowLh]);
-
-	// The list changes as a teacher run starts, is used and ends; a chat the agent said is gone leaves it.
-	const [chatsChanged, chatsChange] = useReducer((n: number) => n + 1, 0);
-	useServerEvent("teacher-chats-changed", chatsChange);
-	const runId = teacher?.id;
-	const runGone = chatGone(teacher?.ended ?? null);
-	const runEnded = !!teacher?.ended;
-	useEffect(() => {
-		if (!lh) return;
-		let on = true;
-		const gone = runId && runGone ? resumed.current.get(runId) : undefined;
-		const url = `/api/teacher-chats${gone ? `?id=${encodeURIComponent(gone)}` : ""}`;
-		void sendRequest(url, gone ? { method: "DELETE" } : { cache: "no-store" }).then(({ body, status }) => {
-			// Unreachable: the list waits for the next look.
-			if (!on || status === 0) return;
-			const { chats } = body as { chats?: TeacherChat[] };
-			setChats(Array.isArray(chats) ? chats : []);
-		});
-		return () => {
-			on = false;
-		};
-	}, [lh, runId, runGone, runEnded, chatsChanged]);
 
 	const here = useCallback((id: string | undefined) => !!id && !!status?.terminals?.some((t) => t.id === id && t.here), [status]);
 	const teacherLive = !!teacher && !teacher.ended;
@@ -208,7 +170,7 @@ function useTerminalsState(status: AgentStatus | null, inTerminalWindow: boolean
 	}, [teacher, teacherLive, teacherCheckedIn]);
 
 	const start = useCallback(
-		async (agent: FolderAgent, resume?: string): Promise<string | null> => {
+		async (agent: FolderAgent): Promise<string | null> => {
 			if (!lh) return UNSTARTED;
 			try {
 				await postFolder({ action: "setup" });
@@ -216,8 +178,7 @@ function useTerminalsState(status: AgentStatus | null, inTerminalWindow: boolean
 				return reason(err);
 			}
 			try {
-				const { id } = await lh.start(agent, resume);
-				if (resume) resumed.current.set(id, resume);
+				const { id } = await lh.start(agent);
 				setTeacher((cur) => (cur?.id === id ? cur : { id, agent, startedAt: Date.now(), ended: null, prompt: null, url: false }));
 				return null;
 			} catch (err) {
@@ -229,7 +190,7 @@ function useTerminalsState(status: AgentStatus | null, inTerminalWindow: boolean
 
 	const refused = teacherStartRefused(teacher, !!status?.outsideHere);
 	const startTeacher = useCallback(
-		async (agent: FolderAgent, resume?: string) => {
+		async (agent: FolderAgent) => {
 			// Its screen shows where the start was asked for.
 			if (refused === "running") return null;
 			if (refused === "outside") {
@@ -241,32 +202,9 @@ function useTerminalsState(status: AgentStatus | null, inTerminalWindow: boolean
 				}
 				return OUTSIDE_REFUSAL;
 			}
-			return start(agent, resume);
+			return start(agent);
 		},
 		[refused, start, postFolder],
-	);
-
-	// A change of chat waits here for the running teacher to end.
-	const teacherEnded = useRef<(() => void) | null>(null);
-	useEffect(() => {
-		if (teacherLive) return;
-		teacherEnded.current?.();
-		teacherEnded.current = null;
-	}, [teacherLive]);
-	const changeChat = useCallback(
-		async (agent: FolderAgent, resume?: string) => {
-			if (!teacher || !teacherLive || !lh) return startTeacher(agent, resume);
-			const ended = new Promise<void>((done) => (teacherEnded.current = done));
-			try {
-				await lh.stop(teacher.id);
-			} catch (err) {
-				teacherEnded.current = null;
-				return reason(err);
-			}
-			await ended;
-			return start(agent, resume);
-		},
-		[teacher, teacherLive, lh, startTeacher, start],
 	);
 
 	const id = teacher?.id;
@@ -275,7 +213,6 @@ function useTerminalsState(status: AgentStatus | null, inTerminalWindow: boolean
 	}, [id, lh]);
 	const answer = useCallback((kind: "trust" | "enter") => refusal(id ? lh?.answer(id, kind) : undefined), [id, lh]);
 	const paste = useCallback(() => refusal(id ? lh?.paste(id) : undefined), [id, lh]);
-	const send = useCallback((line: string) => refusal(id ? lh?.send(id, line) : undefined), [id, lh]);
 	const addFile = useCallback(
 		(file: File) => {
 			if (!id || !lh) return Promise.resolve(null);
@@ -288,8 +225,8 @@ function useTerminalsState(status: AgentStatus | null, inTerminalWindow: boolean
 	const agentHere = outsideHere || (teacherLive && teacherCheckedIn);
 
 	return useMemo(
-		() => ({ available: !!lh, teacher, facts, folder, outsideHere, agentHere, loaded, chats, start: startTeacher, changeChat, stop, answer, paste, send, addFile, popped, popOut, focusWindow, putBack, putBacks }),
-		[lh, teacher, facts, folder, outsideHere, agentHere, loaded, chats, startTeacher, changeChat, stop, answer, paste, send, addFile, popped, popOut, focusWindow, putBack, putBacks],
+		() => ({ available: !!lh, teacher, facts, folder, outsideHere, agentHere, loaded, start: startTeacher, stop, answer, paste, addFile, popped, popOut, focusWindow, putBack, putBacks }),
+		[lh, teacher, facts, folder, outsideHere, agentHere, loaded, startTeacher, stop, answer, paste, addFile, popped, popOut, focusWindow, putBack, putBacks],
 	);
 }
 

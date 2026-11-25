@@ -148,11 +148,11 @@ describe("the sheet's chat", () => {
 	it("shows the sheet's rules, the learner's messages with what they pointed at and their files, and the agent's answers", () => {
 		const html = render(chatView, { onShowVersion: () => {} });
 		assert.match(html, /This sheet&#x27;s rules \(1\).*American spelling.*Saved by Claude Code.*aria-label="Remove rule: American spelling"/);
-		assert.match(html, /data-testid="sheet-you"[^>]*>this card is confusing/);
-		assert.match(html, /data-testid="sheet-pointed"[^>]*>.*Pointed at the back of version 2/);
+		assert.match(html, /data-testid="user-message"[^>]*>.*this card is confusing/, "the learner's words lie on a plate, as in the panel's chat");
+		assert.match(html, /data-testid="user-message"[^>]*><p data-testid="sheet-pointed"[^>]*>Pointed at the back of version 2/, "what was pointed at is inside the plate");
 		assert.match(html, /data-testid="sheet-picture" src="\/api\/spaces\/cls_1\/deadlines\/ddl_1\/cheat-sheet\/files\/abc-Version%202%2C%20Back\.png"/);
 		assert.match(html, /data-testid="sheet-file".*notes\.pdf/);
-		assert.match(html, /data-testid="sheet-agent".*<strong[^>]*>card 8<\/strong>/);
+		assert.match(html, /data-testid="thread-teacher".*<strong[^>]*>card 8<\/strong>/);
 		assert.match(html, /data-testid="sheet-made"[^>]*>.*Made version 2, the sheet now.*Show/);
 		assert.match(html, /Saved a rule for this sheet: .*American spelling/);
 		assert.match(html, /data-testid="sheet-box".*data-testid="composer".*data-testid="composer-send"[^>]*disabled[^>]*>Ask Claude Code</, "the learner writes in the chat's own box");

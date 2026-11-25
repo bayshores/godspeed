@@ -10,6 +10,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import type { FolderAgent } from "@/shared/core";
 import { AGENT_LABEL } from "@/frontend/components/agent-folder/agent-folder-model";
 import { useAgentFolderView } from "@/frontend/components/agent-folder/agent-folder-context";
+import { useAgentModels } from "@/frontend/components/agent-folder/use-agent-models";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { useReplayOnChange } from "@/frontend/components/motion";
@@ -20,7 +21,6 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { Segmented } from "@/frontend/components/ui/segmented";
 import { useFold } from "@/frontend/components/use-fold";
 import { useGuardedAction } from "@/frontend/components/use-guarded-action";
-import { useServerResource } from "@/frontend/components/use-server-resource";
 import { useSheetGlide } from "@/frontend/components/use-sheet-glide";
 import { cn } from "@/frontend/lib/utils";
 import { cantRun, cardRows, compact, ready, type CardRow, type RowKey } from "./agent-card-model";
@@ -277,11 +277,11 @@ function Key({ k, action, className }: { k: RowKey; action: Action; className: s
  *  keeps its place while the list is read, so the card never grows under the learner. */
 function ModelRow({ agent, arrives }: { agent: FolderAgent; arrives: boolean }) {
 	const { view, pickModel } = useAgentFolderView();
-	const { value, error } = useServerResource<{ agent: FolderAgent; models: { id: string; name: string; default: boolean }[] }>("/api/agent/models");
+	const list = useAgentModels();
 	const action = useGuardedAction();
-	const models = value?.agent === agent ? value.models : null;
-	// No list to pick from: the agent's own default is used, as it is with no pick.
-	if ((error && !models) || models?.length === 0) return null;
+	const models = list.agent === agent ? list.models : null;
+	// The agent offers no list: its own default is used, as it is with no pick.
+	if (models?.length === 0) return null;
 	const saved = view?.model[agent] ?? null;
 	const picked = models ? (models.find((m) => m.id === saved) ?? models.find((m) => m.default) ?? models[0]!) : null;
 	return (

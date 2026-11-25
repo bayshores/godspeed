@@ -19,7 +19,7 @@ import { PickSpace } from "@/frontend/components/pick-space";
 import { useLeavingList } from "@/frontend/components/presence";
 import { seedFromGap, type DeadlineSeed } from "@/frontend/components/space-deadlines-model";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { updateLine } from "@/frontend/components/terminal/starter-model";
+import { updateLine } from "@/frontend/components/teacher/starter-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";

@@ -13,8 +13,7 @@ const logPickFailure = (err: unknown) => console.error("[agent folder] the picke
  * The godspeed folder and its "Start Claude Code" button: open(agent)
  * makes or updates the folder and starts the agent in a terminal inside
  * the desktop app (terminal/use-terminals.ts), and the teacher's start
- * opens the teacher's panel on Terminal, so the learner sees it start.
- * Outside the desktop app the
+ * opens the teacher's panel, so the learner sees it start. Outside the desktop app the
  * learner runs the command, and `lines` is the live log of that launch.
  * `busy` while a start runs, `error` when it failed.
  */
@@ -25,21 +24,20 @@ export function useAgentFolder() {
 	const [failed, setFailed] = useState<string | null>(null);
 	const status = useAgentStatus();
 	const terminals = useTerminals();
-	const showTerminal = useTeacher()?.showTerminal;
+	const showChat = useTeacher()?.showChat;
 
-	/** Resolves to true once the agent starts (or, outside the desktop app, the folder is made).
-	 *  `resume`: the teacher's chat to go back to. `change`: a running teacher leaves its chat for it. */
-	const start = useCallback(
-		async (agent: FolderAgent, resume?: string, change = false): Promise<boolean> => {
+	/** Resolves to true once the agent starts (or, outside the desktop app, the folder is made). */
+	const open = useCallback(
+		async (agent: FolderAgent): Promise<boolean> => {
 			if (view?.agent !== agent) void pick(agent).catch(logPickFailure);
 			if (terminals?.available) {
 				setStarting(true);
 				setFailed(null);
-				const why = await (change ? terminals.changeChat(agent, resume) : terminals.start(agent, resume));
+				const why = await terminals.start(agent);
 				setStarting(false);
 				setFailed(why);
 				if (!why) void reload();
-				if (!why) showTerminal?.();
+				if (!why) showChat?.();
 				return !why;
 			}
 			setLaunch({ agent, made: "wait" });
@@ -52,12 +50,9 @@ export function useAgentFolder() {
 				return false;
 			}
 		},
-		[terminals, reload, post, pick, view?.agent, showTerminal],
+		[terminals, reload, post, pick, view?.agent, showChat],
 	);
 
-	const open = useCallback((agent: FolderAgent, resume?: string) => start(agent, resume), [start]);
-	/** While the teacher runs: a new chat, or back to `resume`. */
-	const changeChat = useCallback((agent: FolderAgent, resume?: string) => start(agent, resume, true), [start]);
 
 	/** Use another folder (the native picker); null when cancelled. Resolves to an error message, if any. */
 	const change = useCallback(async (): Promise<string | null> => {
@@ -88,7 +83,7 @@ export function useAgentFolder() {
 	/** Outside the desktop app the folder is made: the learner runs the command. */
 	const manual = launch?.made === "done";
 
-	return { view, lines, busy, error, manual, open, changeChat, change, setStartCommand };
+	return { view, lines, busy, error, manual, open, change, setStartCommand };
 }
 
 /** The agent picked beside "Use another agent": the server's (Claude Code before a pick), which a

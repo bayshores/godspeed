@@ -89,6 +89,7 @@ const FOLDER = {
 	startCommands: {},
 	oldSetup: { plugin: false, codex: false },
 	agent: "claude",
+	model: {},
 };
 
 const NO_KEY = { keyEnd: null, used: null, limit: null, error: null };

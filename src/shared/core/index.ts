@@ -17,6 +17,7 @@ export * from "./code-question.ts";
 export * from "./events.ts";
 // The godspeed folder's agents (the "Start Claude Code" button).
 export type { FolderAgent, OldSetup, StartCommands } from "./agent-folder.ts";
+export { isFolderAgent } from "./agent-folder.ts";
 export * from "./phases.ts";
 export * from "./pending.ts";
 export * from "./tool-switches.ts";

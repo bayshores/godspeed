@@ -3,7 +3,7 @@ import type { PathProgress } from "@/shared/core";
 import { RampRow } from "@/frontend/components/deadline/ramp-row";
 import { Key } from "@/frontend/components/ui/key";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { CHANGE_PATH_LINE } from "@/frontend/components/terminal/starter-model";
+import { CHANGE_PATH_LINE } from "@/frontend/components/teacher/starter-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { pathBlockView } from "./path-block-model";
 import { MAIN_KEY } from "./styles";

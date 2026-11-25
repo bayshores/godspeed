@@ -78,8 +78,6 @@ export interface ServerEvents {
 	"files-removed": { spaceId: string; files: { id: string; name: string }[] };
 	/** A line the learner typed in the agent's terminal for the page on screen (a lesson, a cheat sheet). */
 	"terminal-line": { id: number; text: string; attachments: { name: string; mimeType: string; data: string }[] };
-	/** The teacher's chats in godspeed's terminal changed: one started, or was used or named. */
-	"teacher-chats-changed": Record<string, never>;
 	/** The vault's setting changed, or a note godspeed writes in it was written, found again or marked removed. */
 	"vault-notes-changed": Record<string, never>;
 	/** The teacher's round of work began, gained a step or ended (GET /api/teacher-work). */
@@ -127,7 +125,6 @@ export const SERVER_EVENT_TYPES = [
 	"files-removed",
 	"terminal-line",
 	"agent-event",
-	"teacher-chats-changed",
 	"vault-notes-changed",
 	"teacher-work",
 	"lesson-work",

@@ -3,25 +3,13 @@ import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { AGENT_LABEL, startLabel, type LaunchChoice } from "./agent-folder-model";
+import { AGENT_LABEL, type LaunchChoice } from "./agent-folder-model";
 
 const CHOICES: { id: LaunchChoice; label: string }[] = [
 	{ id: "claude", label: AGENT_LABEL.claude },
 	{ id: "codex", label: AGENT_LABEL.codex },
 	{ id: "other", label: "Other app" },
 ];
-
-/** "Start Claude Code", the bright key, and beside it "Use another agent", on one row. */
-export function StartAgentButton({ choice, onChoose, onStart, busy = false }: { choice: LaunchChoice; onChoose: (choice: LaunchChoice) => void; onStart: () => void; busy?: boolean }) {
-	return (
-		<div className="flex flex-wrap items-center gap-2.5">
-			<button type="button" data-testid="open-agent" disabled={busy} onClick={onStart} className="lh-btn lh-btn-main text-[15px]">
-				{startLabel(choice)}
-			</button>
-			<AgentMenu choice={choice} onChoose={onChoose} className="text-[15px]" />
-		</div>
-	);
-}
 
 /** "Use another agent": its menu picks Claude Code, Codex or another app. */
 export function AgentMenu({ choice, onChoose, className }: { choice: LaunchChoice; onChoose: (choice: LaunchChoice) => void; className?: string }) {

@@ -35,6 +35,8 @@ interface DoingInputs {
 	/** Oldest first, as the activity feed lists them. */
 	extractions: readonly Extraction[];
 	jobs: readonly { kind: JobKind }[];
+	/** The teacher panel's chats writing a reply, which their own thread shows: not work elsewhere. */
+	talkTurns: number;
 }
 
 const JOB_TEXT: Record<JobKind, string> = {
@@ -71,7 +73,7 @@ export function agentDoing(i: DoingInputs): AgentDoing | null {
 	if (i.lesson?.working) return { text: "Working", working: true };
 	const background = backgroundLine(i.extractions, i.jobs);
 	if (background) return { ...background, working: true };
-	if (agent.turnsRunning > 0) return { text: "Working", working: true };
+	if (agent.turnsRunning > i.talkTurns) return { text: "Working", working: true };
 	return { text: "Idle", working: false };
 }
 

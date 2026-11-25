@@ -44,7 +44,7 @@ async fn no_route_writes_or_deletes_the_old_talk_chat() {
 		assert!(answer.ends_with(r#"{"error":"No such lesson","code":"not_found"}"#), "{answer}");
 	}
 	let sent = request(port, "POST", "/api/chat", r#"{"chatId":"chat_talk","input":{"type":"text","text":"hi"}}"#).await;
-	assert!(sent.starts_with("HTTP/1.1 404 ") && sent.ends_with(r#"{"error":"Talk was replaced by your agent's screen"}"#), "{sent}");
+	assert!(sent.starts_with("HTTP/1.1 404 ") && sent.ends_with(r#"{"error":"Talk was replaced by the teacher panel's chats"}"#), "{sent}");
 	let writes = [
 		("PUT", "/api/chats/chat_talk", r#"{"title":"Mine"}"#),
 		("PUT", "/api/chats/chat_talk/space", r#"{"spaceId":"sp_1"}"#),

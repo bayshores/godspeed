@@ -31,7 +31,7 @@ export function TeacherStatus({ name, line, testid, className }: {
 		<button
 			type="button"
 			data-testid={testid}
-			onClick={() => panel.showTerminal()}
+			onClick={() => panel.showChat()}
 			className={cn("lh-press inline-flex max-w-full items-center gap-1.5 text-left hover:text-ink hover:underline", className)}
 		>
 			<span className="truncate">{text}</span>

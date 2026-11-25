@@ -81,7 +81,8 @@ fn read_state(app: &App) -> Obj {
 /// The longest model name kept; the agents' own are far shorter.
 const MODEL_MAX: usize = 200;
 
-fn usable_model(model: &str) -> bool {
+/// A model's name as the agents give them: one line, not empty, not overlong.
+pub(crate) fn usable_model(model: &str) -> bool {
 	!model.is_empty() && model.len() <= MODEL_MAX && !model.contains(['\n', '\r'])
 }
 
@@ -140,6 +141,15 @@ pub fn set_folder_agent(app: &Arc<App>, agent: FolderAgent) -> Result<Json, Stri
 /// default.
 pub(crate) fn start_model(app: &App, agent: FolderAgent) -> Option<String> {
 	read_state(app).get("model").and_then(|models| models[agent.name()].as_str().map(str::to_owned))
+}
+
+/// The model a chat's next reply runs on: its own pick while its session is on `agent` (a pick
+/// made on the other agent names a model this one would refuse), else `agent`'s start model;
+/// None is the agent's own default.
+pub(crate) fn chat_model(app: &App, record: &Json, agent: FolderAgent) -> Option<String> {
+	let session = record["agentSession"]["agent"].as_str().or_else(|| record["agent"].as_str());
+	let own = record["model"].as_str().filter(|_| session.is_none_or(|on| on == agent.name()));
+	own.map(str::to_owned).or_else(|| start_model(app, agent))
 }
 
 /// PATCH /api/agent-folder `{model: {claude?, codex?}}`: each agent named gets its model, and

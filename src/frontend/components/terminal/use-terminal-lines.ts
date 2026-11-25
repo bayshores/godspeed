@@ -12,10 +12,9 @@ import { useEffect, useRef } from "react";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import { jsonInit, send } from "@/frontend/lib/api";
 import type { ChatAttachment } from "@/shared/core";
+import type { BoxPage } from "@/frontend/components/teacher/starter-model";
 
-type TalkPage = "lesson" | "cheat sheet";
-
-const shown: { page: TalkPage | null; path: string | null; space: string | null } = { page: null, path: null, space: null };
+const shown: { page: BoxPage | null; path: string | null; space: string | null } = { page: null, path: null, space: null };
 
 // One report for changes made together (a route change mounts and unmounts
 // pages), sent one after another, so an older report never lands last.
@@ -47,7 +46,7 @@ export function useWindowPage(path: string, space: string | null): void {
 	useServerResync(say);
 }
 
-export function useTerminalLines(page: TalkPage, onLine: (text: string, attachments: ChatAttachment[]) => Promise<boolean>): void {
+export function useTerminalLines(page: BoxPage, onLine: (text: string, attachments: ChatAttachment[]) => Promise<boolean>): void {
 	useEffect(() => {
 		shown.page = page;
 		say();

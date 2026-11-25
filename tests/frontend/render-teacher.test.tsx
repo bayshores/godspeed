@@ -1,8 +1,7 @@
 /**
  * The teacher's screens: the panel (head, the Activity list: Recent and
  * Background jobs; what it shows and how wide it is) and the teacher name
- * setting. The agent's screen in the panel has its own file
- * (terminal-panel.test.tsx).
+ * setting. The panel's chat has its own file (render-talk-chat.test.tsx).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -30,14 +29,13 @@ Object.assign(globalThis, {
 		disconnect() {}
 	},
 });
-// The start pair asks for the agent folder; these tests never answer.
+// Nothing here answers a request.
 globalThis.fetch = (() => new Promise(() => {})) as typeof fetch;
 
 const { TeacherPanel, agentLine, teacherHead } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
 const { PANEL_WIDTH, panelLayout, panelBody } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/teacher/teacher-activity.tsx");
 const { PanelHead } = await import("../../src/frontend/components/teacher/panel-head.tsx");
-const { TeacherChats } = await import("../../src/frontend/components/teacher/teacher-chats.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 import type { TerminalFacts } from "../../src/frontend/components/terminal/terminal-model.ts";
@@ -73,41 +71,38 @@ const IDLE = { connected: false, turnsRunning: 0 };
 const TEACHING = { ...IDLE, connected: true, name: "Claude Code" };
 
 type PanelProps = React.ComponentProps<typeof TeacherPanel>;
-/** The panel as a browser has it: Activity alone. */
+/** The panel while its chat is in a window of its own: Activity is its body. */
 const panel = (over: Partial<PanelProps> = {}) => (
-	<TeacherPanel
-		name="Ada"
-		agent={TEACHING}
-		view="activity"
-		list={false}
-		onList={() => {}}
-		focus={false}
-		state="open"
-		onBeside={() => {}}
-		{...over}
-	/>
+	<MemoryRouter>
+		<TeacherPanel
+			name="Ada"
+			view="popped"
+			chat={{ id: null, row: null, show() {} }}
+			asking={null}
+			popOut={null}
+			putBack={() => {}}
+			list={false}
+			onList={() => {}}
+			focus={false}
+			state="open"
+			onBeside={() => {}}
+			{...over}
+		/>
+	</MemoryRouter>
 );
 
 describe("the panel", () => {
-	it("in a browser it is the Activity list alone, and its chip drops nothing", () => {
+	it("while its chat is in a window of its own the body is the Activity list alone, with no tabs", () => {
 		const el = mount(panel());
-		assert.ok(el.querySelector("[data-testid='activity-list'] [data-testid='activity-empty']"), "outside the app shell the list says what will show there");
-		assert.ok(el.querySelector("[aria-expanded]") === null);
-		assert.ok(el.querySelector("[data-testid='no-agent']") === null, "an agent is connected: no start pair");
+		assert.ok(el.querySelector("[data-testid='teacher-panel-body'] [data-testid='activity-list'] [data-testid='activity-empty']"), "outside the app shell the list says what will show there");
+		assert.ok(el.querySelector("[data-testid='talk-chat']") === null, "the chat is in the other window");
 		assert.ok(el.querySelector("[role='tablist'], [role='tab']") === null, "no tabs");
 	});
-	it("in a browser with no agent connected, the start pair sits above Activity", () => {
-		const el = mount(panel({ agent: IDLE }));
-		const start = el.querySelector("[data-testid='no-agent']");
-		const list = el.querySelector("[data-testid='activity-list']");
-		assert.ok(start !== null && list !== null);
-		assert.ok(start.nextElementSibling === list, "the start pair, then the list");
-		assert.equal(el.querySelector("[data-testid='open-agent']")?.textContent, "Start Claude Code");
-	});
-	it("head: the teacher's status alone, in the screen's font; the strip names the panel and closes it", () => {
+	it("head: the teacher's name beside its square, then Put back; the strip names the panel and closes it", () => {
 		const html = renderToStaticMarkup(panel());
-		assert.match(html, /data-testid="teacher-panel-agent"[^>]*class="[^"]*font-mono[^"]*"[^>]*>(<[^>]*>)*Ada is on</);
-		assert.doesNotMatch(html, /teacher-panel-name|teacher-panel-close|role="switch"/);
+		assert.match(html, /data-testid="teacher-panel-agent"[^>]*>(<[^>]*>)*<span[^>]*data-state="open"[^>]*>Ada</);
+		assert.match(html, /data-testid="teacher-panel-put-back"/);
+		assert.doesNotMatch(html, /teacher-panel-name|teacher-panel-close|role="switch"|teacher-panel-pop-out/);
 	});
 	it("runs from the top bar to the window's bottom, sliding out of the strip, made of the bar's sheet, with no blur", () => {
 		const html = renderToStaticMarkup(panel());
@@ -163,11 +158,9 @@ describe("the panel", () => {
 		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing, facts: facts({}, "menu") }), { status: "Ada is asking you something.", lit: true, working: false });
 		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing: null, facts: null }), { status: "Ada is on", lit: false, working: false });
 	});
-	it("is the screen in the desktop app (Activity hangs from its key), Activity in a browser, lessons too", () => {
-		assert.equal(panelBody(true, false), "terminal");
-		assert.equal(panelBody(false, false), "activity");
-		assert.equal(panelBody(true, true), "popped", "its screen in a window of its own: Activity stays");
-		assert.equal(panelBody(false, true), "activity", "no screens in a browser, whatever is said of a window");
+	it("is its chat, or Activity while the chat is in a window of its own", () => {
+		assert.equal(panelBody(false), "chat");
+		assert.equal(panelBody(true), "popped");
 	});
 	it("never dims the page, and has a left edge to drag and no other, unless it takes the whole window", () => {
 		const wasWidth = window.innerWidth;
@@ -292,7 +285,9 @@ describe("Follow in the panel's head", () => {
 		setFollow: () => {},
 		panelOpen: false,
 		setPanelOpen: () => {},
-		showTerminal: () => {},
+		showChat: () => {},
+		talk: { chats: [], chatId: null },
+		waiting: { lessons: [], talk: null },
 		canAsk: false,
 		ask: () => {},
 		asking: null,
@@ -309,50 +304,11 @@ describe("Follow in the panel's head", () => {
 	const html = (over: Partial<TeacherApi>) =>
 		renderToStaticMarkup(
 			<TeacherContext.Provider value={api(over)}>
-				<PanelHead status="Idle" lit={false} working={false} list={{ open: false, onOpen: () => {} }} putBack={null} />
+				<PanelHead name="Ada" working={false} elsewhere={false} list={{ open: false, onOpen: () => {} }} popOut={null} putBack={null} />
 			</TeacherContext.Provider>,
 		);
 	it("says Following while it is on, and Follow once stopped, working or not", () => {
 		assert.match(html({}), /data-testid="follow-stop"[^>]*aria-pressed="true"[^>]*>Following</);
 		assert.match(html({ follow: false, doing: null }), /data-testid="follow-start"[^>]*aria-pressed="false"[^>]*>Follow</);
-	});
-});
-
-describe("the teacher's earlier chats", () => {
-	const now = Date.now();
-	const chats = [
-		{ id: "0f8fad5b-d9cb-469f-a165-70867728950e", agent: "claude" as const, name: "Limits proof", at: now - 2 * 3_600_000, open: true },
-		{ id: "7c9e6679-7425-40de-944b-e07fc1f90ae7", agent: "claude" as const, name: null, at: now - 5 * 60_000, open: false },
-	];
-	const list = (over: Partial<React.ComponentProps<typeof TeacherChats>> = {}) => (
-		<TeacherChats chats={chats} choice="claude" onChoose={() => {}} onNew={() => {}} onResume={() => {}} busy={false} {...over} />
-	);
-	it("New chat first, then each chat with how long ago, and no agent's name while one agent has them", () => {
-		const el = mount(list());
-		assert.equal(el.querySelector("[data-testid='teacher-chat-new']")?.textContent, "New chat");
-		const rows = [...el.querySelectorAll("[data-testid='teacher-chat']")].map((r) => r.textContent);
-		assert.deepEqual(rows, ["Limits proof2 hours", "A chat5 min"]);
-	});
-	it("while the teacher runs, the chat it is in says so, and pressing it goes back to it instead of starting it again", () => {
-		const opened: string[] = [];
-		const resumed: string[] = [];
-		const el = mount(list({ onOpen: (c) => opened.push(c.id), onResume: (c) => resumed.push(c.id) }));
-		const open = el.querySelector("[data-testid='teacher-chat-open']") as HTMLElement;
-		assert.equal(open.textContent, "Limits proofopen now");
-		act(() => open.click());
-		assert.deepEqual([opened, resumed], [[chats[0]!.id], []]);
-		assert.deepEqual([...el.querySelectorAll("[data-testid='teacher-chat']")].map((r) => r.textContent), ["A chat5 min"]);
-	});
-	it("names the agent when both have chats", () => {
-		const el = mount(list({ chats: [chats[0]!, { ...chats[1]!, agent: "codex" }] }));
-		assert.match(el.querySelectorAll("[data-testid='teacher-chat']")[1]?.textContent ?? "", /^A chat, Codex/);
-	});
-	it("a click goes back to that chat; New chat starts one", () => {
-		const resumed: string[] = [];
-		let fresh = 0;
-		const el = mount(list({ onResume: (c) => resumed.push(c.id), onNew: () => fresh++ }));
-		act(() => (el.querySelector("[data-testid='teacher-chat']") as HTMLElement).click());
-		act(() => (el.querySelector("[data-testid='teacher-chat-new']") as HTMLElement).click());
-		assert.deepEqual([resumed, fresh], [[chats[0]!.id], 1]);
 	});
 });

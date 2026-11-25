@@ -1,8 +1,8 @@
 /**
- * Starting the agent from the teacher's panel: the web version keeps the
- * copy-command path, the desktop app starts the teacher's terminal, and a
- * lesson's send starts no terminal: lessons run on the picked agent in
- * sessions of their own.
+ * Starting the agent (the folder notice's "Set up my folder"): the web
+ * version makes the folder for the learner's own command, the desktop app
+ * starts the teacher's terminal, and a lesson's send starts no terminal:
+ * lessons run on the picked agent in sessions of their own.
  */
 import { dom, fakeShell } from "../terminal-dom.ts";
 import React, { act } from "react";
@@ -11,7 +11,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-const { StartTeacher } = await import("../../src/frontend/components/teacher/start-teacher.tsx");
+const { useAgentFolder } = await import("../../src/frontend/components/agent-folder/use-agent-folder.ts");
 const { TerminalsProvider, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
 const { useAgentStatus } = await import("../../src/frontend/components/agent-status.tsx");
 const { agentDoing } = await import("../../src/frontend/components/teacher/follow-status.ts");
@@ -33,6 +33,7 @@ const FOLDER = {
 	startCommands: {},
 	oldSetup: { plugin: false, codex: false },
 	agent: "claude",
+	model: {},
 };
 const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, turnsRunning: 0, terminals: [], outsideHere: false, ...over });
 
@@ -87,6 +88,17 @@ async function mounted(render: (root: Root) => Promise<void>, run: () => Promise
 	}
 }
 
+/** A start key: what the folder notice's "Set up my folder" does, and what it says. */
+function StartTeacher() {
+	const { open, error, manual } = useAgentFolder();
+	return (
+		<>
+			<button type="button" data-testid="open-agent" onClick={() => void open("claude")} />
+			<p data-testid="start-said">{error ?? (manual ? "made" : "")}</p>
+		</>
+	);
+}
+
 describe("Start Claude Code", () => {
 	it("in the web version, makes the folder and asks the learner to run the command, as before", async () => {
 		serverAgent = null;
@@ -94,10 +106,9 @@ describe("Start Claude Code", () => {
 		await mounted(
 			(root) => act(async () => root.render(<StartTeacher />)),
 			async () => {
-				assert.equal(q("open-agent")!.textContent, "Start Claude Code");
 				await act(async () => q("open-agent")!.click());
 				await settle();
-				assert.match(document.body.textContent!, /Run the command from Settings, Connection in your terminal\./);
+				assert.equal(q("start-said")!.textContent, "made", "the learner runs the command");
 				assert.ok(changes.some((c) => c.startsWith("POST") && c.includes('"setup"')), "the folder was made");
 				assert.ok(changes.includes('PATCH {"agent":"claude"}'), "the agent it started is the learner's pick from now on");
 			},
@@ -117,8 +128,6 @@ describe("Start Claude Code", () => {
 						),
 					),
 				async () => {
-					assert.ok(q("open-agent")!.classList.contains("lh-btn-main"), "Start Claude Code leads");
-					assert.ok(!q("open-agent-menu")!.classList.contains("lh-btn-main"));
 					await act(async () => q("open-agent")!.click());
 					await settle();
 					assert.ok(shell.calls.includes("start claude"), shell.calls.join(", "));
@@ -153,7 +162,7 @@ describe("Start with an agent outside godspeed connected", () => {
 					await settle();
 					assert.ok(posts.some((b) => b.includes('"setup"')), "the folder was set up");
 					assert.ok(!shell.calls.some((c) => c.startsWith("start")), "no second teacher");
-					assert.match(document.body.textContent!, /The teacher is already running outside godspeed\. Close it there first\./);
+					assert.equal(q("start-said")!.textContent, "The teacher is already running outside godspeed. Close it there first.");
 				},
 			);
 		} finally {
@@ -268,10 +277,10 @@ describe("after godspeed's teacher ended, though the server still says connected
 		// What each surface shows, from the status every surface reads.
 		const words = () => {
 			const agent = status()!;
-			const doing = agentDoing({ agent, round: null, lesson: { working: true }, extractions: [], jobs: [] });
+			const doing = agentDoing({ agent, round: null, lesson: { working: true }, extractions: [], jobs: [], talkTurns: 0 });
 			const facts = api!.facts;
 			return {
-				strip: stripView({ agent, terminal: teacherTerminalState(facts), working: !!doing?.working, work: null, ready: [], asking: [], panelOpen: false }).square,
+				strip: stripView({ agent, terminal: teacherTerminalState(facts), talkWaits: false, working: !!doing?.working, work: null, ready: [], asking: [], panelOpen: false }).square,
 				panel: agentLine(agent, "Teacher", doing),
 				tile: teacherTile(doing, false).chip,
 			};

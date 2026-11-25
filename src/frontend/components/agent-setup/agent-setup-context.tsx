@@ -16,6 +16,8 @@ import { useServerResource } from "@/frontend/components/use-server-resource";
 interface AgentSetup {
 	/** null until read. */
 	health: AgentHealth | null;
+	/** The first read has answered, or failed (then nothing stands in for the agent). */
+	read: boolean;
 	/** The update as last told, else as last read. */
 	update: AgentUpdate | null;
 	/** Checks again now; the answer says a check runs. */
@@ -25,7 +27,8 @@ interface AgentSetup {
 const SetupContext = createContext<AgentSetup | null>(null);
 
 export function AgentSetupProvider({ children }: { children: ReactNode }) {
-	const { value, update: setValue } = useServerResource<unknown>("/api/agent/health", { on: { "agent-health": true } });
+	const { value, error, update: setValue } = useServerResource<unknown>("/api/agent/health", { on: { "agent-health": true } });
+	const read = value !== null || error !== null;
 	const health = useMemo(() => readAgentHealth(value), [value]);
 	// What an `agent-update` event told, for the agent it was told for.
 	const [told, setTold] = useState<{ agent: string; update: AgentUpdate } | null>(null);
@@ -53,12 +56,12 @@ export function AgentSetupProvider({ children }: { children: ReactNode }) {
 		return () => window.removeEventListener("focus", back);
 	}, [failing, checkAgain]);
 
-	const shared = useMemo(() => ({ health, update, checkAgain }), [health, update, checkAgain]);
+	const shared = useMemo(() => ({ health, read, update, checkAgain }), [health, read, update, checkAgain]);
 	return <SetupContext.Provider value={shared}>{children}</SetupContext.Provider>;
 }
 
-/** Outside a provider (isolated renders): nothing read. */
-const OUTSIDE: AgentSetup = { health: null, update: null, checkAgain: async () => null };
+/** Outside a provider (isolated renders): nothing to read. */
+const OUTSIDE: AgentSetup = { health: null, read: true, update: null, checkAgain: async () => null };
 
 export function useAgentSetup(): AgentSetup {
 	return useContext(SetupContext) ?? OUTSIDE;

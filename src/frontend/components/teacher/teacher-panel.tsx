@@ -3,29 +3,31 @@
  * while the learner works on the page, a lesson too. It runs from the
  * top bar to the window's bottom, left of the strip, pushing the page
  * left to make room and covering it where there is none; the learner
- * drags its left edge. One head row (panel-head.tsx), then
- * the agent's screen (panel-screen.tsx), or Activity (teacher-activity.tsx)
- * in a browser and while the teacher's screen is in a window of its own.
- * While the agent can't run, the setup card stands in for both.
+ * drags its left edge. One head row (panel-head.tsx), then its chat
+ * (talk-chat.tsx), or Activity (teacher-activity.tsx) while the chat is in
+ * a window of its own. While the agent can't run, the setup card stands in
+ * for the chat.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLocation } from "react-router";
 import { cn } from "@/frontend/lib/utils";
+import type { TalkChat } from "@/shared/core";
 import { BarWindow, observeBar } from "@/frontend/components/ui/bar-window";
 import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import type { AgentStatus } from "@/frontend/components/agent-status";
 import { AgentCard } from "@/frontend/components/agent-setup/agent-card";
 import { cantRun } from "@/frontend/components/agent-setup/agent-card-model";
 import { useAgentSetup } from "@/frontend/components/agent-setup/agent-setup-context";
+import { LoadingBox } from "@/frontend/components/loading";
 import { usePresence } from "@/frontend/components/presence";
 import { screenStatusLine, teacherTerminalState, type TerminalFacts } from "@/frontend/components/terminal/terminal-model";
 import { stripWidth } from "@/frontend/components/strip/strip-dom";
-import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useTeacher } from "./teacher-context";
 import type { AgentDoing } from "./follow-status";
 import { TeacherActivity } from "./teacher-activity";
 import { PanelHead } from "./panel-head";
-import { PanelScreen } from "./panel-screen";
-import { StartTeacher } from "./start-teacher";
+import { boxPage } from "./starter-model";
+import { TalkChatView } from "./talk-chat";
 import { PANEL_WIDTH, panelLayout, type PanelView } from "./dock-model";
 
 /** The status line under the name: what the agent is doing while it works,
@@ -55,8 +57,11 @@ const WIDTH_VAR = "--lh-dock-width";
 
 export function TeacherPanel({
 	name,
-	agent,
 	view,
+	chat,
+	asking,
+	popOut,
+	putBack,
 	list,
 	onList,
 	focus,
@@ -64,11 +69,19 @@ export function TeacherPanel({
 	onBeside,
 }: {
 	name: string;
-	agent: AgentStatus | null;
 	view: PanelView;
+	/** The chat shown (null: a new chat), its row in the list, and the pick of another. */
+	chat: { id: string | null; row: TalkChat | null; show: (id: string | null) => void };
+	/** A line a page key handed the teacher. */
+	asking: { line: string; clear: () => void } | null;
+	/** Moves the chat to a window of its own; null where there is none (a browser). Resolves to why
+	 *  the shell refused, or null. */
+	popOut: (() => Promise<string | null>) | null;
+	/** Brings the popped chat back. */
+	putBack: (() => void) | null;
 	list: boolean;
 	onList: (open: boolean) => void;
-	/** The learner opened the screen: it takes the keyboard. */
+	/** The learner opened the panel: its box takes the keyboard. */
 	focus: boolean;
 	/** "closed" while it goes back into the strip. */
 	state: "open" | "closed";
@@ -76,20 +89,18 @@ export function TeacherPanel({
 	onBeside: (width: number | null) => void;
 }) {
 	const teacher = useTeacher();
-	const terminals = useTerminals();
-	const onScreenView = view === "terminal";
-	const teacherFacts = terminals?.facts ?? null;
-	const head = teacherHead({ agent, name, doing: teacher?.doing ?? null, facts: teacherFacts });
-	// The card arrives at rest and fades out (110 ms) once the agent can run; what it stood for fades in.
-	const blocked = cantRun(useAgentSetup().health);
+	const { pathname } = useLocation();
+	const doing = teacher?.doing ?? null;
+	const setup = useAgentSetup();
+	const blocked = cantRun(setup.health);
+	// The card arrives at rest and fades out (110 ms) once the agent can run; the chat then fades in.
 	const card = usePresence(blocked);
 	const cardLeft = useRef(false);
 	if (card.mounted && !blocked) cardLeft.current = true;
-	const setup = card.mounted;
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
 	const [{ width, whole }, setLayout] = useState({ width: wanted, whole: false });
-	const putBack = view === "popped" ? () => terminals?.putBack() : null;
-	// Before paint, so the screen is never sized to another box first.
+	const [popError, setPopError] = useState<string | null>(null);
+	// Before paint, so the chat is never sized to another box first.
 	useLayoutEffect(() => {
 		const measure = () => {
 			// The strip keeps the window's right edge: the panel and the page share what is left of it.
@@ -119,39 +130,51 @@ export function TeacherPanel({
 		[],
 	);
 	useEffect(() => () => onBeside(null), [onBeside]);
+	const popped = view === "popped";
 	return (
 		<BarWindow right={stripWidth()} width={width} height={null} state={state} data-teacher-panel="" data-whole={whole || undefined} data-testid="teacher-panel" aria-label={name}>
 			{/* Nothing to drag while it takes the whole window. */}
 			{!whole && <ResizeHandle paneKey="teacher" width={width} bounds={PANEL_WIDTH} onWidth={setWanted} label={`Resize ${name}'s panel`} />}
 			<PanelHead
-				status={setup ? null : head.status}
-				lit={!setup && head.lit}
-				working={!setup && head.working}
-				list={onScreenView && !setup ? { open: list, onOpen: onList } : null}
-				putBack={putBack}
+				name={name}
+				working={!!doing?.working || !!chat.row?.running}
+				elsewhere={!!doing?.working}
+				list={popped ? null : { open: list, onOpen: onList }}
+				popOut={!popped && popOut ? () => void popOut().then(setPopError) : null}
+				putBack={popped ? putBack : null}
 			/>
-
+			{popError && (
+				<p role="alert" className="shrink-0 px-[18px] pb-2 text-[15px] text-ans-wrong">
+					{popError}
+				</p>
+			)}
 			<div
 				data-testid="teacher-panel-body"
 				className={cn(
-					"flex min-h-0 flex-1 flex-col motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)",
-					(!onScreenView || setup) && "gap-[18px] px-[18px] pt-1.5 pb-[18px]",
-					// A list dropped from the head lies over the screen: the screen steps back under it.
-					onScreenView && !setup && "peer-data-[hang]:opacity-40",
-					!setup && cardLeft.current && "lh-fade",
+					"flex min-h-0 flex-1 flex-col motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out) peer-data-[hang]:opacity-40",
+					// The chat reads like the page; Activity alone keeps the panel's own colors.
+					!popped && "lh-desk lh-page-colors",
 				)}
 			>
-				{setup ? (
-					<div data-testid="panel-setup" data-state={card.state} className={cn("overflow-y-auto", card.state === "closed" && "lh-fade")}>
-						<AgentCard />
+				{popped ? (
+					<div className="flex min-h-0 flex-1 flex-col gap-[18px] px-[18px] pt-1.5 pb-[18px]">
+						<TeacherActivity />
 					</div>
-				) : onScreenView ? (
-					<PanelScreen name={name} focus={focus} />
 				) : (
 					<>
-						{/* In a browser there is no screen to start from. */}
-						{!terminals?.available && agent && !agent.connected && <StartTeacher />}
-						<TeacherActivity />
+						{!setup.read ? (
+							<LoadingBox data-testid="panel-loading" className="flex-1" />
+						) : (
+							card.mounted && (
+								<div data-testid="panel-setup" data-state={card.state} className={cn("overflow-y-auto px-[18px] pt-1.5 pb-[18px]", card.state === "closed" && "lh-fade")}>
+									<AgentCard />
+								</div>
+							)
+						)}
+						{/* Kept under the card, so its draft and its place stay. */}
+						<div className={cn("min-h-0 flex-1 flex-col", !setup.read || card.mounted ? "hidden" : "flex", cardLeft.current && "lh-fade")}>
+							<TalkChatView chatId={chat.id} chat={chat.row} onChat={chat.show} name={name} page={boxPage(pathname)} ask={asking} focus={focus} />
+						</div>
 					</>
 				)}
 			</div>

@@ -10,9 +10,6 @@ export type LaunchChoice = FolderAgent | "other";
 
 export const AGENT_LABEL: Record<FolderAgent, string> = { claude: "Claude Code", codex: "Codex" };
 
-/** The key that starts the picked agent: "Start Claude Code". */
-export const startLabel = (choice: LaunchChoice): string => (choice === "other" ? "Show the setup" : `Start ${AGENT_LABEL[choice]}`);
-
 /** What the server says about the folder (GET /api/agent-folder). */
 export interface FolderView {
 	folder: string;
@@ -23,8 +20,8 @@ export interface FolderView {
 	oldSetup: OldSetup;
 	/** The agent the learner picked to run the lessons; null until they pick one (lessons run on Claude Code then). */
 	agent: FolderAgent | null;
-	/** The model each agent's new lessons start on; absent or null: the agent's own default. */
-	model: Partial<Record<FolderAgent, string | null>>;
+	/** The model each agent's new chats and lessons start on, where the learner picked one. */
+	model: Partial<Record<FolderAgent, string>>;
 }
 
 /** A click on the button outside the desktop app: the folder is made,
