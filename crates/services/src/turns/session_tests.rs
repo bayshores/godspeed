@@ -7,6 +7,7 @@ use gs_base::clock;
 use gs_core::messages::input_events::{ChatInput, TurnInput};
 use gs_core::messages::native_messages::new_user_steer;
 use gs_core::messages::role::Role;
+use gs_core::spaces::agent_folder::FolderAgent;
 use gs_core::spaces::file_state::FileKind;
 use gs_core::spaces::today_note::local_day;
 use gs_core::study::reply_nudges::{LAST_REPLY_LEAD, Nudge, curve_refusal};
@@ -21,7 +22,7 @@ use super::turn_liveness::is_turn_running;
 use super::turn_runs::{abort_turn, answer_approval, running_turn};
 use super::turn_work::lesson_work;
 use crate::App;
-use crate::app::agent_folder::set_folder_agent;
+use crate::app::agent_folder::{folder_agent, set_agent_models, set_folder_agent};
 use crate::app::agents::use_runtime;
 use crate::app::test_support::{Scratch, scratch_dir, test_app};
 use crate::jobs::steer_live_chat;
@@ -451,4 +452,21 @@ async fn a_plot_sent_first_is_never_shown_before_its_guess() {
 	let guess_at = seen.iter().position(|e| e["type"].as_str() == Some("tool_execution_start") && e["toolName"].as_str() == Some("quiz")).expect("the guess came");
 	assert!(seen[..guess_at].iter().all(|e| !calls(e).contains(&"plot".to_owned())), "the plot was shown before its guess: {:?}", &seen[..guess_at]);
 	assert!(seen[guess_at..].iter().any(|e| e["type"].as_str() == Some("message_end") && calls(e) == ["plot", "quiz"]), "then both at once");
+}
+
+/// A lesson's session starts on the model the learner picked for the agent; a job keeps the
+/// agent's own default.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_new_lesson_session_starts_on_the_picked_model() {
+	for runtime in [FakeAgent::runtime as fn(&FakeAgent) -> Runtime, FakeAgent::codex_runtime] {
+		let fx = lesson_on("session-model", None, vec![vec![text("Sets, then.")]], runtime);
+		let agent = folder_agent(&fx.app);
+		let mut picked = gs_json::Obj::new();
+		picked.insert(agent.name(), "a-picked-model");
+		set_agent_models(&fx.app, &Json::Obj(picked)).unwrap();
+		fx.say("Teach me sets").await;
+		fx.settled().await;
+		let opened = if agent == FolderAgent::Claude { fx.sent("open")[0]["model"].clone() } else { fx.requests("thread/start")[0]["params"]["model"].clone() };
+		assert_eq!(opened.as_str(), Some("a-picked-model"), "{}", agent.name());
+	}
 }

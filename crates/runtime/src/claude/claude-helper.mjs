@@ -2,10 +2,12 @@
 // to it in JSON lines over stdin and stdout (crates/runtime/src/claude/protocol.rs). Each
 // session is one Agent SDK query on the learner's own Claude Code, with godspeed's tools served
 // in-process; every tool call and permission question goes to the server and waits for its answer.
+// It also answers which models Claude Code offers.
 // scripts/build-claude-helper.mjs bundles this file with the SDK into the app.
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { createInterface } from "node:readline";
 import { pathToFileURL } from "node:url";
 import { query as sdkQuery } from "@anthropic-ai/claude-agent-sdk";
@@ -147,6 +149,36 @@ export function serve({ input, output, query = sdkQuery }) {
 		void pump(session);
 	}
 
+	/**
+	 * Answers with the models Claude Code offers. It starts Claude Code with no input, so no model
+	 * is called, and none of the learner's own settings.
+	 */
+	async function models(message) {
+		const { id, claudePath, launcher: command } = message;
+		const queue = inputQueue();
+		try {
+			const listing = query({
+				prompt: queue,
+				options: {
+					cwd: tmpdir(),
+					persistSession: false,
+					settingSources: [],
+					strictMcpConfig: true,
+					stderr: (data) => process.stderr.write(`[claude models] ${data}`),
+					...(command ? { spawnClaudeCodeProcess: launcher(command) } : { pathToClaudeCodeExecutable: claudePath }),
+				},
+			});
+			try {
+				write({ type: "models", id, models: await listing.supportedModels() });
+			} finally {
+				queue.end();
+				listing.close();
+			}
+		} catch (err) {
+			write({ type: "models", id, error: err instanceof Error ? err.message : String(err) });
+		}
+	}
+
 	async function pump(session) {
 		try {
 			for await (const message of session.query) write({ type: "sdk", session: session.key, message });
@@ -167,6 +199,8 @@ export function serve({ input, output, query = sdkQuery }) {
 		switch (message.type) {
 			case "open":
 				return open(message);
+			case "models":
+				return void models(message);
 			case "tool_result":
 			case "approval": {
 				const resolve = waiting.get(message.id);

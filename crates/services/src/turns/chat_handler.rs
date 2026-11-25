@@ -47,6 +47,7 @@ use super::turn_service::{persist_turn, trigger_extraction};
 use super::turn_work;
 use crate::App;
 use crate::app::agent_actions::record_answer;
+use crate::app::agent_folder::start_model;
 use crate::app::agents;
 use crate::app::today_note::today_note_for;
 use crate::graph::progress::lesson_ended;
@@ -334,6 +335,7 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 		chat_id: chat_id.to_owned(),
 		runtime,
 		cwd: agent_cwd(app)?,
+		model: start_model(app, agent),
 		tools: setup.host.specs(),
 		prompt: setup.prompt,
 		stored: record["agentSession"].clone(),

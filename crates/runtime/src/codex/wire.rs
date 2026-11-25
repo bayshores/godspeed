@@ -5,6 +5,7 @@
 use gs_json::{Json, Obj, json};
 
 use crate::event::{Ask, Part, ToolCall, ToolReply, Usage, Verdict};
+use crate::models::Model;
 use crate::session::SessionSpec;
 
 pub const INITIALIZE: &str = "initialize";
@@ -12,6 +13,7 @@ pub const INITIALIZED: &str = "initialized";
 pub const ACCOUNT_READ: &str = "account/read";
 pub const LOGIN_START: &str = "account/login/start";
 pub const LOGIN_CANCEL: &str = "account/login/cancel";
+pub const MODEL_LIST: &str = "model/list";
 pub const THREAD_START: &str = "thread/start";
 pub const THREAD_RESUME: &str = "thread/resume";
 pub const THREAD_UNSUBSCRIBE: &str = "thread/unsubscribe";
@@ -150,11 +152,42 @@ pub fn tool_result(reply: &ToolReply) -> Json {
 	json!({ "contentItems": items, "success": !reply.is_error })
 }
 
-/// Who is signed in, from an `account/read` result: the plan, or None when no one is.
-pub fn account_plan(result: &Json) -> Option<String> {
+/// Who is signed in to godspeed's Codex folder.
+#[derive(Debug, PartialEq)]
+pub enum Account {
+	None,
+	/// A ChatGPT account, with its plan type.
+	Plan(Option<String>),
+	/// An API key or a cloud platform, which bill by use.
+	ByUse,
+}
+
+/// Who is signed in, from an `account/read` result.
+pub fn account(result: &Json) -> Account {
 	let account = &result["account"];
-	let kind = account["type"].as_str()?;
-	Some(account["planType"].as_str().unwrap_or(kind).to_owned())
+	match account["type"].as_str() {
+		None => Account::None,
+		Some("chatgpt") => Account::Plan(account["planType"].as_str().map(str::to_owned)),
+		Some(_) => Account::ByUse,
+	}
+}
+
+/// One page of the models the picker lists, after `cursor`.
+pub fn model_list(cursor: Option<&str>) -> Json {
+	json!({ "cursor": cursor })
+}
+
+/// A page of `model/list`: each model's id (the name a thread starts with), its name, and whether
+/// it is Codex's default; and the cursor of the next page.
+pub fn models(result: &Json) -> (Vec<Model>, Option<String>) {
+	let models = result["data"].items().iter().filter(|model| !model["hidden"].truthy()).map(|model| Model { id: text(&model["model"]), name: text(&model["displayName"]), default: model["isDefault"].truthy() }).collect();
+	(models, result["nextCursor"].as_str().map(str::to_owned))
+}
+
+/// Whether a turn's error says Codex's sign-in was refused.
+fn signed_out(error: &Json) -> bool {
+	let info = &error["codexErrorInfo"];
+	info.as_str() == Some("unauthorized") || info.as_obj().is_some_and(|info| info.values().any(|detail| detail["httpStatusCode"].as_f64() == Some(401.0)))
 }
 
 /// One item of a turn, as godspeed tells them apart.
@@ -198,8 +231,9 @@ pub enum Note {
 	Item { thread: String, turn: String, item: Item, done: bool },
 	Usage { thread: String, usage: Usage },
 	Compacted { thread: String },
-	TurnCompleted { thread: String, status: TurnStatus, error: Option<String> },
-	Error { thread: String, message: String, will_retry: bool },
+	/// `signed_out`: the error says Codex's sign-in was refused.
+	TurnCompleted { thread: String, status: TurnStatus, error: Option<String>, signed_out: bool },
+	Error { thread: String, message: String, will_retry: bool, signed_out: bool },
 	/// A sign-in ended: done, cancelled or failed (the text says why).
 	LoginEnded { login: String, result: Result<(), String> },
 	/// Notifications godspeed has no use for.
@@ -233,9 +267,9 @@ pub fn note(method: &str, params: &Json) -> Note {
 				_ => TurnStatus::Failed,
 			};
 			let error = turn["error"]["message"].as_str().map(str::to_owned).or_else(|| (status == TurnStatus::Failed).then(|| format!("the turn ended as {}", turn["status"].as_str().unwrap_or("unknown"))));
-			Note::TurnCompleted { thread, status, error }
+			Note::TurnCompleted { thread, status, error, signed_out: signed_out(&turn["error"]) }
 		}
-		"error" => Note::Error { thread, message: text(&params["error"]["message"]), will_retry: params["willRetry"].truthy() },
+		"error" => Note::Error { thread, message: text(&params["error"]["message"]), will_retry: params["willRetry"].truthy(), signed_out: signed_out(&params["error"]) },
 		"account/login/completed" => {
 			let result = if params["success"].truthy() { Ok(()) } else { Err(params["error"].as_str().unwrap_or("the sign-in did not finish").to_owned()) };
 			Note::LoginEnded { login: text(&params["loginId"]), result }
@@ -345,8 +379,40 @@ mod tests {
 
 	#[test]
 	fn the_plan_is_read_from_the_account() {
-		assert_eq!(account_plan(&json!({ "account": { "type": "chatgpt", "planType": "plus" }, "requiresOpenaiAuth": true })), Some("plus".into()));
-		assert_eq!(account_plan(&json!({ "account": { "type": "apiKey" } })), Some("apiKey".into()));
-		assert_eq!(account_plan(&json!({ "account": null, "requiresOpenaiAuth": true })), None);
+		assert_eq!(account(&json!({ "account": { "type": "chatgpt", "email": null, "planType": "plus", "workspaceName": null }, "userId": null, "requiresOpenaiAuth": true, "workspaceRouting": null })), Account::Plan(Some("plus".into())));
+		assert_eq!(account(&json!({ "account": { "type": "apiKey" } })), Account::ByUse);
+		assert_eq!(account(&json!({ "account": { "type": "amazonBedrock", "usesCodexManagedCredentials": false } })), Account::ByUse);
+		assert_eq!(account(&json!({ "account": null, "userId": null, "requiresOpenaiAuth": true, "workspaceRouting": null })), Account::None);
+	}
+
+	#[test]
+	fn the_model_list_keeps_the_shown_models_with_codexs_default() {
+		let page = json!({
+			"data": [
+				{ "id": "gpt-6.1-sol", "model": "gpt-6.1-sol", "displayName": "GPT-6.1-Sol", "description": "Latest workhorse model for coding and everyday work.", "hidden": false, "isDefault": true },
+				{ "id": "gpt-6-luna", "model": "gpt-6-luna", "displayName": "GPT-6-Luna", "description": "Fast and affordable model for easier tasks.", "hidden": false, "isDefault": false },
+				{ "id": "internal", "model": "internal", "displayName": "Internal", "description": "", "hidden": true, "isDefault": false },
+			],
+			"nextCursor": "c2",
+		});
+		let sol = Model { id: "gpt-6.1-sol".into(), name: "GPT-6.1-Sol".into(), default: true };
+		let luna = Model { id: "gpt-6-luna".into(), name: "GPT-6-Luna".into(), default: false };
+		assert_eq!(models(&page), (vec![sol, luna], Some("c2".into())));
+		assert_eq!(model_list(None), json!({ "cursor": null }));
+	}
+
+	#[test]
+	fn a_refused_sign_in_is_told_from_other_errors() {
+		let completed = |error: Json| match note("turn/completed", &json!({ "threadId": "t", "turn": { "id": "u", "status": "failed", "error": error } })) {
+			Note::TurnCompleted { signed_out, .. } => signed_out,
+			other => panic!("not a turn's end: {other:?}"),
+		};
+		assert!(completed(json!({ "message": "401 Unauthorized", "codexErrorInfo": "unauthorized", "additionalDetails": null })));
+		assert!(completed(json!({ "message": "stream failed", "codexErrorInfo": { "responseStreamConnectionFailed": { "httpStatusCode": 401 } } })));
+		assert!(!completed(json!({ "message": "busy", "codexErrorInfo": "serverOverloaded" })));
+		assert!(!completed(json!({ "message": "stream failed", "codexErrorInfo": { "responseStreamConnectionFailed": { "httpStatusCode": 502 } } })));
+		assert!(!completed(Json::Null));
+		let error = note("error", &json!({ "threadId": "t", "turnId": "u", "willRetry": false, "error": { "message": "401", "codexErrorInfo": "unauthorized" } }));
+		assert!(matches!(error, Note::Error { signed_out: true, .. }));
 	}
 }

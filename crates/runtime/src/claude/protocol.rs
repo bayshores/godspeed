@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use gs_json::{Json, json};
 
 use crate::event::{Ask, End, Part, SessionEvent, ToolCall, ToolReply, Usage, Verdict};
+use crate::models::Model;
 use crate::session::SessionSpec;
 
 /// The helper's MCP server for godspeed's tools; Claude Code names them `mcp__<server>__<tool>`.
@@ -17,6 +18,14 @@ pub const TOOL_SERVER: &str = "godspeed";
 pub enum ClaudeProgram {
 	Path(String),
 	Command(String),
+}
+
+/// How the helper starts Claude Code: its path, or the learner's command (`launcher`).
+fn set_program(message: &mut Json, program: &ClaudeProgram) {
+	match program {
+		ClaudeProgram::Path(path) => message.set("claudePath", path.as_str()),
+		ClaudeProgram::Command(command) => message.set("launcher", command.as_str()),
+	}
 }
 
 pub fn open(session: &str, spec: &SessionSpec, program: &ClaudeProgram) -> Json {
@@ -31,11 +40,26 @@ pub fn open(session: &str, spec: &SessionSpec, program: &ClaudeProgram) -> Json 
 		"systemPrompt": spec.instructions,
 		"tools": tools,
 	});
-	match program {
-		ClaudeProgram::Path(path) => message.set("claudePath", path.as_str()),
-		ClaudeProgram::Command(command) => message.set("launcher", command.as_str()),
-	}
+	set_program(&mut message, program);
 	message
+}
+
+/// Asks Claude Code for the models it offers, with no session and no model call.
+pub fn models(id: &str, program: &ClaudeProgram) -> Json {
+	let mut message = json!({ "type": "models", "id": id });
+	set_program(&mut message, program);
+	message
+}
+
+/// The SDK's model list (`supportedModels()`): each model's alias or id, its name, and whether it
+/// is Claude Code's own default (its `default` row).
+fn model_list(models: &Json) -> Vec<Model> {
+	models.items().iter().map(|model| Model { id: model["value"].str_or_empty().to_owned(), name: model["displayName"].str_or_empty().to_owned(), default: model["value"].as_str() == Some("default") }).collect()
+}
+
+/// Whether an SDK message says Claude Code's sign-in was refused.
+pub fn signed_out(message: &Json) -> bool {
+	message["type"].as_str() == Some("assistant") && message["error"].as_str() == Some("authentication_failed")
 }
 
 /// Message content as the Anthropic API takes it.
@@ -91,6 +115,8 @@ pub enum FromHelper {
 	Approval { id: String, session: String, ask: Ask },
 	/// A session's query ended: closed by godspeed, or its Claude Code stopped.
 	Closed { session: String },
+	/// The answer to a `models` question, or why there is none.
+	Models { id: String, models: Result<Vec<Model>, String> },
 	Error { session: Option<String>, message: String },
 }
 
@@ -103,6 +129,7 @@ pub fn from_helper(line: &str) -> Result<FromHelper, String> {
 		Some("tool_call") => FromHelper::ToolCall { id: text("id"), session: text("session"), call: ToolCall { id: text("toolUseId"), name: text("name"), args: message["args"].clone() } },
 		Some("approval") => FromHelper::Approval { id: text("id"), session: text("session"), ask: Ask::Tool { name: text("tool"), input: message["input"].clone() } },
 		Some("closed") => FromHelper::Closed { session: text("session") },
+		Some("models") => FromHelper::Models { id: text("id"), models: message["error"].as_str().map_or_else(|| Ok(model_list(&message["models"])), |err| Err(err.to_owned())) },
 		Some("error") => FromHelper::Error { session: message["session"].as_str().map(str::to_owned), message: text("message") },
 		other => return Err(format!("unknown type {other:?}")),
 	})

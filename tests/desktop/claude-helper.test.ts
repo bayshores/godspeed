@@ -2,9 +2,9 @@
  * godspeed's Claude helper (crates/runtime/src/claude/claude-helper.mjs) on a stand-in for the
  * Agent SDK's `query`: the JSON lines it speaks with the server, two sessions at once, a resume,
  * godspeed's tools through its in-process MCP server, a question that ends the turn, a permission
- * question, web search without one, and the learner's own launch command. One test runs the real
- * SDK on a stand-in Claude Code, to see what a job working in a folder with a CLAUDE.md is started
- * with and sent.
+ * question, web search without one, the learner's own launch command, and the models Claude Code
+ * offers. One test runs the real SDK on a stand-in Claude Code, to see what a job working in a
+ * folder with a CLAUDE.md is started with and sent.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -76,6 +76,10 @@ function stubQuery(seen: { options: Options[]; calls: string[] }) {
 			interrupt: async () => void seen.calls.push("interrupt"),
 			setModel: async (model: string) => void seen.calls.push(`model ${model}`),
 			close: () => void seen.calls.push("close"),
+			supportedModels: async () => {
+				if (options.pathToClaudeCodeExecutable === "/missing/claude") throw new Error("Claude Code executable not found at /missing/claude");
+				return [{ value: "default", resolvedModel: "claude-opus-5-5", displayName: "Default (recommended)", description: "Opus 5.5 · Best for everyday, complex tasks" }];
+			},
 		});
 	};
 }
@@ -221,4 +225,18 @@ test("a job in a folder that holds a CLAUDE.md and an AGENTS.md starts Claude Co
 		say({ type: "close", session: "j1" });
 		fs.rmSync(dir, { recursive: true, force: true });
 	}
+});
+
+test("a models question starts Claude Code with no input or settings of the learner's, answers its list and closes it", async () => {
+	const { seen, send, next } = helper();
+	send({ type: "models", id: "m1", claudePath: "/bin/claude" });
+	assert.deepEqual(await next(), { type: "models", id: "m1", models: [{ value: "default", resolvedModel: "claude-opus-5-5", displayName: "Default (recommended)", description: "Opus 5.5 · Best for everyday, complex tasks" }] });
+	const [options] = seen.options;
+	assert.deepEqual(options!.settingSources, []);
+	assert.equal(options!.persistSession, false);
+	assert.equal(options!.strictMcpConfig, true);
+	assert.equal(options!.pathToClaudeCodeExecutable, "/bin/claude");
+	assert.deepEqual(seen.calls, ["close"]);
+	send({ type: "models", id: "m2", claudePath: "/missing/claude" });
+	assert.deepEqual(await next(), { type: "models", id: "m2", error: "Claude Code executable not found at /missing/claude" });
 });

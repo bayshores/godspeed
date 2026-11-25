@@ -186,10 +186,15 @@ impl AgentProcess {
 
 	/// Waits for the program to end, and says how it ended.
 	pub async fn ended(&mut self) -> String {
-		match self.child.wait().await {
+		match self.status().await {
 			Ok(status) => status.to_string(),
-			Err(err) => format!("its end could not be read: {err}"),
+			Err(err) => err,
 		}
+	}
+
+	/// Waits for the program to end.
+	pub async fn status(&mut self) -> Result<std::process::ExitStatus, String> {
+		self.child.wait().await.map_err(|err| format!("its end could not be read: {err}"))
 	}
 }
 
@@ -243,10 +248,10 @@ fn hold(child: &Child) -> Result<win32job::Job, String> {
 	Ok(job)
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "fake"))]
 impl AgentEnv {
-	/// An environment that is not read from the app's.
-	pub(crate) fn fixed(vars: Vec<(OsString, OsString)>) -> AgentEnv {
+	/// An environment that is not read from the app's, for tests with stand-in programs.
+	pub fn fixed(vars: Vec<(OsString, OsString)>) -> AgentEnv {
 		AgentEnv { vars: OnceCell::new_with(Some(vars)) }
 	}
 }

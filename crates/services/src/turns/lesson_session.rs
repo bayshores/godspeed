@@ -35,6 +35,8 @@ pub(super) struct SessionPlan {
 	pub runtime: Arc<Runtime>,
 	/// The folder the agent works in.
 	pub cwd: PathBuf,
+	/// The model the learner picked for new lessons; None is the agent's own default.
+	pub model: Option<String>,
 	pub prompt: String,
 	pub tools: Vec<ToolSpec>,
 	/// The record's `agentSession`.
@@ -94,7 +96,7 @@ impl SessionPlan {
 	}
 
 	fn spec(&self, resume: Option<&str>) -> SessionSpec {
-		SessionSpec { cwd: self.cwd.clone(), model: None, instructions: self.prompt.clone(), tools: self.tools.clone(), resume: resume.map(str::to_owned), persist: true }
+		SessionSpec { cwd: self.cwd.clone(), model: self.model.clone(), instructions: self.prompt.clone(), tools: self.tools.clone(), resume: resume.map(str::to_owned), persist: true }
 	}
 
 	/// The notes, what the session has not seen, the rules for a session that goes on, and the

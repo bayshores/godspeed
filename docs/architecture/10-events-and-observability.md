@@ -40,6 +40,7 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 | `vault-notes-changed` | `{}` | the notes folder setting changed, or a note godspeed writes there was written, found again, marked removed or began waiting (`services::vault`) |
 | `teacher-work` | `{}` | the teacher's round of work began, gained a step or ended (`services::app::terminal_state`); the window reads it at `GET /api/teacher-work` |
 | `lesson-work` | `{chatId}` | a lesson's running turn began, gained a step or a plan, or ended (`services::turns::turn_work`); the lesson's desk reads it at `GET /api/chats/{id}/work` |
+| `agent-health` | `{}` | a check of the picked agent began or ended, or its sign-in started, ended or failed (`services::app::agent_health`, `agent_login`); the setup card reads it at `GET /api/agent/health` |
 
 ### 10.3 Rules for emitters
 

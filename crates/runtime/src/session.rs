@@ -11,7 +11,7 @@ use tokio::sync::{Mutex, mpsc};
 
 use crate::claude::agent::{Connection as ClaudeConnection, SessionLink};
 use crate::claude::protocol::ClaudeProgram;
-use crate::codex::agent::{CodexLogin, Connection as CodexConnection, ThreadLink};
+use crate::codex::agent::{Connection as CodexConnection, ThreadLink};
 use crate::event::{Part, SessionEvent};
 use crate::pipes::Started;
 use crate::process::{AgentEnv, AgentProcess, Launch};
@@ -50,7 +50,7 @@ enum Start {
 }
 
 #[derive(Clone)]
-enum Connection {
+pub(crate) enum Connection {
 	Codex(Arc<CodexConnection>),
 	Claude(Arc<ClaudeConnection>),
 }
@@ -64,11 +64,29 @@ impl Connection {
 	}
 }
 
+/// What godspeed is told when the agent may need setting up again: a session that could not
+/// start, or a sign-in the agent refused.
+type Notice = Arc<dyn Fn() + Send + Sync>;
+
+/// The notice, shared with the connections, which see the refused sign-ins.
+#[derive(Clone, Default)]
+pub(crate) struct Trouble(Arc<parking_lot::Mutex<Option<Notice>>>);
+
+impl Trouble {
+	pub(crate) fn tell(&self) {
+		let notice = self.0.lock().clone();
+		if let Some(notice) = notice {
+			notice();
+		}
+	}
+}
+
 pub struct Runtime {
 	agent: FolderAgent,
 	start: Start,
 	/// Held while the agent starts, which waits on its handshake, so two opens never start two.
 	connection: Mutex<Option<Connection>>,
+	trouble: Trouble,
 }
 
 impl Runtime {
@@ -76,18 +94,18 @@ impl Runtime {
 	/// learner's own (`~/.codex`) is never read. `own_command` is the learner's own command for
 	/// Codex, if they set one; `app-server` follows it.
 	pub fn codex(env: Arc<AgentEnv>, home: PathBuf, own_command: Option<String>) -> Runtime {
-		Runtime { agent: FolderAgent::Codex, start: Start::Codex { env, home, own_command }, connection: Mutex::new(None) }
+		Runtime { agent: FolderAgent::Codex, start: Start::Codex { env, home, own_command }, connection: Mutex::new(None), trouble: Trouble::default() }
 	}
 
 	/// `helper` is the bundled `claude-helper.mjs`; `own_command` is the learner's own command
 	/// for Claude Code, if they set one.
 	pub fn claude(env: Arc<AgentEnv>, helper: PathBuf, own_command: Option<String>) -> Runtime {
-		Runtime { agent: FolderAgent::Claude, start: Start::Claude { env, helper, own_command }, connection: Mutex::new(None) }
+		Runtime { agent: FolderAgent::Claude, start: Start::Claude { env, helper, own_command }, connection: Mutex::new(None), trouble: Trouble::default() }
 	}
 
 	#[cfg(any(test, feature = "fake"))]
 	pub(crate) fn from_pipes(agent: FolderAgent, start: impl Fn() -> Started + Send + Sync + 'static) -> Runtime {
-		Runtime { agent, start: Start::Pipes(Box::new(start)), connection: Mutex::new(None) }
+		Runtime { agent, start: Start::Pipes(Box::new(start)), connection: Mutex::new(None), trouble: Trouble::default() }
 	}
 
 	pub fn agent(&self) -> FolderAgent {
@@ -124,14 +142,25 @@ impl Runtime {
 		}
 	}
 
-	pub async fn open(&self, spec: SessionSpec) -> Result<Session, String> {
-		match self.connection().await? {
-			Connection::Codex(codex) => codex.open(spec).await,
-			Connection::Claude(claude) => claude.open(spec).await,
-		}
+	/// `notice` is called when the agent may need setting up again: a session that could not
+	/// start, or a sign-in the agent refused during a turn.
+	pub fn on_trouble(&self, notice: impl Fn() + Send + Sync + 'static) {
+		*self.trouble.0.lock() = Some(Arc::new(notice));
 	}
 
-	async fn codex_connection(&self) -> Result<Arc<CodexConnection>, String> {
+	pub async fn open(&self, spec: SessionSpec) -> Result<Session, String> {
+		let opened = match self.connection().await {
+			Ok(Connection::Codex(codex)) => codex.open(spec).await,
+			Ok(Connection::Claude(claude)) => claude.open(spec).await,
+			Err(err) => Err(err),
+		};
+		if opened.is_err() {
+			self.trouble.tell();
+		}
+		opened
+	}
+
+	pub(crate) async fn codex_connection(&self) -> Result<Arc<CodexConnection>, String> {
 		match self.connection().await? {
 			Connection::Codex(codex) => Ok(codex),
 			Connection::Claude(_) => Err("not Codex".to_owned()),
@@ -143,17 +172,8 @@ impl Runtime {
 		self.codex_connection().await?.account().await
 	}
 
-	/// Starts the learner's ChatGPT sign-in to godspeed's Codex; the caller opens its page.
-	pub async fn codex_login_start(&self) -> Result<CodexLogin, String> {
-		self.codex_connection().await?.login_start().await
-	}
-
-	pub async fn codex_login_cancel(&self, login: &str) -> Result<(), String> {
-		self.codex_connection().await?.login_cancel(login).await
-	}
-
 	/// The running connection, or a new one when there is none or the last one stopped.
-	async fn connection(&self) -> Result<Connection, String> {
+	pub(crate) async fn connection(&self) -> Result<Connection, String> {
 		let mut held = self.connection.lock().await;
 		if let Some(connection) = held.as_ref().filter(|connection| connection.alive()) {
 			return Ok(connection.clone());
@@ -176,7 +196,7 @@ impl Runtime {
 				};
 				std::fs::create_dir_all(home).map_err(|err| format!("cannot make godspeed's Codex folder {}: {err}", home.display()))?;
 				let started = spawn("codex app-server", &launch, &codex_vars(env.vars().await, home))?;
-				Ok(Connection::Codex(CodexConnection::start(started).await?))
+				Ok(Connection::Codex(CodexConnection::start(started, self.trouble.clone()).await?))
 			}
 			Start::Claude { env, helper, own_command } => {
 				let program = match own_command {
@@ -189,12 +209,12 @@ impl Runtime {
 				}
 				let node = env.find("node").await.ok_or(NO_NODE)?;
 				let started = spawn("claude helper", &Launch { program: node, args: vec![helper.into_os_string()] }, env.vars().await)?;
-				Ok(Connection::Claude(ClaudeConnection::start(started, program)))
+				Ok(Connection::Claude(ClaudeConnection::start(started, program, self.trouble.clone())))
 			}
 			#[cfg(any(test, feature = "fake"))]
 			Start::Pipes(start) => Ok(match self.agent {
-				FolderAgent::Codex => Connection::Codex(CodexConnection::start(start()).await?),
-				FolderAgent::Claude => Connection::Claude(ClaudeConnection::start(start(), ClaudeProgram::Path("claude".to_owned()))),
+				FolderAgent::Codex => Connection::Codex(CodexConnection::start(start(), self.trouble.clone()).await?),
+				FolderAgent::Claude => Connection::Claude(ClaudeConnection::start(start(), ClaudeProgram::Path("claude".to_owned()), self.trouble.clone())),
 			}),
 		}
 	}
@@ -203,7 +223,7 @@ impl Runtime {
 /// The helper `npm run layout` names in `LH_CLAUDE_HELPER`, so lessons play on a stand-in with no
 /// real agent. A release build never reads it: a variable in the learner's environment must not
 /// swap the helper that runs their agent.
-fn debug_helper() -> Option<OsString> {
+pub(crate) fn debug_helper() -> Option<OsString> {
 	#[cfg(debug_assertions)]
 	{
 		std::env::var_os("LH_CLAUDE_HELPER")
@@ -214,12 +234,12 @@ fn debug_helper() -> Option<OsString> {
 	}
 }
 
-fn helper_to_run(bundled: &Path, named: Option<OsString>) -> PathBuf {
+pub(crate) fn helper_to_run(bundled: &Path, named: Option<OsString>) -> PathBuf {
 	named.filter(|file| !file.is_empty()).map_or_else(|| bundled.to_path_buf(), PathBuf::from)
 }
 
 const NO_CODEX: &str = "godspeed couldn't find Codex on this computer.";
-const NO_CLAUDE: &str = "godspeed couldn't find Claude Code on this computer.";
+pub(crate) const NO_CLAUDE: &str = "godspeed couldn't find Claude Code on this computer.";
 const NO_NODE: &str = "godspeed couldn't find Node.js on this computer.";
 
 /// Codex's environment: the agent's, with godspeed's own settings folder in place of the learner's.
