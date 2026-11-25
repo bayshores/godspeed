@@ -239,7 +239,8 @@ export function YourTurn({
 			{nextLine}
 		</p>
 	);
-	const stand = slots.closing ? "lh-fade" : slots.stepIn && "lh-block-in";
+	// Beside the text a problem glides in with its sheet (useLeftSlide) instead.
+	const stand = slots.closing ? "lh-fade" : slots.stepIn && place !== "left" && "lh-block-in";
 	const stood = { "data-state": slots.closing ? "closed" : "open", inert: slots.closing, style: { "--lh-block-delay": "240ms", "--lh-pale": pale } as CSSProperties };
 
 	const task = (

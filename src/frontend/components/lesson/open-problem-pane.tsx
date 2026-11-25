@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toggleOption, type DockSelection, type ProblemChoices, type ProblemPieceText } from "@/shared/core";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { PagePiece } from "@/frontend/components/citations/page-piece";
@@ -6,6 +6,7 @@ import { ChoiceRows, SelectAllHint } from "./choice-rows";
 import { useChoiceKeys } from "./use-choice-keys";
 import { partMarks, toggled, type PartMarks } from "./problem-parts";
 import { proseVars } from "./question-parts";
+import { TurnPlaceContext } from "./turn-place";
 import { restOnPart } from "./turn-scroll";
 
 const MARKED = "[data-part-current], [data-part-head], [data-part-fold]";
@@ -116,6 +117,15 @@ export function OpenProblemPane({
 		ro.observe(root);
 		return () => ro.disconnect();
 	}, [part, opened]);
+	// Beside the text, moving on to another part glides the problem's sheet to it, as a printed problem's does (PagePiece).
+	const place = useContext(TurnPlaceContext);
+	const markedPart = useRef(part);
+	useLayoutEffect(() => {
+		if (markedPart.current === part) return;
+		markedPart.current = part;
+		const start = statementRef.current?.querySelector<HTMLElement>("[data-part-current]");
+		if (start && place === "left") restOnPart(start, true);
+	}, [part, place]);
 
 	return (
 		<div data-testid="open-problem" className="flex flex-col gap-7">

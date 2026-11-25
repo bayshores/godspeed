@@ -7,6 +7,7 @@ import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { cn } from "@/frontend/lib/utils";
 import { TurnPlaceContext, TurnSlotsContext, type TurnPlace } from "./turn-place";
 import { FilingContext } from "@/frontend/components/filed-card";
+import { useLeftSlide } from "./use-left-slide";
 import { usePageRest } from "./use-page-rest";
 
 /**
@@ -198,6 +199,7 @@ export function LessonScroll({
 		if (left !== from) el.animate([{ transform: `translateX(${from - left}px)` }, { transform: "none" }], MAKE_ROOM);
 	});
 
+	useLeftSlide({ underRef, slotRef: leftSlot, columnRef, footRef: footSlot, turnRef, split });
 	const rest = usePageRest({ contextRef, roomRef, columnRef, turnRef, footRef, busy, pinned, restKey, beside, open, shutting, onShut, onRest });
 	// A step line the lesson opened with is just there; one that arrives later steps in.
 	const stepsRef = useRef<HTMLDivElement>(null);

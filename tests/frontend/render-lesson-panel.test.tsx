@@ -18,7 +18,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { YourTurn } from "../../src/frontend/components/lesson/your-turn.tsx";
 import { TurnSheet } from "../../src/frontend/components/lesson/turn-sheet.tsx";
-import { TurnPlaceContext, type TurnPlace } from "../../src/frontend/components/lesson/turn-place.ts";
+import { TurnPlaceContext, TurnSlotsContext, type TurnPlace } from "../../src/frontend/components/lesson/turn-place.ts";
 import type { NextAction, TurnNext, TurnNotes } from "../../src/frontend/components/lesson/turn-next-model.ts";
 import { LessonScroll } from "../../src/frontend/components/lesson/lesson-scroll.tsx";
 import type { QuestionHandle } from "../../src/frontend/components/question-dock.tsx";
@@ -526,6 +526,17 @@ describe("Your turn in each state", () => {
 			assert.doesNotMatch(plated, /data-testid="turn-keys"|lesson-assignment/, "the top bar's Document opens its file");
 		}
 		assert.doesNotMatch(html({ problem: homework }, (n) => <TurnPlaceContext.Provider value="under">{n}</TurnPlaceContext.Provider>), /data-plate/);
+	});
+
+	it("an arriving problem steps in, except beside the text, where it glides in with its sheet", () => {
+		const arriving = (place: TurnPlace) =>
+			html({ problem }, (n) => (
+				<TurnSlotsContext.Provider value={{ closing: false, stepIn: true }}>
+					<TurnPlaceContext.Provider value={place}>{n}</TurnPlaceContext.Provider>
+				</TurnSlotsContext.Provider>
+			));
+		assert.match(arriving("pinned"), /data-testid="turn-sheet"[^>]*class="[^"]*lh-block-in/);
+		assert.doesNotMatch(arriving("left"), /lh-block-in/);
 	});
 
 	it("a homework problem folds the parts the learner is not on to their first line, and a click opens and folds one", async () => {

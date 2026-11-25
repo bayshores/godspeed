@@ -7,6 +7,7 @@ import type { ProblemPiece } from "@/shared/core";
 import { PageMarks } from "./page-excerpt";
 import { markBox, partAspect, partSrc, pieceSheet, pieceWidth } from "./page-piece-model";
 import { SteadyImg } from "./steady-img";
+import { useLookFade } from "./use-look-fade";
 
 const pct = (n: number) => `${n * 100}%`;
 
@@ -42,6 +43,8 @@ export function PagePiece({
 }) {
 	const { bodyInk } = useAppearance();
 	const [width, boxRef] = useElementWidth<HTMLDivElement>(0);
+	// Turned to the page as printed and back, the sheet cross-fades.
+	useLookFade(boxRef, printed);
 	const widest = useRef(0);
 	widest.current = Math.max(widest.current, width);
 	// A failure belongs to the piece that had it, not to the next one this component draws.
