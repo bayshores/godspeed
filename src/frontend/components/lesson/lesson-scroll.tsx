@@ -214,11 +214,11 @@ export function LessonScroll({
 		<div ref={roomRef} className="lh-lesson-room @container/room flex min-h-0 min-w-0 flex-col [grid-area:main]">
 			{/* Shown only when the step line draws something; one that arrives after the lesson opened steps in with the
 			    reply's text (the step plays when :has() shows it). */}
-			<div ref={stepsRef} className="lh-page shrink-0 pt-5 [&:not(:has(>div>div>*))]:hidden">
+			<div ref={stepsRef} className="lh-page shrink-0 pt-3.5 [&:not(:has(>div>div>*))]:hidden">
 				<div className={cn("flex items-start gap-5", stepsLate && "lh-block-in [--lh-block-delay:var(--lh-dur-fast)]", READING_MEASURE, PAIR)}>
-					<div className="min-w-0 flex-1">{steps}</div>
-					{/* The key's plate stands centered on the step line's 18 points, which keep their height. */}
-					<div ref={setLine} className="-my-1.5 flex shrink-0 empty:hidden" />
+					{/* The line is as tall as a key's plate, which stands centered on its first row, so a key that comes moves nothing. */}
+					<div className="min-w-0 flex-1 py-1.5">{steps}</div>
+					<div ref={setLine} className="flex shrink-0 empty:hidden" />
 				</div>
 			</div>
 			<div ref={underRef} className={cn("relative flex min-h-0 min-w-0 flex-1 flex-col", split && "lh-lesson-split")}>

@@ -97,7 +97,7 @@ export function PagePiece({
 						))}
 						{edges[i]!.map(
 							(band, k) =>
-								band && <span key={k} aria-hidden data-testid="piece-edge" className={cn("absolute inset-x-0 from-(--lh-edge) to-transparent", k === 0 ? "bg-linear-to-b" : "bg-linear-to-t", printed ? "[--lh-edge:white]" : "[--lh-edge:var(--lh-sheet)]")} style={{ top: pct(band.top), height: pct(band.height) }} />,
+								band && <span key={k} aria-hidden data-testid="piece-edge" className={cn("absolute inset-x-0 from-(--lh-edge) from-45% to-transparent", k === 0 ? "bg-linear-to-b" : "bg-linear-to-t", printed ? "[--lh-edge:white]" : "[--lh-edge:var(--lh-sheet)]")} style={{ top: pct(band.top), height: pct(band.height) }} />,
 						)}
 						{lit[i]!.map((band, k) => (
 							<span key={k} aria-hidden data-testid="piece-bar" className="lh-read-mark lh-read-mark-still absolute left-0 w-1.5" style={{ top: pct(band.top), height: pct(band.height) }} />

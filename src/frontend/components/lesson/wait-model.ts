@@ -6,8 +6,9 @@ import { isQuestionTool, PRACTICE_PROBLEM_TOOL, type DeskReading, type LessonWor
  * the files it works from on the desk as paper. Pure.
  */
 
-/** "off": no agent is here and none is starting, and the desk only says so; "working": one is. */
-export type DeskState = "off" | "working";
+/** "off": no agent is here and none is starting, and the desk only says so; "working": one is;
+ *  "unknown": godspeed has not read which yet, and the desk draws nothing that may have to leave. */
+export type DeskState = "unknown" | "off" | "working";
 
 /** The reply being worked on has its words: the desk gives way to them. */
 export function replyArrived(reply: LhViewMessage | undefined): boolean {

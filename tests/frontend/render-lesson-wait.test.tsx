@@ -126,8 +126,12 @@ describe("the desk", () => {
 		);
 		assert.match(out, /data-testid="agent-at-work" data-state="off"[\s\S]*Teacher is off\./);
 		assert.doesNotMatch(out, /desk-plan|pencil|desk-paper/);
-		const starting = renderToStaticMarkup(<ReadingPane {...waiting} />);
-		assert.match(starting, /data-state="working"[\s\S]*Waiting for Teacher to start\.[\s\S]*data-testid="pencil-line"/, "an agent not known to be away is waited for");
+	});
+
+	it("draws only the sentence's empty line until godspeed has read whether an agent is here, so nothing drawn has to leave", () => {
+		const unread = renderToStaticMarkup(<ReadingPane {...props({ waitingForAgent: true, work: work({ taken: false, files: [pdf("a.pdf")] }) })} />);
+		assert.match(unread, /data-testid="agent-at-work" data-state="unknown"[\s\S]*data-testid="desk-head" class="[^"]*min-h-\[1lh\][^"]*"><\/p>/);
+		assert.doesNotMatch(unread, /desk-plan|pencil|desk-paper|is off|Waiting for/);
 	});
 
 	it("says it waits for the teacher to start while an agent is on and has not taken the turn, with the pencil writing", () => {

@@ -94,9 +94,11 @@ export function ReadingPane({
 	// Its words wait a moment under the desk for the turn to end.
 	const held = useReplyHold(busy && arrived, deskMark(messages));
 	// Waiting for an agent while godspeed starts one is not off: the desk waits for it to start.
-	const off = useTeacherOff() && waitingForAgent;
-	const state: DeskState = off ? "off" : "working";
-	const head = deskHead({ name: useTeacher()?.name ?? DEFAULT_TEACHER_NAME, off, work });
+	const teacherOff = useTeacherOff();
+	const off = waitingForAgent && teacherOff === true;
+	const state: DeskState = waitingForAgent && teacherOff === null ? "unknown" : off ? "off" : "working";
+	const name = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
+	const head = state === "unknown" ? null : deskHead({ name, off, work });
 	const open = useMemo(() => (busy && (!arrived || held) ? { state, head, work, calls: deskCalls(work), mark: held ?? deskMark(messages) } : null), [busy, arrived, held, state, head, work, messages]);
 	const desk = useLastWhileClosing(open);
 	const closing = desk.mounted && desk.state === "closed" && !prefersReducedMotion();

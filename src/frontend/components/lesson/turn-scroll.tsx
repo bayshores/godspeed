@@ -74,7 +74,8 @@ export function TurnScroll({ className, folded, onLong, children }: { className?
 			setFoldedRoom(room);
 			const long = room !== null && el.scrollHeight > room + 1;
 			onLong?.(long);
-			const part = long && folded ? partSpan(el) : null;
+			// A part he opened by hand stays in reach: the folded problem then scrolls whole.
+			const part = long && folded && !el.querySelector("[data-part-head][aria-expanded=true]") ? partSpan(el) : null;
 			setPartRoom(part && room !== null ? Math.min(room, Math.ceil(part.height)) : null);
 			if (part && Math.abs(el.scrollTop - part.top) > 1) el.scrollTop = part.top;
 		};
