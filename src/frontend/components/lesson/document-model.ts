@@ -45,13 +45,6 @@ export function problemPlace(piece: ProblemPiece | null, page: number | undefine
 	return page !== undefined && listFileId ? { fileId: listFileId, page, boxes: [] } : null;
 }
 
-/** The open problem's file: where its piece is printed, else the file its list is printed in
- *  (`listFileId`, null when there is no open problem or that file left the space). */
-export function problemDocument(documents: readonly LessonDocument[], place: ProblemPlace | null, listFileId: string | null): LessonDocument | null {
-	const id = place?.fileId ?? listFileId;
-	return documents.find((d) => d.id === id) ?? null;
-}
-
 /** Each page's shape, width over height, in file `fileId`: a page the open problem is on has its
  *  own, the rest the first page's. */
 export function pageAspects(pages: number, aspect: number, place: ProblemPlace | null, fileId: string): number[] {
@@ -86,10 +79,4 @@ export function scrollTarget(page: { top: number; height: number }, box: PageBox
 		goal = height + 2 * MARGIN <= viewH ? top - (viewH - height) / 3 : top - MARGIN;
 	}
 	return Math.round(Math.max(0, Math.min(room, goal)));
-}
-
-/** The words of the key on "Your turn" that shows the open problem's page, "Page 4": the file is
- *  named in front ("Midterm 2022 key", ", page 2") only when it is not the lesson's first file. */
-export function pageKeyWords(page: number, otherFile: string | null): { file: string | null; page: string } {
-	return otherFile ? { file: otherFile, page: `, page ${page}` } : { file: null, page: `Page ${page}` };
 }

@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { LessonDocument, ProblemPiece } from "../../src/shared/core/index.ts";
 import { dockWidth, openPanel, parseDockState } from "../../src/frontend/components/lesson/lesson-dock-model.ts";
-import { documentChoices, pageAspects, pageAt, pageKeyWords, problemDocument, problemPlace, scrollTarget, shownDocument } from "../../src/frontend/components/lesson/document-model.ts";
+import { documentChoices, pageAspects, pageAt, problemPlace, scrollTarget, shownDocument } from "../../src/frontend/components/lesson/document-model.ts";
 import { PIECE, SINGLE_PIECE } from "../piece-fixtures.ts";
 
 const pdf = (id: string, name: string): LessonDocument => ({ id, name, path: `/files/${name}.pdf`, pdf: true, pages: 9, aspect: 0.77 });
@@ -79,25 +79,11 @@ describe("the Document panel: the open problem", () => {
 		assert.equal(problemPlace(null, 3, null), null);
 	});
 
-	it("shows the problem in its piece's file, else in the list's file, never in whichever file comes first", () => {
-		const key = pdf("f_key", "Key");
-		const piece = pdf("f_123", "Midterm");
-		assert.equal(problemDocument([key, piece], problemPlace(PIECE, undefined, null), "f_test"), piece);
-		assert.equal(problemDocument([key, pdf("f_test", "Test")], problemPlace(null, 3, "f_test"), "f_test")?.id, "f_test");
-		assert.equal(problemDocument([key], null, null), null, "the list's file left the space: the key is not taken for it");
-		assert.equal(problemDocument([key], problemPlace(null, 3, null), null), null);
-	});
-
 	it("draws the problem's pages at their own shape and the rest at the first page's", () => {
 		const place = problemPlace(SINGLE_PIECE, undefined, null);
 		assert.deepEqual(pageAspects(3, 0.77, place, "f_9"), [0.5, 0.77, 0.77]);
 		assert.deepEqual(pageAspects(2, 0.77, place, "f_other"), [0.77, 0.77], "another file");
 		assert.deepEqual(pageAspects(2, 0.77, null, "f_9"), [0.77, 0.77]);
-	});
-
-	it("names the page, and the file only when it is not the lesson's first", () => {
-		assert.deepEqual(pageKeyWords(4, null), { file: null, page: "Page 4" });
-		assert.deepEqual(pageKeyWords(2, "Midterm 2022 key"), { file: "Midterm 2022 key", page: ", page 2" });
 	});
 });
 

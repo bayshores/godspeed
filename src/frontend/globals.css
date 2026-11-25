@@ -956,11 +956,15 @@ body {
 	align-items: start;
 	column-gap: 16px;
 }
-/* A problem lies on a plate, so the lesson's text is never read as part of it. */
+/* A problem lies on a plate, so the lesson's text is never read as part of it. A problem printed in
+   its file is its page, edge to edge: the plate is the page's sheet. */
 .lh-lesson-room .lh-turn-fit .lh-turn-task[data-plate],
 .lh-turn-top .lh-turn-task[data-plate] {
 	background: var(--lh-well);
 	padding: 16px 20px 20px;
+}
+:is(.lh-lesson-room .lh-turn-fit, .lh-turn-top) .lh-turn-task[data-sheet] {
+	padding: 0;
 }
 /* The tag that names what waits: a question's kind, a problem's number. */
 .lh-kind {
@@ -2132,12 +2136,20 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	--lh-sheet-lip: var(--lh-paper-lip);
 	color: #2b2b2b;
 }
-.dark .lh-paper {
+/* A problem's page as printed (citations/page-piece.tsx): one sheet of the page's own white paper. */
+.lh-printed {
+	background: #fff;
+}
+.dark :is(.lh-paper, .lh-printed) {
 	filter: brightness(0.82);
 }
 .lh-read-mark {
 	background: linear-gradient(var(--lh-highlight), var(--lh-highlight)) no-repeat 0 0 / 6px 100%;
 	animation: lh-mark-in 900ms var(--lh-ease-out) backwards;
+}
+/* A printed problem's own lines carry the same bar, there from the start: they are the page's, not being read. */
+.lh-read-mark-still {
+	animation: none;
 }
 @keyframes lh-mark-in {
 	from {

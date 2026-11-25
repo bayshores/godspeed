@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { markBox, pageSrc, partAspect, partSrc, pieceWidth, veils } from "../../src/frontend/components/citations/page-piece-model.ts";
+import { markBox, pageSrc, partAspect, partSrc, pieceSheet, pieceWidth, veils } from "../../src/frontend/components/citations/page-piece-model.ts";
 import type { ProblemPiece } from "../../src/shared/core/index.ts";
-import { PIECE } from "../piece-fixtures.ts";
+import { PIECE, SINGLE_PIECE } from "../piece-fixtures.ts";
 
 const near = (got: number, want: number) => assert.ok(Math.abs(got - want) < 1e-4, `${got} is not ${want}`);
 const bandsAre = (got: { top: number; height: number }[], want: [number, number][]) => {
@@ -107,6 +107,59 @@ describe("veils", () => {
 			[0.2222, 0.4444],
 			[0.6667, 0.3333],
 		]);
+	});
+});
+
+describe("pieceSheet", () => {
+	it("shows a line of the page above the first part and under the last, and nothing more between them", () => {
+		const { piece } = pieceSheet(PIECE, null);
+		assert.deepEqual(
+			piece.parts.map((p) => p.crop),
+			[
+				[0.1, 0.57, 0.9, 0.95],
+				[0.1, 0.05, 0.9, 0.53],
+			],
+		);
+		assert.deepEqual(pieceSheet(SINGLE_PIECE, null).piece.parts[0]!.crop, [0.1, 0.17, 0.9, 0.43]);
+	});
+
+	it("reaches no further than the page", () => {
+		const edge: ProblemPiece = { fileId: "f", parts: [{ page: 1, crop: [0, 0.01, 1, 0.99], aspect: 0.75 }] };
+		assert.deepEqual(pieceSheet(edge, null).piece.parts[0]!.crop, [0, 0, 1, 1]);
+	});
+
+	it("veils the lines around the problem and bars the rest", () => {
+		const { veiled, lit, current } = pieceSheet(SINGLE_PIECE, null);
+		bandsAre(veiled[0]!, [
+			[0, 0.1154],
+			[0.8846, 0.1154],
+		]);
+		bandsAre(lit[0]!, [[0.1154, 0.7692]]);
+		assert.equal(current, null);
+	});
+
+	it("veils the parts the learner is not on with those lines, joined where they meet, and bars only what is left", () => {
+		const { veiled, lit, current } = pieceSheet(PIECE, "b");
+		bandsAre(veiled[0]!, [
+			[0, 0.0789],
+			[0.6053, 0.3947],
+		]);
+		bandsAre(veiled[1]!, [
+			[0, 0.2083],
+			[0.625, 0.375],
+		]);
+		bandsAre(lit[0]!, [[0.0789, 0.5263]]);
+		bandsAre(lit[1]!, [[0.2083, 0.4167]]);
+		assert.equal(current?.part, 1);
+		near(current!.at, 0.2083);
+	});
+
+	it("bars nothing on a page shown whole, which has its mark", () => {
+		const whole: ProblemPiece = { fileId: "f", parts: [{ page: 4, crop: [0, 0, 1, 1], aspect: 0.75 }], mark: { page: 4, x: 0.1, y: 0.2, width: 0.3, height: 0.02 } };
+		const { piece, veiled, lit } = pieceSheet(whole, null);
+		assert.deepEqual(piece.parts[0]!.crop, [0, 0, 1, 1]);
+		assert.deepEqual(veiled, [[]]);
+		assert.deepEqual(lit, [[]]);
 	});
 });
 

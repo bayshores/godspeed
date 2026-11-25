@@ -38,14 +38,14 @@ describe("the open problem, printed in its file", () => {
 	it("draws the pictures on the white page, with no ink, when asked as printed", async () => {
 		await mounted(<OpenProblemPane statement={PIECE_TEXT} piece={piece} printed part="b" picks={null} />, (host) => {
 			assert.ok([...host.querySelectorAll("img")].every((i) => !i.getAttribute("src")!.includes("ink=")));
-			assert.match(host.querySelector("img")!.parentElement!.className, /bg-white/);
+			assert.match(host.querySelector('[data-testid="page-piece"]')!.className, /lh-printed/);
 			// A veil in the sheet's color would be a dark block on the white page.
 			assert.ok([...host.querySelectorAll('[data-testid="piece-veil"]')].every((veil) => /bg-white/.test(veil.className)));
 		});
 	});
 
 	it("veils the parts that are not the one the learner is on", async () => {
-		await mounted(<OpenProblemPane statement={PIECE_TEXT} piece={piece} part="b" picks={null} />, (host) => assert.equal(veils(host), 3));
+		await mounted(<OpenProblemPane statement={PIECE_TEXT} piece={piece} part="b" picks={null} />, (host) => assert.equal(veils(host), 4, "and the lines around the problem"));
 	});
 
 	it("opens resting on the part the learner is on, and glides to the part he moves on to", async () => {

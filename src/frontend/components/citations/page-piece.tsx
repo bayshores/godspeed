@@ -5,19 +5,21 @@ import { useElementWidth } from "@/frontend/lib/use-element-width";
 import { cn } from "@/frontend/lib/utils";
 import type { ProblemPiece } from "@/shared/core";
 import { PageMarks } from "./page-excerpt";
-import { markBox, partAspect, partSrc, pieceWidth, veils } from "./page-piece-model";
+import { markBox, partAspect, partSrc, pieceSheet, pieceWidth } from "./page-piece-model";
 import { SteadyImg } from "./steady-img";
 
 const pct = (n: number) => `${n * 100}%`;
 
 /**
- * A problem as its file prints it: each stretch of a page cut out and stacked, drawn in the
- * theme's ink straight on the sheet (or on white, as printed). Its words stay in the page for
- * screen readers. The part the learner is on stays clear while the other labelled parts are
- * veiled in the color under them; where that part starts is marked data-part-current and told
- * to `onPlace`, for the page or box around it to rest there. A picture that does not load gives
- * way to the words. A drawn picture never goes blank when its column changes width: it is asked
- * for again only once the column is wider than it has been, and keeps showing while that loads.
+ * A problem as its file prints it, on one sheet: each stretch of a page cut out and stacked with
+ * no gap, a line of the page above and under it, drawn in the theme's ink straight on the sheet
+ * (or as printed, one sheet of the page's white paper). Its words stay in the page for screen
+ * readers. The problem's own lines carry the highlighter's bar in the margin; the lines around it
+ * and the labelled parts the learner is not on are veiled in the color under them. Where the part
+ * he is on starts is marked data-part-current and told to `onPlace`, for the page or box around
+ * it to rest there. A picture that does not load gives way to the words. A drawn picture never
+ * goes blank when its column changes width: it is asked for again only once the column is wider
+ * than it has been, and keeps showing while that loads.
  */
 export function PagePiece({
 	piece,
@@ -45,7 +47,7 @@ export function PagePiece({
 	// A failure belongs to the piece that had it, not to the next one this component draws.
 	const key = JSON.stringify(piece);
 	const [failedKey, setFailedKey] = useState<string | null>(null);
-	const { bands, current } = useMemo(() => veils(piece, part), [piece, part]);
+	const { piece: sheet, veiled, lit, current } = useMemo(() => pieceSheet(piece, part), [piece, part]);
 	const anchorRef = useRef<HTMLSpanElement>(null);
 	// Keyed on the place, not the object: a caller that rebuilds the piece must not scroll again.
 	const place = current && `${current.part}:${current.at}`;
@@ -68,12 +70,12 @@ export function PagePiece({
 	}
 	const asked = pieceWidth(widest.current, window.devicePixelRatio || 1);
 	return (
-		<div ref={boxRef} data-testid="page-piece" data-picture="" className={cn("relative flex w-full flex-col gap-2", quiet && "opacity-60")}>
+		<div ref={boxRef} data-testid="page-piece" data-picture="" className={cn("relative flex w-full flex-col", quiet && "opacity-60", printed && "lh-printed")}>
 			<span className="sr-only">{text}</span>
-			{piece.parts.map((p, i) => {
-				const mark = markBox(piece, i);
+			{sheet.parts.map((p, i) => {
+				const mark = markBox(sheet, i);
 				return (
-					<div key={i} className={cn("relative w-full", printed && "bg-white")} style={{ aspectRatio: partAspect(p) }}>
+					<div key={i} className="relative w-full" style={{ aspectRatio: partAspect(p) }}>
 						{widest.current > 0 && (
 							<SteadyImg
 								// A new piece starts afresh; the same piece keeps its picture while a new one loads.
@@ -87,8 +89,11 @@ export function PagePiece({
 							/>
 						)}
 						{mark && <PageMarks boxes={[mark]} />}
-						{bands[i]!.map((band, k) => (
+						{veiled[i]!.map((band, k) => (
 							<span key={k} aria-hidden data-testid="piece-veil" className={cn("absolute inset-x-0 opacity-55", printed ? "bg-white" : "bg-(--lh-sheet)")} style={{ top: pct(band.top), height: pct(band.height) }} />
+						))}
+						{lit[i]!.map((band, k) => (
+							<span key={k} aria-hidden data-testid="piece-bar" className="lh-read-mark lh-read-mark-still absolute left-0 w-1.5" style={{ top: pct(band.top), height: pct(band.height) }} />
 						))}
 						{current?.part === i && <span ref={anchorRef} aria-hidden data-part-current="" className="absolute inset-x-0 h-0" style={{ top: pct(current.at) }} />}
 					</div>

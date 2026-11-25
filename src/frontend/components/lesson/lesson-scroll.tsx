@@ -192,13 +192,19 @@ export function LessonScroll({
 	useLayoutEffect(() => setStepsLate(stepsRef.current?.getClientRects().length === 0), []);
 
 
-	const slots = useMemo(() => ({ ...boxes, closing, stepIn: stepIn === true }), [boxes, closing, stepIn]);
+	// The task's own key on the step line ("As printed"), drawn there by the turn.
+	const [line, setLine] = useState<HTMLElement | null>(null);
+	const slots = useMemo(() => ({ ...boxes, line, closing, stepIn: stepIn === true }), [boxes, line, closing, stepIn]);
 	return (
 		<div ref={roomRef} className="lh-lesson-room @container/room flex min-h-0 min-w-0 flex-col [grid-area:main]">
 			{/* Shown only when the step line draws something; one that arrives after the lesson opened steps in with the
 			    reply's text (the step plays when :has() shows it). */}
-			<div ref={stepsRef} className="lh-page shrink-0 pt-5 [&:not(:has(>div>*))]:hidden">
-				<div className={cn(stepsLate && "lh-block-in [--lh-block-delay:var(--lh-dur-fast)]", READING_MEASURE, PAIR)}>{steps}</div>
+			<div ref={stepsRef} className="lh-page shrink-0 pt-5 [&:not(:has(>div>div>*))]:hidden">
+				<div className={cn("flex items-start gap-5", stepsLate && "lh-block-in [--lh-block-delay:var(--lh-dur-fast)]", READING_MEASURE, PAIR)}>
+					<div className="min-w-0 flex-1">{steps}</div>
+					{/* The key's plate stands centered on the step line's 18 points, which keep their height. */}
+					<div ref={setLine} className="-my-1.5 flex shrink-0 empty:hidden" />
+				</div>
 			</div>
 			<div ref={underRef} className="relative flex min-h-0 min-w-0 flex-1 flex-col">
 				{/* An open problem, pinned over the text in one column (its height: .lh-turn-top). */}
