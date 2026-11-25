@@ -2,8 +2,26 @@
 //! `Json` (pi's `AgentMessage`): `{role:"user"|"assistant"|"toolResult"|"system", content, …}`.
 
 use gs_base::clock;
-use gs_json::{Json, json};
 use gs_core::messages::role::Role;
+use gs_core::records::settings::{OUTSIDE_AGENT_CONTEXT_WINDOW, OUTSIDE_AGENT_MODEL_ID, OUTSIDE_AGENT_PROVIDER};
+use gs_json::{Json, json};
+use gs_runtime::Part;
+
+/// The model record lessons and jobs carry: the learner's own agent, whichever model it runs.
+pub fn agent_model() -> Json {
+	json!({
+		"id": OUTSIDE_AGENT_MODEL_ID,
+		"name": "Outside agent (MCP)",
+		"api": "godspeed-agent",
+		"provider": OUTSIDE_AGENT_PROVIDER,
+		"baseUrl": "http://localhost:0",
+		"reasoning": false,
+		"input": ["text", "image"],
+		"cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+		"contextWindow": OUTSIDE_AGENT_CONTEXT_WINDOW as f64,
+		"maxTokens": 32_000.0,
+	})
+}
 
 /// pi-ai's zero usage (`DEFAULT_USAGE`).
 pub fn zero_usage() -> Json {
@@ -61,4 +79,16 @@ pub fn tool_result_message(call: &Json, result: &Json, is_error: bool, duration_
 /// The assistant message's tool-call blocks, in order.
 pub fn tool_calls(message: &Json) -> Vec<Json> {
 	message["content"].as_arr().map_or_else(Vec::new, |blocks| blocks.iter().filter(|b| b["type"] == Json::from("toolCall")).cloned().collect())
+}
+
+/// A record's content parts as the agent takes them.
+pub fn parts_of(content: &[Json]) -> Vec<Part> {
+	content
+		.iter()
+		.filter_map(|part| match part["type"].as_str() {
+			Some("text") => Some(Part::Text(part["text"].str_or_empty().to_owned())),
+			Some("image") => Some(Part::Image { mime: part["mimeType"].str_or_empty().to_owned(), base64: part["data"].str_or_empty().to_owned() }),
+			_ => None,
+		})
+		.collect()
 }

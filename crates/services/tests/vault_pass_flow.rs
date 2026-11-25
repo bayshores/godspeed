@@ -1,5 +1,5 @@
-//! The pass that writes a lesson's notes, end to end against a stand-in agent on the bridge: the
-//! block goes as the teacher's own item when no helper is here and rides the topic grouping when
+//! The pass that writes a lesson's notes, end to end against a stand-in agent: the block goes as a
+//! job of its own when no agent is picked (it starts once one is) and rides the topic grouping when
 //! one is, a lesson that is left or found at the start is sent once, the keys follow the record
 //! once a day, and the "My words" asks stop at three and at two skips.
 
@@ -8,15 +8,18 @@ use std::sync::Arc;
 
 use gs_base::config::Paths;
 use gs_base::{clock, ids, time};
-use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions, WorkView};
 use gs_json::{Json, json};
+use gs_runtime::fake::{FakeAgent, FakeStep};
 use gs_services::App;
-use gs_services::turns::agent_catch_up::catch_up_for_agent;
+use gs_services::app::agents::pick_stand_in;
+use gs_services::turns::catch_up;
 use gs_services::vault::{Ask, AskReply, answer_ask, change_vault, lesson_left, lesson_vault_notes, minute_check, queue_lesson, reviewed, send_waiting, take_for_grouping};
 use gs_store::graph::Ledger;
 
 struct Fixture {
 	app: Arc<App>,
+	/// The learner's agent, once `pick` picks it.
+	agent: FakeAgent,
 	dir: PathBuf,
 	vault: PathBuf,
 	space_id: String,
@@ -41,7 +44,11 @@ impl Fixture {
 		app.stores.graphs.append(Some(&space_id), Ledger::Topics, &json!({ "at": at, "topics": snapshot })).unwrap();
 		let vault = dir.join("Notes");
 		change_vault(&app, &json!({ "path": vault.to_string_lossy() })).unwrap();
-		Fixture { app, dir, vault, space_id }
+		Fixture { app, agent: FakeAgent::default(), dir, vault, space_id }
+	}
+
+	fn pick(&self) {
+		pick_stand_in(&self.app, self.agent.runtime());
 	}
 
 	/// A lesson of this space in which each topic's question was answered wrong.
@@ -69,8 +76,24 @@ impl Fixture {
 		self.app.stores.vault_notes.read()["passes"].clone()
 	}
 
-	fn write_call(&self, topic: &str) -> ReplyCall {
-		ReplyCall { name: "write_vault_note".to_owned(), arguments: json!({ "topic_id": topic, "text": format!("What {topic} is."), "recall": format!("Say what {topic} is?") }) }
+	/// The agent's next job writes the topics' notes, then says it is done.
+	fn will_write(&self, topics: &[&str]) {
+		let calls: Vec<(String, Json)> = topics.iter().map(|topic| ("write_vault_note".to_owned(), json!({ "topic_id": topic, "text": format!("What {topic} is."), "recall": format!("Say what {topic} is?") }))).collect();
+		let writes = (!calls.is_empty()).then_some(FakeStep::Calls(calls));
+		self.agent.push(writes.into_iter().chain([FakeStep::Text("Done.".to_owned())]).collect());
+	}
+
+	/// The jobs that ran on the agent: their tools and what each was asked.
+	fn jobs(&self) -> Vec<(Vec<String>, String)> {
+		let sent = self.agent.sent();
+		let opens = sent.iter().filter(|m| m["type"].as_str() == Some("open"));
+		opens
+			.map(|open| {
+				let tools = open["tools"].items().iter().filter_map(|t| t["name"].as_str().map(str::to_owned)).collect();
+				let asked = sent.iter().find(|m| m["type"].as_str() == Some("send") && m["session"] == open["session"]).map(|m| m["content"][0]["text"].str_or_empty().to_owned());
+				(tools, asked.unwrap_or_default())
+			})
+			.collect()
 	}
 
 	fn note_file(&self, name: &str) -> String {
@@ -84,14 +107,9 @@ impl Drop for Fixture {
 	}
 }
 
-async fn answer(app: &App, helper: bool, reply: AgentReply) -> WorkView {
-	let view = app.bridge.wait_for_work(10_000, WaitOptions { full: true, helper, ..WaitOptions::default() }).await.expect("a work item");
-	app.bridge.respond_to_work(&view.work_id, reply, 0).unwrap();
-	view
-}
-
-async fn no_item(app: &App, helper: bool) {
-	assert!(app.bridge.wait_for_work(100, WaitOptions { helper, ..WaitOptions::default() }).await.is_none(), "no work item should wait");
+/// Gives any job started a moment to run.
+async fn settle() {
+	clock::sleep(100).await;
 }
 
 /// Waits until the lesson's pass is marked sent.
@@ -105,40 +123,37 @@ async fn sent(f: &Fixture, chat_id: &str) {
 	panic!("the pass was never marked sent");
 }
 
-fn block_of(view: &WorkView) -> String {
-	gs_json::stringify(&Json::Arr(view.messages.clone()))
-}
-
 #[tokio::test]
-async fn with_no_helper_the_block_goes_as_the_teachers_own_item_once() {
+async fn with_no_agent_picked_the_block_goes_as_a_job_of_its_own_once_one_is() {
 	let f = Fixture::new(&[("t1", "Binary search"), ("t2", "Pigeonhole")]);
 	let chat = f.lesson(&["t1", "t2"]);
+	f.will_write(&["t1", "t2"]);
 	queue_lesson(&f.app, &chat);
-	let first = answer(&f.app, false, AgentReply { text: None, tool_calls: vec![f.write_call("t1"), f.write_call("t2")] }).await;
-	assert_eq!(first.label.as_deref(), Some("Notes: CSE 21"));
-	let tools: Vec<&str> = first.tools.iter().flatten().filter_map(|t| t["name"].as_str()).collect();
-	assert_eq!(tools, ["write_vault_note"]);
-	let block = block_of(&first);
-	assert!(block.contains("[Vault notes] One write_vault_note per idea") && block.contains("Binary search") && block.contains("wrong: \\\"Question on t1 a?\\\""), "{block}");
-	answer(&f.app, false, AgentReply { text: Some("Wrote both notes.".to_owned()), tool_calls: Vec::new() }).await;
+	settle().await;
+	assert!(f.jobs().is_empty() && f.passes()[chat.as_str()].is_null(), "the job waits for an agent");
+	f.pick();
 	sent(&f, &chat).await;
+	let (tools, block) = f.jobs().remove(0);
+	assert_eq!(tools, ["write_vault_note"]);
+	assert!(block.contains("[Vault notes] One write_vault_note per idea") && block.contains("Binary search") && block.contains(r#"wrong: "Question on t1 a?""#), "{block}");
 	assert!(f.note_file("Binary search.md").contains("What t1 is."));
 	let record = f.app.stores.vault_notes.read();
 	assert_eq!(record["notes"]["t1"]["mistakeIds"].items().len(), 0, "the agent sent no mistake, so none is marked");
 
 	queue_lesson(&f.app, &chat);
-	no_item(&f.app, false).await;
+	settle().await;
+	assert_eq!(f.jobs().len(), 1, "sent once");
 }
 
 #[tokio::test]
-async fn with_a_helper_here_the_block_waits_for_the_grouping_and_a_failed_run_waits_before_it_is_offered_again() {
+async fn with_an_agent_picked_the_block_waits_for_the_grouping_and_a_failed_run_waits_before_it_is_offered_again() {
 	let f = Fixture::new(&[("t1", "Binary search")]);
 	let chat = f.lesson(&["t1"]);
-	no_item(&f.app, true).await;
+	f.pick();
 	queue_lesson(&f.app, &chat);
 	send_waiting(&f.app);
-	no_item(&f.app, false).await;
-	assert!(f.passes()[chat.as_str()].is_null(), "nothing was sent on its own");
+	settle().await;
+	assert!(f.jobs().is_empty() && f.passes()[chat.as_str()].is_null(), "nothing was sent on its own");
 
 	let taken = take_for_grouping(&f.app, &f.space_id).await.expect("the grouping takes the block");
 	assert!(taken.riding().block.contains("Binary search"));
@@ -146,14 +161,13 @@ async fn with_a_helper_here_the_block_waits_for_the_grouping_and_a_failed_run_wa
 	taken.done(&f.app, false);
 	assert!(f.passes()[chat.as_str()].is_null());
 	assert!(take_for_grouping(&f.app, &f.space_id).await.is_none(), "a failed run waits before it is offered again");
-
 }
 
 #[tokio::test]
 async fn a_grouping_that_carried_the_block_marks_the_lesson_sent() {
 	let f = Fixture::new(&[("t1", "Binary search")]);
 	let chat = f.lesson(&["t1"]);
-	no_item(&f.app, true).await;
+	f.pick();
 	queue_lesson(&f.app, &chat);
 	take_for_grouping(&f.app, &f.space_id).await.unwrap().done(&f.app, true);
 	assert!(f.passes()[chat.as_str()].as_str().is_some());
@@ -163,22 +177,25 @@ async fn a_grouping_that_carried_the_block_marks_the_lesson_sent() {
 async fn leaving_a_lesson_or_finding_one_at_the_start_sends_it_once() {
 	let f = Fixture::new(&[("t1", "Binary search")]);
 	let chat = f.lesson(&["t1"]);
+	f.will_write(&[]);
 	lesson_left(&f.app, Some(&format!("/chat/{chat}")), Some(&format!("/chat/{chat}")));
-	no_item(&f.app, false).await;
 	lesson_left(&f.app, Some("/progress"), Some("/home"));
-	no_item(&f.app, false).await;
+	settle().await;
+	assert!(f.passes()[chat.as_str()].is_null(), "still in the lesson, or never in one");
 	lesson_left(&f.app, Some(&format!("/chat/{chat}")), Some("/progress"));
-	answer(&f.app, false, AgentReply { text: Some("Done.".to_owned()), tool_calls: Vec::new() }).await;
+	f.pick();
 	sent(&f, &chat).await;
+	assert_eq!(f.jobs().len(), 1);
 
 	let g = Fixture::new(&[("t1", "Binary search")]);
 	let found = g.lesson(&["t1"]);
-	catch_up_for_agent(&g.app, "session-1", clock::now_ms());
-	let view = answer(&g.app, false, AgentReply { text: Some("Done.".to_owned()), tool_calls: Vec::new() }).await;
-	assert_eq!(view.label.as_deref(), Some("Notes: CSE 21"));
+	g.will_write(&[]);
+	catch_up(&g.app);
+	g.pick();
 	sent(&g, &found).await;
-	catch_up_for_agent(&g.app, "session-1", clock::now_ms());
-	no_item(&g.app, false).await;
+	catch_up(&g.app);
+	settle().await;
+	assert_eq!(g.jobs().len(), 1, "found once");
 }
 
 #[tokio::test]
@@ -187,16 +204,18 @@ async fn no_vault_means_no_pass() {
 	change_vault(&f.app, &json!({ "path": null })).unwrap();
 	let chat = f.lesson(&["t1"]);
 	queue_lesson(&f.app, &chat);
-	no_item(&f.app, false).await;
+	f.pick();
+	settle().await;
+	assert!(f.jobs().is_empty());
 }
 
 #[tokio::test]
 async fn the_keys_follow_the_record_once_a_day_and_again_after_a_review() {
 	let f = Fixture::new(&[("t1", "Binary search")]);
 	let chat = f.lesson(&["t1"]);
+	f.will_write(&["t1"]);
 	queue_lesson(&f.app, &chat);
-	answer(&f.app, false, AgentReply { text: None, tool_calls: vec![f.write_call("t1")] }).await;
-	answer(&f.app, false, AgentReply { text: Some("Done.".to_owned()), tool_calls: Vec::new() }).await;
+	f.pick();
 	sent(&f, &chat).await;
 	minute_check(&f.app);
 	assert!(f.note_file("Binary search.md").contains("answered: 0 of 1 right"));
@@ -213,12 +232,11 @@ async fn the_asks_stop_at_three_and_a_skipped_note_is_asked_once_more_then_never
 	let f = Fixture::new(&[("t1", "A"), ("t2", "B"), ("t3", "C"), ("t4", "D")]);
 	change_vault(&f.app, &json!({ "words": "mine" })).unwrap();
 	let chat = f.lesson(&["t1", "t2", "t3", "t4"]);
+	f.will_write(&["t1", "t2", "t3", "t4"]);
 	queue_lesson(&f.app, &chat);
-	let calls = ["t1", "t2", "t3", "t4"].iter().map(|t| f.write_call(t)).collect();
-	let first = answer(&f.app, false, AgentReply { text: None, tool_calls: calls }).await;
-	assert!(block_of(&first).contains("Mode: learner adds My words"));
-	answer(&f.app, false, AgentReply { text: Some("Done.".to_owned()), tool_calls: Vec::new() }).await;
+	f.pick();
 	sent(&f, &chat).await;
+	assert!(f.jobs()[0].1.contains("Mode: learner adds My words"));
 
 	let view = lesson_vault_notes(&f.app, &chat).unwrap().unwrap();
 	assert_eq!(view["pages"].items().len(), 4);
@@ -233,21 +251,16 @@ async fn the_asks_stop_at_three_and_a_skipped_note_is_asked_once_more_then_never
 	assert!(matches!(answer_ask(&f.app, &chat, &asked[1], Ask::Words(String::new())).unwrap(), AskReply::Refused(_)));
 	assert!(matches!(answer_ask(&f.app, &chat, &asked[1], Ask::Skip).unwrap(), AskReply::Done));
 
+	// With the agent picked, the next passes ride the topic grouping.
 	f.answer_wrong(&chat, &[asked[1].as_str()], "b");
 	queue_lesson(&f.app, &chat);
-	answer(&f.app, false, AgentReply { text: Some("Done.".to_owned()), tool_calls: Vec::new() }).await;
-	for _ in 0..2000 {
-		if lesson_vault_notes(&f.app, &chat).unwrap().unwrap()["asks"].items().iter().any(|a| a["topicId"].as_str() == Some(asked[1].as_str())) {
-			break;
-		}
-		clock::sleep(5).await;
-	}
+	take_for_grouping(&f.app, &f.space_id).await.expect("the grouping takes the block").done(&f.app, true);
+	assert!(lesson_vault_notes(&f.app, &chat).unwrap().unwrap()["asks"].items().iter().any(|a| a["topicId"].as_str() == Some(asked[1].as_str())));
 	assert!(matches!(answer_ask(&f.app, &chat, &asked[1], Ask::Skip).unwrap(), AskReply::Done), "skipped once, asked again, skipped again");
 
 	f.answer_wrong(&chat, &[asked[1].as_str()], "c");
 	queue_lesson(&f.app, &chat);
-	answer(&f.app, false, AgentReply { text: Some("Done.".to_owned()), tool_calls: Vec::new() }).await;
-	clock::sleep(300).await;
+	take_for_grouping(&f.app, &f.space_id).await.expect("the grouping takes the block").done(&f.app, true);
 	let view = lesson_vault_notes(&f.app, &chat).unwrap().unwrap();
 	assert!(view["asks"].items().iter().all(|a| a["topicId"].as_str() != Some(asked[1].as_str())), "skipped twice: never again");
 }

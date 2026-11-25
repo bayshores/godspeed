@@ -9,19 +9,19 @@ use std::sync::Arc;
 
 use gs_base::clock;
 use gs_base::events::EventKind;
-use gs_core::records::settings::DEFAULT_TEACHER_NAME;
 use gs_core::session::approval_card::approval_card;
 use gs_core::session::lesson_steps::{LessonCall, base_name, lesson_call, pdf_progress};
 use gs_core::session::teacher_steps::{TeacherStep, keep_step, own_tool_input_step, step_head};
 use gs_core::session::turn_cause::TurnCause;
-use gs_engine::turn::agent::Listener;
-use gs_engine::turn::events::AgentEvent;
+use gs_engine::turn::events::{AgentEvent, Listener};
 use gs_engine::turn::session_turn::{DeskEvent, DeskListener};
 use gs_json::{Json, json};
 
 use super::desk_files::{desk_files, path_reading, step_reading};
 use super::step_names::AppStepNames;
 use crate::App;
+use crate::app::settings_record::teacher_name;
+use crate::jobs::asks::{AskedOn, asks_on};
 
 pub(super) struct TurnWork {
 	cause: TurnCause,
@@ -34,9 +34,10 @@ pub(super) struct TurnWork {
 }
 
 /// Tells the window the lesson's work changed, and whether it waits for the learner to allow
-/// something, which lights the strip's "needs you" on any page.
-fn changed(app: &App, chat_id: &str) {
-	let asking = app.turns.work.lock().get(chat_id).is_some_and(|work| !work.approvals.is_empty());
+/// something (for its turn or one of its jobs), which lights the strip's "needs you" on any page.
+pub(crate) fn lesson_work_changed(app: &App, chat_id: &str) {
+	let turn_asks = app.turns.work.lock().get(chat_id).is_some_and(|work| !work.approvals.is_empty());
+	let asking = turn_asks || !asks_on(app, &AskedOn::Lesson(chat_id.to_owned())).is_empty();
 	app.events.emit(EventKind::LessonWork, json!({ "chatId": chat_id, "asking": asking }));
 }
 
@@ -44,20 +45,20 @@ fn changed(app: &App, chat_id: &str) {
 fn update(app: &App, chat_id: &str, change: impl FnOnce(&mut TurnWork) -> bool) {
 	let done = app.turns.work.lock().get_mut(chat_id).is_some_and(change);
 	if done {
-		changed(app, chat_id);
+		lesson_work_changed(app, chat_id);
 	}
 }
 
 /// The turn began, for `cause`.
 pub(super) fn begin(app: &App, chat_id: &str, cause: TurnCause) {
 	app.turns.work.lock().insert(chat_id.to_owned(), TurnWork { cause, taken: false, plan: None, steps: VecDeque::new(), approvals: Vec::new() });
-	changed(app, chat_id);
+	lesson_work_changed(app, chat_id);
 }
 
 /// The turn ended, however it ended.
 pub(super) fn end(app: &App, chat_id: &str) {
 	if app.turns.work.lock().remove(chat_id).is_some() {
-		changed(app, chat_id);
+		lesson_work_changed(app, chat_id);
 	}
 }
 
@@ -98,15 +99,8 @@ pub(super) fn listener(app: &Arc<App>, chat_id: &str, space_id: Option<&str>) ->
 	})
 }
 
-/// The teacher's name, as the learner set it. Settings that cannot be read leave the usual name:
-/// the card still asks.
-fn teacher_name(app: &App) -> String {
-	let settings = app.stores.settings.effective_settings();
-	settings.ok().and_then(|s| s["general"]["teacherName"].as_str().map(str::to_owned)).unwrap_or_else(|| DEFAULT_TEACHER_NAME.to_owned())
-}
-
 /// A permission question as the desk's card shows it: its id, its sentence and its subject.
-fn approval_view(app: &App, id: &str, ask: &Json) -> Json {
+pub(crate) fn approval_view(app: &App, id: &str, ask: &Json) -> Json {
 	let card = approval_card(ask, &teacher_name(app));
 	json!({ "id": id, "text": card["text"].clone(), "subject": card["subject"].clone() })
 }
@@ -150,15 +144,19 @@ pub(super) fn job_activity(app: &App, job_id: &str, line: &str) {
 	note_step(app, job["chatId"].str_or_empty(), step, None, path_reading(path, None, None, page));
 }
 
-/// GET /api/chats/{id}/work: `{live, cause, taken, plan, steps, approvals, files}`; the files go
-/// out with no turn too. None for an unknown lesson.
+/// GET /api/chats/{id}/work: `{live, cause, taken, plan, steps, approvals, files}`; the files and
+/// the lesson's jobs' permission questions go out with no turn too. None for an unknown lesson.
 pub fn lesson_work(app: &App, chat_id: &str) -> Option<Json> {
 	let lesson = app.stores.chats.get_chat(chat_id)?;
 	let files = desk_files(app, &lesson);
+	let job_asks = asks_on(app, &AskedOn::Lesson(chat_id.to_owned()));
 	let turns = app.turns.work.lock();
 	Some(match turns.get(chat_id) {
-		Some(work) => json!({ "live": true, "cause": work.cause.name(), "taken": work.taken, "plan": work.plan.clone(), "steps": work.steps.iter().cloned().collect::<Vec<_>>(), "approvals": work.approvals.clone(), "files": files }),
-		None => json!({ "live": false, "cause": null, "taken": false, "plan": null, "steps": [], "approvals": [], "files": files }),
+		Some(work) => {
+			let approvals = [work.approvals.clone(), job_asks].concat();
+			json!({ "live": true, "cause": work.cause.name(), "taken": work.taken, "plan": work.plan.clone(), "steps": work.steps.iter().cloned().collect::<Vec<_>>(), "approvals": approvals, "files": files })
+		}
+		None => json!({ "live": false, "cause": null, "taken": false, "plan": null, "steps": [], "approvals": job_asks, "files": files }),
 	})
 }
 

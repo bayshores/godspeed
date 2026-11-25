@@ -4,7 +4,6 @@ pub mod settings;
 pub mod prompt_overrides;
 pub mod agent_notes;
 pub mod agent_rules;
-pub mod agent_seen;
 pub mod teacher_chats;
 pub mod agent_actions;
 pub mod asked;
@@ -45,8 +44,6 @@ pub struct Stores {
 	pub prompt_overrides: prompt_overrides::PromptOverrides,
 	pub agent_notes: agent_notes::AgentNotesStore,
 	pub agent_rules: agent_rules::AgentRulesStore,
-	/// Shared with the bridge, which saves what each agent has seen.
-	pub agent_seen: Arc<agent_seen::AgentSeenStore>,
 	pub teacher_chats: teacher_chats::TeacherChatsStore,
 	pub agent_actions: agent_actions::AgentActionsStore,
 	pub asked: asked::AskedStore,
@@ -70,7 +67,6 @@ impl Stores {
 			prompt_overrides: prompt_overrides::PromptOverrides::new(paths),
 			agent_notes: agent_notes::AgentNotesStore::new(paths, locks),
 			agent_rules: agent_rules::AgentRulesStore::new(paths, locks),
-			agent_seen: Arc::new(agent_seen::AgentSeenStore::new(paths, locks)),
 			teacher_chats: teacher_chats::TeacherChatsStore::new(paths, locks),
 			agent_actions: agent_actions::AgentActionsStore::new(paths, locks),
 			asked: asked::AskedStore::new(paths, locks),

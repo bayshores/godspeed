@@ -22,11 +22,10 @@ use gs_core::session::jobs::steer_delivered;
 use gs_core::session::prices::CallUsage;
 use gs_core::session::turn_cause::turn_cause;
 use gs_core::spaces::agent_folder::FolderAgent;
-use gs_engine::bridge::agent_model;
-use gs_engine::turn::agent::{BeforeToolCall, BeforeToolCallFn};
+use gs_engine::turn::messages::agent_model;
+use gs_engine::turn::tool_host::{BeforeToolCall, BeforeToolCallFn};
 use gs_engine::turn::call_ids::collect_tool_call_ids;
 use gs_engine::turn::events::AgentEvent;
-use gs_engine::turn::models::agent_engine;
 use gs_engine::turn::session_turn::{SessionTurn, SessionTurnSpec, TextCheck};
 use gs_engine::turn::ui_stream::{SettleError, TurnSpec, run_pi_turn};
 use gs_json::{Json, json, stringify};
@@ -167,7 +166,7 @@ async fn run(app: &Arc<App>, chat_id: &str, input: TurnInput) -> ChatReply {
 
 	// The compaction gate: a record still over the threshold is shortened now, at once (no
 	// model). It runs before the appends and begin_turn, and the record is read again after it.
-	ensure_compacted(app, &compaction_deps(app, &effective), chat_id);
+	ensure_compacted(app, &compaction_deps(&effective), chat_id);
 
 	let accepted = match write_ahead(app, chat_id, &input, &attachments) {
 		Ok(accepted) => accepted,
@@ -505,16 +504,15 @@ fn kick(app: &Arc<App>, chat_id: &str) {
 		let app = weak.upgrade()?;
 		app.stores.chats.get_chat(&id)?;
 		let effective = app.stores.settings.effective_settings().ok()?;
-		Some(compaction_deps(&app, &effective))
+		Some(compaction_deps(&effective))
 	});
 	kick_compaction(app, build, chat_id);
 }
 
 /// The compaction settings for a lesson, shared by the turn-start gate and the settle kick.
-fn compaction_deps(app: &Arc<App>, effective: &Json) -> CompactionDeps {
-	let engine = agent_engine(&app.bridge);
-	let threshold_tokens = summarize_at_tokens(effective, &engine.model);
-	CompactionDeps { model_id: model_id_of(&engine.model), engine, threshold_tokens }
+fn compaction_deps(effective: &Json) -> CompactionDeps {
+	let model = agent_model();
+	CompactionDeps { model_id: model_id_of(&model), threshold_tokens: summarize_at_tokens(effective, &model) }
 }
 
 /// Wires the wake pipeline to this composition at start-up: its steers run turns through

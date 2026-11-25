@@ -1,10 +1,8 @@
 use gs_core::records::agent_notes::{NOTE_MAX_CHARS, NOTES_MAX};
-use gs_core::records::agent_seen::{SeenMark, SeenStore};
 use gs_json::{Json, parse, stringify};
 use gs_store::agent_actions::AgentActionsStore;
 use gs_store::agent_notes::AgentNotesStore;
 use gs_store::agent_rules::AgentRulesStore;
-use gs_store::agent_seen::AgentSeenStore;
 use gs_store::mcp_token::McpTokenStore;
 use gs_store::search_key::SearchKeyStore;
 
@@ -24,10 +22,6 @@ fn rules(lab: &Lab) -> AgentRulesStore {
 
 fn actions(lab: &Lab) -> AgentActionsStore {
 	AgentActionsStore::new(&lab.paths, &lab.locks)
-}
-
-fn seen(lab: &Lab) -> AgentSeenStore {
-	AgentSeenStore::new(&lab.paths, &lab.locks)
 }
 
 fn texts(list: &[Json]) -> Vec<String> {
@@ -189,83 +183,6 @@ fn the_seed_memory_files_read_and_save_back_byte_for_byte() {
 	assert_eq!(actions(&lab).read_agent_actions(), saved_actions);
 	actions(&lab).write_agent_actions(&saved_actions).unwrap();
 	assert_eq!(lab.get("agent-actions.json"), written);
-}
-
-fn mark(count: usize, hash: &str) -> SeenMark {
-	SeenMark { count, hash: hash.to_owned(), last: format!("last-{hash}"), lead: "lead".to_owned() }
-}
-
-#[test]
-fn what_an_agent_has_seen_is_kept_per_conversation_and_forgotten_per_agent() {
-	let lab = Lab::new("agent-seen");
-	let store = seen(&lab);
-	assert!(store.get("agent-a", "chat_1").is_none());
-	store.set("agent-a", "chat_1", &mark(3, "h3"));
-	store.set("agent-a", "chat_2", &mark(5, "h5"));
-	store.set("agent-b", "chat_1", &mark(7, "h7"));
-	assert_eq!(store.get("agent-a", "chat_2"), Some(mark(5, "h5")));
-	store.set("agent-a", "chat_1", &mark(4, "h4"));
-	assert_eq!(store.get("agent-a", "chat_1"), Some(mark(4, "h4")));
-	store.forget_agent("agent-a");
-	store.forget_agent("agent-nobody");
-	assert!(store.get("agent-a", "chat_1").is_none());
-	assert_eq!(store.get("agent-b", "chat_1"), Some(mark(7, "h7")));
-	assert_eq!(parse(&lab.get("agent-seen.json")).unwrap()["version"].as_i64(), Some(1));
-}
-
-#[test]
-fn only_the_newest_20_agents_are_kept() {
-	let lab = Lab::new("agent-seen-trim");
-	let store = seen(&lab);
-	for i in 0..25 {
-		store.set(&format!("agent-{i:02}"), "chat_1", &mark(i, "h"));
-	}
-	let file = parse(&lab.get("agent-seen.json")).unwrap();
-	assert_eq!(file["agents"].as_obj().unwrap().len(), 20);
-	assert_eq!(store.get("agent-24", "chat_1"), Some(mark(24, "h")));
-}
-
-#[test]
-fn a_broken_seen_file_reads_as_empty_and_is_set_aside() {
-	let lab = Lab::new("agent-seen-broken");
-	lab.put("agent-seen.json", "{\"version\":1,");
-	assert!(seen(&lab).get("agent-a", "chat_1").is_none());
-	assert_eq!(lab.aside("agent-seen.json.corrupt-"), ["{\"version\":1,"]);
-	seen(&lab).set("agent-a", "chat_1", &mark(1, "h"));
-	assert_eq!(seen(&lab).get("agent-a", "chat_1"), Some(mark(1, "h")));
-}
-
-#[test]
-fn marks_saved_before_they_had_last_and_lead_are_dropped_on_read() {
-	let lab = Lab::new("agent-seen-old");
-	let old = "{\n\t\"version\": 1,\n\t\"agents\": {\n\t\t\"agent-a\": {\n\t\t\t\"at\": \"2026-10-29T10:00:00.000Z\",\n\t\t\t\"conversations\": {\n\t\t\t\t\"chat_1\": {\n\t\t\t\t\t\"count\": 3,\n\t\t\t\t\t\"hash\": \"h\"\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}";
-	lab.put("agent-seen.json", old);
-	assert!(seen(&lab).get("agent-a", "chat_1").is_none());
-	assert_eq!(lab.get("agent-seen.json"), old, "reading writes nothing");
-	seen(&lab).set("agent-a", "chat_2", &mark(1, "h"));
-	let file = parse(&lab.get("agent-seen.json")).unwrap();
-	let kept: Vec<&String> = file["agents"]["agent-a"]["conversations"].as_obj().unwrap().keys().collect();
-	assert_eq!(kept, ["chat_2"], "the next save leaves the old mark out");
-}
-
-#[test]
-fn the_seed_seen_file_is_read() {
-	let lab = Lab::new("agent-seen-seed");
-	if !lab.copy_seed("agent-seen.json") {
-		return;
-	}
-	let before = lab.get("agent-seen.json");
-	let file = parse(&before).unwrap();
-	let mut checked = 0;
-	for (agent, entry) in file["agents"].as_obj().unwrap().iter() {
-		for (conversation, found) in entry["conversations"].as_obj().unwrap().iter() {
-			// Marks from before `last` and `lead` read as nothing seen.
-			assert_eq!(seen(&lab).get(agent, conversation), SeenMark::from_json(found), "{conversation}");
-			checked += 1;
-		}
-	}
-	assert!(checked > 0);
-	assert_eq!(lab.get("agent-seen.json"), before);
 }
 
 #[cfg(unix)]

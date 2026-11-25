@@ -1,6 +1,6 @@
-//! What godspeed hands an agent by itself once it waits for work: lessons whose last stretch
-//! never reached the graph (queued runs do not survive a restart), and a space with something to
-//! check (a background run).
+//! What godspeed does by itself once an agent can work, at the server's start and each time the
+//! learner picks an agent: lessons whose last stretch never reached the graph (queued runs do not
+//! survive a restart) are extracted, and lessons left with new answers queue their notes.
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -11,16 +11,13 @@ use gs_core::contracts::chat::extracts_facts;
 use super::turn_liveness::is_turn_running;
 use super::turn_service::{LEFTOVER_IDLE_MS, extract_when_idle, run_extraction, uncovered_tokens};
 use crate::App;
-use crate::spaces::space_checks::{check_spaces, check_spaces_now};
 
-/// Once per agent session: extract what each lesson has left, now when it already sits idle, else
-/// once it has (its timer died with the last run). A run that failed is tried again when the next
-/// session waits; `runs.claim` keeps a lesson to one run at a time.
-fn catch_up_lessons(app: &Arc<App>, session: &str, now: i64) -> Result<(), String> {
-	if app.turns.lessons_caught_up.lock().contains(session) || !app.stores.settings.effective_settings()?["graph"]["enabled"].truthy() {
+/// Extracts what each lesson has left: now when it already sits idle, else once it has (its timer
+/// died with the last run). `runs.claim` keeps a lesson to one run at a time.
+fn catch_up_lessons(app: &Arc<App>, now: i64) -> Result<(), String> {
+	if !app.stores.settings.effective_settings()?["graph"]["enabled"].truthy() {
 		return Ok(());
 	}
-	app.turns.lessons_caught_up.lock().insert(session.to_owned());
 	let closed: HashSet<String> = app.stores.spaces.list_spaces().iter().filter(|c| c["closed"].truthy()).filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
 	for summary in app.stores.chats.list_chats() {
 		let Some(id) = summary["id"].as_str() else { continue };
@@ -43,26 +40,12 @@ fn catch_up_lessons(app: &Arc<App>, session: &str, now: i64) -> Result<(), Strin
 	Ok(())
 }
 
-/// The agent with this session id started waiting for work.
-pub fn catch_up_for_agent(app: &Arc<App>, session: &str, now: i64) {
-	let run = || -> Result<(), String> {
-		catch_up_lessons(app, session, now)?;
-		check_spaces(app, now);
-		crate::vault::catch_up(app);
-		Ok(())
-	};
-	if let Err(err) = run() {
+/// At the server's start and when the learner picks an agent.
+pub fn catch_up(app: &Arc<App>) {
+	if let Err(err) = catch_up_lessons(app, clock::now_ms()) {
 		eprintln!("[catch-up] failed: {err}");
 	}
-}
-
-/// A deadline was added: check its space now if an agent is working, or the quiet teacher in
-/// godspeed's terminal, which godspeed wakes, is there.
-pub fn ask_about_new_deadlines(app: &Arc<App>) {
-	let now = clock::now_ms();
-	if app.bridge.agent_teaching(now) || app.bridge.contacted_teacher_terminal().is_some() {
-		check_spaces_now(app, now);
-	}
+	crate::vault::catch_up(app);
 }
 
 #[cfg(test)]
@@ -73,21 +56,19 @@ mod tests {
 	use crate::app::test_support::{scratch_dir, test_app};
 
 	#[tokio::test]
-	async fn each_new_session_catches_up_once() {
+	async fn a_lesson_with_text_the_graph_has_not_seen_is_handed_out_each_time() {
 		let root = scratch_dir("catch-up");
 		let app = test_app(&root);
 		let id = app.stores.chats.create_chat("t", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		let taught = "A limit is the value a function approaches. ".repeat(20);
 		let said = json!({ "id": "msg_a", "role": "assistant", "content": [{ "type": "text", "text": taught }], "stopReason": "stop", "timestamp": 1 });
 		app.stores.chats.save_messages(&id, &[said]).unwrap();
-		let now = clock::now_ms();
-		let handed = |session: &str| {
+		let handed = || {
 			app.turns.leftover_timers.lock().clear();
-			catch_up_lessons(&app, session, now).unwrap();
+			catch_up_lessons(&app, clock::now_ms()).unwrap();
 			app.turns.leftover_timers.lock().contains_key(&id)
 		};
-		assert!(handed("session-a"), "the first wait hands the lesson out");
-		assert!(!handed("session-a"), "the same session waiting again does not");
-		assert!(handed("session-b"), "a new session tries the lesson again");
+		assert!(handed(), "the start hands the lesson out");
+		assert!(handed(), "and so does the next pick, in case the first run failed");
 	}
 }

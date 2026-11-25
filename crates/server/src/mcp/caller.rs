@@ -1,8 +1,7 @@
-//! Who sent an MCP request: the client's name, the client its `_meta` points to, the agent's
-//! session id, and whether the request is one that hands over the instructions.
+//! Who sent an MCP request: the client's name, the client its `_meta` points to, and whether the
+//! request is one that hands over the instructions.
 
-use gs_base::text::len16;
-use gs_engine::bridge::display_agent_name;
+use gs_services::app::terminal_state::display_agent_name;
 use gs_json::Json;
 
 use super::protocol::CLIENT_INFO_KEY;
@@ -15,8 +14,6 @@ pub struct Caller {
 	pub guessed: Option<String>,
 	/// initialize or server/discover: the request returns the instructions.
 	pub wants_instructions: bool,
-	/// That request comes from a session the folder's waiter wakes.
-	pub woken: bool,
 }
 
 /// The caller of a POST body (a message or a batch); a body that is not JSON names nobody.
@@ -38,47 +35,19 @@ pub fn caller_of(body: Option<&Json>) -> Caller {
 		}
 		if matches!(method, Some("initialize" | "server/discover")) {
 			caller.wants_instructions = true;
-			caller.woken = woken(&m["params"]["_meta"]);
 		}
 	}
 	caller
 }
 
-/// Only Codex sends turn metadata, and only the godspeed folder's Claude Code connector and
-/// waiter send "godspeed/agent".
+/// Only Codex sends turn metadata, and only the godspeed folder's Claude Code connector sends
+/// "godspeed/agent".
 fn client_of_meta(meta: &Json) -> Option<&'static str> {
 	let has = |key: &str| meta.as_obj().is_some_and(|m| m.contains_key(key));
 	if has("x-codex-turn-metadata") {
 		return Some("Codex");
 	}
 	has("godspeed/agent").then_some("Claude Code")
-}
-
-/// The calling agent's session id, when its client sends one: the godspeed folder's connector
-/// and waiter set "godspeed/agent", and Codex sends its session id in "x-codex-turn-metadata".
-pub fn agent_id_of(meta: &Json) -> Option<String> {
-	let codex = match &meta["x-codex-turn-metadata"] {
-		Json::Str(text) => gs_json::parse(text).unwrap_or_default(),
-		other => other.clone(),
-	};
-	let id = match &meta["godspeed/agent"] {
-		Json::Null => &codex["session_id"],
-		given => given,
-	};
-	id.as_str().filter(|id| (1..=200).contains(&len16(id))).map(str::to_owned)
-}
-
-/// The folder's connector says its Claude Code session runs with the folder's settings, whose
-/// Stop hook wakes it with each work item: it never waits itself. Waiting any other way costs a
-/// model turn per call.
-pub fn woken(meta: &Json) -> bool {
-	meta["godspeed/wakes"].as_bool() == Some(true)
-}
-
-/// The folder's waiter waits for its Claude Code session: it sends the session's id but never says
-/// the session is woken, as the session's own connector does.
-pub fn from_waiter(meta: &Json) -> bool {
-	meta["godspeed/agent"].as_str().is_some() && !woken(meta)
 }
 
 #[cfg(test)]
@@ -90,30 +59,9 @@ mod tests {
 	#[test]
 	fn names_the_caller() {
 		let init = json!({ "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": { "clientInfo": { "name": "codex-mcp-client" } } });
-		assert_eq!(caller_of(Some(&init)), Caller { name: Some("Codex".into()), guessed: None, wants_instructions: true, woken: false });
-		let waiter = json!({ "method": "tools/call", "params": { "_meta": { "godspeed/agent": "s1" } } });
-		assert_eq!(caller_of(Some(&waiter)), Caller { name: None, guessed: Some("Claude Code".into()), wants_instructions: false, woken: false });
-		let folder = json!({ "method": "initialize", "params": { "clientInfo": { "name": "claude-code" }, "_meta": { "godspeed/wakes": true } } });
-		assert!(caller_of(Some(&folder)).woken);
+		assert_eq!(caller_of(Some(&init)), Caller { name: Some("Codex".into()), guessed: None, wants_instructions: true });
+		let connector = json!({ "method": "tools/call", "params": { "_meta": { "godspeed/agent": "s1" } } });
+		assert_eq!(caller_of(Some(&connector)), Caller { name: None, guessed: Some("Claude Code".into()), wants_instructions: false });
 		assert_eq!(caller_of(None), Caller::default());
-	}
-
-	#[test]
-	fn tells_the_waiter_from_its_session() {
-		assert!(from_waiter(&json!({ "godspeed/agent": "s1" })));
-		assert!(!from_waiter(&json!({ "godspeed/agent": "s1", "godspeed/wakes": true })), "the session itself");
-		assert!(!from_waiter(&json!({ "x-codex-turn-metadata": "{\"session_id\":\"c\"}" })), "Codex waits itself");
-		assert!(!from_waiter(&Json::Null), "an agent outside godspeed");
-	}
-
-	#[test]
-	fn reads_agent_ids_like_the_ts() {
-		assert_eq!(agent_id_of(&json!({ "godspeed/agent": "a" })).as_deref(), Some("a"));
-		assert_eq!(agent_id_of(&json!({ "x-codex-turn-metadata": "{\"session_id\":\"c\"}" })).as_deref(), Some("c"));
-		assert_eq!(agent_id_of(&json!({ "x-codex-turn-metadata": { "session_id": "c" } })).as_deref(), Some("c"));
-		assert_eq!(agent_id_of(&json!({ "godspeed/agent": 5, "x-codex-turn-metadata": "{\"session_id\":\"c\"}" })), None);
-		assert_eq!(agent_id_of(&json!({ "godspeed/agent": "" })), None);
-		assert_eq!(agent_id_of(&json!({ "godspeed/agent": "a".repeat(201) })), None);
-		assert_eq!(agent_id_of(&json!({ "x-codex-turn-metadata": "not json" })), None);
 	}
 }

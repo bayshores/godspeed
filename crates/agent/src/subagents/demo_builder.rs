@@ -17,8 +17,11 @@ use gs_engine::turn::tool_execute::server_execute;
 use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
 
+use gs_engine::turn::job_session::OnToolStart;
+
 use super::headless::{DemoRunResult, HeadlessApi};
-use super::pi_run::{JobAgentOptions, OnActivity, OnToolStart, SubagentRunOptions, run_subagent};
+use super::job_agent::Priority;
+use super::pi_run::{JobAgentOptions, OnActivity, SubagentRunOptions, run_subagent};
 
 const INSTRUCTIONS: &str = r#"You are a demo builder, a specialist sub-agent in a learning app. You get a brief for ONE
 interactive teaching instrument and deliver a single self-contained HTML document running it. You never
@@ -49,7 +52,7 @@ HOUSE RULE: never deliver untested.
 
 Never claim success you didn't see: a PASSED run_demo is the only definition of done."#;
 
-/// Each write, run and fix is one step: about 6 cycles.
+/// Model calls allowed. Each write, run and fix is one: about 6 cycles.
 const MAX_TURNS: usize = 24;
 
 #[derive(Default)]
@@ -209,8 +212,7 @@ pub async fn run_demo_builder(title: &str, brief: &str, opts: &JobAgentOptions) 
 	let state = Arc::new(Mutex::new(BuilderState::default()));
 	let prompt = [&format!("Demo title: {title}"), "Brief (all you know about the lesson — this comes from the teacher, verbatim):", brief, "", "Build the demo, test it with run_demo, iterate until PASSED, then finish with your notes."].join("\n");
 
-	let mut run = SubagentRunOptions::new(INSTRUCTIONS, Json::from(prompt), MAX_TURNS);
-	run.engine = opts.engine.clone();
+	let mut run = SubagentRunOptions::new(format!("Demo: {title}"), INSTRUCTIONS, Json::from(prompt), MAX_TURNS);
 	run.abort_signal = opts.abort_signal.clone();
 	run.on_usage = opts.on_usage.clone();
 	run.on_tool_start = opts.on_activity.clone().map(|f| -> OnToolStart {
@@ -219,9 +221,9 @@ pub async fn run_demo_builder(title: &str, brief: &str, opts: &JobAgentOptions) 
 			Ok(())
 		})
 	});
-	run.task_label = Some(format!("Demo: {title}"));
-	run.awaited = true;
-	let final_text = match run_subagent(&opts.bridge, demo_tools(&state, &opts.headless, &opts.on_activity), run).await {
+	run.priority = Priority::Waited;
+	run.approve = opts.approve.clone();
+	let final_text = match run_subagent(opts.agent.as_ref(), demo_tools(&state, &opts.headless, &opts.on_activity), run).await {
 		Ok(result) => result.text,
 		Err(e) => return failed(title, &format!("the builder crashed: {e}")),
 	};

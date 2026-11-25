@@ -1,4 +1,4 @@
-//! The pipeline end to end on real stores in a temporary folder, with a scripted model.
+//! The pipeline end to end on real stores in a temporary folder, on a stand-in agent.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -11,10 +11,9 @@ use gs_base::{fsx, ids};
 use gs_core::graph::duplicates::Nearest;
 use gs_core::graph::graph::get_graph;
 use gs_core::graph::ports::GraphStore;
-use gs_engine::bridge::Bridge;
-use gs_engine::turn::faux::{Engine, Scripted, faux_model};
-use gs_engine::turn::messages::{faux_assistant_message, text_block};
 use gs_json::{Json, json, stringify_pretty};
+use gs_runtime::Usage;
+use gs_runtime::fake::{FakeAgent, FakeStep};
 use gs_store::Stores;
 use gs_store::chats::ChatStore;
 use gs_store::graph::GraphStores;
@@ -23,14 +22,15 @@ use parking_lot::Mutex;
 use super::extraction::{Extraction, ExtractionHost, ExtractionState, ImportOutcome, NotesImportInput};
 use super::extraction_runs::ExtractionPhase;
 use super::ledgers::ScopedGraph;
+use crate::subagents::job_agent::JobAgent;
+use crate::subagents::test_support::{on, results};
 
 pub(super) struct Host {
 	pub stores: Stores,
 	events: Events,
 	locks: Locks,
-	pub bridge: Bridge,
 	pub state: ExtractionState,
-	script: Mutex<Arc<Scripted>>,
+	agent: Mutex<FakeAgent>,
 	written: Mutex<Vec<Option<String>>>,
 	/// The duplicate check's search answer, the same for every proposition.
 	similar: Mutex<Result<Nearest, String>>,
@@ -50,14 +50,11 @@ impl ExtractionHost for Host {
 	fn locks(&self) -> &Locks {
 		&self.locks
 	}
-	fn bridge(&self) -> &Bridge {
-		&self.bridge
-	}
 	fn state(&self) -> &ExtractionState {
 		&self.state
 	}
-	fn engine(&self) -> Option<Engine> {
-		Some(Engine { model: faux_model("godspeed-agent", "agent", "outside-agent", "Outside agent (MCP)", 200_000.0, 32_000.0), respond: self.script() })
+	fn job_agent(&self) -> Arc<dyn JobAgent> {
+		on(self.agent())
 	}
 	fn on_graph_written(&self, scope: Option<&str>) {
 		self.written.lock().push(scope.map(str::to_owned));
@@ -79,16 +76,16 @@ impl Drop for Host {
 }
 
 impl Host {
-	/// The model's script for the calls to come.
-	pub fn script(&self) -> Arc<Scripted> {
-		self.script.lock().clone()
+	/// The stand-in agent the jobs to come run on.
+	pub fn agent(&self) -> FakeAgent {
+		self.agent.lock().clone()
 	}
 
-	/// A new empty script, so replies left over from earlier never answer later calls.
-	pub fn new_script(&self) -> Arc<Scripted> {
-		let script = Scripted::new();
-		*self.script.lock() = script.clone();
-		script
+	/// A new stand-in with no turns, so turns left over from earlier never play for later jobs.
+	pub fn new_agent(&self) -> FakeAgent {
+		let agent = FakeAgent::default();
+		*self.agent.lock() = agent.clone();
+		agent
 	}
 }
 
@@ -97,16 +94,20 @@ pub(super) fn host() -> Arc<Host> {
 	let paths = Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.clone());
 	let (events, locks) = (Events::new(), Locks::new());
 	let stores = Stores::new(&paths, &events, &locks);
-	let bridge = Bridge::new(&events, stores.agent_seen.clone());
-	Arc::new(Host { stores, events, locks, bridge, state: ExtractionState::default(), script: Mutex::new(Scripted::new()), written: Mutex::new(Vec::new()), similar: Mutex::new(Ok(Vec::new())), dir })
+	Arc::new(Host { stores, events, locks, state: ExtractionState::default(), agent: Mutex::new(FakeAgent::default()), written: Mutex::new(Vec::new()), similar: Mutex::new(Ok(Vec::new())), dir })
 }
 
-pub(super) fn submit(findings: Json) -> Json {
-	faux_assistant_message(vec![json!({ "type": "toolCall", "id": ids::uuid(), "name": "submit_findings", "arguments": findings })], "toolUse")
+/// What one model call costs in these tests.
+pub(super) const USED: Usage = Usage { input: 1000, cached: 600, output: 80 };
+
+/// One model call that submits `findings`.
+pub(super) fn submit(findings: Json) -> Vec<FakeStep> {
+	vec![FakeStep::Usage(USED), FakeStep::Tool { name: "submit_findings".to_owned(), args: findings }]
 }
 
-pub(super) fn says(text: &str) -> Json {
-	faux_assistant_message(vec![text_block(text)], "stop")
+/// One model call that only writes `text`.
+pub(super) fn says(text: &str) -> Vec<FakeStep> {
+	vec![FakeStep::Usage(USED), FakeStep::Text(text.to_owned())]
 }
 
 /// A lesson with one long teacher reply per topic (each about 2,300 tokens).
@@ -126,12 +127,13 @@ fn write_lesson(host: &Host, id: &str, topics: usize) {
 async fn a_long_lesson_goes_in_parts_and_a_failed_part_stays_uncovered() {
 	let host = host();
 	write_lesson(&host, "chat_parts", 3);
-	host.script().reply(submit(json!({ "propositions": [{ "id": "p1", "name": "Merge", "statement": "Merging is linear.", "messageId": "msg_t0" }], "chains": [], "reteaches": [] })));
+	let agent = host.agent();
+	agent.push(submit(json!({ "propositions": [{ "id": "p1", "name": "Merge", "statement": "Merging is linear.", "messageId": "msg_t0" }], "chains": [], "reteaches": [] })));
 	// Part 2: an anchor from part 1 is refused, then a good submit lands.
-	host.script().reply(submit(json!({ "propositions": [{ "id": "p1", "name": "Q", "statement": "Quick.", "messageId": "msg_t0" }], "chains": [], "reteaches": [] })));
-	host.script().reply(submit(json!({ "propositions": [{ "id": "p1", "name": "Q", "statement": "Quick.", "messageId": "msg_t1" }], "chains": [], "reteaches": [] })));
-	// Part 3: text only, so it fails on its own.
-	host.script().reply(says("Heaps are trees."));
+	let refused = submit(json!({ "propositions": [{ "id": "p1", "name": "Q", "statement": "Quick.", "messageId": "msg_t0" }], "chains": [], "reteaches": [] }));
+	agent.push([refused, submit(json!({ "propositions": [{ "id": "p1", "name": "Q", "statement": "Quick.", "messageId": "msg_t1" }], "chains": [], "reteaches": [] }))].concat());
+	// Part 3: text only, and nothing after the reminder, so it fails on its own.
+	agent.push(says("Heaps are trees."));
 	let extraction = Extraction::new(host.clone());
 	let stats = extraction.run_extraction("chat_parts").await.unwrap();
 	assert_eq!(stats, json!({ "nodes": 2, "chains": 0 }));
@@ -151,7 +153,7 @@ async fn a_long_lesson_goes_in_parts_and_a_failed_part_stays_uncovered() {
 	assert_eq!(*host.written.lock(), vec![None]);
 
 	// What is left goes as one part; then nothing is left.
-	host.script().reply(submit(json!({ "propositions": [{ "id": "h", "name": "Heap", "statement": "Smallest on top.", "messageId": "msg_t2" }], "chains": [], "reteaches": [] })));
+	host.agent().push(submit(json!({ "propositions": [{ "id": "h", "name": "Heap", "statement": "Smallest on top.", "messageId": "msg_t2" }], "chains": [], "reteaches": [] })));
 	assert_eq!(extraction.run_extraction("chat_parts").await.unwrap(), json!({ "nodes": 1, "chains": 0 }));
 	assert_eq!(extraction.run_extraction("chat_parts").await.unwrap(), json!({ "nodes": 0, "chains": 0 }));
 	assert_eq!(extraction.run_extraction("chat_nope").await, Err("Chat not found: chat_nope".to_owned()));
@@ -162,8 +164,8 @@ async fn notes_import_in_chunks_reports_partial_failures() {
 	let host = host();
 	let extraction = Extraction::new(host.clone());
 	let long = (0..142).map(|i| format!("Line {i:03} {}", "alpha beta gamma delta ".repeat(6))).collect::<Vec<_>>().join("\n");
-	host.script().reply(submit(json!({ "propositions": [{ "id": "p1", "name": "Alpha", "statement": "Alpha first.", "messageId": "stray" }], "chains": [], "reteaches": [] })));
-	host.script().reply(says("I cannot read this."));
+	host.agent().push(submit(json!({ "propositions": [{ "id": "p1", "name": "Alpha", "statement": "Alpha first.", "messageId": "stray" }], "chains": [], "reteaches": [] })));
+	host.agent().push(says("I cannot read this."));
 	let input = NotesImportInput { file_path: "notes/half.md".into(), text: long, scope: None, source_id: None, may_be_space_info: false };
 	let err = extraction.import_notes(input).await.unwrap_err();
 	assert_eq!((err.outcome, err.message.as_str()), (ImportOutcome::Partial, "the extractor never submitted findings"));
@@ -184,7 +186,7 @@ async fn notes_import_in_chunks_reports_partial_failures() {
 async fn logistics_are_not_extracted_and_a_busy_source_is_refused() {
 	let host = host();
 	let extraction = Extraction::new(host.clone());
-	host.script().reply(submit(json!({ "propositions": [], "chains": [], "reteaches": [], "spaceInfo": true })));
+	host.agent().push(submit(json!({ "propositions": [], "chains": [], "reteaches": [], "spaceInfo": true })));
 	let input = |text: &str| NotesImportInput { file_path: "syllabus.md".into(), text: text.into(), scope: None, source_id: Some("src_fixed".into()), may_be_space_info: true };
 	assert_eq!(extraction.import_notes(input("Office hours moved.")).await.unwrap(), json!({ "nodes": 0, "chains": 0, "spaceInfo": true }));
 
@@ -248,35 +250,21 @@ fn logged_steps(host: &Host, source_id: &str) -> Vec<usize> {
 	source["extractions"].items().iter().map(|e| e["stages"]["extractor"]["steps"].items().len()).collect()
 }
 
-/// Queues `findings` as a reply that keeps the messages the model was shown.
-fn submit_seeing(host: &Host, findings: Json) -> Arc<Mutex<Vec<Json>>> {
-	let seen = Arc::new(Mutex::new(Vec::new()));
-	let answer = submit(findings);
-	host.script().run({
-		let seen = seen.clone();
-		move |request| {
-			*seen.lock() = request.messages;
-			Box::pin(async move { Ok(answer) })
-		}
-	});
-	seen
-}
-
 #[tokio::test]
 async fn a_likely_duplicate_gets_one_notice_and_the_existing_fact_is_credited() {
 	let host = host();
 	let extraction = Extraction::new(host.clone());
-	host.script().reply(submit(merging("Merging")));
+	host.agent().push(submit(merging("Merging")));
 	assert_eq!(extraction.import_notes(notes_input("src_a")).await.unwrap(), json!({ "nodes": 1, "chains": 0 }));
 	assert_eq!(logged_steps(&host, "src_a"), vec![1], "nothing to compare with: one step");
 	let existing = get_graph(&ScopedGraph::new(&host.stores.graphs, None)).unwrap().nodes[0]["id"].as_str().unwrap().to_owned();
 
-	host.script().reply(submit(merging(" merging ")));
-	let seen = submit_seeing(&host, json!({ "propositions": [], "chains": [], "reteaches": [existing] }));
+	let agent = host.new_agent();
+	agent.push([submit(merging(" merging ")), submit(json!({ "propositions": [], "chains": [], "reteaches": [existing] }))].concat());
 	assert_eq!(extraction.import_notes(notes_input("src_b")).await.unwrap(), json!({ "nodes": 0, "chains": 0 }));
-	let notice = seen.lock().last().unwrap().clone();
-	assert_eq!(notice["role"], Json::from("toolResult"));
-	assert_ne!(notice["isError"], Json::Bool(true), "a notice is not a refusal");
+	let notice = results(&agent)[0].clone();
+	assert_eq!(notice["isError"], Json::Bool(false), "a notice is not a refusal");
+	assert_eq!(notice["endTurn"], Json::Bool(false), "the submit after it is final");
 	let text = notice["content"][0]["text"].as_str().unwrap();
 	assert!(text.starts_with("Possible duplicates: the graph may already hold these ideas.\n  p1 |  merging \n    n_"), "{text}");
 	assert!(text.contains(" | Merging | Merging two sorted lists takes linear time.\n"), "{text}");
@@ -290,26 +278,25 @@ async fn a_likely_duplicate_gets_one_notice_and_the_existing_fact_is_credited() 
 async fn the_submit_after_a_notice_is_final_and_a_failed_search_skips_the_check() {
 	let host = host();
 	let extraction = Extraction::new(host.clone());
-	host.script().reply(submit(merging("Merging")));
+	host.agent().push(submit(merging("Merging")));
 	extraction.import_notes(notes_input("src_a")).await.unwrap();
 	let existing = get_graph(&ScopedGraph::new(&host.stores.graphs, None)).unwrap().nodes[0]["id"].as_str().unwrap().to_owned();
 
 	// A near-equal embedding under another name, then the same submit again.
 	*host.similar.lock() = Ok(vec![(existing.clone(), 0.95)]);
-	host.script().reply(submit(merging("Linear merge")));
-	host.script().reply(submit(merging("Linear merge")));
+	host.agent().push([submit(merging("Linear merge")), submit(merging("Linear merge"))].concat());
 	assert_eq!(extraction.import_notes(notes_input("src_b")).await.unwrap(), json!({ "nodes": 1, "chains": 0 }));
 	assert_eq!(logged_steps(&host, "src_b"), vec![2]);
 
 	// Below the threshold under another name: accepted at once.
 	*host.similar.lock() = Ok(vec![(existing, 0.9)]);
-	host.script().reply(submit(merging("Merge cost")));
+	host.agent().push(submit(merging("Merge cost")));
 	assert_eq!(extraction.import_notes(notes_input("src_c")).await.unwrap(), json!({ "nodes": 1, "chains": 0 }));
 	assert_eq!(logged_steps(&host, "src_c"), vec![1]);
 
 	// The search failed: even the same name goes through.
 	*host.similar.lock() = Err("The search model is missing".to_owned());
-	host.script().reply(submit(merging("Merging")));
+	host.agent().push(submit(merging("Merging")));
 	assert_eq!(extraction.import_notes(notes_input("src_d")).await.unwrap(), json!({ "nodes": 1, "chains": 0 }));
 	assert_eq!(logged_steps(&host, "src_d"), vec![1]);
 	assert_eq!(get_graph(&ScopedGraph::new(&host.stores.graphs, None)).unwrap().nodes.len(), 4);
@@ -319,15 +306,11 @@ async fn the_submit_after_a_notice_is_final_and_a_failed_search_skips_the_check(
 async fn a_notice_leaves_every_retry_for_rule_failures() {
 	let host = host();
 	let extraction = Extraction::new(host.clone());
-	host.script().reply(submit(merging("Merging")));
+	host.agent().push(submit(merging("Merging")));
 	extraction.import_notes(notes_input("src_a")).await.unwrap();
 	let broken = json!({ "propositions": [], "chains": [], "reteaches": ["n_missing"] });
 	// A rule failure, the notice, two more rule failures, then a good submit: five calls.
-	host.script().reply(submit(broken.clone()));
-	host.script().reply(submit(merging("Merging")));
-	host.script().reply(submit(broken.clone()));
-	host.script().reply(submit(broken));
-	host.script().reply(submit(merging("Merging")));
+	host.agent().push([submit(broken.clone()), submit(merging("Merging")), submit(broken.clone()), submit(broken), submit(merging("Merging"))].concat());
 	assert_eq!(extraction.import_notes(notes_input("src_b")).await.unwrap(), json!({ "nodes": 1, "chains": 0 }));
 	assert_eq!(logged_steps(&host, "src_b"), vec![5]);
 }

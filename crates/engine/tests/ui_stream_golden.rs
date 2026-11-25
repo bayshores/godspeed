@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
-use gs_engine::bridge::agent_model;
+use gs_engine::turn::messages::agent_model;
 use gs_engine::turn::messages::text_block;
 use gs_engine::turn::session_turn::{Opened, SessionTurn, SessionTurnSpec};
 use gs_engine::turn::tool::{Tool, ToolContext};

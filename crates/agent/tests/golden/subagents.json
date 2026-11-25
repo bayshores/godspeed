@@ -93,42 +93,34 @@
 					"user": "Demo title: Stepper\nBrief (all you know about the lesson — this comes from the teacher, verbatim):\n(no brief)\n\nBuild the demo, test it with run_demo, iterate until PASSED, then finish with your notes."
 				},
 				{
-					"tool": "run_demo",
 					"isError": false,
 					"text": "ERROR: nothing to run — call write_demo first."
 				},
 				{
-					"tool": "run_demo",
 					"isError": false,
 					"text": "ERROR: nothing to run — call write_demo first."
 				},
 				{
-					"tool": "write_demo",
 					"isError": false,
 					"text": "ERROR: empty document — write the full HTML."
 				},
 				{
-					"tool": "write_demo",
 					"isError": false,
 					"text": "ERROR: empty document — write the full HTML."
 				},
 				{
-					"tool": "write_demo",
 					"isError": false,
 					"text": "Saved (1 bytes). Now call run_demo to test it — never deliver untested."
 				},
 				{
-					"tool": "write_demo",
 					"isError": true,
 					"text": "Validation failed for tool \"write_demo\":\n  - html: must have required properties html\n\nReceived arguments:\n{}"
 				},
 				{
-					"tool": "run_demo",
 					"isError": false,
 					"text": "PASSED: no console errors, no uncaught errors, no failed requests. Probe result: {\"a\":[1,\"two\"]}. If you are satisfied, finish with your notes; otherwise keep improving and re-test."
 				},
 				{
-					"tool": "run_demo",
 					"isError": false,
 					"text": "PASSED: no console errors, no uncaught errors, no failed requests. If you are satisfied, finish with your notes; otherwise keep improving and re-test."
 				}
@@ -139,11 +131,11 @@
 				"write_demo",
 				"write_demo",
 				"write_demo",
+				"write_demo: 0.0 KB",
 				"write_demo",
 				"run_demo",
-				"run_demo",
-				"write_demo: 0.0 KB",
 				"run_demo: clean",
+				"run_demo",
 				"run_demo: clean"
 			]
 		}
@@ -203,20 +195,18 @@
 					"user": "Demo title: Interactive demo\nBrief (all you know about the lesson — this comes from the teacher, verbatim):\nb\n\nBuild the demo, test it with run_demo, iterate until PASSED, then finish with your notes."
 				},
 				{
-					"tool": "write_demo",
 					"isError": false,
 					"text": "Saved (9 bytes). Now call run_demo to test it — never deliver untested."
 				},
 				{
-					"tool": "run_demo",
 					"isError": false,
 					"text": "FAILED: 1 console error, 2 page errors, 1 failed request.\nConsole errors:\n- boom\nUncaught errors:\n- x is not defined\n- y\nFailed requests:\n- https://cdn.example/lib.js (net::ERR_FAILED)\nFix the document (write_demo) and re-test (run_demo)."
 				}
 			],
 			"activity": [
 				"write_demo",
-				"run_demo",
 				"write_demo: 0.0 KB",
+				"run_demo",
 				"run_demo: 1 console error, 2 page errors, 1 failed request",
 				"final verification"
 			]
@@ -265,20 +255,18 @@
 					"user": "Demo title: T\nBrief (all you know about the lesson — this comes from the teacher, verbatim):\nb\n\nBuild the demo, test it with run_demo, iterate until PASSED, then finish with your notes."
 				},
 				{
-					"tool": "write_demo",
 					"isError": false,
 					"text": "Saved (9 bytes). Now call run_demo to test it — never deliver untested."
 				},
 				{
-					"tool": "run_demo",
 					"isError": false,
 					"text": "HEADLESS ERROR (retrying may help): No render engine available"
 				}
 			],
 			"activity": [
 				"write_demo",
-				"run_demo",
 				"write_demo: 0.0 KB",
+				"run_demo",
 				"run_demo: browser error",
 				"final verification"
 			]
@@ -328,7 +316,6 @@
 					"user": "Demo title: T\nBrief (all you know about the lesson — this comes from the teacher, verbatim):\nb\n\nBuild the demo, test it with run_demo, iterate until PASSED, then finish with your notes."
 				},
 				{
-					"tool": "write_demo",
 					"isError": false,
 					"text": "Saved (8 bytes). Now call run_demo to test it — never deliver untested."
 				}
@@ -388,21 +375,29 @@
 		}
 	},
 	{
-		"name": "demo: the script runs out",
+		"name": "demo: the agent fails",
 		"output": {
 			"config": {
 				"kind": "demo",
 				"title": "T",
 				"brief": "b",
-				"steps": []
+				"steps": [
+					{
+						"fails": "overloaded"
+					}
+				]
 			},
 			"result": {
 				"title": "T",
 				"html": "",
 				"tested": true,
-				"notes": "FAILED: the builder crashed: No more faux responses queued"
+				"notes": "FAILED: the builder crashed: overloaded"
 			},
-			"shown": [],
+			"shown": [
+				{
+					"user": "Demo title: T\nBrief (all you know about the lesson — this comes from the teacher, verbatim):\nb\n\nBuild the demo, test it with run_demo, iterate until PASSED, then finish with your notes."
+				}
+			],
 			"activity": []
 		}
 	}

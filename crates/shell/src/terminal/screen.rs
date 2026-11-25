@@ -430,7 +430,7 @@ mod tests {
 	#[test]
 	fn codexs_composer_is_its_lowest_pointer_row() {
 		let rows = |lines: &[&str]| lines.iter().map(|l| (*l).to_owned()).collect::<Vec<_>>();
-		assert_eq!(codex_input(&rows(&["› explain limits", "", "• Limits are…", "", "› Your lesson is waiting.", "", "  ⏎ send"])).as_deref(), Some("Your lesson is waiting."));
+		assert_eq!(codex_input(&rows(&["› explain limits", "", "• Limits are…", "", "› and sums?", "", "  ⏎ send"])).as_deref(), Some("and sums?"));
 		assert_eq!(codex_input(&rows(&["› ", "  ⏎ send"])).as_deref(), Some(""));
 		assert_eq!(codex_input(&rows(&["sam@mac % "])), None);
 	}

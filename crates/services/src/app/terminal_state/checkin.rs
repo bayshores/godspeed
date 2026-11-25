@@ -1,4 +1,4 @@
-//! Whether an agent is connected or teaching, and its name.
+//! Whether an agent is connected, and its name.
 
 use std::sync::Arc;
 
@@ -8,10 +8,9 @@ use gs_base::re::Re;
 use gs_base::text::{slice16, trim};
 use gs_json::Json;
 
-use super::helper::claim_ends;
-use super::{Bridge, Inner, State};
+use super::{Inner, TerminalState};
 
-/// An agent counts as connected (or teaching) if it checked in within this window.
+/// An agent counts as connected if it checked in within this window.
 const CONNECTED_WINDOW_MS: i64 = 3 * 60_000;
 
 pub(super) fn recent(at: i64, now: i64) -> bool {
@@ -33,52 +32,37 @@ pub fn display_agent_name(client_info: &Json) -> Option<String> {
 	(!shown.is_empty()).then_some(shown)
 }
 
-/// A teacher called the work loop recently, or still works on an item.
-fn teaching(state: &State, now: i64) -> bool {
-	recent(state.last_work, now) || claim_ends(state, false).any(|end| end >= now)
-}
-
-impl Bridge {
+impl TerminalState {
 	pub fn agent_connected(&self, now: i64) -> bool {
-		let s = self.0.state.lock();
-		recent(s.last_contact, now) || teaching(&s, now)
-	}
-
-	/// An agent runs the work loop; a connected agent that only calls other tools leaves
-	/// lessons waiting.
-	pub fn agent_teaching(&self, now: i64) -> bool {
-		teaching(&self.0.state.lock(), now)
+		recent(self.0.state.lock().last_contact, now)
 	}
 
 	/// The agent's name, while it is connected.
 	pub fn agent_name(&self, now: i64) -> Option<String> {
-		if self.agent_connected(now) { self.0.state.lock().agent_name.clone() } else { None }
+		let s = self.0.state.lock();
+		recent(s.last_contact, now).then(|| s.agent_name.clone()).flatten()
 	}
 
-	/// The agent checked in: any authorized MCP request, or (`working`) a work-loop call.
-	/// `name` comes from the request's client info; requests without one keep the last name.
-	pub fn record_check_in(&self, name: Option<&str>, working: bool, now: i64) {
-		let (was_connected, was_teaching) = (self.agent_connected(now), self.agent_teaching(now));
+	/// An agent sent an authorized MCP request. `name` comes from the request's client info;
+	/// requests without one keep the last name.
+	pub fn record_check_in(&self, name: Option<&str>, now: i64) {
+		let was_connected = self.agent_connected(now);
 		let mut s = self.0.state.lock();
 		let name_before = s.agent_name.clone();
-		if working {
-			s.last_work = now;
-		} else {
-			s.last_contact = now;
-		}
+		s.last_contact = now;
 		if let Some(name) = name.filter(|n| !n.is_empty()) {
 			s.agent_name = Some(name.to_owned());
 		}
 		let renamed = s.agent_name != name_before;
 		drop(s);
 		schedule_lapse(&self.0, now);
-		if !was_connected || was_teaching != self.agent_teaching(now) || renamed {
+		if !was_connected || renamed {
 			self.emit(EventKind::AgentChanged);
 		}
 	}
 }
 
-/// Fires "agent-changed" a second after the next of teaching or connected lapses.
+/// Fires "agent-changed" a second after the connection lapses.
 fn schedule_lapse(inner: &Arc<Inner>, now: i64) {
 	let mut s = inner.state.lock();
 	if let Some(timer) = s.lapse.take() {
@@ -86,17 +70,18 @@ fn schedule_lapse(inner: &Arc<Inner>, now: i64) {
 	}
 	s.lapse_number += 1;
 	let number = s.lapse_number;
-	let check_ins = [s.last_contact, s.last_work].map(|at| at + CONNECTED_WINDOW_MS);
-	let Some(next) = check_ins.into_iter().chain(claim_ends(&s, false)).filter(|at| *at > now).min() else { return };
+	let lapses = s.last_contact + CONNECTED_WINDOW_MS;
+	if lapses <= now {
+		return;
+	}
 	let weak = Arc::downgrade(inner);
 	s.lapse = Some(gs_base::tasks::spawn("checkin", async move {
-		clock::sleep(next - now + 1000).await;
+		clock::sleep(lapses - now + 1000).await;
 		let Some(inner) = weak.upgrade() else { return };
 		// A newer check-in replaced this timer after it woke.
 		if inner.state.lock().lapse_number != number {
 			return;
 		}
-		Bridge(inner.clone()).emit(EventKind::AgentChanged);
-		schedule_lapse(&inner, clock::now_ms());
+		TerminalState(inner).emit(EventKind::AgentChanged);
 	}));
 }

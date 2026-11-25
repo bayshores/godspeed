@@ -3,8 +3,8 @@
 //! data/mcp-token. It speaks both MCP versions: 2026-07-28 (every request says who sent it;
 //! server/discover hands over the instructions) and the older one that starts with initialize.
 //!
-//! Four kinds of tools: the work loop (`work`), direct access to lessons and graphs (`lessons`,
-//! `graph`), spaces (`spaces`), and memory (`memory`). Deleting a space is app-only on purpose.
+//! Its tools: lessons and graphs (`lessons`, `graph`), spaces (`spaces`), memory (`memory`) and
+//! the notes vault (`vault`). Deleting a space is app-only on purpose.
 
 mod caller;
 mod spaces;
@@ -19,7 +19,6 @@ mod teacher_work;
 mod tools;
 mod transport;
 mod vault;
-mod work;
 
 use std::sync::Arc;
 
@@ -31,7 +30,7 @@ use gs_json::{Json, json};
 use gs_services::App;
 
 use crate::http::reply as http_reply;
-use caller::{agent_id_of, caller_of};
+use caller::caller_of;
 use protocol::{MAX_BODY_BYTES, Rejection, Route, SERVER_ERROR, classify, is_json_content_type};
 use transport::{Exchange, serve_legacy, serve_modern};
 
@@ -80,7 +79,7 @@ fn refuse(app: &App, headers: &HeaderMap) -> Option<Response> {
 		return refusal(401, "Missing or wrong access token (Settings → Connection).");
 	}
 	// An agent started in an app terminal says which; once that terminal ended it is refused.
-	if headers.get(TERMINAL_HEADER).is_some() && !terminal_of(headers).is_some_and(|id| app.bridge.terminal_live(&id)) {
+	if headers.get(TERMINAL_HEADER).is_some() && !terminal_of(headers).is_some_and(|id| app.terminals.terminal_live(&id)) {
 		return refusal(403, TERMINAL_CLOSED);
 	}
 	None
@@ -102,26 +101,18 @@ pub async fn handle_mcp_request(app: &Arc<App>, method: &Method, headers: &Heade
 	}
 	let post = *method == Method::POST;
 	let body = if post { gs_json::parse(&http_reply::body_text(raw)).ok() } else { None };
-	// Every authorized request means an agent is connected (only the work loop means it is
-	// teaching), and names it when it says who it is.
+	// Every authorized request means an agent is connected, and names it when it says who it is.
 	let caller = post.then(|| caller_of(body.as_ref()));
 	let terminal = terminal_of(headers);
 	let now = clock::now_ms();
 	if let Some(caller) = &caller {
-		app.bridge.record_check_in(caller.name.as_deref(), false, now);
-		app.bridge.record_terminal_contact(terminal.as_deref(), now);
-		if let Some(id) = terminal.as_deref()
-			// A wait is no work: it counts while it runs, and a waiter that ended must not keep the
-			// agent looking busy.
-			&& body.as_ref().is_some_and(|b| b["method"].as_str() == Some("tools/call") && b["params"]["name"].as_str() != Some("wait_for_work"))
-		{
-			app.bridge.agent_tool_call(id, now);
-		}
+		app.terminals.record_check_in(caller.name.as_deref(), now);
+		app.terminals.record_terminal_contact(terminal.as_deref(), now);
 	}
 	// Only a client's own name changes the shared one; a guess names just this request.
-	let agent = caller.as_ref().and_then(|c| c.name.clone().or_else(|| c.guessed.clone())).or_else(|| app.bridge.agent_name(now));
+	let agent = caller.as_ref().and_then(|c| c.name.clone().or_else(|| c.guessed.clone())).or_else(|| app.terminals.agent_name(now));
 	// Only initialize and server/discover hand instructions to the agent, so only they build the briefing.
-	let instructions = caller.as_ref().filter(|c| c.wants_instructions).map(|c| instructions::connect_instructions(app, c.woken)).unwrap_or_default();
+	let instructions = caller.as_ref().filter(|c| c.wants_instructions).map(|_| instructions::connect_instructions(app)).unwrap_or_default();
 	let exchange = Exchange { app, caller: agent.as_deref(), terminal: terminal.as_deref(), instructions: &instructions };
 	let too_large = post && raw.len() > MAX_BODY_BYTES;
 	let route = match &body {
@@ -138,32 +129,6 @@ pub async fn handle_mcp_request(app: &Arc<App>, method: &Method, headers: &Heade
 		Route::Modern { message, revision } => serve_modern(&exchange, &message, revision.as_deref(), headers).await,
 		Route::Reject(refused) => http_reply::json(refused.status, &refused.body()),
 	}
-}
-
-/// A godspeed folder hook's request: the refusal, or `then` runs with the session id it sent
-/// and its body.
-fn hook_request(app: &App, headers: &HeaderMap, body: Option<Json>, then: impl FnOnce(&str, &Json)) -> Response {
-	if let Some(refused) = refuse(app, headers) {
-		return refused;
-	}
-	let body = body.unwrap_or_default();
-	let Some(agent) = agent_id_of(&json!({ "godspeed/agent": body["agent"] })) else {
-		return http_reply::json(400, &json!({ "error": "Send the agent's session id as \"agent\"." }));
-	};
-	then(&agent, &body);
-	http_reply::json(200, &json!({ "ok": true }))
-}
-
-/// /api/mcp/forget: the godspeed folder's Claude Code hook says an agent lost its context (it
-/// compacted, or /clear ended the session), so its next items come in full.
-pub fn handle_agent_forget(app: &App, headers: &HeaderMap, body: Option<Json>) -> Response {
-	hook_request(app, headers, body, |agent, body| app.bridge.forget_agent(agent, body["cleared"] == Json::Bool(true)))
-}
-
-/// /api/mcp/compacting: the godspeed folder's Claude Code hook says an agent started compacting
-/// its context, so the helper answers meanwhile.
-pub fn handle_agent_compacting(app: &App, headers: &HeaderMap, body: Option<Json>) -> Response {
-	hook_request(app, headers, body, |agent, _| app.bridge.agent_compacting(agent, clock::now_ms()))
 }
 
 /// /api/mcp/line: the godspeed folder's prompt hook hands over a line the learner typed to the
@@ -201,10 +166,10 @@ pub fn handle_agent_event(app: &App, headers: &HeaderMap, body: Option<Json>) ->
 			None
 		}
 		(Some("stop"), Some(id)) => {
-			app.bridge.agent_stopped(id, clock::now_ms());
-			app.bridge.take_chat(id).then_some("done")
+			app.terminals.agent_stopped(id);
+			app.terminals.take_chat(id).then_some("done")
 		}
-		(Some("needs"), id) if app.bridge.is_teacher_terminal(id) => Some("needs"),
+		(Some("needs"), id) if app.terminals.is_teacher_terminal(id) => Some("needs"),
 		(Some("tool"), Some(id)) => {
 			teacher_work::note_own_tool(app, id, body["tool"].str_or_empty(), body["subject"].as_str());
 			None
@@ -221,19 +186,15 @@ pub fn handle_agent_event(app: &App, headers: &HeaderMap, body: Option<Json>) ->
 /// Token and agent status for the window (GET /api/mcp-access), without the url.
 pub fn mcp_access_status(app: &App) -> Result<Json, String> {
 	let now = clock::now_ms();
+	let turns = gs_services::turns::turn_liveness::turns_running(app);
 	Ok(json!({
 		"token": app.stores.mcp_token.ensure_mcp_token()?,
-		"agentConnected": app.bridge.agent_connected(now),
-		"agentTeaching": app.bridge.agent_teaching(now),
-		"agentName": app.bridge.agent_name(now),
-		"helperHere": app.bridge.helper_here(now),
-		"helperCovering": app.bridge.helper_covering(now),
-		"pendingWork": app.bridge.pending_work_count(),
-		"pendingTurns": app.bridge.pending_turn_count(),
-		"helperWork": app.bridge.helper_work_count(now),
-		"claimedLessons": app.bridge.claimed_lessons(),
-		"terminals": app.bridge.terminals_here(now).into_iter().map(|(id, here)| json!({ "id": id, "here": here })).collect::<Vec<_>>(),
-		"outsideHere": app.bridge.outside_here(now),
+		"agentConnected": app.terminals.agent_connected(now),
+		"agentTeaching": turns > 0,
+		"agentName": app.terminals.agent_name(now),
+		"turnsRunning": turns,
+		"terminals": app.terminals.terminals_here(now).into_iter().map(|(id, here)| json!({ "id": id, "here": here })).collect::<Vec<_>>(),
+		"outsideHere": app.terminals.outside_here(now),
 	}))
 }
 

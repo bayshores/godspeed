@@ -255,12 +255,9 @@ pub fn topic_done_tool(record: PlanContext, gate: &Arc<TurnGate>, check_marks: C
 #[cfg(test)]
 mod tests {
 	use gs_engine::turn::abort::Abort;
-	use gs_engine::turn::agent::{Agent, AgentOptions};
-	use gs_engine::turn::faux::{Engine, Scripted, faux_model};
-	use gs_engine::turn::messages::faux_assistant_message;
+	use gs_engine::turn::tool_host::{Reply, ToolHost};
 	use gs_base::re::Re;
 	use gs_core::messages::citations::DroppedQuote;
-	use gs_core::messages::role::Role;
 
 	use super::*;
 	use crate::tools::test_record::record;
@@ -469,21 +466,14 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn the_stored_call_is_what_was_sent() {
+	async fn options_sent_as_text_are_taken_and_end_the_turn() {
 		let (tool, gate) = tool_on(Vec::new(), true);
 		concluded_now(&gate);
 		let sent_args = with(sent(), &["review", "options"], Json::from(stringify(&quiz("check", "n3")["options"])));
-		let scripted = Scripted::new();
-		scripted.reply(faux_assistant_message(vec![json!({ "type": "toolCall", "id": "t1", "name": "topic_done", "arguments": sent_args.clone() })], "toolUse"));
-		let mut options = AgentOptions::new(Engine { model: faux_model("m", "p", "faux", "Faux", 1000.0, 100.0), respond: scripted });
-		options.tools = vec![tool.into_arc()];
-		let agent = Agent::new(options);
-		agent.prompt(vec![json!({ "role": "user", "content": "go", "timestamp": 1 })], Abort::new()).await.unwrap();
-		let messages = agent.messages();
-		let assistant = messages.iter().find(|m| Role::Assistant.is(m)).unwrap();
-		assert_eq!(stringify(&assistant["content"][0]["arguments"]), stringify(&sent_args));
-		let result = messages.iter().find(|m| Role::ToolResult.is(m)).unwrap();
-		assert_eq!((result["isError"].as_bool(), result["content"][0]["text"].as_str()), (Some(false), Some(TOPIC_DONE_STORED_TEXT)));
-		assert_eq!(messages.last().unwrap()["role"].as_str(), Some("toolResult"), "its result ends the run");
+		let host = ToolHost::new(vec![tool.into_arc()], None, Default::default());
+		let call = json!({ "type": "toolCall", "id": "t1", "name": "topic_done", "arguments": sent_args });
+		let reply = host.call(&call, Reply { before: &[], message: &Json::Null }, &Abort::new()).await;
+		assert_eq!((reply.is_error, reply.result["content"][0]["text"].as_str()), (false, Some(TOPIC_DONE_STORED_TEXT)));
+		assert!(reply.ends_turn, "its result ends the turn");
 	}
 }

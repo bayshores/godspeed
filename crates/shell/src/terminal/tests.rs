@@ -142,18 +142,6 @@ fn codex_folder(name: &str) -> PathBuf {
 
 #[cfg(unix)]
 #[test]
-fn a_nudge_is_typed_then_sent_once_the_box_holds_it() {
-	let dir = codex_folder("nudge");
-	let heard = Arc::new(Heard::default());
-	let terminals = Terminals::new(heard.clone());
-	let id = terminals.start(Role::Teacher, Agent::Codex, dir.to_str().unwrap(), env(&dir), Path::new("/data"), None).unwrap();
-	terminals.nudge(&id, "Your lesson is waiting.");
-	until("the sent nudge", || text(&terminals, &id).contains("got Your lesson is waiting."));
-	assert!(lock(&heard.typed).is_empty(), "godspeed's own line is not the learner's message");
-}
-
-#[cfg(unix)]
-#[test]
 fn a_starter_is_typed_sent_and_heard_as_the_learners_line() {
 	let dir = codex_folder("starter");
 	let heard = Arc::new(Heard::default());

@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use gs_base::{clock, locale, text, time};
-use gs_engine::bridge::agent_model;
+use gs_engine::turn::messages::agent_model;
 use gs_json::{Json, Obj, json};
 
 use super::list_all_jobs;

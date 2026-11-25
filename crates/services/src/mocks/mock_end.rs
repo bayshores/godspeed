@@ -11,13 +11,13 @@ use gs_base::locks::LockKey;
 use gs_base::{clock, time};
 use gs_core::mocks::mock::{MockLanguage, MockState, end_mock, is_answered, mock_state, seconds_left};
 use gs_core::mocks::mock_requests::grade_request_text;
-use gs_engine::turn::models::agent_engine;
 use gs_json::{Json, Obj, js_number};
 
 use super::mock_runner::run_examples;
 use super::mock_runs::{changed, mock_run_key, start_run};
 use crate::App;
 use crate::graph::progress::progress_for;
+use crate::jobs::job_agent::job_agent;
 
 /// How long past its time a running mock still takes the page's last save.
 const LATE_SAVE_MS: i64 = 10_000;
@@ -70,8 +70,8 @@ pub fn ask_grades(app: &Arc<App>, space_id: &str, mock: &Json) -> Result<(), Str
 			}
 		}
 		let prompt = grade_request_text(&deadline, &mock, &Json::Obj(runs), &facts);
-		let request = MockRequest { label: mock_label(&mock), prompt, engine: agent_engine(&task_app.bridge), signal };
-		let graded = grade_mock(&task_app.bridge, request, &mock).await.map_err(|e| e.to_string())?;
+		let request = MockRequest { label: mock_label(&mock), prompt, signal };
+		let graded = grade_mock(job_agent(&task_app).as_ref(), request, &mock).await.map_err(|e| e.to_string())?;
 		let _guard = task_app.locks.lock(LockKey::Space(&id));
 		if task_app.stores.mocks.read_mock(&id, mock["id"].str_or_empty())?.is_some() {
 			task_app.stores.mocks.write_mock(&id, &graded)?;

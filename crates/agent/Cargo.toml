@@ -12,6 +12,7 @@ gs-base.workspace = true
 gs-core.workspace = true
 gs-store.workspace = true
 gs-engine.workspace = true
+gs-runtime.workspace = true
 gs-pdf.workspace = true
 gs-search.workspace = true
 gs-media.workspace = true
@@ -26,6 +27,7 @@ gs-base = { workspace = true, features = ["lock-order-check"] }
 image.workspace = true
 gs-pdf = { workspace = true, features = ["test-support"] }
 gs-web = { workspace = true, features = ["test-support"] }
+gs-runtime = { workspace = true, features = ["fake"] }
 
 [lints]
 workspace = true

@@ -4,26 +4,28 @@ use std::sync::Arc;
 use gs_base::config::Paths;
 use gs_base::events::Events;
 use gs_base::locks::Locks;
-use gs_engine::turn::faux::Scripted;
+use gs_runtime::fake::{FakeAgent, FakeStep};
+use gs_runtime::{Ask, Usage, Verdict};
 use gs_store::jobs::CreateJobInit;
 
 use super::*;
 use crate::subagents::aborts::{fire_job_abort, is_job_live};
 use crate::subagents::headless::DemoRunResult;
-use crate::subagents::test_support::{FakeHeadless, bridge, calls, faux_engine, says};
+use crate::subagents::test_support::{FakeHeadless, on, says, tool};
 
 struct Host {
 	dir: PathBuf,
 	jobs: JobStore,
 	chats: ChatStore,
-	bridge: Bridge,
+	agent: FakeAgent,
 	pdf: Pdf,
 	aborts: JobAborts,
 	tmp: PathBuf,
 	headless: Arc<dyn HeadlessApi>,
-	engine: Option<Engine>,
 	delivered: Mutex<Vec<Json>>,
 	activity: Mutex<Vec<String>>,
+	/// The lessons asked to allow something, with what.
+	asked: Arc<Mutex<Vec<(String, Ask)>>>,
 }
 
 impl JobHost for Host {
@@ -33,8 +35,15 @@ impl JobHost for Host {
 	fn chat_store(&self) -> &ChatStore {
 		&self.chats
 	}
-	fn bridge(&self) -> &Bridge {
-		&self.bridge
+	fn job_agent(&self) -> Arc<dyn JobAgent> {
+		on(self.agent.clone())
+	}
+	fn approve(&self, chat_id: &str) -> Approve {
+		let (asked, chat_id) = (self.asked.clone(), chat_id.to_owned());
+		Arc::new(move |ask| {
+			asked.lock().push((chat_id.clone(), ask));
+			Box::pin(async { Verdict { allow: true, message: None } })
+		})
 	}
 	fn pdf(&self) -> &Pdf {
 		&self.pdf
@@ -50,9 +59,6 @@ impl JobHost for Host {
 	}
 	fn search_key(&self) -> Option<String> {
 		None
-	}
-	fn engine_for(&self, _role: &str) -> Option<Engine> {
-		self.engine.clone()
 	}
 	fn deliver(&self, steer: Json) -> BoxFuture<'static, Result<(), String>> {
 		self.delivered.lock().push(steer);
@@ -76,7 +82,7 @@ impl Drop for Host {
 	}
 }
 
-fn setup(name: &str, engine: Option<Engine>, demo: Result<DemoRunResult, String>) -> Arc<Host> {
+fn setup(name: &str, turns: Vec<Vec<FakeStep>>, demo: Result<DemoRunResult, String>) -> Arc<Host> {
 	let dir = std::env::temp_dir().join(format!("gs-runner-{name}-{}", std::process::id()));
 	let _ = std::fs::remove_dir_all(&dir);
 	let tmp = dir.join("tmp");
@@ -86,14 +92,14 @@ fn setup(name: &str, engine: Option<Engine>, demo: Result<DemoRunResult, String>
 	Arc::new(Host {
 		jobs: JobStore::new(&paths, &events, &locks),
 		chats: ChatStore::new(&paths, &events, &locks),
-		bridge: bridge(),
+		agent: FakeAgent::new(turns),
 		pdf: Pdf::new(&dir.join("res")),
 		aborts: JobAborts::default(),
 		tmp,
 		headless: FakeHeadless::new(demo),
-		engine,
 		delivered: Mutex::new(Vec::new()),
 		activity: Mutex::new(Vec::new()),
+		asked: Arc::default(),
 		dir,
 	})
 }
@@ -114,12 +120,13 @@ fn no_demo() -> Result<DemoRunResult, String> {
 	Err("no browser".to_owned())
 }
 
+const USED: Usage = Usage { input: 900, cached: 700, output: 60 };
+
 #[tokio::test]
 async fn a_demo_job_saves_its_result_usage_and_pending_delivery() {
-	let script = Scripted::new();
-	script.reply(calls(&[("write_demo", json!({ "html": "<p/>" })), ("run_demo", json!({}))]));
-	script.reply(says("A dot."));
-	let host = setup("demo-done", Some(faux_engine(&script)), Ok(DemoRunResult { ok: true, ..Default::default() }));
+	let curl = FakeStep::Approval { tool: "Bash".to_owned(), input: json!({ "command": "curl https://cdn.example/plot.js" }) };
+	let turn = vec![FakeStep::Usage(USED), curl, FakeStep::Calls(vec![("write_demo".to_owned(), json!({ "html": "<p/>" })), ("run_demo".to_owned(), json!({}))]), FakeStep::Usage(USED), says("A dot.")];
+	let host = setup("demo-done", vec![turn], Ok(DemoRunResult { ok: true, ..Default::default() }));
 	let id = job(&host, "demo", Some(json!({ "title": "Dot", "brief": "A dot." })));
 	let record = run(&host, &id).await;
 	assert_eq!(record["status"], Json::from("done"));
@@ -134,13 +141,13 @@ async fn a_demo_job_saves_its_result_usage_and_pending_delivery() {
 	assert_eq!(delivered.len(), 1);
 	assert_eq!(delivered[0]["id"], Json::from(format!("steer_{id}")));
 	assert!(!is_job_live(&host.aborts, &id));
+	let chat_id = record["chatId"].as_str().unwrap();
+	assert_eq!(*host.asked.lock(), [(chat_id.to_owned(), Ask::Tool { name: "Bash".to_owned(), input: json!({ "command": "curl https://cdn.example/plot.js" }) })], "the lesson that asked is asked to allow it");
 }
 
 #[tokio::test]
 async fn a_failed_demo_records_its_notes_as_the_error() {
-	let script = Scripted::new();
-	script.reply(says("Nothing could be built."));
-	let host = setup("demo", Some(faux_engine(&script)), no_demo());
+	let host = setup("demo", vec![vec![says("Nothing could be built.")]], no_demo());
 	let id = job(&host, "demo", Some(json!({ "title": "Stepper", "brief": "Step." })));
 	let record = run(&host, &id).await;
 	assert_eq!(record["status"], Json::from("error"));
@@ -151,7 +158,7 @@ async fn a_failed_demo_records_its_notes_as_the_error() {
 
 #[tokio::test]
 async fn a_pdf_job_error_drops_the_failure_prefix() {
-	let host = setup("pdf", Some(faux_engine(&Scripted::new())), no_demo());
+	let host = setup("pdf", Vec::new(), no_demo());
 	let missing = host.dir.join("missing.pdf").to_string_lossy().into_owned();
 	let id = job(&host, "pdf", Some(json!({ "path": format!("  {missing} "), "question": 5 })));
 	let record = run(&host, &id).await;
@@ -162,7 +169,7 @@ async fn a_pdf_job_error_drops_the_failure_prefix() {
 
 #[tokio::test]
 async fn a_pdf_job_in_a_protected_place_fails_with_the_denial() {
-	let host = setup("pdf-protected", Some(faux_engine(&Scripted::new())), no_demo());
+	let host = setup("pdf-protected", Vec::new(), no_demo());
 	let id = job(&host, "pdf", Some(json!({ "path": "~/.aws/credentials.pdf", "question": "" })));
 	let record = run(&host, &id).await;
 	assert_eq!(record["error"], Json::from("Access denied: ~/.aws/credentials.pdf is a protected location."));
@@ -170,25 +177,20 @@ async fn a_pdf_job_in_a_protected_place_fails_with_the_denial() {
 
 #[tokio::test]
 async fn research_failures_and_sources() {
-	let host = setup("research", Some(faux_engine(&Scripted::new())), no_demo());
+	let host = setup("research", Vec::new(), no_demo());
 	let id = job(&host, "research", Some(json!({ "context": "no question" })));
 	let record = run(&host, &id).await;
 	assert_eq!(record["error"], Json::from("research question unavailable"));
 	assert_eq!(record["result"], json!({ "brief": "Research failed: the research question is unavailable.", "sources": [] }));
 
 	// A url that is not text breaks the activity line, and with it the whole run.
-	let script = Scripted::new();
-	script.reply(calls(&[("web_fetch", json!({ "url": 5 }))]));
-	let host = setup("research-number", Some(faux_engine(&script)), no_demo());
+	let host = setup("research-number", vec![vec![tool("web_fetch", json!({ "url": 5 }))]], no_demo());
 	let id = job(&host, "research", Some(json!({ "question": "Q?" })));
 	let record = run(&host, &id).await;
 	assert_eq!(record["result"], json!({ "brief": "Research failed: e.slice is not a function", "sources": [] }));
 	assert_eq!(record["error"], Json::from("e.slice is not a function"));
 
-	let script = Scripted::new();
-	script.reply(calls(&[("web_fetch", json!({ "url": "not a url" }))]));
-	script.reply(says("  ## Summary\nNothing found.  "));
-	let host = setup("research-sources", Some(faux_engine(&script)), no_demo());
+	let host = setup("research-sources", vec![vec![tool("web_fetch", json!({ "url": "not a url" })), says("  ## Summary\nNothing found.  ")]], no_demo());
 	let id = job(&host, "research", Some(json!({ "question": "Q?", "context": " " })));
 	let record = run(&host, &id).await;
 	assert_eq!(record["status"], Json::from("done"));
@@ -196,27 +198,14 @@ async fn research_failures_and_sources() {
 	let leftovers: Vec<_> = std::fs::read_dir(&host.tmp).unwrap().collect();
 	assert!(leftovers.is_empty(), "the PDF folder goes with the job");
 
-	let script = Scripted::new();
-	script.reply(says("   "));
-	let host = setup("research-empty", Some(faux_engine(&script)), no_demo());
+	let host = setup("research-empty", vec![vec![says("   ")]], no_demo());
 	let id = job(&host, "research", Some(json!({ "question": "Q?" })));
 	assert_eq!(run(&host, &id).await["error"], Json::from("the researcher produced no text"));
 }
 
 #[tokio::test]
-async fn no_engine_refuses_with_the_failure_shape() {
-	let host = setup("refuse", None, no_demo());
-	let id = job(&host, "pdf", Some(json!({ "path": " a.pdf ", "question": "Q" })));
-	let record = run(&host, &id).await;
-	assert_eq!(record["status"], Json::from("error"));
-	assert_eq!(record["error"], Json::from("No model is available to run this job"));
-	assert_eq!(record["result"], json!({ "path": "a.pdf", "question": "Q", "brief": "PDF failed: No model is available to run this job", "pagesRead": [], "pagesConsulted": [] }));
-	assert_eq!(host.delivered.lock().len(), 1);
-}
-
-#[tokio::test]
 async fn unknown_kinds_missing_lessons_and_finished_jobs() {
-	let host = setup("odd", Some(faux_engine(&Scripted::new())), no_demo());
+	let host = setup("odd", Vec::new(), no_demo());
 	let id = job(&host, "poem", None);
 	let record = run(&host, &id).await;
 	assert_eq!((record["status"].clone(), record["error"].clone()), (Json::from("error"), Json::from("unknown kind poem")));
@@ -233,9 +222,7 @@ async fn unknown_kinds_missing_lessons_and_finished_jobs() {
 
 #[tokio::test]
 async fn the_input_falls_back_to_the_transcript() {
-	let script = Scripted::new();
-	script.reply(says("No svg."));
-	let host = setup("transcript", Some(faux_engine(&script)), no_demo());
+	let host = setup("transcript", Vec::new(), no_demo());
 	let id = job(&host, "demo", None);
 	let chat_id = host.jobs.get_job(&id).unwrap()["chatId"].as_str().unwrap().to_owned();
 	let call = json!({ "type": "toolCall", "id": "call_job", "name": "demo", "arguments": { "brief": "From the record." } });
@@ -248,14 +235,7 @@ async fn the_input_falls_back_to_the_transcript() {
 
 #[tokio::test]
 async fn an_aborted_job_unwinds_without_writing_an_outcome() {
-	let script = Scripted::new();
-	script.run(|request| {
-		Box::pin(async move {
-			request.abort.aborted().await;
-			Ok(json!({ "role": "assistant", "content": [], "stopReason": "stop" }))
-		})
-	});
-	let host = setup("abort", Some(faux_engine(&script)), no_demo());
+	let host = setup("abort", vec![vec![FakeStep::Silence]], no_demo());
 	let id = job(&host, "demo", Some(json!({ "brief": "x" })));
 	let task = gs_base::tasks::spawn("test", create_job_runner(host.clone()).run_job(id.clone(), None));
 	while !is_job_live(&host.aborts, &id) {

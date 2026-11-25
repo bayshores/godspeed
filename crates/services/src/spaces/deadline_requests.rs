@@ -10,7 +10,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use gs_agent::subagents::deadline_request::{DeadlineRequest, run_deadline_request};
-use gs_agent::subagents::pi_run::RunError;
 use gs_agent::tools::fn_tool::FnTool;
 use gs_agent::tools::space_actions::{SpaceActions, deadline_request_tools};
 use gs_base::events::EventKind;
@@ -19,12 +18,15 @@ use gs_base::clock;
 use gs_core::contracts::chat::TALK_CHAT_ID;
 use gs_core::spaces::deadline_requests::{AskedRecord, RequestKind, RequestedDeadline, asked_deadline_ids, request_text, requested_deadline};
 use gs_core::spaces::space_tools::ToolOutcome;
+use gs_engine::turn::job_session::RunError;
 use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
 
 use super::space_actions::{Mark, space_actions};
 use super::space_checks::CheckWrites;
 use crate::App;
+use crate::app::settings_record::teacher_name;
+use crate::jobs::job_agent::job_agent;
 use crate::outcome::{Outcome, refuse};
 use crate::turns::chat_handler::send_first_message;
 
@@ -163,7 +165,7 @@ fn start(app: &Arc<App>, kind: RequestKind, deadline: RequestedDeadline) -> bool
 	let request = DeadlineRequest { label, prompt: request_text(kind, std::slice::from_ref(&deadline)), tools: tools.into_iter().map(FnTool::into_arc).collect(), asked: true };
 	let end = RequestEnd { app: app.clone(), deadline };
 	detach("deadline-request", async move {
-		let outcome = run_deadline_request(&end.app.bridge, request).await;
+		let outcome = run_deadline_request(job_agent(&end.app).as_ref(), request).await;
 		ended(&end, kind, outcome, writes.wrote.load(Ordering::SeqCst));
 	});
 	true
@@ -195,8 +197,7 @@ pub(super) struct RunWrites {
 
 /// The space tools, as the learner's agent; `writes` learns of each change that goes through.
 pub(super) fn writing_actions(app: &Arc<App>, writes: Arc<RunWrites>, mark: Mark) -> SpaceActions {
-	let agent = app.bridge.agent_name(clock::now_ms());
-	let actions = Arc::new(space_actions(app, agent.as_deref(), send_first_message(app), mark));
+	let actions = Arc::new(space_actions(app, Some(&teacher_name(app)), send_first_message(app), mark));
 	let app = app.clone();
 	Arc::new(move |name: &str, args: Json| {
 		let (app, actions, name, writes) = (app.clone(), actions.clone(), name.to_owned(), writes.clone());

@@ -1,4 +1,4 @@
-//! The mock's two requests (mock-writer.ts), each one work item on the single-submit seam: the
+//! The mock's two requests (mock-writer.ts), each one job on the single-submit seam: the
 //! questions before it starts ("Mock 1: questions") and the grades after it ends ("Mock 1:
 //! grading"). Nothing is asked while the clock runs.
 //!
@@ -9,13 +9,12 @@ use std::sync::Arc;
 
 use futures_util::FutureExt;
 use gs_core::mocks::mock::{take_questions, with_grades};
-use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
-use gs_engine::turn::faux::Engine;
+use gs_engine::turn::job_session::RunError;
 use gs_json::{Json, json};
 use parking_lot::Mutex;
 
-use super::pi_run::RunError;
+use super::job_agent::{JobAgent, Priority};
 use crate::extraction::submit_agent::{SubmitAgentOptions, run_submit_agent};
 
 const MOCK_QUESTIONS_INSTRUCTIONS: &str = r#"You write one practice run (a mock) for someone getting ready for the exam, quiz or interview the request names. Reply with one write_mock_questions call. These instructions are short to save tokens. Write to the learner in full, plain sentences.
@@ -96,17 +95,16 @@ fn grades_schema() -> Json {
 
 /// One of a mock's two requests.
 pub struct MockRequest {
-	/// "Mock 1": the work item's label.
+	/// "Mock 1": names the job in the log.
 	pub label: String,
 	/// The request (core `mock_requests`).
 	pub prompt: String,
-	pub engine: Engine,
 	pub signal: Abort,
 }
 
 /// Writes a mock's questions for its `format`, keeping only `fact_ids` the request gave. Fails
 /// when the agent never sends usable ones.
-pub async fn write_mock_questions(bridge: &Bridge, input: MockRequest, format: &Json, fact_ids: HashSet<String>) -> Result<Vec<Json>, RunError> {
+pub async fn write_mock_questions(agent: &dyn JobAgent, input: MockRequest, format: &Json, fact_ids: HashSet<String>) -> Result<Vec<Json>, RunError> {
 	let taken: Arc<Mutex<Vec<Json>>> = Arc::default();
 	let mut opts = SubmitAgentOptions::new(
 		"write_mock_questions",
@@ -130,17 +128,16 @@ pub async fn write_mock_questions(bridge: &Bridge, input: MockRequest, format: &
 			std::future::ready(problem).boxed()
 		}
 	}));
-	opts.task_label = Some(format!("{}: questions", input.label));
-	// The learner asked for it, so it runs in their own agent chat.
-	opts.asked = true;
-	opts.engine = Some(input.engine);
+	opts.label = format!("{}: questions", input.label);
+	// The learner asked for it.
+	opts.priority = Priority::Waited;
 	opts.abort = Some(input.signal);
-	run_submit_agent(bridge, opts).await?;
+	run_submit_agent(agent, opts).await?;
 	Ok(std::mem::take(&mut *taken.lock()))
 }
 
 /// Grades an ended mock: the mock with its grades. Fails when the agent never sends usable ones.
-pub async fn grade_mock(bridge: &Bridge, input: MockRequest, mock: &Json) -> Result<Json, RunError> {
+pub async fn grade_mock(agent: &dyn JobAgent, input: MockRequest, mock: &Json) -> Result<Json, RunError> {
 	let graded = Arc::new(Mutex::new(mock.clone()));
 	let mut opts = SubmitAgentOptions::new(
 		"grade_mock",
@@ -164,12 +161,11 @@ pub async fn grade_mock(bridge: &Bridge, input: MockRequest, mock: &Json) -> Res
 			std::future::ready(problem).boxed()
 		}
 	}));
-	opts.task_label = Some(format!("{}: grading", input.label));
-	// The learner asked for it, so it runs in their own agent chat.
-	opts.asked = true;
-	opts.engine = Some(input.engine);
+	opts.label = format!("{}: grading", input.label);
+	// The learner asked for it.
+	opts.priority = Priority::Waited;
 	opts.abort = Some(input.signal);
-	run_submit_agent(bridge, opts).await?;
+	run_submit_agent(agent, opts).await?;
 	let graded = graded.lock().clone();
 	Ok(graded)
 }
@@ -177,13 +173,12 @@ pub async fn grade_mock(bridge: &Bridge, input: MockRequest, mock: &Json) -> Res
 #[cfg(test)]
 mod tests {
 	use gs_core::mocks::mock::{end_mock, new_mock, start_mock, with_answer};
-	use gs_engine::turn::faux::Scripted;
 
 	use super::*;
-	use crate::subagents::test_support::{bridge, calls, faux_engine, reply_seeing, result_texts, says};
+	use crate::subagents::test_support::{result_texts, says, stand_in, tool};
 
-	fn request(script: &Arc<Scripted>) -> MockRequest {
-		MockRequest { label: "Mock 1".to_owned(), prompt: "They are preparing for: Larkspur phone screen (interview).".to_owned(), engine: faux_engine(script), signal: Abort::new() }
+	fn request() -> MockRequest {
+		MockRequest { label: "Mock 1".to_owned(), prompt: "They are preparing for: Larkspur phone screen (interview).".to_owned(), signal: Abort::new() }
 	}
 
 	fn format() -> Json {
@@ -196,24 +191,20 @@ mod tests {
 
 	#[tokio::test]
 	async fn questions_that_cant_be_kept_go_back_and_the_kept_ones_are_returned() {
-		let script = Scripted::new();
-		let seen = Arc::new(Mutex::new(Vec::new()));
-		script.reply(calls(&[("write_mock_questions", json!({ "questions": [question(), question()] }))]));
-		reply_seeing(&script, calls(&[("write_mock_questions", json!({ "questions": [question()] }))]), &seen);
-		let questions = write_mock_questions(&bridge(), request(&script), &format(), HashSet::new()).await.unwrap();
+		let (agent, fake) = stand_in(vec![vec![tool("write_mock_questions", json!({ "questions": [question(), question()] })), tool("write_mock_questions", json!({ "questions": [question()] })), says("never written")]]);
+		let questions = write_mock_questions(agent.as_ref(), request(), &format(), HashSet::new()).await.unwrap();
 		assert_eq!(questions.len(), 1);
 		assert_eq!(questions[0]["id"], Json::from("q1"));
 		assert!(questions[0].get("factIds").is_none(), "a fact the request didn't give is dropped");
-		assert!(result_texts(&seen.lock()[0])[0].contains("Write exactly 1 questions (got 2)."));
+		assert!(result_texts(&fake)[0].contains("Write exactly 1 questions (got 2)."));
 	}
 
 	#[tokio::test]
 	async fn no_questions_at_all_fails() {
-		let script = Scripted::new();
-		for _ in 0..4 {
-			script.reply(says("I can't."));
-		}
-		assert_eq!(write_mock_questions(&bridge(), request(&script), &format(), HashSet::new()).await, Err(RunError::Failed("the agent never sent the questions".to_owned())));
+		let (agent, fake) = stand_in(vec![vec![says("I can't.")], vec![says("I still can't.")]]);
+		assert_eq!(write_mock_questions(agent.as_ref(), request(), &format(), HashSet::new()).await, Err(RunError::Failed("the agent never sent the questions".to_owned())));
+		let sends: Vec<String> = fake.sent().iter().filter(|m| m["type"].as_str() == Some("send")).map(|m| m["content"][0]["text"].str_or_empty().to_owned()).collect();
+		assert_eq!(sends[1], "You have not called write_mock_questions yet. Call it now; it is the only way your work reaches godspeed.", "one reminder");
 	}
 
 	#[tokio::test]
@@ -222,13 +213,10 @@ mod tests {
 		mock.as_obj_mut().unwrap().insert("questions", take_questions(&[question()], &format(), &HashSet::new()).unwrap());
 		let live = start_mock(&mock, 1_000);
 		let ended = end_mock(&with_answer(&live, "q1", &json!({ "text": "", "language": "javascript", "code": { "javascript": "x" }, "seconds": 5, "submitted": true })), 2_000);
-		let script = Scripted::new();
-		let seen = Arc::new(Mutex::new(Vec::new()));
-		script.reply(calls(&[("grade_mock", json!({ "grades": [] }))]));
-		reply_seeing(&script, calls(&[("grade_mock", json!({ "grades": [{ "question": "q1", "verdict": "wrong", "feedback": " Off by one. " }] }))]), &seen);
-		let graded = grade_mock(&bridge(), request(&script), &ended).await.unwrap();
+		let (agent, fake) = stand_in(vec![vec![tool("grade_mock", json!({ "grades": [] })), tool("grade_mock", json!({ "grades": [{ "question": "q1", "verdict": "wrong", "feedback": " Off by one. " }] }))]]);
+		let graded = grade_mock(agent.as_ref(), request(), &ended).await.unwrap();
 		assert_eq!(graded["grades"], json!({ "q1": { "verdict": "wrong", "feedback": "Off by one." } }));
-		assert!(result_texts(&seen.lock()[0])[0].contains("No grade for q1: grade every answered question."));
+		assert!(result_texts(&fake)[0].contains("No grade for q1: grade every answered question."));
 	}
 
 	#[test]

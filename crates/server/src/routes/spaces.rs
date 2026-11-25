@@ -26,7 +26,7 @@ use gs_services::spaces::{
 use gs_services::spaces::deadline_requests::overdue_asked;
 use gs_services::spaces::gaps::open_gaps;
 use gs_services::spaces::space_card::space_file_path;
-use gs_services::turns::ask_about_new_deadlines;
+use gs_services::spaces::space_checks::check_spaces_now;
 
 use crate::http::form;
 use crate::http::paths::{param, query};
@@ -314,7 +314,7 @@ async fn add_deadline(State(app): State<Arc<App>>, Path(id): Path<String>, body:
 	record_deadline_change(&app, &id, &deadline, &Json::from("added"));
 	// Nothing linked: the agent works out what it covers.
 	if deadline["fileIds"].as_arr().is_none_or(Vec::is_empty) {
-		ask_about_new_deadlines(&app);
+		check_spaces_now(&app, gs_base::clock::now_ms());
 	}
 	Ok(reply::json(201, &json!({ "deadline": deadline })))
 }

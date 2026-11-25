@@ -1353,50 +1353,6 @@
 		}
 	},
 	{
-		"name": "respond calls",
-		"output": {
-			"request": {
-				"method": "POST",
-				"headers": {
-					"host": "127.0.0.1:1",
-					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
-					"accept": "application/json, text/event-stream",
-					"content-type": "application/json",
-					"mcp-protocol-version": "2026-07-28",
-					"mcp-method": "tools/call",
-					"mcp-name": "respond"
-				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"respond\",\"arguments\":{\"work_id\":\"w\",\"tool_calls\":[{\"name\":1},\"x\",{\"name\":\"a\",\"arguments\":null}],\"wait_seconds\":56},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
-			},
-			"status": 200,
-			"type": "application/json",
-			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool respond: tool_calls.0.name: Invalid input: expected string, received number, tool_calls.0.arguments: Invalid input: expected record, received undefined, tool_calls.1: Invalid input: expected object, received string, tool_calls.2.arguments: Invalid input: expected record, received null, wait_seconds: Too big: expected number to be <=55\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
-		}
-	},
-	{
-		"name": "respond tool calls not a list",
-		"output": {
-			"request": {
-				"method": "POST",
-				"headers": {
-					"host": "127.0.0.1:1",
-					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
-					"accept": "application/json, text/event-stream",
-					"content-type": "application/json",
-					"mcp-protocol-version": "2026-07-28",
-					"mcp-method": "tools/call",
-					"mcp-name": "respond"
-				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"respond\",\"arguments\":{\"work_id\":\"w\",\"tool_calls\":{}},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
-			},
-			"status": 200,
-			"type": "application/json",
-			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool respond: tool_calls: Invalid input: expected array, received object\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
-		}
-	},
-	{
 		"name": "list_lessons huge limit",
 		"output": {
 			"request": {
@@ -1460,28 +1416,6 @@
 			"type": "application/json",
 			"allow": null,
 			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool read_lesson: page: Invalid input: expected number, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
-		}
-	},
-	{
-		"name": "read_work booleans",
-		"output": {
-			"request": {
-				"method": "POST",
-				"headers": {
-					"host": "127.0.0.1:1",
-					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
-					"accept": "application/json, text/event-stream",
-					"content-type": "application/json",
-					"mcp-protocol-version": "2026-07-28",
-					"mcp-method": "tools/call",
-					"mcp-name": "read_work"
-				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"read_work\",\"arguments\":{\"work_id\":true,\"page\":true,\"full\":1},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
-			},
-			"status": 200,
-			"type": "application/json",
-			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool read_work: work_id: Invalid input: expected string, received boolean, page: Invalid input: expected number, received boolean, full: Invalid input: expected boolean, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1658,28 +1592,6 @@
 			"type": "application/json",
 			"allow": null,
 			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool import_notes: name: Invalid input: expected string, received number, text: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
-		}
-	},
-	{
-		"name": "wait_for_work everything wrong",
-		"output": {
-			"request": {
-				"method": "POST",
-				"headers": {
-					"host": "127.0.0.1:1",
-					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
-					"accept": "application/json, text/event-stream",
-					"content-type": "application/json",
-					"mcp-protocol-version": "2026-07-28",
-					"mcp-method": "tools/call",
-					"mcp-name": "wait_for_work"
-				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"wait_for_work\",\"arguments\":{\"timeout_seconds\":\"1\",\"lesson_id\":2,\"full_context\":\"no\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
-			},
-			"status": 200,
-			"type": "application/json",
-			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool wait_for_work: timeout_seconds: Invalid input: expected number, received string, lesson_id: Invalid input: expected string, received number, full_context: Invalid input: expected boolean, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	}
 ]

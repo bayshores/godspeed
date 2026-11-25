@@ -17,9 +17,8 @@ use parking_lot::Mutex;
 use tokio::sync::{mpsc, oneshot, watch};
 
 use super::abort::Abort;
-use super::agent::Listener;
-use super::events::AgentEvent;
-use super::messages::tool_result_message;
+use super::events::{AgentEvent, Listener};
+use super::messages::{parts_of, tool_result_message};
 use super::record::{TranscriptBuilder, wrote_anything};
 use super::tool_host::{HostReply, Reply, ToolHost};
 
@@ -101,18 +100,6 @@ pub struct SessionTurn {
 	model_calls: watch::Sender<u64>,
 }
 
-/// A record's content parts as the agent takes them.
-fn parts_of(content: &[Json]) -> Vec<Part> {
-	content
-		.iter()
-		.filter_map(|part| match part["type"].as_str() {
-			Some("text") => Some(Part::Text(part["text"].str_or_empty().to_owned())),
-			Some("image") => Some(Part::Image { mime: part["mimeType"].str_or_empty().to_owned(), base64: part["data"].str_or_empty().to_owned() }),
-			_ => None,
-		})
-		.collect()
-}
-
 /// The input a list of record messages makes: what the session has not seen past `seen`, or all
 /// of it from the last cut, which opens with its summary.
 pub fn input_of(messages: &[Json], seen: Option<&str>) -> Vec<Part> {
@@ -120,7 +107,7 @@ pub fn input_of(messages: &[Json], seen: Option<&str>) -> Vec<Part> {
 }
 
 /// A permission question as the lesson's desk reads it.
-fn ask_json(ask: &Ask) -> Json {
+pub fn ask_json(ask: &Ask) -> Json {
 	match ask {
 		Ask::Tool { name, input } => json!({ "kind": "tool", "name": name, "input": input.clone() }),
 		Ask::Command { command, cwd, reason } => json!({ "kind": "command", "command": command, "cwd": cwd, "reason": reason.clone() }),
@@ -434,8 +421,7 @@ impl SessionTurn {
 		if reply.ends_turn {
 			self.state.lock().ended_by_tool = true;
 		}
-		let content = parts_of(reply.result["content"].items());
-		let _ = answer.send(ToolReply { content, is_error: reply.is_error, ends_turn: reply.ends_turn });
+		let _ = answer.send(reply.agent_reply());
 		self.model_calls.send_modify(|n| *n += 1);
 	}
 }

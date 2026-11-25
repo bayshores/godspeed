@@ -1,5 +1,5 @@
-//! The lesson's job runner (the `jobRunner` chat-handler.ts builds): every job runs on the outside
-//! agent, and its finished steer goes to the wake pipeline.
+//! The lesson's job runner: every job runs on the learner's agent, asks the lesson that started it
+//! to allow what it needs, and its finished steer goes to the wake pipeline.
 
 use std::future::Future;
 use std::path::Path;
@@ -11,10 +11,9 @@ use futures_util::task::noop_waker_ref;
 use gs_base::tasks::detach;
 use gs_agent::subagents::aborts::JobAborts;
 use gs_agent::subagents::headless::{HeadlessApi, get_headless};
+use gs_agent::subagents::job_agent::JobAgent;
 use gs_agent::subagents::runner::{JobHost, KeptPages, create_job_runner};
-use gs_engine::bridge::Bridge;
-use gs_engine::turn::faux::Engine;
-use gs_engine::turn::models::agent_engine;
+use gs_engine::turn::job_session::Approve;
 use gs_json::Json;
 use gs_pdf::Pdf;
 use gs_store::chats::ChatStore;
@@ -22,6 +21,8 @@ use gs_store::jobs::JobStore;
 
 use super::turn_work;
 use crate::App;
+use crate::jobs::asks::{AskedOn, approve_on};
+use crate::jobs::job_agent::job_agent;
 use crate::jobs::{deliver_job_result, live_agent};
 use crate::spaces::{keep_page, kept_pages_at};
 
@@ -36,8 +37,12 @@ impl JobHost for AppJobs {
 		&self.0.stores.chats
 	}
 
-	fn bridge(&self) -> &Bridge {
-		&self.0.bridge
+	fn job_agent(&self) -> Arc<dyn JobAgent> {
+		job_agent(&self.0)
+	}
+
+	fn approve(&self, chat_id: &str) -> Approve {
+		approve_on(&self.0, AskedOn::Lesson(chat_id.to_owned()))
 	}
 
 	fn pdf(&self) -> &Pdf {
@@ -58,10 +63,6 @@ impl JobHost for AppJobs {
 
 	fn search_key(&self) -> Option<String> {
 		self.0.stores.search_key.read_search_key()
-	}
-
-	fn engine_for(&self, _role: &str) -> Option<Engine> {
-		Some(agent_engine(&self.0.bridge))
 	}
 
 	fn deliver(&self, steer: Json) -> BoxFuture<'static, Result<(), String>> {

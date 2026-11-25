@@ -3,16 +3,14 @@
  * godspeed MCP connector: a stdio MCP server that forwards every message
  * to the running godspeed app (its /api/mcp endpoint), adding the access
  * token from the app's data folder (found by target.mjs). Tool calls carry
- * Claude Code's session id, so godspeed sends this session only the
- * messages it hasn't seen yet, and say whether the folder's waiter wakes
- * this session after each turn (GODSPEED_WAKES, set by its settings). Messages in the 2026-07-28 MCP version get
- * the headers that version requires. No dependencies — Node 18+.
+ * Claude Code's session id, which tells godspeed the caller is Claude Code.
+ * Messages in the 2026-07-28 MCP version get the headers that version
+ * requires. No dependencies — Node 18+.
  */
 import readline from "node:readline";
 import { NO_TOKEN, target, terminalHeader } from "./target.mjs";
 
 const agent = process.env.CLAUDE_CODE_SESSION_ID;
-const wakes = process.env.GODSPEED_WAKES === "1";
 
 /** Request id → the request still waiting for godspeed's answer. */
 const inFlight = new Map();
@@ -45,15 +43,10 @@ async function forward(line) {
 	} catch {
 		return;
 	}
-	// Closing a cancelled call's request makes godspeed stop its wait, so it
-	// doesn't take a work item for an answer nobody reads.
+	// Closing a cancelled call's request ends it in godspeed too.
 	if (message?.method === "notifications/cancelled") inFlight.get(message.params?.requestId)?.abort();
-	// Told at the start too, so the instructions godspeed hands over describe the loop this session runs.
-	if (wakes && (message?.method === "initialize" || message?.method === "server/discover")) {
-		message.params = { ...message.params, _meta: { ...message.params?._meta, "godspeed/wakes": true } };
-	}
 	if (message?.method === "tools/call" && agent) {
-		message.params = { ...message.params, _meta: { ...message.params?._meta, "godspeed/agent": agent, ...(wakes ? { "godspeed/wakes": true } : {}) } };
+		message.params = { ...message.params, _meta: { ...message.params?._meta, "godspeed/agent": agent } };
 	}
 	const { url, token } = target();
 	if (!token) {
@@ -104,9 +97,9 @@ async function forward(line) {
 	}
 }
 
-// Messages are handled concurrently: a long wait_for_work must not block others.
+// Messages are handled concurrently: a slow tool call must not block others.
 const rl = readline.createInterface({ input: process.stdin });
-// stdin closing means the client is shutting down: end every wait so godspeed doesn't claim work for an agent that's gone.
+// stdin closing means the client is shutting down: end every open request.
 rl.on("close", () => {
 	for (const c of inFlight.values()) c.abort();
 });

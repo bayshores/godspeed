@@ -299,10 +299,11 @@ pub(super) async fn file_text(app: &Arc<App>, space_id: &str, file: &Json, abs: 
 #[cfg(test)]
 mod tests {
 	use gs_base::clock;
-	use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
-	use gs_json::{json, stringify};
+	use gs_json::json;
+	use gs_runtime::fake::{FakeAgent, FakeStep};
 
 	use super::*;
+	use crate::app::agents::pick_stand_in;
 	use crate::app::test_support::{scratch_dir, test_app};
 	use crate::spaces::{add_copied_file, add_file_from_path, set_file_kind, write_agent_file};
 
@@ -345,25 +346,34 @@ mod tests {
 		assert!(!sorts_on_read(&file(json!({ "name": "Lecture 1.mp3" }))));
 	}
 
-	/// The stand-in agent reads the next file: logistics whenever it is asked whether the file is.
-	/// Gives the file's name and whether it was asked.
-	async fn read_as_logistics(app: &App, names: &[&str]) -> (String, bool) {
-		let view = app.bridge.wait_for_work(10_000, WaitOptions { full: true, helper: true, ..WaitOptions::default() }).await.expect("a file to read");
-		let asked = view.instructions.as_deref().expect("the reading's instructions").contains("spaceInfo: true");
-		let sent = stringify(&Json::Arr(view.messages.clone()));
-		let name = names.iter().find(|n| sent.contains(**n)).expect("the file's name in the reading");
-		let mut findings = json!({ "propositions": [], "chains": [], "reteaches": [] });
-		if asked {
-			findings.as_obj_mut().unwrap().insert("spaceInfo", true);
+	/// Where a reading is asked whether its file is logistics.
+	const ASKS_IF_LOGISTICS: &str = "spaceInfo: true";
+
+	/// The stand-in agent reads `files` files: logistics whenever it is asked whether the file is.
+	fn reads_as_logistics(app: &Arc<App>, files: usize) -> FakeAgent {
+		let agent = FakeAgent::default();
+		let submit = |findings: Json| vec![FakeStep::Tool { name: "submit_findings".to_owned(), args: findings }];
+		for _ in 0..files {
+			agent.push(submit(json!({ "propositions": [], "chains": [], "reteaches": [] })));
+			agent.push_for(ASKS_IF_LOGISTICS, submit(json!({ "propositions": [], "chains": [], "reteaches": [], "spaceInfo": true })));
 		}
-		app.bridge.respond_to_work(&view.work_id, AgentReply { text: None, tool_calls: vec![ReplyCall { name: "submit_findings".into(), arguments: findings }] }, 0).unwrap();
-		((*name).to_owned(), asked)
+		pick_stand_in(app, agent.runtime());
+		agent
+	}
+
+	/// The files among `names` whose reading asked whether they are logistics.
+	fn asked_if_logistics(agent: &FakeAgent, names: &[&str]) -> Vec<String> {
+		let sent = agent.sent();
+		let sessions = sent.iter().filter(|m| m["type"].as_str() == Some("open") && m["systemPrompt"].str_or_empty().contains(ASKS_IF_LOGISTICS)).map(|m| m["session"].clone());
+		let read = |session: Json| sent.iter().find(|m| m["type"].as_str() == Some("send") && m["session"] == session).map(|m| m["content"][0]["text"].str_or_empty().to_owned()).unwrap_or_default();
+		sessions.map(|session| names.iter().find(|n| read(session.clone()).contains(**n)).expect("the file's name in the reading").to_string()).collect()
 	}
 
 	#[tokio::test]
 	async fn a_file_the_learner_added_is_sorted_on_its_first_read_and_a_kind_set_on_purpose_is_not() {
 		let root = scratch_dir("sorting");
 		let app = test_app(&root);
+		let agent = reads_as_logistics(&app, 5);
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Biology" })).unwrap()["id"].as_str().unwrap().to_owned();
 		let id = |file: Json| file["id"].as_str().unwrap().to_owned();
 		let syllabus = id(add_copied_file(&app, &space_id, "Syllabus.md", b"Office hours move to Tuesday.").unwrap());
@@ -375,15 +385,6 @@ mod tests {
 		let from_path = id(add_file_from_path(&app, &space_id, reading.to_str().unwrap(), FileKind::Study).unwrap());
 		let transcript = id(add_copied_file(&app, &space_id, "Lecture 1.vtt", b"WEBVTT\n\n00:00.000 --> 00:02.000\nCells divide.\n").unwrap());
 
-		let names = ["Syllabus.md", "Week 1.md", "Study guide.md", "Reading.md", "Lecture 1.vtt"];
-		let mut asked = Vec::new();
-		for _ in names {
-			let (name, sorts) = read_as_logistics(&app, &names).await;
-			if sorts {
-				asked.push(name);
-			}
-		}
-		assert_eq!(asked, ["Syllabus.md"]);
 		let file = |file_id: &str| file_in(&app.stores.spaces.get_space(&space_id).unwrap(), file_id).unwrap().clone();
 		for _ in 0..400 {
 			if [&syllabus, &moved, &written, &from_path, &transcript].iter().all(|f| file(f)["status"] == json!("ready")) {
@@ -391,6 +392,8 @@ mod tests {
 			}
 			clock::sleep(10).await;
 		}
+		let names = ["Syllabus.md", "Week 1.md", "Study guide.md", "Reading.md", "Lecture 1.vtt"];
+		assert_eq!(asked_if_logistics(&agent, &names), ["Syllabus.md"]);
 		assert_eq!((&file(&syllabus)["kind"], &file(&syllabus)["sortedAsInfo"]), (&json!("info"), &json!(true)));
 		for kept in [&moved, &written, &from_path, &transcript] {
 			let kept = file(kept);

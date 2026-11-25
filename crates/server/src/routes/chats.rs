@@ -23,7 +23,7 @@ use gs_core::session::jobs::set_steer_ui_inverted;
 use gs_core::session::prices::session_cost;
 use gs_core::session::session_markdown::session_markdown;
 use gs_core::study::kept::KeptPart;
-use gs_engine::bridge::agent_model;
+use gs_engine::turn::messages::agent_model;
 use gs_engine::turn::ui_stream::SSE_HEADERS;
 use gs_json::{Json, Obj, json};
 use gs_services::App;

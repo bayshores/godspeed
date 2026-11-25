@@ -8,15 +8,14 @@ use gs_base::re::collapse_spaces;
 use gs_base::{ids, text};
 use gs_core::contracts::graph::TOPIC_MATERIALS;
 use gs_core::graph::topics::{TopicDraft, add_placements, repair_topics, topic_name_problem};
-use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
-use gs_engine::turn::faux::Engine;
+use gs_engine::turn::job_session::RunError;
 use gs_engine::turn::tool::Tool;
 use gs_json::{Json, json, stringify_pretty};
 use std::sync::Arc;
 
 use super::submit_agent::{SubmitAgentOptions, run_submit_agent};
-use crate::subagents::pi_run::RunError;
+use crate::subagents::job_agent::JobAgent;
 
 /// The core grouping instruction, approved word for word: keep the wording.
 pub const TOPIC_GROUPING_RULE: &str = "Group these facts into the topics a learner would name when studying this space: 4\u{2013}20 facts per topic, a 1\u{2013}4 word name in the space's own terms (\"Expected value\", \"Conditional probability\"). Keep existing topics and names stable; only add, split, or merge when facts don't fit. Every fact goes in exactly one topic.";
@@ -77,7 +76,7 @@ pub struct RidingNotes {
 }
 
 pub struct TopicGrouperInput {
-	/// The space's display name (prompt and work-item label).
+	/// The space's display name (prompt and log label).
 	pub space_name: String,
 	/// `{ id, name, statement }` each.
 	pub facts: Vec<Json>,
@@ -86,8 +85,6 @@ pub struct TopicGrouperInput {
 	pub current: Vec<Json>,
 	/// The ids of the facts no topic holds, when only those are placed; None groups every fact.
 	pub loose: Option<Vec<String>>,
-	/// None: the outside agent.
-	pub engine: Option<Engine>,
 	pub abort: Option<Abort>,
 	pub notes: Option<RidingNotes>,
 }
@@ -150,7 +147,7 @@ fn drafts(submitted: &Json) -> Vec<TopicDraft> {
 
 /// Asks the model for a grouping, or for the topics of the loose facts alone, then repairs it so
 /// every current fact is in exactly one topic.
-pub async fn group_topics(bridge: &Bridge, input: TopicGrouperInput) -> Result<Vec<Json>, RunError> {
+pub async fn group_topics(agent: &dyn JobAgent, input: TopicGrouperInput) -> Result<Vec<Json>, RunError> {
 	let (mut prompt, mut instructions, what, every) = match &input.loose {
 		None => (
 			topic_grouper_prompt(&input.space_name, &input.facts, &input.current),
@@ -166,24 +163,23 @@ pub async fn group_topics(bridge: &Bridge, input: TopicGrouperInput) -> Result<V
 		),
 	};
 	let mut lookups: Vec<Arc<dyn Tool>> = Vec::new();
-	let mut max_turns = None;
+	let mut max_calls = None;
 	if let Some(notes) = input.notes {
 		prompt = format!("{prompt}\n\n{}", notes.block);
 		instructions.push_str("\n\nThe prompt ends with a [Vault notes] block. Write its notes with write_vault_note first, then submit the grouping.");
 		lookups.push(notes.tool);
-		max_turns = Some(notes.topics + 6);
+		max_calls = Some(notes.topics + 6);
 	}
 	let mut opts = SubmitAgentOptions::new("submit_topics", what, submit_schema(every), instructions, Json::from(prompt), "the topic grouper never submitted topics");
 	opts.lookups = lookups;
-	opts.max_turns = max_turns;
-	opts.task_label = Some(format!("Topic grouping: {}", input.space_name));
+	opts.max_calls = max_calls;
+	opts.label = format!("Topic grouping: {}", input.space_name);
 	opts.validate = Some(Box::new(|value| {
 		let problem = grouping_problem(value);
 		Box::pin(async move { problem })
 	}));
-	opts.engine = input.engine;
 	opts.abort = input.abort;
-	let submitted = run_submit_agent(bridge, opts).await?;
+	let submitted = run_submit_agent(agent, opts).await?;
 	let fact_ids: Vec<String> = input.facts.iter().map(|f| f["id"].str_or_empty().to_owned()).collect();
 	let submitted = drafts(&submitted);
 	let grouping = if input.loose.is_some() { add_placements(&input.current, submitted) } else { submitted };

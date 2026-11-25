@@ -1,6 +1,6 @@
-//! The pdf job's agent. It reads a PDF on
-//! the teacher's behalf. The loop is hand-rolled, because rendered pages
-//! are shown to this agent's eyes, never delivered onward.
+//! The pdf job's agent. It reads a PDF on the teacher's behalf with its own PDF tools; a rendered
+//! page comes back to it as a picture in the render's result, shown to this agent alone and never
+//! delivered onward.
 //!
 //! The prompt is the pdf-reader reading doctrine: triage with pdf_info first, then by size: short
 //! PDFs read every page, medium ones render the flagged pages, long ones search before reading
@@ -10,23 +10,28 @@
 //! as Markdown with LaTeX (save_page), and godspeed serves that text for the page from then on.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
+use futures_util::future::BoxFuture;
 use gs_base::fsx::node_error_message;
-use gs_base::ids;
 use gs_base::num::to_fixed;
 use gs_base::re::Re;
 use gs_base::text::{len16, slice16, trim};
 use gs_core::session::schema::{boolean, no_arguments, object, string};
 use gs_core::spaces::kept_pages::with_kept_pages;
-use gs_engine::turn::messages::tool_calls;
+use gs_engine::turn::messages::text_block;
+use gs_engine::turn::tool::{Tool, ToolContext};
 use gs_json::js_text::js_string;
 use gs_json::{Json, js_number, json};
 use gs_pdf::{Pdf, ops};
+use gs_runtime::Part;
+use parking_lot::Mutex;
 
-use super::declare;
-use super::pi_run::{JobAgentOptions, RunError};
-use super::stream_once::{message_text, png_message, stream_once, tool_text, user_text};
+use super::headless::HeadlessApi;
+use super::job_agent::Priority;
+use super::pi_run::{JobAgentOptions, OnActivity, SubagentRunOptions, run_subagent};
 use crate::fs_tools::fs_shared::resolve_source_path;
 use crate::fs_tools::protected::Protected;
 
@@ -75,6 +80,7 @@ const CONTROL_REFUSAL: &str = r"markdown looks broken by JSON: it reads \n, \t, 
 /// only after a space or an opening mark, because a display line may well start with e, u or i.
 const N_COMMAND_TAILS: [&str; 18] = ["eq", "e", "abla", "u", "ot", "eg", "i", "otin", "mid", "leq", "geq", "subseteq", "exists", "less", "gtr", "parallel", "earrow", "warrow"];
 
+/// Model calls allowed.
 const MAX_ITERATIONS: usize = 14;
 /// Pages per pdf_render call: one over-eager call must not flood the vision context.
 const RENDER_BATCH_CAP: usize = 6;
@@ -86,16 +92,71 @@ const HIT_CAP: usize = 40;
 /// Never deliver a brief that consulted nothing: an unread PDF's brief is made-up content.
 const UNREAD_FINISH_MESSAGE: &str = "You finished without consulting any page of the PDF — your brief would be invention, not reading. Extract or render the relevant pages first, then write the brief from what you actually saw.";
 
-/// The wire declarations: this loop runs the tools itself, so they carry no execute.
-fn pdf_tools(keeping: bool) -> Vec<Json> {
+/// Keeps one page's Markdown.
+pub type KeepPage = Box<dyn Fn(u32, &str) -> Result<(), String> + Send + Sync>;
+
+/// A space PDF's kept pages and the way to keep one more. With it the reader offers save_page.
+pub struct Keeper {
+	pub pages: BTreeMap<u32, String>,
+	pub keep: KeepPage,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum Kind {
+	Info,
+	Extract,
+	Render,
+	Search,
+	Save,
+}
+
+/// What the reader's tools share.
+struct Reader {
+	pdf: Pdf,
+	path: PathBuf,
+	headless: Arc<dyn HeadlessApi>,
+	on_activity: Option<OnActivity>,
+	keep: Option<KeepPage>,
+	/// Model calls finished so far: a page rendered during the one under way is not seen yet.
+	calls: AtomicUsize,
+	read: Mutex<Reading>,
+}
+
+#[derive(Default)]
+struct Reading {
+	/// Every page the reader extracted, rendered or found in a search (the citation set).
+	consulted: BTreeSet<i64>,
+	/// Pages whose extract or render reached the agent; a search hit consults but does not read.
+	read: BTreeSet<i64>,
+	/// Pages rendered in this job, with the model call they were rendered in: only these may be
+	/// saved, once a later model call has seen them.
+	rendered: BTreeMap<i64, usize>,
+	/// The kept pages, when the PDF is a space file.
+	kept: Option<BTreeMap<u32, String>>,
+	/// Pages saved in this job.
+	saved: usize,
+}
+
+struct PdfTool {
+	kind: Kind,
+	name: &'static str,
+	description: &'static str,
+	parameters: Json,
+	reader: Arc<Reader>,
+}
+
+fn pdf_tools(reader: &Arc<Reader>, keeping: bool) -> Vec<Arc<dyn Tool>> {
+	let tool = |kind, name, description, parameters| -> Arc<dyn Tool> { Arc::new(PdfTool { kind, name, description, parameters, reader: reader.clone() }) };
 	let mut tools = vec![
-		declare("pdf_info", "Metadata + per-page triage signals for the PDF (page count, text length, image count, math density). ALWAYS call this first.", no_arguments()),
-		declare(
+		tool(Kind::Info, "pdf_info", "Metadata + per-page triage signals for the PDF (page count, text length, image count, math density). ALWAYS call this first.", no_arguments()),
+		tool(
+			Kind::Extract,
 			"pdf_extract",
 			"Extract text from pages (spec: 'all', '1-5', '1,3,7', '3'). Use pdf_info first; narrow the spec for big documents.",
 			object(&["pages"], vec![("pages", string("Page spec, e.g. 'all', '1-5', '1,3,7'"))]),
 		),
-		declare(
+		tool(
+			Kind::Render,
 			"pdf_render",
 			"Render pages to images and show them to you for visual reading (equations, diagrams, layout). DPI: 100 text, 150 default, 200 dense small print. Max 6 pages per call.",
 			object(
@@ -106,7 +167,8 @@ fn pdf_tools(keeping: bool) -> Vec<Json> {
 				],
 			),
 		),
-		declare(
+		tool(
+			Kind::Search,
 			"pdf_search",
 			"Search the PDF's text by keyword or regex (case-insensitive); returns hits with context lines. Use for long documents before reading anything at length.",
 			object(
@@ -120,7 +182,8 @@ fn pdf_tools(keeping: bool) -> Vec<Json> {
 		),
 	];
 	if keeping {
-		tools.push(declare(
+		tools.push(tool(
+			Kind::Save,
 			"save_page",
 			"Keep a whole page you rendered in this job as Markdown with LaTeX. At most 3 pages a job, 6000 characters each.",
 			object(&["page", "markdown"], vec![("page", json!({ "type": "integer", "minimum": 1 })), ("markdown", json!({ "type": "string" }))]),
@@ -129,204 +192,205 @@ fn pdf_tools(keeping: bool) -> Vec<Json> {
 	tools
 }
 
-/// Keeps one page's Markdown.
-pub type KeepPage<'a> = Box<dyn Fn(u32, &str) -> Result<(), String> + Send + Sync + 'a>;
+/// A tool's result: its text, an error when it starts "ERROR:", and the rendered pages' pictures.
+fn reply(text: &str, pngs: &[Vec<u8>]) -> Json {
+	let mut content = vec![text_block(text)];
+	content.extend(pngs.iter().map(|png| json!({ "type": "image", "data": gs_base::base64::encode(png), "mimeType": "image/png" })));
+	json!({ "content": content, "isError": text.starts_with("ERROR:") })
+}
 
-/// A space PDF's kept pages and the way to keep one more. With it the reader offers save_page.
-pub struct Keeper<'a> {
-	pub pages: BTreeMap<u32, String>,
-	pub keep: KeepPage<'a>,
+impl Tool for PdfTool {
+	fn name(&self) -> &str {
+		self.name
+	}
+	fn description(&self) -> &str {
+		self.description
+	}
+	fn parameters(&self) -> &Json {
+		&self.parameters
+	}
+	fn execute(&self, args: Json, _ctx: ToolContext) -> BoxFuture<'_, Result<Json, String>> {
+		Box::pin(async move {
+			let (text, pngs) = match self.reader.call(self.kind, &args).await {
+				Ok(answer) => answer,
+				Err(e) => (format!("ERROR: {e}"), Vec::new()),
+			};
+			Ok(reply(&text, &pngs))
+		})
+	}
 }
 
 /// Reads the PDF at `path` (resolved like the file tools: `~` and relative mean home) for
 /// `question`. Never fails: a failure is a brief starting "PDF failed:".
-pub async fn run_pdf_reader_agent(path: &str, question: &str, pdf: &Pdf, keeper: Option<Keeper<'_>>, opts: &JobAgentOptions) -> Json {
+pub async fn run_pdf_reader_agent(path: &str, question: &str, pdf: &Pdf, keeper: Option<Keeper>, opts: &JobAgentOptions) -> Json {
 	let pdf_path = resolve_source_path(Some(path));
 	let shown = pdf_path.to_string_lossy().into_owned();
-	let mut reader = Reader { pdf, path: &pdf_path, messages: Vec::new(), consulted: BTreeSet::new(), read: BTreeSet::new(), rendered: BTreeSet::new(), keeper, saved: 0 };
-	// A protected place or a source that cannot open fails before any model call.
+	let keeping = keeper.is_some();
+	let (kept, keep) = keeper.map_or((None, None), |k| (Some(k.pages), Some(k.keep)));
+	let reader = Arc::new(Reader {
+		pdf: pdf.clone(),
+		path: pdf_path.clone(),
+		headless: opts.headless.clone(),
+		on_activity: opts.on_activity.clone(),
+		keep,
+		calls: AtomicUsize::new(0),
+		read: Mutex::new(Reading { kept, ..Reading::default() }),
+	});
+	// A protected place or a source that cannot open fails before the job starts.
 	if let Err(reason) = Protected::current().refuse(path, &pdf_path) {
 		return reader.result(&shown, question, &format!("PDF failed: {reason}"));
 	}
 	if let Err(reason) = probe_readable(pdf, &pdf_path).await {
 		return reader.result(&shown, question, &format!("PDF failed: {reason}"));
 	}
-	let engine = opts.engine();
-	let abort = opts.abort();
-	let session_id = ids::uuid();
 	let name = pdf_path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-	opts.bridge.label_conversation(&session_id, &format!("PDF reading: {name}"));
-	opts.bridge.mark_awaited(&session_id);
 	let asked = if question.is_empty() { "(no question — give a structural overview)" } else { question };
 	let prompt = [&format!("PDF path: {shown}"), &format!("Question (what the teacher needs from this document): {asked}"), "", "Read the document per your doctrine, then produce your final brief in the required format."].join("\n");
-	reader.messages.push(user_text(&prompt));
-
-	let outcome = reader.run(&engine, &session_id, &abort, opts).await;
-	opts.bridge.forget_conversation(&session_id);
-	let brief = match outcome {
-		Ok(Some(brief)) => brief,
+	let instructions = if keeping { format!("{INSTRUCTIONS}{KEEP_INSTRUCTIONS}") } else { INSTRUCTIONS.to_owned() };
+	let mut run = SubagentRunOptions::new(format!("PDF reading: {name}"), &instructions, Json::from(prompt), MAX_ITERATIONS);
+	run.abort_signal = opts.abort_signal.clone();
+	run.priority = Priority::Waited;
+	run.approve = opts.approve.clone();
+	run.on_usage = Some(Arc::new({
+		let (reader, on_usage) = (reader.clone(), opts.on_usage.clone());
+		move |usage: &Json, model: &str| {
+			reader.calls.fetch_add(1, Ordering::SeqCst);
+			if let Some(on_usage) = &on_usage {
+				on_usage(usage, model);
+			}
+		}
+	}));
+	// The gate counts consulted pages, not read ones: a search-only brief is honest.
+	run.follow_up = Some(Box::new({
+		let reader = reader.clone();
+		move |_: &str| reader.read.lock().consulted.is_empty().then(|| vec![Part::Text(UNREAD_FINISH_MESSAGE.to_owned())])
+	}));
+	let brief = match run_subagent(opts.agent.as_ref(), pdf_tools(&reader, keeping), run).await {
+		Ok(finished) if finished.capped => format!("PDF failed: iteration limit ({MAX_ITERATIONS}) reached without a brief."),
+		Ok(finished) => match trim(&finished.text) {
+			"" => "(no brief text)".to_owned(),
+			brief => brief.to_owned(),
+		},
 		Err(e) => format!("PDF failed: the reader crashed: {e}"),
-		// Iteration limit: any finish text here is the unconsulted brief the gate bounced.
-		Ok(None) => format!("PDF failed: iteration limit ({MAX_ITERATIONS}) reached without a brief."),
 	};
 	reader.result(&shown, question, &brief)
 }
 
-struct Reader<'a> {
-	pdf: &'a Pdf,
-	path: &'a Path,
-	messages: Vec<Json>,
-	/// Every page the reader extracted, rendered or found in a search (the citation set).
-	consulted: BTreeSet<i64>,
-	/// Pages whose extract or render reached the loop; a search hit consults but does not read.
-	read: BTreeSet<i64>,
-	/// Pages rendered and shown in this job: only these may be saved.
-	rendered: BTreeSet<i64>,
-	keeper: Option<Keeper<'a>>,
-	/// Pages saved in this job.
-	saved: usize,
-}
-
-impl Reader<'_> {
+impl Reader {
 	fn result(&self, path: &str, question: &str, brief: &str) -> Json {
-		json!({ "path": path, "question": question, "brief": brief, "pagesRead": self.read.iter().copied().collect::<Vec<_>>(), "pagesConsulted": self.consulted.iter().copied().collect::<Vec<_>>() })
+		let read = self.read.lock();
+		json!({ "path": path, "question": question, "brief": brief, "pagesRead": read.read.iter().copied().collect::<Vec<_>>(), "pagesConsulted": read.consulted.iter().copied().collect::<Vec<_>>() })
 	}
 
-	/// The loop: the brief, or None at the iteration limit.
-	async fn run(&mut self, engine: &gs_engine::turn::faux::Engine, session_id: &str, abort: &gs_engine::turn::abort::Abort, opts: &JobAgentOptions) -> Result<Option<String>, RunError> {
-		let tools = pdf_tools(self.keeper.is_some());
-		let instructions = if self.keeper.is_some() { format!("{INSTRUCTIONS}{KEEP_INSTRUCTIONS}") } else { INSTRUCTIONS.to_owned() };
-		let mut nudged = false;
-		for _ in 0..MAX_ITERATIONS {
-			let result = stream_once(engine, &instructions, &self.messages, &tools, session_id, abort, &mut |u| opts.usage(u)).await?;
-			self.messages.push(result.clone());
-			let calls = tool_calls(&result);
-			if calls.is_empty() {
-				let final_text = trim(&message_text(&result)).to_owned();
-				// The gate counts consulted pages, not read ones: a search-only brief is honest.
-				if self.consulted.is_empty() && !nudged {
-					nudged = true;
-					self.messages.push(user_text(UNREAD_FINISH_MESSAGE));
-					continue;
-				}
-				return Ok(Some(if final_text.is_empty() { "(no brief text)".to_owned() } else { final_text }));
-			}
-			let mut results = Vec::new();
-			// Rendered pages of this batch, shown after the tool results.
-			let mut rendered: Vec<(i64, Vec<u8>)> = Vec::new();
-			for call in &calls {
-				let text = match self.call(call, &mut rendered, opts).await {
-					Ok(text) => text,
-					Err(e) => format!("ERROR: {e}"),
-				};
-				let is_error = text.starts_with("ERROR:");
-				results.push(tool_text(&call["id"], &call["name"], &text, is_error));
-			}
-			self.messages.extend(results);
-			// A page counts as seen, and may be saved, only once its picture is shown.
-			self.rendered.extend(rendered.iter().map(|(page, _)| *page));
-			if !rendered.is_empty() {
-				let pages: Vec<String> = rendered.iter().map(|(page, _)| format!("p{page}")).collect();
-				let pngs: Vec<&[u8]> = rendered.iter().map(|(_, png)| png.as_slice()).collect();
-				self.messages.push(png_message(&format!("The rendered page(s), in order ({}):", pages.join(", ")), &pngs));
-			}
+	fn activity(&self, line: &str) {
+		if let Some(f) = &self.on_activity {
+			f(line);
 		}
-		Ok(None)
 	}
 
-	/// Runs one tool call: its text, or the error it threw.
-	async fn call(&mut self, call: &Json, rendered: &mut Vec<(i64, Vec<u8>)>, opts: &JobAgentOptions) -> Result<String, String> {
-		let args = &call["arguments"];
-		let name = call["name"].str_or_empty();
-		match name {
-			"pdf_info" => {
-				opts.activity("pdf_info: triaging");
-				pdf_info_text(self.pdf, self.path, self.kept()).await
+	fn kept(&self) -> Option<BTreeMap<u32, String>> {
+		self.read.lock().kept.clone()
+	}
+
+	/// Runs one tool call: its text and the pictures it shows, or the error it threw.
+	async fn call(&self, kind: Kind, args: &Json) -> Result<(String, Vec<Vec<u8>>), String> {
+		let path = self.path.as_path();
+		let text = match kind {
+			Kind::Info => {
+				self.activity("pdf_info: triaging");
+				pdf_info_text(&self.pdf, path, self.kept().as_ref()).await?
 			}
-			"pdf_extract" => {
+			Kind::Extract => {
 				let spec = arg_text(&args["pages"], "all");
-				opts.activity(&format!("pdf_extract: {spec}"));
-				let text = pdf_extract_text(self.pdf, self.path, &spec, self.kept()).await?;
+				self.activity(&format!("pdf_extract: {spec}"));
+				let text = pdf_extract_text(&self.pdf, path, &spec, self.kept().as_ref()).await?;
 				// The pages the model got back: "all" and ranges are clamped to the document, and a
 				// cut result loses its last pages.
 				static HEADING: std::sync::LazyLock<Re> = std::sync::LazyLock::new(|| Re::new(r"^--- Page (\d+) ---$", "gm"));
+				let mut read = self.read.lock();
 				for page in HEADING.captures_iter(&text).iter().filter_map(|c| c.get(1)?.parse::<i64>().ok()) {
-					self.consulted.insert(page);
-					self.read.insert(page);
+					read.consulted.insert(page);
+					read.read.insert(page);
 				}
-				Ok(text)
+				text
 			}
-			"pdf_search" => {
+			Kind::Search => {
 				let query = arg_text(&args["query"], "");
 				let context_lines = num_or(&args["context_lines"], 3.0);
 				let literal = args["literal"].truthy();
-				opts.activity(&format!("pdf_search: \"{query}\""));
+				self.activity(&format!("pdf_search: \"{query}\""));
 				// Hits join the citation set: their context lines are consultation.
-				let hits = self.pdf.pdf_search(self.path, &query, Some(context_lines), literal).await?;
-				self.consulted.extend(hits.iter().map(|h| i64::from(h.page)));
+				let hits = self.pdf.pdf_search(path, &query, Some(context_lines), literal).await?;
+				self.read.lock().consulted.extend(hits.iter().map(|h| i64::from(h.page)));
 				if hits.is_empty() {
-					return Ok("No hits.".to_owned());
+					return Ok(("No hits.".to_owned(), Vec::new()));
 				}
 				let shown: Vec<String> = hits.iter().take(HIT_CAP).map(|h| format!("=== Page {}, line {} ===\n{}", h.page, h.line, h.context)).collect();
 				let more = if hits.len() > HIT_CAP { format!("\n\n[{} more hits — narrow the query.]", hits.len() - HIT_CAP) } else { String::new() };
-				Ok(shown.join("\n") + &more)
+				shown.join("\n") + &more
 			}
-			"pdf_render" => {
-				let spec = arg_text(&args["pages"], "1");
-				let dpi = num_or(&args["dpi"], 150.0);
-				let wanted = render_batch(&spec);
-				opts.activity(&format!("pdf_render: {spec} @{}dpi", js_number(dpi)));
-				let pages = opts.headless.render_pdf_pages(self.path, &wanted, Some(dpi)).await?;
-				for p in &pages {
-					self.consulted.insert(i64::from(p.page));
-					self.read.insert(i64::from(p.page));
-				}
-				if pages.is_empty() {
-					return Ok("ERROR: no pages rendered (spec matched nothing?)".to_owned());
-				}
-				let count = pages.len();
-				rendered.extend(pages.into_iter().map(|p| (i64::from(p.page), p.png)));
-				Ok(format!("Rendered {count} page(s) at {} DPI — the images follow below. Read them carefully (equations, diagrams, layout).", js_number(dpi)))
-			}
-			"save_page" if self.keeper.is_some() => self.save_page(args, rendered, opts).await,
-			_ => Ok(format!("ERROR: unknown tool \"{name}\"")),
-		}
+			Kind::Render => return self.render(args).await,
+			Kind::Save => self.save_page(args).await?,
+		};
+		Ok((text, Vec::new()))
 	}
 
-	fn kept(&self) -> Option<&BTreeMap<u32, String>> {
-		self.keeper.as_ref().map(|k| &k.pages)
+	/// pdf_render: the pages' pictures, shown to the agent with the result.
+	async fn render(&self, args: &Json) -> Result<(String, Vec<Vec<u8>>), String> {
+		let spec = arg_text(&args["pages"], "1");
+		let dpi = num_or(&args["dpi"], 150.0);
+		let wanted = render_batch(&spec);
+		self.activity(&format!("pdf_render: {spec} @{}dpi", js_number(dpi)));
+		let pages = self.headless.render_pdf_pages(&self.path, &wanted, Some(dpi)).await?;
+		if pages.is_empty() {
+			return Ok(("ERROR: no pages rendered (spec matched nothing?)".to_owned(), Vec::new()));
+		}
+		let call = self.calls.load(Ordering::SeqCst);
+		let mut read = self.read.lock();
+		for p in &pages {
+			let page = i64::from(p.page);
+			read.consulted.insert(page);
+			read.read.insert(page);
+			read.rendered.insert(page, call);
+		}
+		let text = format!("Rendered {} page(s) at {} DPI — the images follow below. Read them carefully (equations, diagrams, layout).", pages.len(), js_number(dpi));
+		Ok((text, pages.into_iter().map(|p| p.png).collect()))
 	}
 
 	/// save_page: the page's Markdown kept for this version of the file, or why not.
-	/// `shown_next` holds the pages this reply rendered, whose pictures the model has not seen yet.
-	async fn save_page(&mut self, args: &Json, shown_next: &[(i64, Vec<u8>)], opts: &JobAgentOptions) -> Result<String, String> {
-		let count = self.pdf.pdf_shape(self.path).await?.page_count;
+	async fn save_page(&self, args: &Json) -> Result<String, String> {
+		let Some(keep) = &self.keep else { unreachable!("save_page is offered only with a keeper") };
+		let count = self.pdf.pdf_shape(&self.path).await?.page_count;
 		let page = args["page"].as_f64().or_else(|| args["page"].as_str()?.trim().parse().ok()).filter(|n| n.fract() == 0.0 && (1.0..=f64::from(count)).contains(n));
 		let Some(page) = page.map(|n| n as u32) else { return Ok(format!("ERROR: page must be a whole number from 1 to {count}.")) };
-		if shown_next.iter().any(|(p, _)| *p == i64::from(page)) {
-			return Ok(format!("ERROR: page {page} was rendered in this same reply, so you have not seen it yet. Look at its picture first, then save it in a later reply."));
+		let rendered = self.read.lock().rendered.get(&i64::from(page)).copied();
+		match rendered {
+			None => return Ok(format!("ERROR: page {page} was not rendered in this job. Render it with pdf_render and read it first.")),
+			Some(call) if call == self.calls.load(Ordering::SeqCst) => {
+				return Ok(format!("ERROR: page {page} was rendered in this same reply, so you have not seen it yet. Look at its picture first, then save it in a later reply."));
+			}
+			Some(_) => {}
 		}
-		if !self.rendered.contains(&i64::from(page)) {
-			return Ok(format!("ERROR: page {page} was not rendered in this job. Render it with pdf_render and read it first."));
-		}
-		if self.saved >= SAVE_CAP {
+		if self.read.lock().saved >= SAVE_CAP {
 			return Ok(format!("ERROR: this job already saved {SAVE_CAP} pages, the most one job may save."));
 		}
 		let markdown = trim(args["markdown"].str_or_empty());
 		if let Some(refusal) = page_text_refusal(markdown) {
 			return Ok(format!("ERROR: {refusal}"));
 		}
-		let own = self.pdf.pdf_extract(self.path, &page.to_string()).await?;
+		let own = self.pdf.pdf_extract(&self.path, &page.to_string()).await?;
 		let own_length = len16(own.split_once('\n').map_or("", |(_, text)| text));
 		let length = len16(markdown);
 		if own_length > WHOLE_PAGE_FLOOR && (length as f64) < own_length as f64 * WHOLE_PAGE_SHARE {
 			return Ok(format!("ERROR: markdown is {length} characters, but the page's own text is {own_length}. Save the whole page, every sentence and formula on it."));
 		}
-		let Some(keeper) = &mut self.keeper else { unreachable!("save_page is offered only with a keeper") };
-		(keeper.keep)(page, markdown)?;
-		keeper.pages.insert(page, markdown.to_owned());
-		self.saved += 1;
-		opts.activity(&format!("save_page: {page}"));
+		keep(page, markdown)?;
+		{
+			let mut read = self.read.lock();
+			read.kept.get_or_insert_default().insert(page, markdown.to_owned());
+			read.saved += 1;
+		}
+		self.activity(&format!("save_page: {page}"));
 		Ok(format!("Saved page {page}. Later readings and search get this text for it."))
 	}
 }

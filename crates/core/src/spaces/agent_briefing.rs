@@ -137,7 +137,7 @@ pub fn agent_briefing(input: &BriefingInput) -> Result<String, String> {
 		let kept_setup = &setup_lines[..setup_lines.len() - setup_left];
 		if !kept_setup.is_empty() {
 			lines.push(String::new());
-			lines.push("Space setup to finish (do this before calling wait_for_work):".to_owned());
+			lines.push("Space setup to finish:".to_owned());
 			lines.extend(kept_setup.iter().cloned());
 			lines.push(SETUP_HOW.to_owned());
 		}

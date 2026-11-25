@@ -96,10 +96,6 @@ pub fn read(app: &AppHandle, generation: u64, stdout: impl Read, ready: mpsc::Se
 				app.state::<Terminals>().clear_line(&terminal, &line);
 				continue;
 			}
-			Ok(ToShell::Nudge { terminal, line }) => {
-				app.state::<Terminals>().nudge(&terminal, &line);
-				continue;
-			}
 			Ok(ToShell::ShowWindow { page }) => {
 				let handle = app.clone();
 				if let Err(err) = app.run_on_main_thread(move || crate::window::bring_forward(&handle, Some(&page))) {

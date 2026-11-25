@@ -1,22 +1,23 @@
 //! The server's one extraction pipeline (server/extraction.ts): every front door (lesson runs,
 //! notes imports, space files) shares its registry. A lesson's facts land in its space's graph,
-//! a run that wrote a space graph queues a topic grouping, and every stage runs on the outside
+//! a run that wrote a space graph queues a topic grouping, and every stage runs on the learner's
 //! agent with related ideas from the local search.
 
 use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
 use gs_agent::extraction::extraction::{Extraction, ExtractionHost, ExtractionState};
+use gs_agent::subagents::job_agent::JobAgent;
 use gs_base::events::Events;
 use gs_base::locks::Locks;
 use gs_core::graph::duplicates::Nearest;
-use gs_engine::bridge::Bridge;
 use gs_json::Json;
 use gs_store::chats::ChatStore;
 use gs_store::graph::GraphStores;
 
 use super::topics::schedule_topic_grouping;
 use crate::App;
+use crate::jobs::job_agent::job_agent;
 
 pub use gs_agent::extraction::extraction::{ImportOutcome, NotesImportError, NotesImportInput};
 
@@ -35,8 +36,8 @@ impl ExtractionHost for AppHost {
 	fn locks(&self) -> &Locks {
 		&self.0.locks
 	}
-	fn bridge(&self) -> &Bridge {
-		&self.0.bridge
+	fn job_agent(&self) -> Arc<dyn JobAgent> {
+		job_agent(&self.0)
 	}
 	fn state(&self) -> &ExtractionState {
 		&self.0.graph.extraction

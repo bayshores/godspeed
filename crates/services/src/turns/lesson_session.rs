@@ -9,9 +9,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use gs_base::hash::sha256_text;
 use gs_base::{clock, tasks};
 use gs_core::messages::compaction_marks::active_compaction_of;
-use gs_core::records::agent_seen::print_hash;
 use gs_engine::turn::session_turn::{OpenFn, Opened, Opening, input_of};
 use gs_json::{Json, json, stringify};
 use gs_runtime::{Part, Runtime, Session, SessionSpec, ToolSpec};
@@ -68,7 +68,7 @@ pub(super) struct SessionPlanFacts {
 /// The hash of a session's instructions and tools: a change opens a new session.
 fn prompt_hash(prompt: &str, tools: &[ToolSpec]) -> String {
 	let specs: Vec<Json> = tools.iter().map(|t| json!({ "name": t.name, "description": t.description, "inputSchema": t.input_schema })).collect();
-	print_hash(&format!("{prompt}\0{}", stringify(&Json::Arr(specs))))
+	sha256_text(&format!("{prompt}\0{}", stringify(&Json::Arr(specs))))[..32].to_owned()
 }
 
 impl SessionPlan {

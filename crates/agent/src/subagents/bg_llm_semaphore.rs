@@ -1,10 +1,10 @@
-//! One pool of 3 permits for the
-//! background model jobs that run beside extraction (topic grouping).
+//! One pool of 3 permits for every background job's agent session.
 //!
-//! First come, first served, and abort-aware: a queued caller that aborts marks its ticket dead,
-//! and the permit handoff skips it. A handed-off permit keeps `active` as it is (the releaser
-//! left it for the next holder); only a fresh take counts up. Counting both would slowly
-//! deadlock the pool at 3 with an empty queue.
+//! Jobs a learner waits on go before godspeed's own, first come, first served within each, and
+//! abort-aware: a queued caller that aborts marks its ticket dead, and the permit handoff skips
+//! it. A handed-off permit keeps `active` as it is (the releaser left it for the next holder);
+//! only a fresh take counts up. Counting both would slowly deadlock the pool at 3 with an empty
+//! queue.
 
 use std::collections::VecDeque;
 use std::fmt;
@@ -13,6 +13,8 @@ use std::future::Future;
 use gs_engine::turn::abort::Abort;
 use parking_lot::Mutex;
 use tokio::sync::oneshot;
+
+use super::job_agent::Priority;
 
 /// Background model concurrency for the whole server.
 const PERMIT_COUNT: usize = 3;
@@ -24,8 +26,24 @@ pub struct BgLlmSlots(Mutex<Slots>);
 #[derive(Default)]
 struct Slots {
 	active: usize,
-	queue: VecDeque<Ticket>,
+	/// Tickets of jobs a learner waits on; they get the next permit.
+	waited: VecDeque<Ticket>,
+	/// Tickets of godspeed's own jobs.
+	own: VecDeque<Ticket>,
 	next_ticket: u64,
+}
+
+impl Slots {
+	fn queue(&mut self, priority: Priority) -> &mut VecDeque<Ticket> {
+		match priority {
+			Priority::Waited => &mut self.waited,
+			Priority::Own => &mut self.own,
+		}
+	}
+
+	fn next(&mut self) -> Option<Ticket> {
+		self.waited.pop_front().or_else(|| self.own.pop_front())
+	}
 }
 
 struct Ticket {
@@ -46,12 +64,12 @@ impl fmt::Display for QueuedAbort {
 
 /// Runs `critical` under one permit of the pool. `signal` kills a queued ticket: it marks itself
 /// dead and answers `QueuedAbort`; the handoff skips it.
-pub async fn with_bg_llm_slot<T, F, Fut>(slots: &BgLlmSlots, signal: Option<&Abort>, critical: F) -> Result<T, QueuedAbort>
+pub async fn with_bg_llm_slot<T, F, Fut>(slots: &BgLlmSlots, priority: Priority, signal: Option<&Abort>, critical: F) -> Result<T, QueuedAbort>
 where
 	F: FnOnce() -> Fut,
 	Fut: Future<Output = T>,
 {
-	let permit = take_permit(slots, signal).await?;
+	let permit = take_permit(slots, priority, signal).await?;
 	let value = critical().await;
 	drop(permit);
 	Ok(value)
@@ -65,7 +83,7 @@ impl Drop for Permit<'_> {
 		let mut s = self.0.0.lock();
 		// Handoff: a waiting ticket inherits the permit (active stays); dead tickets are skipped,
 		// and so is one whose caller stopped waiting.
-		while let Some(next) = s.queue.pop_front() {
+		while let Some(next) = s.next() {
 			if !next.dead && next.resolve.send(()).is_ok() {
 				return;
 			}
@@ -82,13 +100,15 @@ struct Waiting<'a> {
 
 impl Drop for Waiting<'_> {
 	fn drop(&mut self) {
-		if let Some(ticket) = self.slots.0.lock().queue.iter_mut().find(|t| t.id == self.id) {
+		let mut s = self.slots.0.lock();
+		let Slots { waited, own, .. } = &mut *s;
+		if let Some(ticket) = waited.iter_mut().chain(own.iter_mut()).find(|t| t.id == self.id) {
 			ticket.dead = true;
 		}
 	}
 }
 
-async fn take_permit<'a>(slots: &'a BgLlmSlots, signal: Option<&Abort>) -> Result<Permit<'a>, QueuedAbort> {
+async fn take_permit<'a>(slots: &'a BgLlmSlots, priority: Priority, signal: Option<&Abort>) -> Result<Permit<'a>, QueuedAbort> {
 	let (id, mut granted) = {
 		let mut s = slots.0.lock();
 		if s.active < PERMIT_COUNT {
@@ -98,7 +118,7 @@ async fn take_permit<'a>(slots: &'a BgLlmSlots, signal: Option<&Abort>) -> Resul
 		let (resolve, granted) = oneshot::channel();
 		s.next_ticket += 1;
 		let id = s.next_ticket;
-		s.queue.push_back(Ticket { id, resolve, dead: false });
+		s.queue(priority).push_back(Ticket { id, resolve, dead: false });
 		(id, granted)
 	};
 	let waiting = Waiting { slots, id };
@@ -138,9 +158,14 @@ mod tests {
 		slots.0.lock().active
 	}
 
+	fn queued(slots: &BgLlmSlots) -> usize {
+		let s = slots.0.lock();
+		s.waited.len() + s.own.len()
+	}
+
 	/// Holds a permit until `release` is notified, counting how many run at once.
 	async fn hold(slots: Arc<BgLlmSlots>, release: Arc<Notify>, running: Arc<AtomicUsize>, signal: Option<Abort>) -> Result<usize, QueuedAbort> {
-		with_bg_llm_slot(&slots, signal.as_ref(), || async {
+		with_bg_llm_slot(&slots, Priority::Own, signal.as_ref(), || async {
 			let now = running.fetch_add(1, Ordering::SeqCst) + 1;
 			release.notified().await;
 			running.fetch_sub(1, Ordering::SeqCst);
@@ -163,7 +188,7 @@ mod tests {
 		let tasks: Vec<_> = (0..4).map(|_| gs_base::tasks::spawn("test", hold(slots.clone(), release.clone(), running.clone(), None))).collect();
 		settle().await;
 		assert_eq!(running.load(Ordering::SeqCst), 3);
-		assert_eq!(slots.0.lock().queue.len(), 1);
+		assert_eq!(queued(&slots), 1);
 		release.notify_one();
 		settle().await;
 		assert_eq!(running.load(Ordering::SeqCst), 3, "the waiter inherited the permit");
@@ -175,6 +200,36 @@ mod tests {
 		for task in tasks {
 			assert!(task.await.unwrap().unwrap() <= 3);
 		}
+		assert_eq!(active(&slots), 0);
+	}
+
+	#[tokio::test]
+	async fn a_job_a_learner_waits_on_goes_before_godspeed_s_own() {
+		let slots = Arc::new(BgLlmSlots::default());
+		let release = Arc::new(Notify::new());
+		let running = Arc::new(AtomicUsize::new(0));
+		let holders: Vec<_> = (0..3).map(|_| gs_base::tasks::spawn("test", hold(slots.clone(), release.clone(), running.clone(), None))).collect();
+		settle().await;
+		let order = Arc::new(Mutex::new(Vec::new()));
+		let queue = |name: &'static str, priority| {
+			let (slots, order) = (slots.clone(), order.clone());
+			gs_base::tasks::spawn("test", async move { with_bg_llm_slot(&slots, priority, None, || async move { order.lock().push(name) }).await })
+		};
+		let own = [queue("own 1", Priority::Own), queue("own 2", Priority::Own)];
+		settle().await;
+		let waited = queue("lesson's PDF", Priority::Waited);
+		settle().await;
+		for _ in 0..3 {
+			release.notify_one();
+			settle().await;
+		}
+		for task in holders {
+			assert!(task.await.unwrap().is_ok());
+		}
+		for task in own.into_iter().chain([waited]) {
+			assert!(task.await.unwrap().is_ok());
+		}
+		assert_eq!(*order.lock(), ["lesson's PDF", "own 1", "own 2"]);
 		assert_eq!(active(&slots), 0);
 	}
 
@@ -204,7 +259,7 @@ mod tests {
 		}
 		next.await.unwrap().unwrap();
 		assert_eq!(active(&slots), 0);
-		assert!(slots.0.lock().queue.is_empty());
+		assert_eq!(queued(&slots), 0);
 	}
 
 	#[tokio::test]
@@ -212,7 +267,7 @@ mod tests {
 		let slots = BgLlmSlots::default();
 		let abort = Abort::new();
 		abort.abort();
-		assert_eq!(with_bg_llm_slot(&slots, Some(&abort), || async { 7 }).await, Ok(7));
+		assert_eq!(with_bg_llm_slot(&slots, Priority::Own, Some(&abort), || async { 7 }).await, Ok(7));
 		assert_eq!(active(&slots), 0);
 	}
 
@@ -221,7 +276,7 @@ mod tests {
 		let slots = Arc::new(BgLlmSlots::default());
 		let task = gs_base::tasks::spawn("test", {
 			let slots = slots.clone();
-			async move { with_bg_llm_slot(&slots, None, std::future::pending::<()>).await }
+			async move { with_bg_llm_slot(&slots, Priority::Own, None, std::future::pending::<()>).await }
 		});
 		settle().await;
 		assert_eq!(active(&slots), 1);

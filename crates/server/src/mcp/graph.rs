@@ -10,7 +10,6 @@ use gs_core::spaces::file_state::FileKind;
 use gs_json::{Json, json};
 use gs_services::App;
 use gs_services::app::agent_actions::note_agent_action;
-use gs_services::spaces::space_actions::READING_NOTE;
 use gs_services::graph::extraction::extraction;
 
 use super::reply::{failure, result};
@@ -40,7 +39,7 @@ pub fn import_notes(call: &ToolCall<'_>, args: &Json) -> Json {
 	let Some(space_id) = scope else {
 		note_agent_action(app, call.caller, &json!({ "label": format!("Reading {name}"), "spaceId": null, "target": null, "page": "/graph" }));
 		import_in_background(app, name, text);
-		return result(&json!({ "status": "started", "note": format!("Import started. {READING_NOTE}") }));
+		return result(&json!({ "status": "started", "note": "Import started." }));
 	};
 	// Compare as stored, so "week1/notes.md" finds "notes.md".
 	let clean = safe_name(name);
@@ -52,11 +51,10 @@ pub fn import_notes(call: &ToolCall<'_>, args: &Json) -> Json {
 	};
 	let file_id = file["id"].clone();
 	note_agent_action(app, call.caller, &json!({ "label": format!("Reading {file_name}"), "spaceId": space_id, "target": { "kind": "file", "id": file_id }, "page": "/space/files" }));
-	result(&json!({ "status": "started", "fileId": file_id, "note": format!("Import started. {READING_NOTE}") }))
+	result(&json!({ "status": "started", "fileId": file_id, "note": "Import started." }))
 }
 
-/// No-space notes are read in the background; their work reaches the agent through
-/// wait_for_work, and a failure is only logged.
+/// No-space notes are read in the background, and a failure is only logged.
 fn import_in_background(app: &Arc<App>, name: &str, text: &str) {
 	let (app, name, text) = (app.clone(), name.to_owned(), text.to_owned());
 	detach("mcp", async move {
@@ -83,7 +81,7 @@ mod tests {
 		let app = App::new(gs_base::config::Paths::new(root.join("data"), root.join("home"), root.join("tmp"), root.join("res")), None);
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Botany" })).unwrap()["id"].as_str().unwrap().to_owned();
 		let own = add_copied_file(&app, &space_id, "notes.md", b"My own notes.").unwrap();
-		let call = ToolCall { app: &app, caller: None, terminal: None, meta: &Json::Null };
+		let call = ToolCall { app: &app, caller: None, terminal: None };
 		let import = |name: &str, text: &str| import_notes(&call, &json!({ "space_id": space_id, "name": name, "text": text }));
 
 		let refused = import("notes", "The agent's notes.");

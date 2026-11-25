@@ -7,13 +7,13 @@
 use std::sync::Arc;
 
 use gs_agent::tools::open_page::OpenPage;
-use gs_base::clock;
 use gs_core::spaces::space_tools::ToolOutcome;
 use gs_core::study::cheat_sheet::ParsedSheet;
-use gs_engine::bridge::WindowPage;
 use gs_json::{Json, json};
 
 use super::agent_actions::note_agent_action;
+use super::settings_record::teacher_name;
+use super::terminal_state::WindowPage;
 use crate::App;
 use crate::spaces::deadline_with_space;
 use crate::spaces::space_actions::{CLOSED_SPACE, no_space_text};
@@ -130,7 +130,7 @@ pub fn open_page(app: &App, caller: Option<&str>, args: &Json) -> ToolOutcome {
 		Ok(page) => page,
 		Err(refused) => return ToolOutcome::Err(refused),
 	};
-	let here = app.bridge.window_page();
+	let here = app.terminals.window_page();
 	let there = already_there(app, &page, here.as_ref());
 	let action = json!({ "label": format!("Opening {}", page.name), "spaceId": page.space_id, "target": page.target, "page": page.path, "open": true });
 	note_agent_action(app, caller, &action);
@@ -145,10 +145,10 @@ pub fn open_page(app: &App, caller: Option<&str>, args: &Json) -> ToolOutcome {
 	ToolOutcome::Ok { value: json!({ "page": page.name, "note": text }), changes: Vec::new() }
 }
 
-/// open_page for a lesson's teacher or the cheat sheet's agent, named as the agent connected.
+/// open_page for a lesson's teacher or the cheat sheet's agent, named as the teacher.
 pub fn agent_open_page(app: &Arc<App>) -> OpenPage {
 	let app = app.clone();
-	Arc::new(move |args| match open_page(&app, app.bridge.agent_name(clock::now_ms()).as_deref(), args) {
+	Arc::new(move |args| match open_page(&app, Some(&teacher_name(&app)), args) {
 		ToolOutcome::Ok { value, .. } => Ok(value["note"].str_or_empty().to_owned()),
 		ToolOutcome::Err(refused) => Err(refused),
 	})
@@ -221,7 +221,7 @@ mod tests {
 	}
 
 	fn set_window(app: &App, page: Option<WindowPage>) {
-		app.bridge.set_talk_page(None, page);
+		app.terminals.set_talk_page(None, page);
 	}
 
 	#[test]

@@ -4,15 +4,11 @@
 
 use std::path::Path;
 
-use gs_base::{clock, fsx};
-use gs_core::spaces::agent_folder::{Platform, StartCommands, claude_settings, mcp_json, start_script, start_script_path};
+use gs_base::fsx;
+use gs_core::spaces::agent_folder::{FolderAgent, Platform, StartCommands, claude_settings, mcp_json, start_script, start_script_path};
 use gs_json::{json, stringify_pretty};
 
-use super::agent_folder::START_TARGETS;
 use super::disk::write_file_atomic;
-
-/// Images the waiter saved for the agent are kept this long.
-const IMAGE_DAYS: i64 = 7;
 
 /// The agent's instructions and the space-setup steps they point at, copied into the folder as
 /// they are.
@@ -22,14 +18,11 @@ const DOCS: [(&str, &str); 3] = [
 	(".godspeed/setup-spaces.md", include_str!("../../folder-files/setup-spaces.md")),
 ];
 
-/// The waiter's, the hooks' and the start scripts' helper scripts, copied into `.godspeed/` as
+/// The connector's, the hooks' and the start scripts' own scripts, copied into `.godspeed/` as
 /// they are.
-const SCRIPTS: [(&str, &str); 8] = [
+const SCRIPTS: [(&str, &str); 5] = [
 	("connect.mjs", include_str!("../../folder-files/connect.mjs")),
 	("target.mjs", include_str!("../../folder-files/target.mjs")),
-	("wait-for-work.mjs", include_str!("../../folder-files/wait-for-work.mjs")),
-	("forget.mjs", include_str!("../../folder-files/forget.mjs")),
-	("compacting.mjs", include_str!("../../folder-files/compacting.mjs")),
 	("typed.mjs", include_str!("../../folder-files/typed.mjs")),
 	("agent-event.mjs", include_str!("../../folder-files/agent-event.mjs")),
 	("new-enough.mjs", include_str!("../../folder-files/new-enough.mjs")),
@@ -57,30 +50,17 @@ fn set_mode(_file: &Path, _mode: u32) -> Result<(), String> {
 	Ok(())
 }
 
-/// Removes the waiter's saved images older than `IMAGE_DAYS`.
-fn drop_old_images(folder: &Path) -> Result<(), String> {
-	let dir = folder.join(".godspeed").join("images");
-	if !dir.exists() {
-		return Ok(());
-	}
-	let cutoff = clock::now_ms() as f64 - (IMAGE_DAYS * 86_400_000) as f64;
-	let mut names: Vec<String> = std::fs::read_dir(&dir)
-		.map_err(|err| fsx::node_error_message(&err, "scandir", &dir))?
-		.flatten()
-		.map(|entry| entry.file_name().to_string_lossy().into_owned())
-		.collect();
-	names.sort();
-	for name in names {
-		let file = dir.join(&name);
-		let meta = std::fs::metadata(&file).map_err(|err| fsx::node_error_message(&err, "stat", &file))?;
-		if fsx::modified_ms(&meta) < cutoff {
-			if meta.is_dir() {
-				return Err(format!("Path is a directory: rm returned EISDIR (is a directory) {}", file.display()));
-			}
-			std::fs::remove_file(&file).map_err(|err| fsx::node_error_message(&err, "rm", &file))?;
+/// What an older godspeed wrote in `.godspeed/` and no longer uses: an old backup start script,
+/// the second agent's start scripts, the script that woke the agent with work, its saved images
+/// and the compaction hooks.
+fn old_files() -> Vec<String> {
+	let mut names: Vec<String> = ["wait-for-work.mjs", "forget.mjs", "compacting.mjs"].map(str::to_owned).to_vec();
+	for extension in ["command", "cmd", "sh"] {
+		for start in ["claude-backup", "claude-helper", "codex-helper"] {
+			names.push(format!("start-{start}.{extension}"));
 		}
 	}
-	Ok(())
+	names
 }
 
 /// Write the folder's files, creating it if need be; the start scripts run the learner's own
@@ -107,15 +87,17 @@ pub fn write_folder(folder: &str, platform: Platform, commands: &StartCommands) 
 	let package = json!({ "private": true, "type": "module", "version": gs_base::config::VERSION });
 	put(&dot.join("package.json"), &format!("{}\n", stringify_pretty(&package, "\t")), None)?;
 	put(&dot.join("claude-settings.json"), &claude_settings(folder, platform), None)?;
-	for target in START_TARGETS {
-		put(Path::new(&start_script_path(folder, target, platform)), &start_script(target, folder, platform, commands), Some(0o755))?;
+	for agent in FolderAgent::ALL {
+		put(Path::new(&start_script_path(folder, agent, platform)), &start_script(agent, folder, platform, commands), Some(0o755))?;
 	}
-	// An older godspeed left a start script the helper's replaces.
-	for extension in ["command", "cmd", "sh"] {
-		let old_script = dot.join(format!("start-claude-backup.{extension}"));
-		fsx::remove_if_present(&old_script, "rm")?;
+	for name in old_files() {
+		fsx::remove_if_present(&dot.join(name), "rm")?;
 	}
-	drop_old_images(root)
+	let images = dot.join("images");
+	match std::fs::remove_dir_all(&images) {
+		Err(err) if err.kind() != std::io::ErrorKind::NotFound => Err(fsx::node_error_message(&err, "rm", &images)),
+		_ => Ok(()),
+	}
 }
 
 #[cfg(test)]
@@ -133,7 +115,7 @@ mod tests {
 		let folder = root.join("godspeed");
 		let name = folder.to_string_lossy().into_owned();
 		write_folder(&name, platform(), &StartCommands::default()).unwrap();
-		for file in ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".godspeed/setup-spaces.md", ".godspeed/connect.mjs", ".godspeed/target.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/forget.mjs", ".godspeed/compacting.mjs", ".godspeed/typed.mjs", ".godspeed/new-enough.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json", ".godspeed/start-claude.sh", ".godspeed/start-claude-helper.sh", ".godspeed/start-codex.sh", ".godspeed/start-codex-helper.sh"] {
+		for file in ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".godspeed/setup-spaces.md", ".godspeed/connect.mjs", ".godspeed/target.mjs", ".godspeed/typed.mjs", ".godspeed/agent-event.mjs", ".godspeed/new-enough.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json", ".godspeed/start-claude.sh", ".godspeed/start-codex.sh"] {
 			assert!(folder.join(file).is_file(), "{file}");
 		}
 		let first = std::fs::metadata(folder.join("CLAUDE.md")).unwrap().modified().unwrap();
@@ -142,24 +124,29 @@ mod tests {
 		#[cfg(unix)]
 		{
 			use std::os::unix::fs::PermissionsExt;
-			for script in ["start-claude.sh", "start-claude-helper.sh", "start-codex.sh", "start-codex-helper.sh"] {
+			for script in ["start-claude.sh", "start-codex.sh"] {
 				assert_eq!(std::fs::metadata(folder.join(".godspeed").join(script)).unwrap().permissions().mode() & 0o777, 0o755, "{script}");
 			}
 		}
 	}
 
 	#[test]
-	fn the_old_setup_skills_and_backup_script_go() {
-		let root = scratch_dir("folder-files-old-skill");
+	fn what_an_older_godspeed_left_goes() {
+		let root = scratch_dir("folder-files-old");
 		let old = [root.join(".claude/skills/setup-classes"), root.join(".claude/skills/setup-spaces")];
 		for skill in &old {
 			write_file_atomic(&skill.join("SKILL.md"), "old").unwrap();
 		}
-		let old_script = root.join(".godspeed/start-claude-backup.sh");
-		write_file_atomic(&old_script, "#!/bin/sh\n").unwrap();
+		let dot = root.join(".godspeed");
+		for name in ["start-claude-backup.sh", "start-claude-helper.sh", "start-codex-helper.cmd", "wait-for-work.mjs", "forget.mjs", "compacting.mjs", "images/a.png"] {
+			write_file_atomic(&dot.join(name), "old").unwrap();
+		}
 		write_folder(&root.to_string_lossy(), platform(), &StartCommands::default()).unwrap();
-		assert!(old.iter().all(|skill| !skill.exists()) && root.join(".godspeed/setup-spaces.md").is_file());
-		assert!(!old_script.exists() && root.join(".godspeed/start-claude-helper.sh").is_file());
+		assert!(old.iter().all(|skill| !skill.exists()) && dot.join("setup-spaces.md").is_file());
+		for name in ["start-claude-backup.sh", "start-claude-helper.sh", "start-codex-helper.cmd", "wait-for-work.mjs", "forget.mjs", "compacting.mjs", "images"] {
+			assert!(!dot.join(name).exists(), "{name}");
+		}
+		assert!(dot.join("start-claude.sh").is_file());
 	}
 
 	#[test]
@@ -168,17 +155,5 @@ mod tests {
 		write_file_atomic(&root.join("file"), "x").unwrap();
 		let err = write_folder(&root.join("file").to_string_lossy(), platform(), &StartCommands::default()).unwrap_err();
 		assert!(err.starts_with("EEXIST: file already exists, mkdir ") || err.starts_with("ENOTDIR: not a directory, mkdir "), "{err}");
-	}
-
-	#[test]
-	fn old_images_go_and_new_ones_stay() {
-		let root = scratch_dir("folder-files-images");
-		let images = root.join(".godspeed/images");
-		write_file_atomic(&images.join("new.png"), "x").unwrap();
-		write_file_atomic(&images.join("old.png"), "x").unwrap();
-		let old = std::time::UNIX_EPOCH + std::time::Duration::from_millis((clock::now_ms() - 8 * 86_400_000) as u64);
-		std::fs::File::options().write(true).open(images.join("old.png")).unwrap().set_modified(old).unwrap();
-		drop_old_images(&root).unwrap();
-		assert!(images.join("new.png").exists() && !images.join("old.png").exists());
 	}
 }

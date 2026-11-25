@@ -1,6 +1,6 @@
 //! What the teacher's tool calls show while it works, for Follow's slip. A godspeed read or note
-//! is a step in plain words. The work loop is none, and neither is a godspeed change: every change
-//! already writes the activity log, which the window shows beside the steps. The agent's own
+//! is a step in plain words. A godspeed change is none: every change already writes the activity
+//! log, which the window shows beside the steps. The agent's own
 //! tools (web search, file reads, commands) are steps too. Pure: the names a step uses come from
 //! the caller. A lesson's desk keeps steps the same way (`lesson_steps`).
 
@@ -14,8 +14,6 @@ use crate::records::agent_actions::short_label;
 /// What one tool call is for the teacher's round of work.
 #[derive(Debug, PartialEq)]
 pub enum RoundCall {
-	/// wait_for_work, respond and read_work.
-	WorkLoop,
 	/// A change, which the activity log names: no step, but the teacher is at work.
 	Logged,
 	/// A read or a note.
@@ -46,7 +44,6 @@ pub fn round_call(tool: &str, args: &Json, names: &dyn StepNames) -> Option<Roun
 	let some_space = || space().unwrap_or_else(|| "a space".to_owned());
 	let notes = || if names.obsidian() { "Obsidian" } else { "your notes folder" };
 	let words = match tool {
-		"wait_for_work" | "respond" | "read_work" => return Some(RoundCall::WorkLoop),
 		"import_notes" | "create_space" | "update_space" | "add_space_file" | "set_space_file_kind" | "add_space_deadline" | "update_space_deadline" | "remove_space_deadline" | "link_space_folder" | "unlink_space_folder" | "start_lesson" | "open_page" => {
 			return Some(RoundCall::Logged);
 		}
@@ -240,10 +237,7 @@ mod tests {
 	}
 
 	#[test]
-	fn the_work_loop_and_the_changes_make_no_step() {
-		for tool in ["wait_for_work", "respond", "read_work"] {
-			assert_eq!(round_call(tool, &json!({}), &OBSIDIAN), Some(RoundCall::WorkLoop), "{tool}");
-		}
+	fn the_changes_make_no_step() {
 		for tool in ["import_notes", "create_space", "update_space", "add_space_file", "set_space_file_kind", "add_space_deadline", "update_space_deadline", "remove_space_deadline", "link_space_folder", "unlink_space_folder", "start_lesson", "open_page"] {
 			assert_eq!(round_call(tool, &json!({ "space_id": "spc_1" }), &OBSIDIAN), Some(RoundCall::Logged), "{tool}");
 		}

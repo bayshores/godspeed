@@ -48,7 +48,7 @@ Misses count per step; "I don't know" is one. Miss 1: point at the twin's matchi
 
 ## Time
 
-Due today (work items end with the time now and the time due): with the first problem, one line: time left minus 15 minutes to hand in, split over problems not done. Past its share: one line, keep going or next; their pick is a go-ahead. Name the move at miss 1.
+Due today (each new message ends with the time now and the time due): with the first problem, one line: time left minus 15 minutes to hand in, split over problems not done. Past its share: one line, keep going or next; their pick is a go-ahead. Name the move at miss 1.
 
 ## Tool mechanics
 

@@ -1,6 +1,8 @@
-//! Parity with the TypeScript demo builder (tests/golden/subagents.json, recorded from the Node server): each case's `config` (a model script and the
-//! stand-in headless engine's answers) is replayed on the Rust loops, which must give the same
-//! result, show the model the same tool answers and messages, and write the same activity lines.
+//! The demo builder against tests/golden/subagents.json (first recorded from the Node server):
+//! each case's `config` (the agent's turn and the stand-in headless engine's answers) is played on
+//! a stand-in agent, which must give the same result, send the agent the same input and tool
+//! answers, and write the same activity lines. `GS_RECORD_GOLDEN=1 cargo test -p gs-agent --test
+//! subagents_golden` records the outputs again.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -8,24 +10,23 @@ use std::sync::Arc;
 use futures_util::future::BoxFuture;
 use gs_agent::subagents::demo_builder::run_demo_builder;
 use gs_agent::subagents::headless::{DemoRunResult, HeadlessApi};
+use gs_agent::subagents::job_agent::{JobAgent, Priority};
 use gs_agent::subagents::pi_run::JobAgentOptions;
-use gs_base::events::Events;
-use gs_core::records::agent_seen::{SeenMark, SeenStore};
-use gs_engine::bridge::Bridge;
-use gs_engine::turn::faux::{Engine, Scripted, faux_model};
-use gs_engine::turn::messages::{faux_assistant_message, text_block};
-use gs_json::{Json, json, parse};
+use gs_engine::turn::job_session::{Finished, OneOff, RunError, run_once};
+use gs_json::{Json, json, parse, stringify_pretty};
 use gs_pdf::RenderedPdfPage;
+use gs_runtime::fake::{FakeAgent, FakeStep};
 use parking_lot::Mutex;
 
-struct NoMarks;
+const GOLDEN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/subagents.json");
 
-impl SeenStore for NoMarks {
-	fn get(&self, _agent: &str, _conversation: &str) -> Option<SeenMark> {
-		None
+/// Jobs straight on the stand-in agent.
+struct StandIn(FakeAgent);
+
+impl JobAgent for StandIn {
+	fn run<'a>(&'a self, job: OneOff, _priority: Priority, _label: &'a str) -> BoxFuture<'a, Result<Finished, RunError>> {
+		Box::pin(async move { run_once(&self.0.runtime(), &std::env::temp_dir(), job).await })
 	}
-	fn set(&self, _agent: &str, _conversation: &str, _mark: &SeenMark) {}
-	fn forget_agent(&self, _agent: &str) {}
 }
 
 /// The golden's stand-in: demo runs answer in turn.
@@ -72,52 +73,39 @@ impl HeadlessApi for Stand {
 	}
 }
 
-/// The case's script: each step's tool calls (ids `call_<step>_<n>`) or text.
-fn script(steps: &Json, last: &Arc<Mutex<Vec<Json>>>) -> Arc<Scripted> {
-	let script = Scripted::new();
-	for (i, step) in steps.items().iter().enumerate() {
-		let reply = match step.get("calls") {
-			Some(calls) => {
-				let content = calls.as_arr().unwrap().iter().enumerate().map(|(k, c)| json!({ "type": "toolCall", "id": format!("call_{i}_{k}"), "name": c[0].clone(), "arguments": c[1].clone() })).collect();
-				faux_assistant_message(content, "toolUse")
-			}
-			None => faux_assistant_message(vec![text_block(step["text"].as_str().unwrap())], "stop"),
-		};
-		let last = last.clone();
-		script.run(move |request| {
-			*last.lock() = request.messages;
-			Box::pin(async move { Ok(reply) })
-		});
-	}
-	script
+/// The case's turn: each step's tool calls, made together, its text, or the agent failing.
+fn script(steps: &Json) -> FakeAgent {
+	let turn = steps.items().iter().map(|step| match (step.get("calls"), step.get("fails")) {
+		(Some(calls), _) => FakeStep::Calls(calls.items().iter().map(|c| (c[0].as_str().unwrap().to_owned(), c[1].clone())).collect()),
+		(None, Some(reason)) => FakeStep::Fail(reason.as_str().unwrap().to_owned()),
+		(None, None) => FakeStep::Text(step["text"].as_str().unwrap().to_owned()),
+	});
+	FakeAgent::new(vec![turn.collect()])
 }
 
-/// What the model was shown: tool answers and user messages, pictures as "[image]".
-fn shown(messages: &[Json]) -> Json {
-	let out = messages.iter().filter(|m| m["role"] == Json::from("toolResult") || m["role"] == Json::from("user")).map(|m| {
-		let text = match &m["content"] {
-			Json::Str(s) => s.clone(),
-			parts => parts.as_arr().unwrap().iter().map(|p| if p["type"] == Json::from("text") { p["text"].as_str().unwrap().to_owned() } else { "[image]".to_owned() }).collect::<Vec<_>>().join("\n"),
-		};
-		if m["role"] == Json::from("toolResult") { json!({ "tool": m["toolName"].clone(), "isError": m["isError"].clone(), "text": text }) } else { json!({ "user": text }) }
+/// What godspeed sent the agent: its input and the tool answers, pictures as "[image]".
+fn shown(agent: &FakeAgent) -> Json {
+	let text = |content: &Json| content.items().iter().map(|p| p["text"].as_str().map_or_else(|| "[image]".to_owned(), str::to_owned)).collect::<Vec<_>>().join("\n");
+	let out = agent.sent().into_iter().filter_map(|m| match m["type"].as_str() {
+		Some("send") => Some(json!({ "user": text(&m["content"]) })),
+		Some("tool_result") => Some(json!({ "isError": m["isError"].clone(), "text": text(&m["content"]) })),
+		_ => None,
 	});
 	Json::Arr(out.collect())
 }
 
 #[tokio::test]
-async fn the_loops_match_the_typescript() {
-	let golden = parse(&std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/subagents.json")).unwrap()).unwrap();
-	for case in golden.as_arr().unwrap() {
-		let name = case["name"].as_str().unwrap();
-		let want = &case["output"];
-		let config = &want["config"];
-		let last = Arc::new(Mutex::new(Vec::new()));
-		let script = script(&config["steps"], &last);
+async fn the_demo_builder_plays_as_recorded() {
+	let mut golden = parse(&std::fs::read_to_string(GOLDEN).unwrap()).unwrap();
+	let recording = std::env::var_os("GS_RECORD_GOLDEN").is_some();
+	for case in golden.as_arr_mut().unwrap() {
+		let name = case["name"].as_str().unwrap().to_owned();
+		let config = case["output"]["config"].clone();
+		let agent = script(&config["steps"]);
 		let activity = Arc::new(Mutex::new(Vec::<String>::new()));
 		let stand = Stand { unavailable: config["unavailable"].as_str().map(str::to_owned), demo: config["demo"].as_arr().cloned().unwrap_or_default(), calls: Mutex::new(0) };
 		let opts = JobAgentOptions {
-			bridge: Bridge::new(&Events::new(), Arc::new(NoMarks)),
-			engine: Some(Engine { model: faux_model("faux", "faux", "faux-1", "Faux", 128_000.0, 16_000.0), respond: script }),
+			agent: Arc::new(StandIn(agent.clone())),
 			headless: Arc::new(stand),
 			abort_signal: None,
 			on_usage: None,
@@ -125,12 +113,21 @@ async fn the_loops_match_the_typescript() {
 				let activity = activity.clone();
 				move |line: &str| activity.lock().push(line.to_owned())
 			})),
+			approve: None,
 		};
 		let brief = config["brief"].as_str().unwrap();
 		let result = run_demo_builder(config["title"].str_or_empty(), brief, &opts).await;
-		assert_eq!(result, want["result"], "{name}: result");
-		assert_eq!(shown(&last.lock()), want["shown"], "{name}: what the model was shown");
 		let activity = Json::Arr(activity.lock().iter().map(|l| Json::from(l.as_str())).collect());
-		assert_eq!(activity, want["activity"], "{name}: activity lines");
+		let got = json!({ "config": config, "result": result, "shown": shown(&agent), "activity": activity });
+		if recording {
+			case.set("output", got);
+			continue;
+		}
+		for key in ["result", "shown", "activity"] {
+			assert_eq!(got[key], case["output"][key], "{name}: {key}");
+		}
+	}
+	if recording {
+		gs_base::fsx::write_text_atomic(Path::new(GOLDEN), &format!("{}\n", stringify_pretty(&golden, "\t"))).unwrap();
 	}
 }

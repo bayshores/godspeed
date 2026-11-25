@@ -14,6 +14,7 @@ use gs_core::study::cheat_sheet::sheet_region_of;
 use gs_json::{Json, json};
 use gs_services::App;
 use gs_services::cheat_sheets::{AskInput, ask, cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, space_sheets_view, remove_rule, retry, sheet_pdf_file, stop};
+use gs_services::jobs::asks::{AskedOn, answer_job_ask};
 use gs_services::outcome::Outcome;
 
 use crate::http::reply::{self, Unhandled, error, json, json_body};
@@ -92,6 +93,14 @@ async fn post_sheet(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(
 		},
 		Some("stop") => {
 			stop(&app, &deadline_id);
+			Ok(reply::ok())
+		}
+		// The learner's answer to a permission question the sheet's agent waits on.
+		Some("approval") => {
+			let (Some(approval_id), Some(allow)) = (body["id"].as_str(), body["allow"].as_bool()) else { return Ok(error(400, "Give id and allow.")) };
+			if !answer_job_ask(&app, &AskedOn::Sheet(deadline_id), approval_id, allow) {
+				return Ok(error(404, "no permission question waits by that id"));
+			}
 			Ok(reply::ok())
 		}
 		_ => Ok(error(400, "Unknown action.")),

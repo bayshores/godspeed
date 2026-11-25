@@ -1,22 +1,16 @@
-//! The agent loop: messages, tool calls, steering, aborts, stream events and usage estimates
-//! (@earendil-works/pi-agent-core, pi-ai's faux provider), and a lesson turn on the learner's own
-//! agent session (`session_turn`).
+//! Turns on the learner's own agent: a lesson turn (`session_turn`) and a one-off job session
+//! (`job_session`), with their messages, tool calls, aborts, stream events and usage estimates.
 
 pub mod abort;
-pub mod agent;
-mod agent_loop;
 pub mod call_ids;
 pub mod events;
-pub mod faux;
+pub mod job_session;
 pub mod messages;
-pub mod models;
 pub mod record;
 pub mod session_turn;
 pub mod tool;
-mod tool_batch;
 pub mod tool_execute;
 pub mod tool_host;
 pub mod transcript;
 pub mod ui_stream;
-mod usage;
 pub mod validate;

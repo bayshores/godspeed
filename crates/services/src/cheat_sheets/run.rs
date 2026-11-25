@@ -14,7 +14,6 @@ use gs_base::time::iso_now;
 use gs_core::messages::attachments::{ChatAttachment, is_pdf_type};
 use gs_core::study::cheat_sheet::{PROMPT_MAX, cheat_sheet_request_text, current_version, new_cheat_sheet, region_problem, with_message, with_rules, with_version, without_rule};
 use gs_engine::turn::abort::Abort;
-use gs_engine::turn::models::agent_engine;
 use gs_json::{Json, json};
 
 use super::cheat_sheet_pdf::take_sheet_pdf;
@@ -25,6 +24,8 @@ use super::{BUSY, Failed, NEWER, Running, changed};
 use crate::outcome::{Outcome, Stop, refuse};
 use crate::App;
 use crate::app::open_page::agent_open_page;
+use crate::jobs::asks::{AskedOn, approve_on};
+use crate::jobs::job_agent::job_agent;
 use crate::spaces::citations::check_cites;
 use crate::spaces::space_search::space_search;
 
@@ -178,13 +179,14 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 			let (app, folder) = (task_app.clone(), folder_path.clone());
 			Box::pin(async move { take_sheet_pdf(&app, &folder, &path).await })
 		}),
-		engine: agent_engine(&app.bridge),
+		folder: folder.path.clone(),
+		approve: approve_on(app, AskedOn::Sheet(id.clone())),
 		signal: abort.clone(),
 	};
 	let answer = Answer { app: app.clone(), space_id: ctx.space_id.clone(), deadline_id: id, message_id: message_id.to_owned(), asked: message["text"].str_or_empty().to_owned() };
 	detach("cheat-sheet", async move {
 		let _end = RunEnd { app: answer.app.clone(), deadline_id: answer.deadline_id.clone() };
-		let done = match reply_on_sheet(&answer.app.bridge, request).await {
+		let done = match reply_on_sheet(job_agent(&answer.app).as_ref(), request).await {
 			Ok(reply) => keep_reply(&answer, reply),
 			Err(err) => Err(err.to_string()),
 		};

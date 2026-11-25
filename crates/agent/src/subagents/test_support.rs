@@ -1,63 +1,57 @@
-//! What the background-job tests share: a bridge with marks in memory and a scripted engine.
+//! What the background-job tests share: jobs on a stand-in agent, and a stand-in headless browser.
 
 use std::path::Path;
 use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
-use gs_base::events::Events;
-use gs_core::records::agent_seen::{SeenMark, SeenStore};
-use gs_engine::bridge::Bridge;
-use gs_engine::turn::faux::{Engine, Scripted, faux_model};
-use gs_engine::turn::messages::{faux_assistant_message, text_block};
-use gs_json::{Json, json};
+use gs_engine::turn::job_session::{Finished, OneOff, RunError, run_once};
+use gs_json::Json;
 use gs_pdf::RenderedPdfPage;
+use gs_runtime::fake::{FakeAgent, FakeStep};
 use parking_lot::Mutex;
 
 use super::headless::{DemoRunResult, HeadlessApi};
+use super::job_agent::{JobAgent, Priority};
 use super::pi_run::JobAgentOptions;
 
-/// No saved marks: the background jobs never read them.
-struct NoMarks;
+/// Jobs straight on a stand-in agent: no pool and no wait, in the job's folder or the temp folder.
+struct StandIn(FakeAgent);
 
-impl SeenStore for NoMarks {
-	fn get(&self, _agent: &str, _conversation: &str) -> Option<SeenMark> {
-		None
+impl JobAgent for StandIn {
+	fn run<'a>(&'a self, job: OneOff, _priority: Priority, _label: &'a str) -> BoxFuture<'a, Result<Finished, RunError>> {
+		let cwd = job.cwd.clone().unwrap_or_else(std::env::temp_dir);
+		Box::pin(async move { run_once(&self.0.runtime(), &cwd, job).await })
 	}
-	fn set(&self, _agent: &str, _conversation: &str, _mark: &SeenMark) {}
-	fn forget_agent(&self, _agent: &str) {}
 }
 
-pub fn bridge() -> Bridge {
-	Bridge::new(&Events::new(), Arc::new(NoMarks))
+/// A job agent on `fake`.
+pub fn on(fake: FakeAgent) -> Arc<dyn JobAgent> {
+	Arc::new(StandIn(fake))
 }
 
-/// The engine the jobs run on in tests, with the outside agent's provider stamp.
-pub fn faux_engine(script: &Arc<Scripted>) -> Engine {
-	Engine { model: faux_model("godspeed-agent", "agent", "outside-agent", "Outside agent (MCP)", 200_000.0, 32_000.0), respond: script.clone() }
+/// A job agent playing `turns`, and the stand-in, which keeps what godspeed sent it.
+pub fn stand_in(turns: Vec<Vec<FakeStep>>) -> (Arc<dyn JobAgent>, FakeAgent) {
+	let fake = FakeAgent::new(turns);
+	(on(fake.clone()), fake)
 }
 
-pub fn tool_call(id: &str, name: &str, arguments: Json) -> Json {
-	json!({ "type": "toolCall", "id": id, "name": name, "arguments": arguments })
+/// A call of a godspeed tool.
+pub fn tool(name: &str, args: Json) -> FakeStep {
+	FakeStep::Tool { name: name.to_owned(), args }
 }
 
-/// An assistant reply that calls tools.
-pub fn calls(list: &[(&str, Json)]) -> Json {
-	let content = list.iter().enumerate().map(|(i, (name, args))| tool_call(&format!("call_{i}"), name, args.clone())).collect();
-	faux_assistant_message(content, "toolUse")
+pub fn says(text: &str) -> FakeStep {
+	FakeStep::Text(text.to_owned())
 }
 
-/// An assistant reply with text only.
-pub fn says(text: &str) -> Json {
-	faux_assistant_message(vec![text_block(text)], "stop")
+/// Every tool result godspeed sent the agent, in order.
+pub fn results(fake: &FakeAgent) -> Vec<Json> {
+	fake.sent().into_iter().filter(|m| m["type"].as_str() == Some("tool_result")).collect()
 }
 
-/// Queues a reply and keeps the request's messages (what the model was shown).
-pub fn reply_seeing(script: &Arc<Scripted>, reply: Json, seen: &Arc<Mutex<Vec<Vec<Json>>>>) {
-	let seen = seen.clone();
-	script.run(move |request| {
-		seen.lock().push(request.messages);
-		Box::pin(async move { Ok(reply) })
-	});
+/// The text of every tool result godspeed sent the agent, in order.
+pub fn result_texts(fake: &FakeAgent) -> Vec<String> {
+	results(fake).iter().map(|m| m["content"][0]["text"].str_or_empty().to_owned()).collect()
 }
 
 /// A headless stand-in: SVGs with "broken" in them fail to render, demos answer `demo`.
@@ -91,12 +85,12 @@ impl HeadlessApi for FakeHeadless {
 	}
 }
 
-/// Job agent options on a scripted engine, recording activity lines.
-pub fn job_agent_options(script: &Arc<Scripted>, headless: Arc<dyn HeadlessApi>) -> (JobAgentOptions, Arc<Mutex<Vec<String>>>) {
+/// Job agent options on a stand-in agent playing `turns`, recording activity lines.
+pub fn job_agent_options(turns: Vec<Vec<FakeStep>>, headless: Arc<dyn HeadlessApi>) -> (JobAgentOptions, FakeAgent, Arc<Mutex<Vec<String>>>) {
+	let (agent, fake) = stand_in(turns);
 	let lines = Arc::new(Mutex::new(Vec::new()));
 	let opts = JobAgentOptions {
-		bridge: bridge(),
-		engine: Some(faux_engine(script)),
+		agent,
 		headless,
 		abort_signal: None,
 		on_usage: None,
@@ -104,11 +98,7 @@ pub fn job_agent_options(script: &Arc<Scripted>, headless: Arc<dyn HeadlessApi>)
 			let lines = lines.clone();
 			move |line: &str| lines.lock().push(line.to_owned())
 		})),
+		approve: None,
 	};
-	(opts, lines)
-}
-
-/// The text of every tool result in a request, in order.
-pub fn result_texts(messages: &[Json]) -> Vec<String> {
-	messages.iter().filter(|m| m["role"] == Json::from("toolResult")).map(|m| m["content"][0]["text"].str_or_empty().to_owned()).collect()
+	(opts, fake, lines)
 }

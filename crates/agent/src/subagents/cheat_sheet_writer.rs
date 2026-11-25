@@ -1,25 +1,25 @@
-//! One message of a cheat sheet's
-//! chat as one short request on the single-submit seam, so the connected agent gets it as one
-//! labelled work item. The agent may look things up in the space's files, makes or changes the
-//! PDF with its own tools in the sheet's working folder, and answers with one sheet_reply call:
-//! its words, and the new PDF's path and any rules the learner set when there are some.
+//! One message of a cheat sheet's chat as one short job on the single-submit seam. The agent may
+//! look things up in the space's files, makes or changes the PDF with its own tools in the sheet's
+//! working folder (the learner allows its commands on the sheet's page), and answers with one
+//! sheet_reply call: its words, and the new PDF's path and any rules the learner set when there
+//! are some.
 //!
 //! Only the model talks here; what the app sends and keeps, and how a PDF is checked and taken,
 //! is the cheat-sheets service.
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
 use gs_core::records::teaching_areas::RULE_MAX_CHARS;
 use gs_core::study::cheat_sheet::MAX_PAGES;
-use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
-use gs_engine::turn::faux::Engine;
+use gs_engine::turn::job_session::{Approve, RunError};
 use gs_engine::turn::tool::Tool;
 use gs_json::{Json, Obj, json};
 use parking_lot::Mutex;
 
-use super::pi_run::RunError;
+use super::job_agent::{JobAgent, Priority};
 use crate::extraction::submit_agent::{SubmitAgentOptions, run_submit_agent};
 
 const CHEAT_SHEET_INSTRUCTIONS: &str = r#"You help a learner with their cheat sheet: notes they may bring into one exam, a real PDF you make in a working folder. These instructions are short to save tokens. Write to the learner in full, plain sentences. Each request = one learner message about it, with the exam, its topics, their mistakes, the sheet's rules and chat so far. Reply with one sheet_reply call.
@@ -67,14 +67,17 @@ pub type TakePdf = Box<dyn Fn(String) -> BoxFuture<'static, Result<TakenPdf, Str
 pub type CheckText = Box<dyn Fn(&str) -> (String, Vec<String>) + Send + Sync>;
 
 pub struct SheetRequest {
-	/// "CSE 21 Midterm": the work item's label.
+	/// "CSE 21 Midterm": names the job in the log.
 	pub title: String,
 	/// The request (core `cheat_sheet_request_text`), with the learner's pictures.
 	pub prompt: Json,
 	pub lookups: Vec<Arc<dyn Tool>>,
 	pub check_text: CheckText,
 	pub take_pdf: TakePdf,
-	pub engine: Engine,
+	/// The sheet's working folder, where the agent works.
+	pub folder: PathBuf,
+	/// The sheet's page answers the agent's permission questions.
+	pub approve: Approve,
 	pub signal: Abort,
 }
 
@@ -87,7 +90,7 @@ pub struct SheetReply {
 }
 
 /// Answers one message about the sheet; fails when the agent never sends a usable reply.
-pub async fn reply_on_sheet(bridge: &Bridge, input: SheetRequest) -> Result<SheetReply, RunError> {
+pub async fn reply_on_sheet(agent: &dyn JobAgent, input: SheetRequest) -> Result<SheetReply, RunError> {
 	let pdf: Arc<Mutex<Option<TakenPdf>>> = Arc::default();
 	let text: Arc<Mutex<String>> = Arc::default();
 	let mut opts = SubmitAgentOptions::new(
@@ -132,13 +135,14 @@ pub async fn reply_on_sheet(bridge: &Bridge, input: SheetRequest) -> Result<Shee
 		}
 	}));
 	opts.lookups = input.lookups;
-	opts.max_turns = Some(10);
-	opts.task_label = Some(format!("Cheat sheet: {}", input.title));
-	// The learner asked for it, so it runs in their own agent chat.
-	opts.asked = true;
-	opts.engine = Some(input.engine);
+	opts.max_calls = Some(10);
+	opts.label = format!("Cheat sheet: {}", input.title);
+	// The learner asked for it.
+	opts.priority = Priority::Waited;
+	opts.cwd = Some(input.folder);
+	opts.approve = Some(input.approve);
 	opts.abort = Some(input.signal);
-	let reply = run_submit_agent(bridge, opts).await?;
+	let reply = run_submit_agent(agent, opts).await?;
 	let rules = reply["rules"].items().iter().filter_map(|r| r.as_str().map(str::to_owned)).collect();
 	let pdf = pdf.lock().take();
 	let text = std::mem::take(&mut *text.lock());
@@ -147,12 +151,13 @@ pub async fn reply_on_sheet(bridge: &Bridge, input: SheetRequest) -> Result<Shee
 
 #[cfg(test)]
 mod tests {
-	use gs_engine::turn::faux::Scripted;
+	use gs_runtime::fake::FakeStep;
+	use gs_runtime::{Ask, Verdict};
 
 	use super::*;
-	use crate::subagents::test_support::{bridge, calls, faux_engine, reply_seeing, result_texts};
+	use crate::subagents::test_support::{result_texts, says, stand_in, tool};
 
-	fn request(script: &Arc<Scripted>) -> SheetRequest {
+	fn request(asked: Arc<Mutex<Vec<Ask>>>) -> SheetRequest {
 		SheetRequest {
 			title: "Space Midterm".to_owned(),
 			prompt: Json::from("Make it A4."),
@@ -161,45 +166,49 @@ mod tests {
 			take_pdf: Box::new(|path: String| {
 				Box::pin(async move { if path == "bad.pdf" { Err("The PDF has 9 pages; a cheat sheet has 1 to 4.".to_owned()) } else { Ok(TakenPdf { bytes: b"%PDF".to_vec(), pages: vec![json!({ "w": 1, "h": 1 })], file: format!("/work/{path}") }) } })
 			}),
-			engine: faux_engine(script),
+			folder: PathBuf::from("/work"),
+			approve: Arc::new(move |ask| {
+				asked.lock().push(ask);
+				Box::pin(async { Verdict { allow: true, message: None } })
+			}),
 			signal: Abort::new(),
 		}
 	}
 
 	#[tokio::test]
 	async fn a_refused_pdf_goes_back_and_the_retry_is_kept() {
-		let script = Scripted::new();
-		let seen = Arc::new(Mutex::new(Vec::new()));
-		script.reply(calls(&[("sheet_reply", json!({ "text": "Done.", "pdf_path": "bad.pdf" }))]));
-		reply_seeing(&script, calls(&[("sheet_reply", json!({ "text": "Fixed.", "pdf_path": "sheet.pdf", "new_rules": ["A4, both sides"] }))]), &seen);
-		let reply = reply_on_sheet(&bridge(), request(&script)).await.unwrap();
+		let latexmk = FakeStep::Approval { tool: "Bash".to_owned(), input: json!({ "command": "latexmk sheet.tex" }) };
+		let (agent, fake) = stand_in(vec![vec![
+			latexmk,
+			tool("sheet_reply", json!({ "text": "Done.", "pdf_path": "bad.pdf" })),
+			tool("sheet_reply", json!({ "text": "Fixed.", "pdf_path": "sheet.pdf", "new_rules": ["A4, both sides"] })),
+		]]);
+		let asked = Arc::new(Mutex::new(Vec::new()));
+		let reply = reply_on_sheet(agent.as_ref(), request(asked.clone())).await.unwrap();
 		assert_eq!(reply.text, "Fixed.");
 		assert_eq!(reply.rules, vec!["A4, both sides"]);
 		assert_eq!(reply.pdf.unwrap().file, "/work/sheet.pdf");
-		assert!(result_texts(&seen.lock()[0])[0].contains("The PDF has 9 pages; a cheat sheet has 1 to 4."));
+		assert!(result_texts(&fake)[0].contains("The PDF has 9 pages; a cheat sheet has 1 to 4."));
+		assert_eq!(*asked.lock(), [Ask::Tool { name: "Bash".to_owned(), input: json!({ "command": "latexmk sheet.tex" }) }], "the sheet's page is asked");
+		assert_eq!(fake.sent()[0]["cwd"].as_str(), Some("/work"), "the agent works in the sheet's folder");
 	}
 
 	#[tokio::test]
 	async fn an_answer_without_a_pdf_and_no_answer_at_all() {
-		let script = Scripted::new();
-		script.reply(calls(&[("sheet_reply", json!({ "text": "Pool means max." }))]));
-		let reply = reply_on_sheet(&bridge(), request(&script)).await.unwrap();
+		let (agent, _) = stand_in(vec![vec![tool("sheet_reply", json!({ "text": "Pool means max." }))]]);
+		let reply = reply_on_sheet(agent.as_ref(), request(Arc::default())).await.unwrap();
 		assert_eq!(reply, SheetReply { text: "Pool means max.".to_owned(), pdf: None, rules: Vec::new() });
 
-		let script = Scripted::new();
-		script.reply(gs_engine::turn::messages::faux_assistant_message(vec![gs_engine::turn::messages::text_block("hi")], "stop"));
-		assert_eq!(reply_on_sheet(&bridge(), request(&script)).await, Err(RunError::Failed("the agent never answered".to_owned())));
+		let (agent, _) = stand_in(vec![vec![says("hi")], vec![says("hi again")]]);
+		assert_eq!(reply_on_sheet(agent.as_ref(), request(Arc::default())).await, Err(RunError::Failed("the agent never answered".to_owned())));
 	}
 
 	#[tokio::test]
 	async fn a_mark_that_points_at_nothing_goes_back_and_the_checked_text_is_kept() {
-		let script = Scripted::new();
-		let seen = Arc::new(Mutex::new(Vec::new()));
-		script.reply(calls(&[("sheet_reply", json!({ "text": "It adds up. [[f_000000000000:9]]" }))]));
-		reply_seeing(&script, calls(&[("sheet_reply", json!({ "text": "It adds up. [[f_000000000000:1]]" }))]), &seen);
-		let reply = reply_on_sheet(&bridge(), request(&script)).await.unwrap();
+		let (agent, fake) = stand_in(vec![vec![tool("sheet_reply", json!({ "text": "It adds up. [[f_000000000000:9]]" })), tool("sheet_reply", json!({ "text": "It adds up. [[f_000000000000:1]]" }))]]);
+		let reply = reply_on_sheet(agent.as_ref(), request(Arc::default())).await.unwrap();
 		assert_eq!(reply.text, "It adds up. [[f_000000000000/p. 3/notes.pdf]]");
-		assert!(result_texts(&seen.lock()[0])[0].contains("These source marks don't point at a passage of a space file: f_000000000000:9. Use ids from search_space_files, or leave them out."));
+		assert!(result_texts(&fake)[0].contains("These source marks don't point at a passage of a space file: f_000000000000:9. Use ids from search_space_files, or leave them out."));
 	}
 
 	#[test]

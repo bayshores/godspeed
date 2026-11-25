@@ -14,6 +14,7 @@ use crate::outcome::{Outcome, refuse};
 use crate::App;
 use crate::app::agent_folder::cheat_sheets_dir;
 use crate::app::disk::make_dir;
+use crate::jobs::asks::{AskedOn, asks_on};
 
 /// The view the studio and the sheet beside a session show, after taking a newer PDF from the
 /// working folder.
@@ -36,6 +37,7 @@ pub async fn cheat_sheet_view(app: &App, space_id: &str, deadline_id: &str) -> O
 		"sheet": sheet,
 		"running": run.map(|message_id| json!({ "messageId": message_id })),
 		"error": failed.map(|(message_id, text)| json!({ "messageId": message_id, "text": text })),
+		"approvals": asks_on(app, &AskedOn::Sheet(deadline_id.to_owned())),
 	});
 	if newer && let Some(o) = view.as_obj_mut() {
 		o.insert("newer", true);

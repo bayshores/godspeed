@@ -10,7 +10,7 @@ use crate::spaces::{link_folder, update_space};
 use crate::app::agent_folder::shortcut_path_problem;
 use crate::graph::study_start::path_for;
 use super::space_view::path_view;
-use super::{READING_NOTE, SpaceActions, bad_signature, change, folder_name, given, no_space};
+use super::{SpaceActions, bad_signature, change, folder_name, given, no_space};
 
 /// The signature argument cleaned: Ok(None) when not given, Err when given but not valid.
 fn signature_arg(args: &Json) -> Result<Option<Json>, ()> {
@@ -192,7 +192,7 @@ impl SpaceActions {
 			Ok(view) => view,
 			Err(err) => return ToolOutcome::Err(err),
 		};
-		self.done(json!({ "space": view, "note": format!("Linked. {READING_NOTE}") }), vec![change(label, &Json::from(space_id), "space", space_id, "/space/files")])
+		self.done(json!({ "space": view, "note": "Linked." }), vec![change(label, &Json::from(space_id), "space", space_id, "/space/files")])
 	}
 }
 

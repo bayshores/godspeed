@@ -1,5 +1,5 @@
-//! remember, forget and save_rule: short notes about the learner (they follow the work loop in
-//! the instructions every agent gets), and the learner's teaching rules.
+//! remember, forget and save_rule: short notes about the learner (they follow the intro in the
+//! instructions every agent gets), and the learner's teaching rules.
 
 use gs_json::{Json, json};
 

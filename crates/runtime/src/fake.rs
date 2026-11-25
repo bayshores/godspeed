@@ -14,6 +14,7 @@ use parking_lot::Mutex;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, WriteHalf};
 
 use crate::claude::protocol::TOOL_SERVER;
+use crate::event::Usage;
 use crate::pipes::Started;
 use crate::session::Runtime;
 
@@ -34,6 +35,10 @@ pub enum FakeStep {
 	Approval { tool: String, input: Json },
 	/// One of the agent's own tools, started and done. Over Codex it is a command execution.
 	OwnTool { name: String, input: Json },
+	/// One model call's tokens.
+	Usage(Usage),
+	/// The agent says nothing more until it is stopped.
+	Silence,
 	/// The turn fails with this text.
 	Fail(String),
 }
@@ -46,19 +51,58 @@ pub struct FakeAgent {
 
 #[derive(Default)]
 struct Script {
-	/// One list of steps per turn, played in order whichever session sends.
+	/// One list of steps per turn, played in order whichever session sends, for the sessions no
+	/// keyed script is for.
 	turns: VecDeque<Vec<FakeStep>>,
+	/// Turns for the sessions whose instructions hold the key, so a lesson and its jobs each play
+	/// their own.
+	keyed: Vec<(String, VecDeque<Vec<FakeStep>>)>,
 	sent: Vec<Json>,
+}
+
+impl Script {
+	/// The key of the script a session opened with these instructions plays; None is the shared one.
+	fn key_for(&self, instructions: &str) -> Option<String> {
+		self.keyed.iter().find(|(key, _)| instructions.contains(key.as_str())).map(|(key, _)| key.clone())
+	}
+
+	fn next_turn(&mut self, key: Option<&str>) -> Vec<FakeStep> {
+		let turns = match key {
+			Some(key) => self.keyed.iter_mut().find(|(k, _)| k == key).map(|(_, turns)| turns),
+			None => Some(&mut self.turns),
+		};
+		turns.and_then(VecDeque::pop_front).unwrap_or_default()
+	}
 }
 
 impl FakeAgent {
 	pub fn new(turns: Vec<Vec<FakeStep>>) -> FakeAgent {
-		FakeAgent { script: Arc::new(Mutex::new(Script { turns: turns.into(), sent: Vec::new() })) }
+		FakeAgent { script: Arc::new(Mutex::new(Script { turns: turns.into(), ..Script::default() })) }
 	}
 
 	/// Adds a turn after the ones already scripted.
 	pub fn push(&self, turn: Vec<FakeStep>) {
 		self.script.lock().turns.push_back(turn);
+	}
+
+	/// Adds a turn for the sessions whose instructions hold `key`. They play only these turns, in
+	/// order; a session opened before the first is pushed plays the shared ones.
+	pub fn push_for(&self, key: &str, turn: Vec<FakeStep>) {
+		let mut script = self.script.lock();
+		match script.keyed.iter_mut().find(|(k, _)| k == key) {
+			Some((_, turns)) => turns.push_back(turn),
+			None => script.keyed.push((key.to_owned(), VecDeque::from([turn]))),
+		}
+	}
+
+	/// The key of the script a session opened with `instructions` plays.
+	fn key_for(&self, instructions: &str) -> Option<String> {
+		self.script.lock().key_for(instructions)
+	}
+
+	/// The next turn of the script `key` names.
+	fn next_turn(&self, key: Option<&str>) -> Vec<FakeStep> {
+		self.script.lock().next_turn(key)
 	}
 
 	/// Every message godspeed sent the agent, in order, as the agent reads them: helper lines or
@@ -93,7 +137,7 @@ impl FakeAgent {
 
 	async fn play(self, pipe: tokio::io::DuplexStream) {
 		let (reader, writer) = tokio::io::split(pipe);
-		let mut player = Player { agent: self, out: writer, turns: HashMap::new(), next_id: 1 };
+		let mut player = Player { agent: self, out: writer, turns: HashMap::new(), keys: HashMap::new(), next_id: 1 };
 		let mut lines = BufReader::new(reader).lines();
 		while let Ok(Some(line)) = lines.next_line().await {
 			let Ok(message) = gs_json::parse(&line) else { continue };
@@ -117,6 +161,8 @@ struct Player {
 	agent: FakeAgent,
 	out: WriteHalf<tokio::io::DuplexStream>,
 	turns: HashMap<String, Playing>,
+	/// Each session's script key, from its instructions.
+	keys: HashMap<String, Option<String>>,
 	next_id: u64,
 }
 
@@ -135,11 +181,12 @@ impl Player {
 		let session = message["session"].str_or_empty().to_owned();
 		match message["type"].as_str() {
 			Some("open") => {
+				self.keys.insert(session.clone(), self.agent.key_for(message["systemPrompt"].str_or_empty()));
 				let native = message["resume"].as_str().map_or_else(|| format!("fake-{session}"), str::to_owned);
 				self.write(json!({ "type": "opened", "session": session, "nativeId": native })).await
 			}
 			Some("send") => {
-				let steps = self.agent.script.lock().turns.pop_front().unwrap_or_default();
+				let steps = self.agent.next_turn(self.keys.get(&session).cloned().flatten().as_deref());
 				self.turns.insert(session.clone(), Playing { steps: steps.into(), calls: VecDeque::new(), waiting: None });
 				self.sdk(&session, json!({ "type": "system", "subtype": "init" })).await?;
 				self.advance(&session).await
@@ -158,6 +205,7 @@ impl Player {
 			Some("interrupt") if self.turns.contains_key(&session) => self.finish(&session, Some("error_during_execution")).await,
 			Some("close") => {
 				self.turns.remove(&session);
+				self.keys.remove(&session);
 				self.write(json!({ "type": "closed", "session": session })).await
 			}
 			_ => Ok(()),
@@ -202,6 +250,12 @@ impl Player {
 					self.write(json!({ "type": "approval", "id": id, "session": session, "tool": tool, "input": input, "toolUseId": format!("toolu_{id}") })).await?;
 					return self.wait(session, id);
 				}
+				FakeStep::Usage(usage) => {
+					let start = json!({ "type": "message_start", "message": { "usage": { "input_tokens": usage.input.saturating_sub(usage.cached), "cache_read_input_tokens": usage.cached } } });
+					self.sdk(session, json!({ "type": "stream_event", "event": start })).await?;
+					self.sdk(session, json!({ "type": "stream_event", "event": { "type": "message_delta", "usage": { "output_tokens": usage.output } } })).await?;
+				}
+				FakeStep::Silence => return Ok(()),
 				FakeStep::Fail(why) => {
 					self.turns.remove(session);
 					return self.sdk(session, json!({ "type": "result", "subtype": "success", "is_error": true, "result": why })).await;
@@ -232,6 +286,7 @@ impl Player {
 mod tests {
 	use super::*;
 	use crate::event::{Ask, End, Part, SessionEvent, ToolReply, Verdict};
+	use crate::session::{Session, SessionSpec};
 	use crate::test_peer::{events_until_end, spec};
 
 	#[tokio::test]
@@ -329,6 +384,34 @@ mod tests {
 		assert_eq!(own, [command(false), command(true), command(false), command(true)]);
 		let sent: Vec<String> = agent.sent().iter().map(|m| m["method"].as_str().unwrap_or("answer").to_owned()).collect();
 		assert_eq!(sent, ["initialize", "initialized", "thread/start", "turn/start", "answer", "answer", "turn/interrupt"]);
+	}
+
+	/// The text a turn on `session` writes, and its usage events.
+	async fn played(session: &Session) -> (String, Vec<Usage>) {
+		let (events, end) = events_until_end(session).await;
+		assert_eq!(end, End::Completed);
+		let text = events.iter().filter_map(|e| if let SessionEvent::TextDone(text) = e { Some(text.as_str()) } else { None }).collect();
+		let usage = events.iter().filter_map(|e| if let SessionEvent::Usage(usage) = e { Some(*usage) } else { None }).collect();
+		(text, usage)
+	}
+
+	#[tokio::test]
+	async fn each_session_plays_the_script_its_instructions_name() {
+		for codex in [false, true] {
+			let agent = FakeAgent::new(vec![vec![FakeStep::Text("lesson".into())]]);
+			let used = Usage { input: 120, cached: 100, output: 7 };
+			agent.push_for("PDF reading specialist", vec![FakeStep::Usage(used), FakeStep::Text("job".into())]);
+			let runtime = if codex { agent.codex_runtime() } else { agent.runtime() };
+			let job_spec = SessionSpec { instructions: "You are a PDF reading specialist.".into(), ..spec(None) };
+			let job = runtime.open(job_spec).await.unwrap();
+			let lesson = runtime.open(spec(None)).await.unwrap();
+			job.send(&[Part::Text("read".into())]).await.unwrap();
+			lesson.send(&[Part::Text("teach".into())]).await.unwrap();
+			assert_eq!(played(&lesson).await, ("lesson".to_owned(), Vec::new()), "codex: {codex}");
+			assert_eq!(played(&job).await, ("job".to_owned(), vec![used]), "codex: {codex}");
+			job.send(&[Part::Text("again".into())]).await.unwrap();
+			assert_eq!(played(&job).await, (String::new(), Vec::new()), "a keyed script never plays the shared turns");
+		}
 	}
 
 	#[tokio::test]

@@ -9,13 +9,13 @@ use gs_agent::subagents::plugin_asker::{PluginAsk, ask_for_plugin};
 use gs_base::clock;
 use gs_base::events::EventKind;
 use gs_engine::turn::abort::Abort;
-use gs_engine::turn::models::agent_engine;
 use gs_json::{Json, json, stringify};
 
 use super::installed::installed_manifest;
 use super::manifest::uses;
 use super::state::{resolve_state, saved_entry};
 use crate::App;
+use crate::jobs::job_agent::job_agent;
 use crate::outcome::{Outcome, Stop, refuse};
 
 /// The most a prompt, and the schema, may take.
@@ -70,8 +70,8 @@ pub async fn ask_agent(app: &Arc<App>, id: &str, prompt: &str, schema: &Json) ->
 	}
 	app.events.emit(EventKind::ActivityChanged, json!({}));
 	let asking = Asking { app: app.clone(), id: id.to_owned(), abort: Abort::new() };
-	let ask = PluginAsk { name, prompt: prompt.to_owned(), schema: schema.clone(), engine: agent_engine(&app.bridge), signal: asking.abort.clone() };
-	let answer = ask_for_plugin(&app.bridge, ask).await.map_err(|e| Stop::Refuse(502, e.to_string()));
+	let ask = PluginAsk { name, prompt: prompt.to_owned(), schema: schema.clone(), signal: asking.abort.clone() };
+	let answer = ask_for_plugin(job_agent(app).as_ref(), ask).await.map_err(|e| Stop::Refuse(502, e.to_string()));
 	drop(asking);
 	answer
 }

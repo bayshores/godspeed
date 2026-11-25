@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 use portable_pty::{Child, PtySize};
 use serde_json::{Value, json};
 
-use super::input::{clear_input, enter_on_yes, nudge_input, type_line};
+use super::input::{clear_input, enter_on_yes, type_line};
 use super::screen::{self, Prompt, Screen, Settle, Trust};
 use super::spawn::{self, Agent, Role};
 use super::{Ended, Io, NO_START, NOT_SENT, NOT_SET_UP, NOT_SHOWN, NOT_THERE, Outlet, State, Terminal, To, next_tick, state_ended};
@@ -275,15 +275,6 @@ impl Terminals {
 		if terminal.role == Role::Teacher && terminal.agent == Agent::Claude {
 			let line = line.to_owned();
 			std::thread::spawn(move || clear_input(&terminal, &line));
-		}
-	}
-
-	/// The quiet teacher has work waiting: godspeed's line goes into its input and is sent.
-	pub fn nudge(&self, id: &str, line: &str) {
-		let Ok(terminal) = self.find(id) else { return };
-		if terminal.role == Role::Teacher {
-			let line = line.to_owned();
-			std::thread::spawn(move || nudge_input(&terminal, &line));
 		}
 	}
 

@@ -33,6 +33,8 @@ struct Turn {
 #[derive(Default)]
 struct Thread {
 	cwd: String,
+	/// Its script key, from its instructions.
+	key: Option<String>,
 	turn: Option<Turn>,
 }
 
@@ -141,11 +143,15 @@ impl Player {
 			wire::INITIALIZE => self.respond(id, json!({ "userAgent": "godspeed/fake", "codexHome": "/fake", "platformFamily": "unix", "platformOs": "macos" })).await,
 			wire::THREAD_START | wire::THREAD_RESUME => {
 				let thread = if method == wire::THREAD_START { format!("fake-thread-{}", self.fresh_id()) } else { thread };
-				self.threads.entry(thread.clone()).or_default().cwd = params["cwd"].str_or_empty().to_owned();
+				let key = self.agent.key_for(params["developerInstructions"].str_or_empty());
+				let entry = self.threads.entry(thread.clone()).or_default();
+				entry.cwd = params["cwd"].str_or_empty().to_owned();
+				entry.key = key;
 				self.respond(id, json!({ "thread": { "id": thread }, "model": params["model"] })).await
 			}
 			wire::TURN_START => {
-				let steps = self.agent.script.lock().turns.pop_front().unwrap_or_default();
+				let key = self.threads.get(&thread).and_then(|thread| thread.key.clone());
+				let steps = self.agent.next_turn(key.as_deref());
 				let turn = format!("turn_{}", self.fresh_id());
 				self.threads.entry(thread.clone()).or_default().turn = Some(Turn { id: turn.clone(), steps: steps.into(), waiting: None, settling: false });
 				self.respond(id, json!({ "turn": turn_json(&turn, "inProgress", None) })).await?;
@@ -229,6 +235,11 @@ impl Player {
 					self.write(json!({ "id": request, "method": "item/commandExecution/requestApproval", "params": { "kind": "command", "threadId": thread, "turnId": turn, "itemId": item, "startedAtMs": 0, "environmentId": null, "reason": null, "command": command, "cwd": cwd } })).await?;
 					return self.wait(thread, Waiting::Approval { request, item, command });
 				}
+				FakeStep::Usage(usage) => {
+					let last = json!({ "inputTokens": usage.input, "cachedInputTokens": usage.cached, "outputTokens": usage.output });
+					self.note("thread/tokenUsage/updated", json!({ "threadId": thread, "turnId": turn, "tokenUsage": { "last": last } })).await?;
+				}
+				FakeStep::Silence => return Ok(()),
 				FakeStep::Fail(why) => return self.finish(thread, "failed", Some(&why)).await,
 			}
 		}

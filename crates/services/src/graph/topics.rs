@@ -5,15 +5,14 @@
 //! the last snapshot. The first grouping and the one after a file import group every fact. Any
 //! other run keeps the topics: each new fact joins its chain neighbors' topic with no model call,
 //! and only facts with no grouped neighbor go to the grouper, alone. A model run shows in the
-//! activity dock (kind "topics") and runs on the outside agent. Every run appends one full
+//! activity dock (kind "topics") and runs on the learner's agent. Every run appends one full
 //! snapshot to the graph's topics.jsonl.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use gs_agent::extraction::topic_grouper::{TopicGrouperInput, group_topics};
-use gs_agent::subagents::bg_llm_semaphore::with_bg_llm_slot;
-use gs_agent::subagents::pi_run::RunError;
+use gs_engine::turn::job_session::RunError;
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::tasks::detach;
@@ -29,6 +28,7 @@ use tokio::task::JoinHandle;
 use super::extraction_runs::runs;
 use super::graph::graph_store_for;
 use crate::App;
+use crate::jobs::job_agent::job_agent;
 
 /// How long the scheduler waits for more graph writes before running.
 const TOPIC_GROUPING_DEBOUNCE_MS: i64 = 20_000;
@@ -167,22 +167,20 @@ async fn group_once(app: &Arc<App>, space_id: &str) -> Result<(), String> {
 		chains: graph.chains,
 		current,
 		loose,
-		engine: None,
 		abort: Some(abort.clone()),
 		notes: taken.as_ref().map(|t| t.riding()),
 	};
-	let grouped = with_bg_llm_slot(&app.graph.bg_llm, Some(&abort), || group_topics(&app.bridge, input)).await;
+	let grouped = group_topics(job_agent(app).as_ref(), input).await;
 	if let Some(taken) = taken {
-		taken.done(app, matches!(grouped, Ok(Ok(_))));
+		taken.done(app, grouped.is_ok());
 	}
 	// The space lock: a space delete that stopped this run finishes before the run ends.
 	let _guard = app.locks.lock(LockKey::Space(space_id));
 	let result = match grouped {
-		// Aborted while queued for a permit, or stopped mid-run: nothing to write.
-		Err(_) => Ok(()),
-		Ok(Err(err)) if abort.is_aborted() || err == RunError::Aborted => Ok(()),
-		Ok(Err(err)) => Err(err.to_string()),
-		Ok(Ok(topics)) => write_topics(app, space_id, topics),
+		// Stopped while waiting or mid-run: nothing to write.
+		Err(err) if abort.is_aborted() || err == RunError::Aborted => Ok(()),
+		Err(err) => Err(err.to_string()),
+		Ok(topics) => write_topics(app, space_id, topics),
 	};
 	runs(app).finish_background_graph_run(&app.events, &run_key);
 	result

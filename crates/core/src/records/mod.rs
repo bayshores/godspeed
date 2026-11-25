@@ -1,4 +1,4 @@
-//! Settings, teaching rules, agent notes/rules/seen records and the prompt segment grammar.
+//! Settings, teaching rules, agent notes and rules records and the prompt segment grammar.
 
 pub mod settings;
 pub mod settings_resolution;
@@ -6,7 +6,6 @@ pub mod teaching_areas;
 pub mod agent_notes;
 pub mod agent_actions;
 pub mod agent_rules;
-pub mod agent_seen;
 pub mod teacher_chats;
 pub mod prompt_segments;
 pub mod changelog;

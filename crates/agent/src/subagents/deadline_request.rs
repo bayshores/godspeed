@@ -4,11 +4,12 @@
 
 use std::sync::Arc;
 
-use gs_engine::bridge::Bridge;
+use gs_engine::turn::job_session::RunError;
 use gs_engine::turn::tool::Tool;
 use gs_json::Json;
 
-use super::pi_run::{RunError, SubagentRunOptions, run_subagent};
+use super::job_agent::{JobAgent, Priority};
+use super::pi_run::{SubagentRunOptions, run_subagent};
 
 const INSTRUCTIONS: &str = "You do one task for a learner in godspeed, a learning app, on their spaces and deadlines. These instructions are short to save tokens. Write to the learner in full, plain sentences. Learner doesn't see this conversation; what you change shows on the deadline's page.
 
@@ -20,7 +21,7 @@ const INSTRUCTIONS: &str = "You do one task for a learner in godspeed, a learnin
 const MAX_TURNS: usize = 16;
 
 pub struct DeadlineRequest {
-	/// "Deadline: CSE 21 Midterm": the work item's label.
+	/// "Deadline: CSE 21 Midterm": names the job in the log.
 	pub label: String,
 	pub prompt: String,
 	pub tools: Vec<Arc<dyn Tool>>,
@@ -29,9 +30,8 @@ pub struct DeadlineRequest {
 }
 
 /// Runs the request to the end: its last text.
-pub async fn run_deadline_request(bridge: &Bridge, request: DeadlineRequest) -> Result<String, RunError> {
-	let mut run = SubagentRunOptions::new(INSTRUCTIONS, Json::from(request.prompt), MAX_TURNS);
-	run.task_label = Some(request.label);
-	run.asked = request.asked;
-	Ok(run_subagent(bridge, request.tools, run).await?.text)
+pub async fn run_deadline_request(agent: &dyn JobAgent, request: DeadlineRequest) -> Result<String, RunError> {
+	let mut run = SubagentRunOptions::new(request.label, INSTRUCTIONS, Json::from(request.prompt), MAX_TURNS);
+	run.priority = if request.asked { Priority::Waited } else { Priority::Own };
+	Ok(run_subagent(agent, request.tools, run).await?.text)
 }

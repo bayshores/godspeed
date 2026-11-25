@@ -18,9 +18,8 @@ use gs_base::re::Re;
 use gs_base::text::{slice16, trim};
 use gs_core::messages::role::Role;
 use gs_core::session::jobs::{accumulate_job_usage, build_subagent_steer, is_subagent_failure, notes_or, pi_usage_to_step};
-use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
-use gs_engine::turn::faux::Engine;
+use gs_engine::turn::job_session::{Approve, OnToolStart, RunError};
 use gs_json::{Json, json};
 use gs_pdf::Pdf;
 use gs_store::chats::ChatStore;
@@ -30,17 +29,20 @@ use parking_lot::Mutex;
 use super::aborts::JobAborts;
 use super::demo_builder::run_demo_builder;
 use super::headless::HeadlessApi;
+use super::job_agent::JobAgent;
 use super::pdf_reader::{Keeper, run_pdf_reader_agent};
-use super::pi_run::{JobAgentOptions, OnActivity, OnToolStart, OnUsage, RunError};
+use super::pi_run::{JobAgentOptions, OnActivity, OnUsage};
 use super::researcher::{ResearcherRunOptions, run_researcher_agent};
 use crate::fs_tools::fs_shared::resolve_source_path;
 
-/// What the runner needs from the server: its stores, `deliver`, the engine for a job, and the
+/// What the runner needs from the server: its stores, `deliver`, the agent the jobs run on, and the
 /// server state the runner reads.
 pub trait JobHost: Send + Sync {
 	fn job_store(&self) -> &JobStore;
 	fn chat_store(&self) -> &ChatStore;
-	fn bridge(&self) -> &Bridge;
+	fn job_agent(&self) -> Arc<dyn JobAgent>;
+	/// The lesson `chat_id` answers its job's permission questions.
+	fn approve(&self, chat_id: &str) -> Approve;
 	fn pdf(&self) -> &Pdf;
 	fn job_aborts(&self) -> &JobAborts;
 	/// `os.tmpdir()`: the research job's PDF folder goes here.
@@ -48,9 +50,6 @@ pub trait JobHost: Send + Sync {
 	fn headless(&self) -> Arc<dyn HeadlessApi>;
 	/// The person's Tavily key, read when a research job starts.
 	fn search_key(&self) -> Option<String>;
-	/// The engine for a model role ("researcher", "demoBuilder", "pdfReader");
-	/// None refuses the job.
-	fn engine_for(&self, role: &str) -> Option<Engine>;
 	/// Hands a finished job's steer to the lesson's delivery. The runner never waits for it; the
 	/// saved pending delivery survives a restart.
 	fn deliver(&self, steer: Json) -> BoxFuture<'static, Result<(), String>>;
@@ -82,15 +81,8 @@ pub fn create_job_runner(host: Arc<dyn JobHost>) -> Arc<JobRunner> {
 	Arc::new(JobRunner { host, usage_totals: Mutex::new(HashMap::new()) })
 }
 
-/// The model role each job kind runs as.
-fn kind_role(kind: &str) -> Option<&'static str> {
-	Some(match kind {
-		"research" => "researcher",
-		"demo" => "demoBuilder",
-		"pdf" => "pdfReader",
-		_ => return None,
-	})
-}
+/// The job kinds the runner runs.
+const KINDS: [&str; 3] = ["research", "demo", "pdf"];
 
 /// One job loop's kill switch and usage tap.
 struct LoopContext {
@@ -117,18 +109,16 @@ impl JobRunner {
 		self.jobs().get_job(job_id).is_some_and(|j| j["status"] == Json::from("running"))
 	}
 
-	fn loop_context(self: &Arc<Self>, job_id: &str, engine: &Engine) -> LoopContext {
-		// The engine's actual model, provider-qualified.
-		let model = format!("{}:{}", engine.model["provider"].as_str().unwrap_or("undefined"), engine.model["id"].as_str().unwrap_or("undefined"));
+	fn loop_context(self: &Arc<Self>, job_id: &str) -> LoopContext {
 		let abort = Abort::new();
 		self.host.job_aborts().register_job_abort(job_id, abort.clone());
 		let runner = Arc::downgrade(self);
 		let id = job_id.to_owned();
-		let on_usage: OnUsage = Arc::new(move |usage: &Json| {
+		let on_usage: OnUsage = Arc::new(move |usage: &Json, model: &str| {
 			let Some(runner) = runner.upgrade() else { return };
 			let next = {
 				let mut totals = runner.usage_totals.lock();
-				let next = accumulate_job_usage(totals.get(&id), &model, &pi_usage_to_step(usage));
+				let next = accumulate_job_usage(totals.get(&id), model, &pi_usage_to_step(usage));
 				totals.insert(id.clone(), next.clone());
 				next
 			};
@@ -150,7 +140,7 @@ impl JobRunner {
 			return;
 		}
 		let kind = job["kind"].str_or_empty().to_owned();
-		let Some(role) = kind_role(&kind) else {
+		if !KINDS.contains(&kind.as_str()) {
 			// `${job.kind}`.
 			let shown = match job.get("kind") {
 				None => "undefined".to_owned(),
@@ -160,24 +150,12 @@ impl JobRunner {
 			eprintln!("[job {job_id}] unknown kind: {shown}");
 			self.update(&job_id, json!({ "status": "error", "error": format!("unknown kind {shown}"), "activity": "failed" }));
 			return;
-		};
-		let Some(engine) = self.host.engine_for(role) else {
-			// Refused like any failed job: the honest error, then the kind's failure shape
-			// through finish_job, so the lesson resumes instead of waiting forever.
-			eprintln!("[job {job_id}] refused — no engine");
-			let reason = "No model is available to run this job";
-			if self.still_running(&job_id) {
-				self.update(&job_id, json!({ "error": reason }));
-			}
-			let input = self.resolve_input(&job, input);
-			self.finish_job(&job_id, failure_result(&kind, input.as_ref(), reason));
-			return;
-		};
-		let ctx = self.loop_context(&job_id, &engine);
+		}
+		let ctx = self.loop_context(&job_id);
 		match kind.as_str() {
-			"research" => self.run_research_job(&job_id, engine, input, &ctx).await,
-			"demo" => self.run_demo_job(&job_id, engine, input, &ctx).await,
-			_ => self.run_pdf_job(&job_id, engine, input, &ctx).await,
+			"research" => self.run_research_job(&job_id, input, &ctx).await,
+			"demo" => self.run_demo_job(&job_id, input, &ctx).await,
+			_ => self.run_pdf_job(&job_id, input, &ctx).await,
 		}
 		self.host.job_aborts().unregister_job_abort(&job_id);
 		// The last usage write may have raced the loop's end: save what was folded (a merge
@@ -250,9 +228,9 @@ impl JobRunner {
 	}
 
 	/// What the demo and pdf job agents get.
-	fn job_agent_options(self: &Arc<Self>, job_id: &str, engine: Engine, ctx: &LoopContext) -> JobAgentOptions {
+	fn job_agent_options(self: &Arc<Self>, job: &Json, ctx: &LoopContext) -> JobAgentOptions {
 		let runner = Arc::downgrade(self);
-		let id = job_id.to_owned();
+		let id = job["id"].str_or_empty().to_owned();
 		let on_activity: OnActivity = Arc::new(move |line: &str| {
 			if let Some(runner) = runner.upgrade() {
 				runner.update(&id, json!({ "activity": line }));
@@ -260,12 +238,12 @@ impl JobRunner {
 			}
 		});
 		JobAgentOptions {
-			bridge: self.host.bridge().clone(),
-			engine: Some(engine),
+			agent: self.host.job_agent(),
 			headless: self.host.headless(),
 			abort_signal: Some(ctx.abort.clone()),
 			on_usage: Some(ctx.on_usage.clone()),
 			on_activity: Some(on_activity),
+			approve: Some(self.host.approve(job["chatId"].str_or_empty())),
 		}
 	}
 
@@ -280,7 +258,7 @@ impl JobRunner {
 		self.finish_job(job_id, failure_result(kind, input, reason));
 	}
 
-	async fn run_research_job(self: &Arc<Self>, job_id: &str, engine: Engine, passed: Option<Json>, ctx: &LoopContext) {
+	async fn run_research_job(self: &Arc<Self>, job_id: &str, passed: Option<Json>, ctx: &LoopContext) {
 		let Some(job) = self.job_context(job_id) else { return };
 		let input = self.resolve_input(&job, passed);
 		let input_ref = input.as_ref().unwrap_or(&Json::Null);
@@ -325,16 +303,16 @@ impl JobRunner {
 		};
 		self.update(job_id, json!({ "activity": "researching" }));
 		let opts = ResearcherRunOptions {
-			engine: Some(engine),
 			pdf: self.host.pdf(),
 			pdf_dir: &pdf_dir,
 			abort_signal: Some(ctx.abort.clone()),
 			on_usage: Some(ctx.on_usage.clone()),
 			on_tool_start: Some(on_tool_start),
-			task_label: Some(format!("Research: {question}")),
+			label: format!("Research: {question}"),
 			search_key: self.host.search_key(),
+			approve: Some(self.host.approve(job["chatId"].str_or_empty())),
 		};
-		let outcome = match run_researcher_agent(self.host.bridge(), &prompt, opts).await {
+		let outcome = match run_researcher_agent(self.host.job_agent().as_ref(), &prompt, opts).await {
 			Ok(brief) if trim(&brief).is_empty() => Err(RunError::Failed("the researcher produced no text".to_owned())),
 			outcome => outcome,
 		};
@@ -351,20 +329,20 @@ impl JobRunner {
 
 	/// Builds a demo and stores it. A build that left no HTML also records why on a job still
 	/// running, as `failed` when it left no notes.
-	async fn run_demo_job(self: &Arc<Self>, job_id: &str, engine: Engine, passed: Option<Json>, ctx: &LoopContext) {
+	async fn run_demo_job(self: &Arc<Self>, job_id: &str, passed: Option<Json>, ctx: &LoopContext) {
 		let Some(job) = self.job_context(job_id) else { return };
 		let input = self.resolve_input(&job, passed).unwrap_or(Json::Null);
 		let title = input["title"].as_str().filter(|t| !trim(t).is_empty()).unwrap_or("Interactive demo");
 		let brief = input["brief"].str_or_empty();
 		self.update(job_id, json!({ "activity": "building demo" }));
-		let result = run_demo_builder(title, brief, &self.job_agent_options(job_id, engine, ctx)).await;
+		let result = run_demo_builder(title, brief, &self.job_agent_options(&job, ctx)).await;
 		if result["html"].as_str().is_none_or(str::is_empty) && self.still_running(job_id) {
 			self.update(job_id, json!({ "error": notes_or(&result, "demo build failed") }));
 		}
 		self.finish_job(job_id, result);
 	}
 
-	async fn run_pdf_job(self: &Arc<Self>, job_id: &str, engine: Engine, passed: Option<Json>, ctx: &LoopContext) {
+	async fn run_pdf_job(self: &Arc<Self>, job_id: &str, passed: Option<Json>, ctx: &LoopContext) {
 		let Some(job) = self.job_context(job_id) else { return };
 		let input = self.resolve_input(&job, passed).unwrap_or(Json::Null);
 		let path = input["path"].as_str().map(trim).unwrap_or_default();
@@ -374,7 +352,7 @@ impl JobRunner {
 			let host = self.host.clone();
 			Keeper { pages: std::mem::take(&mut file.pages), keep: Box::new(move |page, markdown| host.keep_page(&file, page, markdown)) }
 		});
-		let result = run_pdf_reader_agent(path, question, self.host.pdf(), keeper, &self.job_agent_options(job_id, engine, ctx)).await;
+		let result = run_pdf_reader_agent(path, question, self.host.pdf(), keeper, &self.job_agent_options(&job, ctx)).await;
 		static FAILED: std::sync::LazyLock<Re> = std::sync::LazyLock::new(|| Re::new(r"^PDF failed:\s*", "i"));
 		let brief = result["brief"].str_or_empty();
 		if FAILED.test(brief) && self.still_running(job_id) {

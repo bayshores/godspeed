@@ -16,7 +16,6 @@ use gs_server::{data_lock, http};
 use gs_services::App;
 use gs_services::app::deadline_reminder::start_deadline_reminders;
 use gs_services::app::menu_bar_countdown::start_menu_bar_countdown;
-use gs_services::app::teacher_nudge::start_teacher_nudges;
 use gs_shell_rpc::{ShellLink, ToShell};
 use tower::Layer;
 
@@ -74,7 +73,7 @@ async fn main() -> ExitCode {
 	gs_services::mocks::mocks::ask_waiting_mocks(&app);
 	start_deadline_reminders(&app);
 	start_menu_bar_countdown(&app);
-	start_teacher_nudges(&app);
+	gs_services::turns::catch_up(&app);
 	let router = http::server(app, &access);
 	let service = axum::middleware::from_fn_with_state(access, http::front).layer(router);
 	eprintln!("godspeed-server {} on http://127.0.0.1:{port}", gs_base::config::VERSION);
@@ -92,11 +91,11 @@ async fn main() -> ExitCode {
 fn listen_for_terminals(app: &App, shell: &ShellLink) {
 	let at_start = std::env::var("LH_TERMINALS").ok().and_then(|text| gs_json::parse(&text).ok()).unwrap_or_default();
 	let ids = at_start["live"].items().iter().filter_map(|id| id.as_str().map(str::to_owned)).collect();
-	app.bridge.set_live_terminals(ids, at_start["teacher"].as_str().map(str::to_owned));
-	let bridge = app.bridge.clone();
-	shell.on_terminals(move |live, teacher| bridge.set_live_terminals(live, teacher));
-	let bridge = app.bridge.clone();
-	shell.on_typed(move |terminal| bridge.typed(&terminal, clock::now_ms()));
+	app.terminals.set_live_terminals(ids, at_start["teacher"].as_str().map(str::to_owned));
+	let terminals = app.terminals.clone();
+	shell.on_terminals(move |live, teacher| terminals.set_live_terminals(live, teacher));
+	let terminals = app.terminals.clone();
+	shell.on_typed(move |terminal| terminals.typed(&terminal, clock::now_ms()));
 }
 
 /// SIGTERM or SIGINT (Ctrl-C on Windows) stops the server, and so does the end of stdin: the

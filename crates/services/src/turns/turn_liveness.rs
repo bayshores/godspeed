@@ -39,6 +39,11 @@ pub fn is_turn_running(app: &App, chat_id: &str) -> bool {
 	app.turns.in_flight.lock().contains(chat_id)
 }
 
+/// How many lessons have a turn running.
+pub fn turns_running(app: &App) -> usize {
+	app.turns.in_flight.lock().len()
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;

@@ -1,13 +1,14 @@
-//! Mocks end to end against a stand-in agent on the bridge: a mock belongs to its deadline and is
+//! Mocks end to end against a stand-in agent: a mock belongs to its deadline and is
 //! written from what it is like, taken with no agent (answers saved, examples run), paused and
 //! resumed, ended by End mock or by its time, graded, and removed; a paused mock is never ended
 //! by its old end time.
 
 use gs_base::{clock, fsx};
 use gs_core::mocks::mock::parse_mock_code;
-use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
+use gs_runtime::fake::{FakeAgent, FakeStep};
 
 use super::*;
+use crate::app::agents::pick_stand_in;
 use crate::app::test_support::{scratch_dir, test_app};
 
 const CODE: &str = "function countVowels(s) {\n\treturn [...s].filter((c) => 'aeiou'.includes(c)).length;\n}\n";
@@ -45,16 +46,28 @@ fn questions() -> Json {
 	})
 }
 
-/// As the teacher (the learner asked for the mock), answers the next work item with one tool call
-/// (or words); what it was asked, as text.
-async fn agent(app: &App, call: Option<(&str, Json)>) -> String {
-	let view = app.bridge.wait_for_work(10_000, WaitOptions { and_others: true, ..WaitOptions::default() }).await.expect("a work item");
-	let reply = match call {
-		Some((name, arguments)) => AgentReply { text: None, tool_calls: vec![ReplyCall { name: name.to_owned(), arguments }] },
-		None => AgentReply { text: Some("I can't.".to_owned()), tool_calls: Vec::new() },
-	};
-	app.bridge.respond_to_work(&view.work_id, reply, 0).unwrap();
-	view.messages.iter().map(|m| m["text"].str_or_empty().to_owned()).collect::<Vec<_>>().join("\n")
+/// The learner's agent, picked; each job plays the next turn pushed.
+fn stand_in(app: &Arc<App>) -> FakeAgent {
+	let agent = FakeAgent::default();
+	pick_stand_in(app, agent.runtime());
+	agent
+}
+
+/// The agent's next job answers with one tool call (or words).
+fn will(agent: &FakeAgent, call: Option<(&str, Json)>) {
+	agent.push(vec![match call {
+		Some((name, args)) => FakeStep::Tool { name: name.to_owned(), args },
+		None => FakeStep::Text("I can't.".to_owned()),
+	}]);
+}
+
+/// What each job asked the agent, in order.
+fn asked(agent: &FakeAgent) -> Vec<String> {
+	agent.sent().iter().filter(|m| m["type"].as_str() == Some("send")).map(|m| m["content"][0]["text"].str_or_empty().to_owned()).collect()
+}
+
+fn last_asked(agent: &FakeAgent) -> String {
+	asked(agent).pop().expect("a job asked the agent")
 }
 
 async fn until(what: &str, done: impl Fn() -> bool) {
@@ -83,10 +96,10 @@ fn two(minutes: Option<i64>) -> (Json, Option<Json>) {
 	(json!(2), minutes.map(Json::from))
 }
 
-async fn ready_mock(app: &Arc<App>, space_id: &str, deadline_id: &str, minutes: Option<i64>) -> String {
+async fn ready_mock(app: &Arc<App>, agent: &FakeAgent, space_id: &str, deadline_id: &str, minutes: Option<i64>) -> String {
 	let (questions, minutes) = two(minutes);
+	will(agent, Some(("write_mock_questions", self::questions())));
 	let mock_id = create_mock(app, space_id, deadline_id, &questions, minutes.as_ref()).unwrap();
-	agent(app, Some(("write_mock_questions", self::questions()))).await;
 	settled(app, space_id, &mock_id).await;
 	mock_id
 }
@@ -122,6 +135,7 @@ async fn a_mock_is_written_from_its_deadline_taken_with_no_agent_and_graded() {
 	let root = scratch_dir("mocks-life");
 	let app = test_app(&root);
 	let (space_id, onsite, homework) = interview_space(&app);
+	let agent = stand_in(&app);
 	let (questions, minutes) = two(Some(30));
 	assert_eq!(refusal(create_mock(&app, &space_id, &homework, &questions, None)), (400, "Mocks are for exams, quizzes and interviews.".to_owned()));
 	assert_eq!(refusal(create_mock(&app, &space_id, &onsite, &json!(11), None)).0, 400);
@@ -129,10 +143,11 @@ async fn a_mock_is_written_from_its_deadline_taken_with_no_agent_and_graded() {
 	app.stores.spaces.update_deadline(&space_id, &onsite, &json!({ "done": true })).unwrap();
 	assert_eq!(refusal(create_mock(&app, &space_id, &onsite, &questions, None)), (409, "This deadline is done.".to_owned()));
 	app.stores.spaces.update_deadline(&space_id, &onsite, &json!({ "done": false })).unwrap();
+	will(&agent, Some(("write_mock_questions", self::questions())));
 	let mock_id = create_mock(&app, &space_id, &onsite, &questions, minutes.as_ref()).unwrap();
 	assert_eq!(refusal(create_mock(&app, &space_id, &onsite, &questions, None)), (409, "Finish Mock 1 first.".to_owned()));
-	let asked = agent(&app, Some(("write_mock_questions", self::questions()))).await;
 	settled(&app, &space_id, &mock_id).await;
+	let asked = last_asked(&agent);
 	assert!(asked.starts_with("They are preparing for: Onsite (interview).\n\nWhat it is like:\nTwo coding rounds.\n\nWrite a mock of exactly 2 questions for 30 minutes."), "{asked}");
 	assert!(asked.contains("It has no study facts yet"));
 
@@ -151,18 +166,20 @@ async fn a_mock_is_written_from_its_deadline_taken_with_no_agent_and_graded() {
 	assert_eq!(ran["examples"], json!([{ "returned": "2", "passed": true }, { "returned": "0", "passed": true }]));
 	assert_eq!(refusal(run_mock_examples(&app, &space_id, &mock_id, "q2", CODE, &Json::from("javascript")).await), (404, "No such code question".to_owned()));
 
+	will(&agent, Some(("grade_mock", json!({ "grades": [{ "question": "q1", "verdict": "right", "feedback": "Correct." }] }))));
 	change_mock(&app, &space_id, &mock_id, MockAction::End).unwrap();
 	assert_eq!(state(&app, &space_id, &mock_id), "grading");
-	until("the grading request is out", || is_running(&app, &mock_run_key(&space_id, &mock_id))).await;
-	let graded_prompt = agent(&app, Some(("grade_mock", json!({ "grades": [{ "question": "q1", "verdict": "right", "feedback": "Correct." }] })))).await;
-	assert!(graded_prompt.starts_with("They are preparing for: Onsite (interview).\nMock 1: 2 questions for 30 minutes. They used 1 of them."), "{graded_prompt}");
+	assert!(is_running(&app, &mock_run_key(&space_id, &mock_id)), "the grading request is out");
 	settled(&app, &space_id, &mock_id).await;
+	let graded_prompt = last_asked(&agent);
+	assert!(graded_prompt.starts_with("They are preparing for: Onsite (interview).\nMock 1: 2 questions for 30 minutes. They used 1 of them."), "{graded_prompt}");
 	assert_eq!(state(&app, &space_id, &mock_id), "graded");
 
+	will(&agent, Some(("write_mock_questions", json!({ "questions": [questions_one()] }))));
 	let next = create_mock(&app, &space_id, &onsite, &json!(1), None).unwrap();
-	let asked = agent(&app, Some(("write_mock_questions", json!({ "questions": [questions_one()] })))).await;
-	assert!(asked.contains("exactly 1 question, with no time limit.") && asked.contains("Earlier mocks asked these. Don't ask them again:\n- Count the vowels\n- Explain closures"));
 	settled(&app, &space_id, &next).await;
+	let asked = last_asked(&agent);
+	assert!(asked.contains("exactly 1 question, with no time limit.") && asked.contains("Earlier mocks asked these. Don't ask them again:\n- Count the vowels\n- Explain closures"));
 	let rows: Vec<Json> = list_mocks(&app, &space_id, Some(&onsite)).unwrap().iter().map(|m| json!([m["n"], m["state"], m["solved"]])).collect();
 	assert_eq!(rows, [json!([2, "ready", null]), json!([1, "graded", 1])], "newest first, numbered per deadline");
 	assert!(list_mocks(&app, &space_id, Some(&homework)).unwrap().is_empty());
@@ -179,7 +196,8 @@ async fn a_paused_mock_refuses_saves_and_runs_stays_paused_past_its_old_end_and_
 	let root = scratch_dir("mocks-paused");
 	let app = test_app(&root);
 	let (space_id, onsite, _) = interview_space(&app);
-	let mock_id = ready_mock(&app, &space_id, &onsite, Some(5)).await;
+	let agent = stand_in(&app);
+	let mock_id = ready_mock(&app, &agent, &space_id, &onsite, Some(5)).await;
 	change_mock(&app, &space_id, &mock_id, MockAction::Start).unwrap();
 	change_mock(&app, &space_id, &mock_id, MockAction::Pause).unwrap();
 	assert_eq!(state(&app, &space_id, &mock_id), "paused");
@@ -201,9 +219,11 @@ async fn a_paused_mock_refuses_saves_and_runs_stays_paused_past_its_old_end_and_
 
 	// Its time runs out: the next read ends it at its end time and asks for the grades.
 	let end = ago(11_000);
+	will(&agent, Some(("grade_mock", json!({ "grades": [{ "question": "q1", "verdict": "right", "feedback": "Yes." }] }))));
 	edited(&app, &space_id, &mock_id, json!({ "endsAt": end }));
 	assert_eq!(view(&app, &space_id, &mock_id)["mock"]["endedAt"], end, "ended by itself, at its time");
-	let graded_prompt = agent(&app, Some(("grade_mock", json!({ "grades": [{ "question": "q1", "verdict": "right", "feedback": "Yes." }] })))).await;
+	settled(&app, &space_id, &mock_id).await;
+	let graded_prompt = last_asked(&agent);
 	assert!(graded_prompt.contains(" Paused 1 time, 120 minutes in total."), "{graded_prompt}");
 }
 
@@ -212,7 +232,8 @@ async fn a_mock_with_no_time_limit_runs_until_it_is_ended_and_cannot_be_paused()
 	let root = scratch_dir("mocks-untimed");
 	let app = test_app(&root);
 	let (space_id, onsite, _) = interview_space(&app);
-	let mock_id = ready_mock(&app, &space_id, &onsite, None).await;
+	let agent = stand_in(&app);
+	let mock_id = ready_mock(&app, &agent, &space_id, &onsite, None).await;
 	change_mock(&app, &space_id, &mock_id, MockAction::Start).unwrap();
 	edited(&app, &space_id, &mock_id, json!({ "startedAt": ago(86_400_000) }));
 	assert_eq!(state(&app, &space_id, &mock_id), "running", "still running a day later");
@@ -225,14 +246,15 @@ async fn a_mock_past_its_time_refuses_answers_and_runs_and_ends_then() {
 	let root = scratch_dir("mocks-late");
 	let app = test_app(&root);
 	let (space_id, onsite, _) = interview_space(&app);
-	let mock_id = ready_mock(&app, &space_id, &onsite, Some(30)).await;
+	let agent = stand_in(&app);
+	let mock_id = ready_mock(&app, &agent, &space_id, &onsite, Some(30)).await;
 	change_mock(&app, &space_id, &mock_id, MockAction::Start).unwrap();
 	edited(&app, &space_id, &mock_id, json!({ "endsAt": ago(60_000) }));
 	assert_eq!(refusal(change_mock(&app, &space_id, &mock_id, answer(CODE, json!({ "javascript": CODE }), 5.0))), (409, "Time is up.".to_owned()));
 	let ended = app.stores.mocks.read_mock(&space_id, &mock_id).unwrap().unwrap();
 	assert_eq!(ended["answers"], json!({}), "the late answer isn't kept");
 	assert_eq!(mock_state(&ended).as_str(), "graded", "nothing answered, nothing to grade");
-	assert_eq!(app.bridge.pending_work_count(), 0);
+	assert_eq!(asked(&agent).len(), 1, "only the questions were asked for");
 }
 
 #[tokio::test]
@@ -240,13 +262,14 @@ async fn a_failed_write_says_why_and_retry_asks_again() {
 	let root = scratch_dir("mocks-retry");
 	let app = test_app(&root);
 	let (space_id, onsite, _) = interview_space(&app);
+	let agent = stand_in(&app);
+	will(&agent, None);
 	let mock_id = create_mock(&app, &space_id, &onsite, &json!(2), None).unwrap();
-	agent(&app, None).await;
 	settled(&app, &space_id, &mock_id).await;
 	assert_eq!(view(&app, &space_id, &mock_id)["error"], Json::from("the agent never sent the questions"));
 	assert_eq!(list_mocks(&app, &space_id, None).unwrap()[0]["error"], Json::from("the agent never sent the questions"));
+	will(&agent, Some(("write_mock_questions", questions())));
 	change_mock(&app, &space_id, &mock_id, MockAction::Retry).unwrap();
-	agent(&app, Some(("write_mock_questions", questions()))).await;
 	settled(&app, &space_id, &mock_id).await;
 	assert_eq!(state(&app, &space_id, &mock_id), "ready");
 	assert_eq!(refusal(change_mock(&app, &space_id, &mock_id, MockAction::Retry)), (409, "There is nothing to try again.".to_owned()));
@@ -259,6 +282,7 @@ async fn a_deadline_with_nothing_to_write_from_takes_no_mock_and_a_removed_one_t
 	let (space_id, onsite, _) = interview_space(&app);
 	let bare = app.stores.spaces.add_deadline(&space_id, &json!({ "kind": "exam", "name": "Final", "date": "2026-12-10" })).unwrap()["id"].str_or_empty().to_owned();
 	assert_eq!(refusal(create_mock(&app, &space_id, &bare, &json!(3), None)), (409, "This deadline has no study facts and no \"What it's like\" yet.".to_owned()));
+	stand_in(&app).push(vec![FakeStep::Silence]);
 	let mock_id = create_mock(&app, &space_id, &onsite, &json!(2), None).unwrap();
 	let key = mock_run_key(&space_id, &mock_id);
 	until("the questions request is out", || is_running(&app, &key)).await;
@@ -272,7 +296,8 @@ async fn a_copy_read_before_its_mock_was_removed_or_ended_is_never_written_back(
 	let root = scratch_dir("mocks-stale");
 	let app = test_app(&root);
 	let (space_id, onsite, _) = interview_space(&app);
-	let removed = ready_mock(&app, &space_id, &onsite, Some(30)).await;
+	let agent = stand_in(&app);
+	let removed = ready_mock(&app, &agent, &space_id, &onsite, Some(30)).await;
 	change_mock(&app, &space_id, &removed, MockAction::Start).unwrap();
 	edited(&app, &space_id, &removed, json!({ "endsAt": ago(60_000) }));
 	let stale = app.stores.mocks.read_mock(&space_id, &removed).unwrap().unwrap();
@@ -280,7 +305,7 @@ async fn a_copy_read_before_its_mock_was_removed_or_ended_is_never_written_back(
 	assert_eq!(finish(&app, &space_id, &stale).unwrap(), None);
 	assert_eq!(app.stores.mocks.read_mock(&space_id, &removed).unwrap(), None, "a removed mock stays removed");
 
-	let graded = ready_mock(&app, &space_id, &onsite, Some(30)).await;
+	let graded = ready_mock(&app, &agent, &space_id, &onsite, Some(30)).await;
 	change_mock(&app, &space_id, &graded, MockAction::Start).unwrap();
 	edited(&app, &space_id, &graded, json!({ "endsAt": ago(60_000) }));
 	let stale = app.stores.mocks.read_mock(&space_id, &graded).unwrap().unwrap();
@@ -289,7 +314,7 @@ async fn a_copy_read_before_its_mock_was_removed_or_ended_is_never_written_back(
 	edited(&app, &space_id, &graded, json!({ "grades": grades }));
 	assert_eq!(finish(&app, &space_id, &stale).unwrap().unwrap()["grades"], grades);
 	assert_eq!(app.stores.mocks.read_mock(&space_id, &graded).unwrap().unwrap()["grades"], grades, "its grades are kept");
-	assert_eq!(app.bridge.pending_work_count(), 0, "no second grading");
+	assert_eq!(asked(&agent).len(), 2, "no grading: nothing was answered");
 }
 
 #[test]
@@ -311,37 +336,39 @@ async fn a_mock_left_waiting_for_grades_by_a_restart_asks_for_them_once_at_the_n
 	let root = scratch_dir("mocks-restart");
 	let before = test_app(&root);
 	let text = || MockAction::Answer { question_id: "q2".to_owned(), answer: json!({ "text": "A function with the scope it was made in.", "seconds": 30, "submitted": true }) };
+	let first = stand_in(&before);
 	let (ended_space, onsite, _) = interview_space(&before);
-	let ended = ready_mock(&before, &ended_space, &onsite, Some(30)).await;
+	let ended = ready_mock(&before, &first, &ended_space, &onsite, Some(30)).await;
 	let (late_space, onsite, _) = interview_space(&before);
-	let late = ready_mock(&before, &late_space, &onsite, Some(30)).await;
+	let late = ready_mock(&before, &first, &late_space, &onsite, Some(30)).await;
 	for (space_id, mock_id) in [(&ended_space, &ended), (&late_space, &late)] {
 		change_mock(&before, space_id, mock_id, MockAction::Start).unwrap();
 		change_mock(&before, space_id, mock_id, text()).unwrap();
 	}
 	// One ended by End mock, its request gone with the server; the other's time runs out while
 	// the server is off.
+	first.push(vec![FakeStep::Silence]);
 	change_mock(&before, &ended_space, &ended, MockAction::End).unwrap();
 	edited(&before, &late_space, &late, json!({ "endsAt": ago(60_000) }));
 
 	let app = test_app(&root);
 	assert!(!view(&app, &ended_space, &ended)["working"].truthy(), "no request after the restart");
+	let agent = stand_in(&app);
+	for _ in 0..2 {
+		will(&agent, Some(("grade_mock", json!({ "grades": [{ "question": "q2", "verdict": "right", "feedback": "Yes." }] }))));
+	}
 	ask_waiting_mocks(&app);
 	ask_waiting_mocks(&app);
 	for (space_id, mock_id) in [(&ended_space, &ended), (&late_space, &late)] {
 		let waiting = view(&app, space_id, mock_id);
 		assert_eq!((mock_state(&waiting["mock"]).as_str(), waiting["working"].clone()), ("grading", json!(true)), "{mock_id} waits for a grader");
 	}
-	until("both requests wait on the bridge", || app.bridge.pending_work_count() == 2).await;
-	for _ in 0..2 {
-		agent(&app, Some(("grade_mock", json!({ "grades": [{ "question": "q2", "verdict": "right", "feedback": "Yes." }] })))).await;
-	}
 	for (space_id, mock_id) in [(&ended_space, &ended), (&late_space, &late)] {
 		settled(&app, space_id, mock_id).await;
 		assert_eq!(state(&app, space_id, mock_id), "graded");
 	}
 	ask_waiting_mocks(&app);
-	assert_eq!(app.bridge.pending_work_count(), 0, "a graded mock is never asked again");
+	assert_eq!(asked(&agent).len(), 2, "a graded mock is never asked again");
 }
 
 #[tokio::test]
@@ -354,13 +381,13 @@ async fn a_mock_left_waiting_for_its_questions_by_a_restart_asks_for_them_once_a
 	let app = test_app(&root);
 	let stopped = view(&app, &space_id, &mock_id);
 	assert_eq!((state(&app, &space_id, &mock_id).as_str(), stopped["working"].clone()), ("writing", json!(false)), "the request went with the old server");
+	let agent = stand_in(&app);
+	will(&agent, Some(("write_mock_questions", questions())));
 	ask_waiting_mocks(&app);
 	ask_waiting_mocks(&app);
 	assert_eq!(view(&app, &space_id, &mock_id)["working"], json!(true), "asked again");
-	until("one request waits on the bridge", || app.bridge.pending_work_count() == 1).await;
-	agent(&app, Some(("write_mock_questions", questions()))).await;
 	settled(&app, &space_id, &mock_id).await;
 	assert_eq!(state(&app, &space_id, &mock_id), "ready");
 	ask_waiting_mocks(&app);
-	assert_eq!(app.bridge.pending_work_count(), 0, "a written mock is never asked again");
+	assert_eq!(asked(&agent).len(), 1, "asked once, and a written mock is never asked again");
 }

@@ -54,7 +54,7 @@ fn shown(undecided: &[String], message: &Json) -> Json {
 
 /// pi's usage record: fresh input, cached reads and output; godspeed's agents bill a plan, so
 /// every cost is zero.
-fn usage_json(usage: Usage) -> Json {
+pub fn usage_json(usage: Usage) -> Json {
 	let fresh = usage.input.saturating_sub(usage.cached);
 	json!({
 		"input": fresh,

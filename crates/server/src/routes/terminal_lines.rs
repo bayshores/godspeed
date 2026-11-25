@@ -8,9 +8,9 @@ use axum::body::Body;
 use axum::extract::{Path, State};
 use axum::response::Response;
 use gs_core::contracts::space::parse_space_scope;
-use gs_engine::bridge::WindowPage;
 use gs_services::App;
 use gs_services::app::terminal_lines::confirm_terminal_line;
+use gs_services::app::terminal_state::WindowPage;
 
 use crate::http::reply::{self, Unhandled, error, fields};
 use crate::http::route::ApiRoute;
@@ -41,9 +41,9 @@ async fn talk_page(State(app): State<Arc<App>>, body: Body) -> Result<Response, 
 		}
 		Some(_) => return Ok(error(400, "path must be an app path")),
 	};
-	let was = app.bridge.window_page().map(|w| w.path);
+	let was = app.terminals.window_page().map(|w| w.path);
 	let now = window.as_ref().map(|w| w.path.clone());
-	app.bridge.set_talk_page(page, window);
+	app.terminals.set_talk_page(page, window);
 	gs_services::vault::lesson_left(&app, was.as_deref(), now.as_deref());
 	Ok(reply::ok())
 }

@@ -21,6 +21,7 @@ use gs_json::{Json, json};
 use super::turn_liveness::is_turn_running;
 use crate::App;
 use crate::app::agent_actions::record_answer;
+use crate::app::agent_folder::picked_agent;
 use crate::graph::progress::{progress_for, space_order_for, space_reviews};
 
 /// The questions from earlier skipped in a lesson's sitting, and when the last one was.
@@ -95,7 +96,7 @@ fn sitting_picks(app: &App, chat_id: &str, record: &Json) -> Result<Vec<Json>, S
 
 /// The question from earlier to show now: the one he asked the teacher about in this sitting
 /// while it is still askable, since the agent was told it stays open; otherwise one only in the
-/// sitting's first wait while the teacher reads or writes or no agent is teaching, with nothing
+/// sitting's first wait while the teacher reads or writes or no agent is picked, with nothing
 /// else open.
 pub fn next_review(app: &App, chat_id: &str) -> Result<ReviewReply, String> {
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(ReviewReply::UnknownLesson) };
@@ -105,7 +106,7 @@ pub fn next_review(app: &App, chat_id: &str) -> Result<ReviewReply, String> {
 	{
 		return Ok(ReviewReply::Next(Some(question)));
 	}
-	let busy = is_turn_running(app, chat_id) || !app.bridge.agent_teaching(now);
+	let busy = is_turn_running(app, chat_id) || picked_agent(app).is_none();
 	if !review_window_open(&record, now, busy) {
 		return Ok(ReviewReply::Next(None));
 	}

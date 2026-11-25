@@ -1,4 +1,5 @@
-//! The scanner: catches up files left unfinished, rescans linked folders and checks the notes vault on a timer.
+//! The scanner: catches up files left unfinished, and each minute rescans linked folders, checks the
+//! notes vault and the spaces.
 
 use std::sync::Arc;
 
@@ -29,9 +30,9 @@ pub fn queue_waiting_files(app: &Arc<App>) {
 	}
 }
 
-/// Starts the 60-second linked-folder scan and vault check, once per process. Ten seconds after the start (so it
-/// never competes with the window's first load) every space is checked once: waiting files
-/// queued, linked folders rescanned, unindexed files indexed.
+/// Starts the 60-second linked-folder scan, vault check and space check, once per process. Ten
+/// seconds after the start (so it never competes with the window's first load) every space is
+/// checked once: waiting files queued, linked folders rescanned, unindexed files indexed.
 pub fn start_space_scanner(app: &Arc<App>) {
 	if app.spaces.scanner_started.swap(true, std::sync::atomic::Ordering::SeqCst) {
 		return;
@@ -49,6 +50,7 @@ pub fn start_space_scanner(app: &Arc<App>) {
 			}
 			crate::vault::minute_check(&timer);
 			crate::vault::send_waiting(&timer);
+			crate::spaces::space_checks::check_spaces(&timer, clock::now_ms());
 		}
 	});
 	let startup = app.clone();

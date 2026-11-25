@@ -1,20 +1,18 @@
-//! Limits that only end on the app clock: a stuck tool's 30 s timeout and grace, a claim nobody
-//! answered for 10 minutes, a compaction that never reported its end, and a helper busy on one
-//! long job, and agents that stay here through a wait longer than the contact window. One test,
-//! because the clock is shared by the whole binary.
+//! Limits that only end on the app clock: a stuck tool's 30 s timeout and grace, and a job whose
+//! agent went quiet. One test, because the clock is shared by the whole binary.
 
-use std::sync::Arc;
+use std::collections::HashSet;
+use std::path::Path;
 
 use gs_base::clock;
-use gs_base::events::Events;
-use gs_engine::bridge::{AgentReply, Bridge, WaitOptions};
 use gs_engine::turn::abort::Abort;
+use gs_engine::turn::job_session::{OneOff, RunError, run_once};
+use gs_engine::turn::tool_host::ToolHost;
+use gs_runtime::Part;
+use gs_runtime::fake::{FakeAgent, FakeStep};
 use gs_engine::turn::tool::ToolContext;
 use gs_engine::turn::tool_execute::server_execute;
 use gs_json::{Json, json};
-
-mod common;
-use common::{Marks, park};
 
 fn ctx(abort: &Abort) -> ToolContext {
 	ToolContext { tool_call_id: "call_1".to_owned(), abort: abort.clone() }
@@ -23,10 +21,6 @@ fn ctx(abort: &Abort) -> ToolContext {
 /// Lets spawned tasks reach their next timer before the clock jumps.
 async fn settle() {
 	clock::sleep(5).await;
-}
-
-fn agent(name: &str) -> WaitOptions {
-	WaitOptions { agent: Some(name.to_owned()), ..WaitOptions::default() }
 }
 
 #[tokio::test]
@@ -57,82 +51,20 @@ async fn the_app_clock_ends_stuck_tools_and_stale_claims() {
 	clock::advance(250);
 	assert_eq!(stopped.await.unwrap(), Err("Operation aborted".to_owned()));
 
-	// A claim with no reply for 10 minutes goes to the next agent; the old workId is dead.
-	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
-	let call = park(&bridge, vec![json!({ "role": "user", "content": "hi", "timestamp": 1 })], "chat_l1", &Abort::new());
-	settle().await;
-	let first = bridge.wait_for_work(0, agent("agent-A")).await.unwrap();
-	assert!(bridge.wait_for_work(0, agent("agent-B")).await.is_none());
-	clock::advance(9 * 60_000);
-	assert!(bridge.wait_for_work(0, agent("agent-B")).await.is_none(), "still claimed after 9 minutes");
-	clock::advance(60_001);
-	let second = bridge.wait_for_work(0, agent("agent-B")).await.unwrap();
-	let reply = |text: &str| AgentReply { text: Some(text.to_owned()), tool_calls: Vec::new() };
-	assert!(bridge.respond_to_work(&first.work_id, reply("late"), 0).unwrap_err().starts_with("No open work item"));
-	bridge.respond_to_work(&second.work_id, reply("Hi."), 0).unwrap();
-	assert_eq!(call.await.unwrap()["content"], json!([{ "type": "text", "text": "Hi." }]));
-
-	// A compacting agent takes nothing; its mark lapses after 10 minutes, and the window hears
-	// it a second later.
-	let events = Events::new();
-	let bridge = Bridge::new(&events, Arc::new(Marks::default()));
-	let call = park(&bridge, vec![json!({ "role": "user", "content": "hi", "timestamp": 1 })], "chat_l2", &Abort::new());
-	bridge.agent_compacting("main-1", clock::now_ms());
-	settle().await;
-	assert!(bridge.wait_for_work(0, agent("main-1")).await.is_none());
-	clock::advance(9 * 60_000);
-	settle().await;
-	assert!(bridge.wait_for_work(0, agent("main-1")).await.is_none(), "still compacting after 9 minutes");
-	let mut changes = events.subscribe();
-	clock::advance(60_000);
-	settle().await;
-	assert!(changes.try_recv().is_err());
-	clock::advance(1000);
-	settle().await;
-	assert_eq!(changes.try_recv().unwrap().kind.name(), "agent-changed");
-	assert!(changes.try_recv().is_err());
-	let work = bridge.wait_for_work(0, agent("main-1")).await.unwrap();
-	bridge.respond_to_work(&work.work_id, reply("Back."), 0).unwrap();
-	assert_eq!(call.await.unwrap()["content"], json!([{ "type": "text", "text": "Back." }]));
-
-	// A helper busy on one long job sends no check-ins, yet still counts as here, so the teacher
-	// leaves it the next job until its claim runs out.
-	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
-	let _sheet = park(&bridge, vec![json!({ "role": "user", "content": "make the sheet", "timestamp": 1 })], "job_sheet", &Abort::new());
-	settle().await;
-	bridge.wait_for_work(0, WaitOptions { helper: true, ..agent("helper-1") }).await.unwrap();
-	let _read = park(&bridge, vec![json!({ "role": "user", "content": "read this file", "timestamp": 1 })], "job_read", &Abort::new());
-	settle().await;
-	clock::advance(4 * 60_000);
-	assert!(bridge.helper_here(clock::now_ms()));
-	assert!(bridge.wait_for_work(0, agent("main-1")).await.is_none());
-	clock::advance(6 * 60_000 + 1);
-	assert!(!bridge.helper_here(clock::now_ms()));
-	assert_eq!(bridge.wait_for_work(0, agent("main-1")).await.unwrap().conversation, "job_sheet");
-
-	// A wait longer than the 3 minute contact window keeps both an outside agent and a
-	// terminal's agent here.
-	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
-	let terminal = "0123456789abcdef0123456789abcdef";
-	bridge.set_live_terminals(vec![terminal.to_owned()], Some(terminal.to_owned()));
-	bridge.record_terminal_contact(None, clock::now_ms());
-	bridge.record_terminal_contact(Some(terminal), clock::now_ms());
-	let outside = gs_base::tasks::spawn("test", {
-		let bridge = bridge.clone();
-		async move { bridge.wait_for_work(600_000, agent("outside-1")).await }
-	});
-	let inside = gs_base::tasks::spawn("test", {
-		let bridge = bridge.clone();
-		async move { bridge.wait_for_work(600_000, WaitOptions { terminal: Some(terminal.to_owned()), ..agent("main-1") }).await }
-	});
-	for _ in 0..16 {
+	// A job whose agent says nothing for 10 minutes fails, and its agent is stopped.
+	let quiet = FakeAgent::new(vec![vec![FakeStep::Text("Reading.".to_owned()), FakeStep::Silence]]);
+	let runtime = quiet.runtime();
+	let host = ToolHost::new(Vec::new(), None, HashSet::new());
+	let job = OneOff::new("You read a PDF.".to_owned(), vec![Part::Text("Read it.".to_owned())], host, 5, Abort::new());
+	let silent = gs_base::tasks::spawn("test", async move { run_once(&runtime, Path::new("/jobs/1"), job).await });
+	while !quiet.sent().iter().any(|m| m["type"].as_str() == Some("send")) {
 		settle().await;
-		clock::advance(15_000);
 	}
 	settle().await;
-	assert!(bridge.outside_here(clock::now_ms()), "outside agent still waiting after 4 minutes");
-	assert_eq!(bridge.terminals_here(clock::now_ms()), vec![(terminal.to_owned(), true)]);
-	bridge.set_live_terminals(Vec::new(), None);
-	assert!(inside.await.unwrap().is_none());
-	outside.abort();
+	clock::advance(9 * 60_000);
+	settle().await;
+	assert!(!silent.is_finished(), "still waiting after 9 minutes");
+	clock::advance(60_000);
+	assert_eq!(silent.await.unwrap(), Err(RunError::Failed("the agent said nothing for 10 minutes".to_owned())));
+	assert!(quiet.sent().iter().any(|m| m["type"].as_str() == Some("interrupt")));
 }

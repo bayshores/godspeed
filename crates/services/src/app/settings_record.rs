@@ -1,7 +1,7 @@
 //! The settings record changed the way the TS does it with object spreads, so a key already in
 //! the record keeps its place and a new one goes last.
 
-use gs_core::records::settings::CURRENT_SETTINGS_VERSION;
+use gs_core::records::settings::{CURRENT_SETTINGS_VERSION, DEFAULT_TEACHER_NAME};
 use gs_json::{Json, json};
 
 use crate::App;
@@ -19,6 +19,13 @@ pub fn with_field(mut record: Json, section: &str, key: &str, value: impl Into<J
 		obj.insert(section, fields);
 	}
 	record
+}
+
+/// The teacher's name, as the learner set it: what the teacher and its background work are called.
+/// Settings that cannot be read leave the usual name.
+pub fn teacher_name(app: &App) -> String {
+	let settings = app.stores.settings.effective_settings();
+	settings.ok().and_then(|s| s["general"]["teacherName"].as_str().map(str::to_owned)).unwrap_or_else(|| DEFAULT_TEACHER_NAME.to_owned())
 }
 
 /// A `general` switch that is on unless the saved record says exactly `false`.

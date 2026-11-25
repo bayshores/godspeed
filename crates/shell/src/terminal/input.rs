@@ -4,7 +4,7 @@
 use std::time::{Duration, Instant};
 
 use super::screen::Trust;
-use super::{Agent, Terminal, state_ended};
+use super::{Agent, Terminal};
 
 /// How long the trust button waits for the pointer to reach "Yes" after its Down key.
 const TRUST_MOVE: Duration = Duration::from_secs(1);
@@ -53,9 +53,6 @@ pub(super) fn clear_input(terminal: &Terminal, line: &str) {
 	}
 }
 
-/// How long a nudge keeps trying while a question shows or the learner's text stays in the box.
-const NUDGE_TRIES: Duration = Duration::from_secs(60);
-
 /// The agent's input box, as its own screen shows it.
 fn input_of(terminal: &Terminal) -> Option<String> {
 	let state = terminal.state();
@@ -78,25 +75,4 @@ pub(super) fn type_line(terminal: &Terminal, line: &str) -> bool {
 	}
 	let _ = terminal.write("\x7f".repeat(line.chars().count()).as_bytes());
 	false
-}
-
-/// Types the nudge (type_line), trying once a second until it is sent. Never while the screen
-/// asks the learner something.
-pub(super) fn nudge_input(terminal: &Terminal, line: &str) {
-	let deadline = Instant::now() + NUDGE_TRIES;
-	while Instant::now() < deadline {
-		std::thread::sleep(Duration::from_secs(1));
-		{
-			let state = terminal.state();
-			if state_ended(&state) {
-				return;
-			}
-			if state.screen.seen().prompt.is_some() {
-				continue;
-			}
-		}
-		if type_line(terminal, line) {
-			return;
-		}
-	}
 }

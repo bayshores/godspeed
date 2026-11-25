@@ -24,9 +24,8 @@ use gs_core::graph::ports::GraphStore;
 use gs_core::messages::native_messages::failed_output_call_ids;
 use gs_core::records::settings::factory_settings;
 use gs_core::session::prices::CallUsage;
-use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
-use gs_engine::turn::faux::Engine;
+use gs_engine::turn::job_session::RunError;
 use gs_json::{Json, Obj, json};
 use gs_store::chats::ChatStore;
 use gs_store::graph::GraphStores;
@@ -40,7 +39,7 @@ use super::findings::{
 };
 use super::ledgers::ScopedGraph;
 use super::submit_agent::{SubmitAgentOptions, run_submit_agent};
-use crate::subagents::pi_run::RunError;
+use crate::subagents::job_agent::JobAgent;
 
 /// How many related ideas each stretch's prompt carries.
 const RELATED_FACTS: usize = 25;
@@ -51,12 +50,9 @@ pub trait ExtractionHost: Send + Sync {
 	fn graphs(&self) -> &Arc<GraphStores>;
 	fn events(&self) -> &Events;
 	fn locks(&self) -> &Locks;
-	fn bridge(&self) -> &Bridge;
 	fn state(&self) -> &ExtractionState;
-	/// The engine the extractor runs on; None is the outside agent.
-	fn engine(&self) -> Option<Engine> {
-		None
-	}
+	/// What the extractor runs on.
+	fn job_agent(&self) -> Arc<dyn JobAgent>;
 	/// A run that may have written `scope`'s graph ended (the topic grouper's trigger).
 	fn on_graph_written(&self, scope: Option<&str>);
 	/// The existing ideas of `scope` (its merged `nodes`) most related to `text`, best first.
@@ -267,7 +263,7 @@ impl Extraction {
 		self.0.chats().get_chat(chat_id).and_then(|record| record["spaceId"].as_str().map(str::to_owned))
 	}
 
-	/// The job's name on the outside agent's work items: which lesson or file, and which part.
+	/// The job's name in the log: which lesson or file, and which part.
 	fn task_label(&self, key: &str) -> String {
 		let run = self.runs().get(key);
 		let name = run.as_ref().and_then(|r| r.label.clone()).or_else(|| {
@@ -329,12 +325,11 @@ impl Extraction {
 			}
 		};
 		opts.notice = Some(duplicate_check(self.0.clone(), scope.map(str::to_owned), Arc::new(graph.nodes)));
-		opts.engine = self.0.engine();
 		opts.abort = Some(abort);
-		opts.task_label = Some(self.task_label(key));
+		opts.label = self.task_label(key);
 		let (host, step_key) = (self.0.clone(), key.to_owned());
 		opts.on_step = Some(Arc::new(move |usage, model| host.state().runs.record_step(&step_key, CallUsage::from_model_usage(usage).to_json(), model)));
-		Ok(run_submit_agent(self.0.bridge(), opts).await?)
+		Ok(run_submit_agent(self.0.job_agent().as_ref(), opts).await?)
 	}
 
 	/// Merges one job's findings under the graph's lock: the stats the run keeps, and the credit lines written, which

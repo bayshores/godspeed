@@ -1,6 +1,6 @@
 //! What the MCP tests share: an app with an MCP token whose lessons run on a stand-in agent, tool
-//! calls sent as an agent's client sends them, the folder's hook telling an agent's own tool, and
-//! the teacher's round as the window reads it.
+//! calls sent as an agent's client sends them, the folder's hook telling an event, and the
+//! teacher's round as the window reads it.
 
 use std::sync::Arc;
 
@@ -28,10 +28,6 @@ pub fn app() -> Arc<App> {
 	app
 }
 
-/// A tools/call from `terminal` and the agent session `agent`, when given.
-pub async fn call(app: &Arc<App>, terminal: Option<&str>, agent: Option<&str>, tool: &str, arguments: &str) -> (u16, String) {
-	send(app, terminal, agent.map(|a| format!(r#""godspeed/agent":"{a}""#)), tool, arguments).await
-}
 
 /// A local request with the token, from `terminal` when given.
 fn headers(terminal: Option<&str>) -> HeaderMap {
@@ -46,28 +42,26 @@ fn headers(terminal: Option<&str>) -> HeaderMap {
 	headers
 }
 
-/// A tools/call with this `_meta` inside.
-pub async fn send(app: &Arc<App>, terminal: Option<&str>, meta: Option<String>, tool: &str, arguments: &str) -> (u16, String) {
-	let meta = meta.map(|m| format!(r#","_meta":{{{m}}}"#)).unwrap_or_default();
-	let body = format!(r#"{{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{{"name":"{tool}","arguments":{arguments}{meta}}}}}"#);
+/// A tools/call from `terminal`, when given.
+pub async fn call(app: &Arc<App>, terminal: Option<&str>, tool: &str, arguments: &str) -> (u16, String) {
+	let body = format!(r#"{{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{{"name":"{tool}","arguments":{arguments}}}}}"#);
 	let res = handle_mcp_request(app, &Method::POST, &headers(terminal), body.as_bytes()).await;
 	let status = res.status().as_u16();
 	(status, String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap())
 }
 
-/// The workId of the work item an answer holds.
-pub fn work_id(body: &str) -> String {
-	body.split(r#"workId\":\""#).nth(1).and_then(|rest| rest.split('\\').next()).unwrap_or_else(|| panic!("no work: {body}")).to_owned()
-}
-
 /// The teacher's round of work as GET /api/teacher-work sends it: its step words, or None.
 pub fn round(app: &App) -> Option<Vec<String>> {
-	let round = app.bridge.teacher_work(gs_base::clock::now_ms());
+	let round = app.terminals.teacher_work(gs_base::clock::now_ms());
 	(round["live"] == gs_json::Json::Bool(true)).then(|| round["steps"].items().iter().map(|s| s["text"].str_or_empty().to_owned()).collect())
+}
+
+/// The folder's hook in `terminal` tells an event: the answer's status.
+pub fn agent_event(app: &App, terminal: Option<&str>, body: gs_json::Json) -> u16 {
+	gs_server::mcp::handle_agent_event(app, &headers(terminal), Some(body)).status().as_u16()
 }
 
 /// The folder's hook in `terminal` says the agent uses one of its own tools: the answer's status.
 pub fn own_tool(app: &App, terminal: Option<&str>, tool: &str, subject: &str) -> u16 {
-	let body = gs_json::json!({ "event": "tool", "tool": tool, "subject": subject });
-	gs_server::mcp::handle_agent_event(app, &headers(terminal), Some(body)).status().as_u16()
+	agent_event(app, terminal, gs_json::json!({ "event": "tool", "tool": tool, "subject": subject }))
 }

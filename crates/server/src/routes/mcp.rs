@@ -1,6 +1,5 @@
-//! /api/mcp (the MCP endpoint for outside agents), /api/mcp/forget (an agent lost its context),
-//! /api/mcp/compacting (an agent started compacting it), /api/mcp/line (a line the learner typed
-//! to it, for the page on screen), /api/mcp/agent-event (it stopped or needs the learner),
+//! /api/mcp (the MCP endpoint for outside agents), /api/mcp/line (a line the learner typed to an
+//! agent, for the page on screen), /api/mcp/agent-event (it stopped or needs the learner),
 //! /api/mcp-access (Settings → Connection: the token, who is connected, rotating the token) and
 //! /api/teacher-work (the teacher's round of work, for Follow's slip). The agents' routes check the
 //! token themselves; the other two are for the desktop window only, like every other /api route.
@@ -22,8 +21,6 @@ use crate::mcp;
 pub fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/mcp", ApiRoute::new().get(endpoint).post(endpoint).delete(endpoint).into_route())
-		.route("/api/mcp/forget", ApiRoute::new().post(forget).into_route())
-		.route("/api/mcp/compacting", ApiRoute::new().post(compacting).into_route())
 		.route("/api/mcp/line", ApiRoute::new().post(line).into_route())
 		.route("/api/mcp/agent-event", ApiRoute::new().post(agent_event).into_route())
 		.route("/api/mcp-access", ApiRoute::new().get(access).post(rotate).into_route())
@@ -33,14 +30,6 @@ pub fn routes() -> Router<Arc<App>> {
 async fn endpoint(State(app): State<Arc<App>>, method: Method, headers: HeaderMap, body: Body) -> Response {
 	let raw = read_body(body).await;
 	mcp::handle_mcp_request(&app, &method, &headers, &raw).await
-}
-
-async fn forget(State(app): State<Arc<App>>, headers: HeaderMap, body: Body) -> Response {
-	mcp::handle_agent_forget(&app, &headers, json_body(body).await)
-}
-
-async fn compacting(State(app): State<Arc<App>>, headers: HeaderMap, body: Body) -> Response {
-	mcp::handle_agent_compacting(&app, &headers, json_body(body).await)
 }
 
 async fn agent_event(State(app): State<Arc<App>>, headers: HeaderMap, body: Body) -> Response {
@@ -66,7 +55,7 @@ async fn access(State(app): State<Arc<App>>) -> Result<Response, Unhandled> {
 }
 
 async fn teacher_work(State(app): State<Arc<App>>) -> Response {
-	reply::json_no_store(200, &app.bridge.teacher_work(gs_base::clock::now_ms()))
+	reply::json_no_store(200, &app.terminals.teacher_work(gs_base::clock::now_ms()))
 }
 
 async fn rotate(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {

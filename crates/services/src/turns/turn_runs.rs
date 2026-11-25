@@ -8,6 +8,7 @@ use gs_json::{json, stringify};
 
 use super::turn_liveness::is_turn_running;
 use crate::App;
+use crate::jobs::asks::{AskedOn, answer_job_ask};
 
 pub fn remember_turn_failure(app: &App, chat_id: &str, error_text: &str) {
 	app.turns.failures.lock().insert(chat_id.to_owned(), error_text.to_owned());
@@ -59,10 +60,10 @@ pub fn abort_turn(app: &App, chat_id: &str) -> bool {
 	true
 }
 
-/// The learner's answer to a permission question in the chat's running turn; false when none
-/// waits by that id.
+/// The learner's answer to a permission question in the chat's running turn or one of its jobs;
+/// false when none waits by that id.
 pub fn answer_approval(app: &App, chat_id: &str, approval_id: &str, allow: bool) -> bool {
-	running_turn(app, chat_id).is_some_and(|handle| handle.turn().answer_approval(approval_id, allow))
+	running_turn(app, chat_id).is_some_and(|handle| handle.turn().answer_approval(approval_id, allow)) || answer_job_ask(app, &AskedOn::Lesson(chat_id.to_owned()), approval_id, allow)
 }
 
 /// The stream body when no turn runs: a kept failure notice first, then "turn-settled" and the

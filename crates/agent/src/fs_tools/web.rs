@@ -76,8 +76,8 @@ pub(super) async fn until_aborted<T>(abort: &Abort, work: impl std::future::Futu
 	}
 }
 
-/// At most one work page: the result reaches the outside agent inside a work item, and every
-/// page past the first costs it a read_work call.
+/// At most one page: agents cap each tool result (`work_pages`), so a longer one would be cut
+/// where nobody chose.
 fn truncate(text: &str) -> String {
 	let pages = split_pages(text, WORK_PAGE_BYTES);
 	if pages.len() <= 1 { text.to_owned() } else { format!("{}\n\n[Truncated: the page goes on]", pages[0]) }

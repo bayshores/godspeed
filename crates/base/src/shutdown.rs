@@ -1,6 +1,5 @@
-//! The server is stopping (SIGTERM, or the app closed our stdin). Long waits (an agent's
-//! `wait_for_work`, the event stream) end when this fires, so the 2 s close does not cut them off
-//! mid-write.
+//! The server is stopping (SIGTERM, or the app closed our stdin). Long waits (the event stream)
+//! end when this fires, so the 2 s close does not cut them off mid-write.
 
 use std::sync::LazyLock;
 

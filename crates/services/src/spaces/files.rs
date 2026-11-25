@@ -25,10 +25,8 @@ use crate::App;
 use crate::graph::extraction_runs::extraction_statuses;
 use crate::graph::graph::graph_store_for;
 
-/// The extraction_running refusal for the outside agent: the file's reading is a work item
-/// waiting for that same agent, so it only finishes once the agent answers it.
-pub const AGENT_FILE_READING_REFUSAL: &str =
-	"This file is still being turned into facts, and that work waits for you. Get that work item with wait_for_work (or the waiter), answer it, then try again.";
+/// The extraction_running refusal for the outside agent.
+pub const AGENT_FILE_READING_REFUSAL: &str = "This file is still being turned into facts. Try again once that is done.";
 
 /// The notes-source id a space file's facts are born under: unique per space + file, so the same
 /// filename in two spaces never collides.

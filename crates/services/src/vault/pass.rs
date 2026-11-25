@@ -1,8 +1,7 @@
 //! The pass that turns a lesson's answers into notes. A lesson end, leaving a lesson that has new
 //! answers, and the start of the app (for a lesson left when it quit) each queue the lesson here.
 //! The queued answers go to the teacher once, as a notes block: on the space's next topic
-//! grouping when a helper is here, else as an item of their own once no lesson turn waits.
-//! A helper is never started for notes.
+//! grouping when an agent is picked, else as a job of its own once no lesson turn runs.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::Path;
@@ -10,6 +9,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use gs_agent::extraction::topic_grouper::RidingNotes;
+use gs_agent::subagents::job_agent::Priority;
 use gs_agent::subagents::pi_run::{SubagentRunOptions, run_subagent};
 use gs_agent::tools::vault_note::{WriteVaultNote, write_vault_note_tool};
 use gs_agent::vault::notes_block::{Block, Entry, Mistake, Section, Topic, Words, notes_block};
@@ -31,7 +31,10 @@ use super::topic_data::{TopicFacts, space_topics};
 use super::write::{picked_vault, write_vault_note, write_vault_words};
 use super::{notes_changed, setup, with_reader};
 use crate::App;
+use crate::app::agent_folder::picked_agent;
 use crate::graph::progress::{lesson_answered_topics, progress_for, space_mistakes};
+use crate::jobs::job_agent::job_agent;
+use crate::turns::turn_liveness::turns_running;
 
 /// A queued pass waits this long for a space's topic grouping before it is sent on its own.
 const GROUPING_WAIT_MS: i64 = 3 * 60_000;
@@ -133,7 +136,7 @@ fn earning_space(app: &App, chat_id: &str) -> Result<Option<String>, String> {
 	Ok((!topics.is_empty()).then(|| space_id.to_owned()))
 }
 
-/// Queues the lesson's new answers for a pass, and sends them now when no helper is here.
+/// Queues the lesson's new answers for a pass, and sends them now when no agent is picked.
 pub fn queue_lesson(app: &Arc<App>, chat_id: &str) {
 	match earning_space(app, chat_id) {
 		Ok(Some(space_id)) => {
@@ -167,23 +170,24 @@ pub fn catch_up(app: &Arc<App>) {
 	if app.vault.pass.caught_up.swap(true, Ordering::SeqCst) || !picked_vault(app) {
 		return;
 	}
-	let open = app.bridge.window_page().and_then(|w| w.path.strip_prefix("/chat/").map(str::to_owned));
+	let open = app.terminals.window_page().and_then(|w| w.path.strip_prefix("/chat/").map(str::to_owned));
 	for summary in app.stores.chats.list_chats() {
 		let Some(id) = summary["id"].as_str().filter(|id| Some(*id) != open.as_deref()) else { continue };
 		queue_lesson(app, id);
 	}
 }
 
-/// Sends each waiting space's pass on its own when it may: no lesson turn waits, and either no
-/// helper is here or the grouping that would have carried it never came.
+/// Sends each waiting space's pass on its own when it may: no lesson turn runs, and either no
+/// agent is picked or the grouping that would have carried it never came.
 pub fn send_waiting(app: &Arc<App>) {
 	let now = clock::now_ms();
+	let picked = picked_agent(app).is_some();
 	let ready: Vec<String> = {
 		let waiting = app.vault.pass.waiting.lock();
 		let busy = app.vault.pass.sending.lock();
-		waiting.iter().filter(|(space, w)| !busy.contains_key(*space) && now >= w.not_before && (!app.bridge.helper_here(now) || now - w.since >= GROUPING_WAIT_MS)).map(|(space, _)| space.clone()).collect()
+		waiting.iter().filter(|(space, w)| !busy.contains_key(*space) && now >= w.not_before && (!picked || now - w.since >= GROUPING_WAIT_MS)).map(|(space, _)| space.clone()).collect()
 	};
-	if ready.is_empty() || app.bridge.pending_turn_count() > 0 {
+	if ready.is_empty() || turns_running(app) > 0 {
 		return;
 	}
 	for space_id in ready {
@@ -196,11 +200,9 @@ pub fn send_waiting(app: &Arc<App>) {
 	}
 }
 
-/// The block for the space's next topic grouping, when a helper is here and a pass waits.
+/// The block for the space's next topic grouping, when an agent is picked and a pass waits.
 pub async fn take_for_grouping(app: &Arc<App>, space_id: &str) -> Option<Taken> {
-	if !app.bridge.helper_here(clock::now_ms()) {
-		return None;
-	}
+	picked_agent(app)?;
 	take(app, space_id).await
 }
 
@@ -256,10 +258,9 @@ fn notes_tool(app: &Arc<App>, space_id: &str) -> Arc<dyn Tool> {
 
 async fn run_own_item(app: &Arc<App>, space_id: &str, text: &str) -> bool {
 	let label = format!("Notes: {}", app.stores.spaces.get_space(space_id).map_or_else(String::new, |s| s["name"].str_or_empty().to_owned()));
-	let mut run = SubagentRunOptions::new(INSTRUCTIONS, Json::from(text), 24);
-	run.task_label = Some(label);
-	run.asked = true;
-	match run_subagent(&app.bridge, vec![notes_tool(app, space_id)], run).await {
+	let mut run = SubagentRunOptions::new(label, INSTRUCTIONS, Json::from(text), 24);
+	run.priority = Priority::Waited;
+	match run_subagent(job_agent(app).as_ref(), vec![notes_tool(app, space_id)], run).await {
 		Ok(_) => true,
 		Err(why) => {
 			eprintln!("[vault] the notes item for {space_id} failed: {why}");

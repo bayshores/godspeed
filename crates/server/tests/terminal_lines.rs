@@ -22,7 +22,7 @@ fn app() -> Arc<App> {
 	std::fs::create_dir_all(&data).unwrap();
 	fsx::write_atomic(&data.join("mcp-token"), TOKEN.as_bytes(), Some(0o600)).unwrap();
 	let app = App::new(Paths::new(data, dir.join("home"), dir.join("tmp"), dir), None);
-	app.bridge.set_live_terminals(vec![TEACHER.to_owned()], Some(TEACHER.to_owned()));
+	app.terminals.set_live_terminals(vec![TEACHER.to_owned()], Some(TEACHER.to_owned()));
 	app
 }
 
@@ -41,8 +41,8 @@ async fn send_line(app: &Arc<App>, token: &str, line: &str) -> (u16, Json) {
 async fn a_line_for_the_lesson_on_screen_goes_to_the_window_and_the_hook_blocks_it() {
 	let app = app();
 	let mut events = app.events.subscribe();
-	app.bridge.set_talk_page(Some("lesson".to_owned()), None);
-	app.bridge.typed(TEACHER, clock::now_ms());
+	app.terminals.set_talk_page(Some("lesson".to_owned()), None);
+	app.terminals.typed(TEACHER, clock::now_ms());
 
 	// The window answers once it got the line.
 	let window = gs_base::tasks::spawn("test", {
@@ -61,7 +61,6 @@ async fn a_line_for_the_lesson_on_screen_goes_to_the_window_and_the_hook_blocks_
 	assert_eq!((status, body), (200, json!({ "sent": "lesson" })));
 	let event = window.await.unwrap();
 	assert_eq!((event["text"].clone(), event["attachments"].clone()), (json!("why is step 2 true?"), json!([])));
-	assert!(!app.bridge.take_typed(Some(TEACHER), clock::now_ms()), "the agent's wait doesn't hear of it");
 }
 
 #[tokio::test]
@@ -70,17 +69,16 @@ async fn a_line_reaches_the_agent_without_a_page_an_enter_or_the_window() {
 	assert_eq!(send_line(&app, "wrong", "hi").await.0, 401);
 
 	// No page takes lines: the agent reads it.
-	app.bridge.typed(TEACHER, clock::now_ms());
+	app.terminals.typed(TEACHER, clock::now_ms());
 	assert_eq!(send_line(&app, TOKEN, "hi").await, (200, json!({ "sent": null })));
 
 	// A page, but no Enter in the teacher's terminal (the agent's own background prompt).
-	app.bridge.set_talk_page(Some("lesson".to_owned()), None);
+	app.terminals.set_talk_page(Some("lesson".to_owned()), None);
 	assert_eq!(send_line(&app, TOKEN, "## Memory Writing Agent").await, (200, json!({ "sent": null })));
 
-	// The window never answers: after 3 s the agent reads it, and its wait hears of it.
-	app.bridge.typed(TEACHER, clock::now_ms());
+	// The window never answers: after 3 s the agent reads it.
+	app.terminals.typed(TEACHER, clock::now_ms());
 	assert_eq!(send_line(&app, TOKEN, "hi").await, (200, json!({ "sent": null })));
-	assert!(app.bridge.take_typed(Some(TEACHER), clock::now_ms()));
 }
 
 #[tokio::test]
@@ -92,23 +90,13 @@ async fn the_window_hears_when_a_teacher_chat_starts_and_is_used() {
 	assert_eq!(heard(), 1, "a chat started");
 	assert_eq!(gs_services::app::teacher_chats::shown(&app), json!([]), "not used yet");
 
-	app.bridge.typed(TEACHER, clock::now_ms());
+	app.terminals.typed(TEACHER, clock::now_ms());
 	assert_eq!(send_line(&app, TOKEN, "What's due?").await, (200, json!({ "sent": null })));
 	assert_eq!(heard(), 1, "a line typed to it");
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["name"], json!("What's due?"));
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["open"], json!(true), "the teacher's terminal runs it");
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["lesson"], json!(null), "it taught no lesson yet");
 
-	let lesson = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
-	gs_services::app::teacher_chats::taught(&app, Some(TEACHER), &lesson);
-	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["name"], json!("Study for Midterm"));
-	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["lesson"], json!(lesson), "the lesson it taught, to go back to");
-	assert_eq!(gs_services::app::teacher_chats::last_lesson(&app, Some(TEACHER)), Some(lesson.clone()), "a wait from its terminal stays on it");
-	assert_eq!(gs_services::app::teacher_chats::last_lesson(&app, None), None, "an agent outside the terminals stays on none");
-	app.stores.chats.delete_chat(&lesson);
-	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["lesson"], json!(null), "a deleted lesson is not offered");
-	assert_eq!(gs_services::app::teacher_chats::last_lesson(&app, Some(TEACHER)), None, "nor stayed on");
-
-	app.bridge.set_live_terminals(vec![], None);
+	app.terminals.set_live_terminals(vec![], None);
 	assert_eq!(gs_services::app::teacher_chats::shown(&app)[0]["open"], json!(false), "the terminal ended");
 }

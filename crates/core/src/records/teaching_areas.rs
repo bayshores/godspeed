@@ -102,7 +102,7 @@ const EVERY_TURN_SHAPE: &str = "One idea per reply, at most four short lines, th
 /// tool's description once draws once and then goes back to words.
 const EVERY_TURN_FIGURE: &str = "Your answer has a layout (a grid, a graph, a curve, forces, a structure, a tree): this reply carries a `visual`. Never describe what a figure would show.";
 
-/// The block a lesson's later work items repeat: the same rules as `learner_rules_section`, one
+/// The block a lesson's later turns repeat: the same rules as `learner_rules_section`, one
 /// line each, then the reply's shape and, with `figures`, the line on drawing; no rules, no
 /// rules head.
 pub fn every_turn_rules(rules: &Json, lesson_space: Option<(&str, &[String])>, figures: bool) -> String {

@@ -7,7 +7,7 @@ use gs_json::{Json, json};
 
 use crate::spaces::{add_file_from_path, add_made_file, set_file_kind, tie_file_to_lesson, write_agent_file};
 use crate::app::agent_folder::{made_path, shortcut_path_problem};
-use super::{READING_NOTE, SpaceActions, change, no_space};
+use super::{SpaceActions, change, no_space};
 
 /// The longest text add_space_file writes.
 const WRITTEN_TEXT_MAX: usize = 20_000;
@@ -61,10 +61,9 @@ impl SpaceActions {
 			return ToolOutcome::Err("Give path, or name and text.".to_owned());
 		};
 		let file = lesson_id.and_then(|lesson| tie_file_to_lesson(&self.app, space_id, file["id"].str_or_empty(), lesson)).unwrap_or(file);
-		let note = if kind == FileKind::Study { format!("Added. {READING_NOTE}") } else { "Added.".to_owned() };
 		let label = format!("{verb} {}", file["name"].str_or_empty());
 		let change = change(label, &Json::from(space_id), "file", file["id"].str_or_empty(), "/space/files");
-		self.done(json!({ "file": file, "note": note }), vec![change])
+		self.done(json!({ "file": file, "note": "Added." }), vec![change])
 	}
 
 	/// Writes a file from text: one it wrote before by that name is replaced and keeps its id; the

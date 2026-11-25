@@ -4,9 +4,9 @@
 //! - shorten: once the lesson's transcript (`lesson_tokens`) is past the threshold godspeed cuts the record and writes its own short version of what
 //!   it dropped (`local_summary`), at once and without a model, at the turn-start gate and when a
 //!   turn settles;
-//! - refine: once the chat has been quiet for REFINE_QUIET_MS, the session's own model writes the
-//!   real summary (a zero-tool, one-turn helper run) and it takes the local version's place. A
-//!   turn that starts meanwhile goes ahead on the local version.
+//! - refine: once the chat has been quiet for REFINE_QUIET_MS, the learner's agent writes the real
+//!   summary (a job with no tools and one turn) and it takes the local version's place. A turn
+//!   that starts meanwhile goes ahead on the local version.
 //!
 //! Shortening only runs between turns, so it never touches a live run.
 
@@ -23,11 +23,11 @@ use gs_core::session::compaction::{
 	KEEP_RECENT_TOKENS, build_compaction_prompt, compaction_cut_index, compaction_span, effective_threshold_tokens, lesson_tokens, local_summary, new_compaction_marker, plan_tree_to_text,
 	serialize_for_summary,
 };
-use gs_engine::turn::faux::Engine;
 use gs_json::{Json, json};
 
 use super::turn_liveness::is_turn_running;
 use crate::App;
+use crate::jobs::job_agent::job_agent;
 
 /// The summarizer's system prompt: operational framing, not doctrine.
 const SUMMARIZER_SYSTEM_PROMPT: &str = "You are the session-compaction summarizer for a tutoring agent. You receive the transcript span to summarize and write exactly the summary the instructions demand — nothing else, no preamble, no meta-commentary.";
@@ -38,9 +38,7 @@ const REFINE_QUIET_MS: i64 = 5 * 60_000;
 /// What a compaction needs from its host (the chat handler builds it per chat).
 #[derive(Clone)]
 pub struct CompactionDeps {
-	/// The chat's conversation engine, also the summarizer's.
-	pub engine: Engine,
-	/// `provider:id` of the engine.
+	/// `provider:id` of the lesson's model, also the summarizer's.
 	pub model_id: String,
 	/// min(the fixed threshold, context window - reserve).
 	pub threshold_tokens: f64,
@@ -181,7 +179,7 @@ pub async fn refine(app: &Arc<App>, deps: &CompactionDeps, chat_id: &str) {
 }
 
 async fn summarize_and_replace(app: &Arc<App>, deps: &CompactionDeps, chat_id: &str, prompt: &str, marker: &Json) -> Result<(), String> {
-	let (summary, usage) = summarize(app, prompt, &deps.engine).await?;
+	let (summary, usage) = summarize(app, prompt).await?;
 	let trimmed = text::trim(&summary);
 	// An empty summary is a refusal artifact.
 	if trimmed.is_empty() {
@@ -217,13 +215,12 @@ async fn summarize_and_replace(app: &Arc<App>, deps: &CompactionDeps, chat_id: &
 }
 
 /// The one-shot summary call: zero tools, one turn, text out, with the last call's usage.
-async fn summarize(app: &Arc<App>, prompt: &str, engine: &Engine) -> Result<(String, Json), String> {
+async fn summarize(app: &Arc<App>, prompt: &str) -> Result<(String, Json), String> {
 	let usage = Arc::new(parking_lot::Mutex::new(json!({ "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0, "totalTokens": 0, "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0, "total": 0 } })));
 	let sink = usage.clone();
-	let mut options = SubagentRunOptions::new(SUMMARIZER_SYSTEM_PROMPT, Json::from(prompt), 1);
-	options.engine = Some(engine.clone());
-	options.on_usage = Some(Arc::new(move |u: &Json| *sink.lock() = u.clone()));
-	let result = run_subagent(&app.bridge, Vec::new(), options).await.map_err(|err| err.to_string())?;
+	let mut options = SubagentRunOptions::new("Summary".to_owned(), SUMMARIZER_SYSTEM_PROMPT, Json::from(prompt), 1);
+	options.on_usage = Some(Arc::new(move |u: &Json, _model: &str| *sink.lock() = u.clone()));
+	let result = run_subagent(job_agent(app).as_ref(), Vec::new(), options).await.map_err(|err| err.to_string())?;
 	let usage = usage.lock().clone();
 	Ok((result.text, usage))
 }
@@ -233,10 +230,12 @@ mod tests {
 	use gs_core::contracts::chat::COMPACTED_HISTORY_HEADER;
 	use gs_core::messages::native_messages::new_user_message;
 	use gs_core::messages::role::is_custom;
-	use gs_engine::turn::faux::{Scripted, faux_model};
-	use gs_engine::turn::messages::{faux_assistant_message, text_block};
+	use gs_engine::turn::messages::agent_model;
+	use gs_runtime::Usage;
+	use gs_runtime::fake::{FakeAgent, FakeStep};
 
 	use super::*;
+	use crate::app::agents::pick_stand_in;
 	use crate::app::test_support::{scratch_dir, test_app};
 	use crate::turns::turn_liveness::{begin_turn, end_turn};
 
@@ -254,20 +253,25 @@ mod tests {
 
 	#[test]
 	fn the_summary_point_is_the_setting_cut_to_fit_the_models_window() {
-		let model = |window: f64| faux_model("faux", "faux", "test", "Test", window, 32_000.0);
+		let model = |window: f64| {
+			let mut model = agent_model();
+			model.set("contextWindow", window);
+			model
+		};
 		let setting = |tokens: f64| json!({ "compaction": { "thresholdTokens": tokens } });
 		assert_eq!(summarize_at_tokens(&setting(90_000.0), &model(1_000_000.0)), 90_000.0);
 		assert_eq!(summarize_at_tokens(&setting(90_000.0), &model(50_000.0)), effective_threshold_tokens(Some(90_000.0), Some(50_000.0)));
 		assert_eq!(summarize_at_tokens(&json!({}), &model(1_000_000.0)), effective_threshold_tokens(None, Some(1_000_000.0)));
 	}
 
-	fn deps(threshold_tokens: f64, script: &Arc<Scripted>) -> CompactionDeps {
-		let engine = Engine { model: faux_model("faux", "faux", "test", "Test", 1_000_000.0, 32_000.0), respond: script.clone() };
-		CompactionDeps { engine, model_id: "faux:test".to_owned(), threshold_tokens }
+	fn deps(threshold_tokens: f64) -> CompactionDeps {
+		CompactionDeps { model_id: "agent:outside-agent".to_owned(), threshold_tokens }
 	}
 
-	fn summary_reply(script: &Arc<Scripted>, summary: &str) {
-		script.reply(faux_assistant_message(vec![text_block(summary)], "stop"));
+	/// The learner's agent, writing `summaries` one turn each.
+	fn summarizer(app: &Arc<App>, summaries: &[&str]) {
+		let turns = summaries.iter().map(|summary| vec![FakeStep::Usage(Usage { input: 9_000, cached: 0, output: 200 }), FakeStep::Text((*summary).to_owned())]);
+		pick_stand_in(app, FakeAgent::new(turns.collect()).runtime());
 	}
 
 	fn markers(app: &App, chat_id: &str) -> Vec<Json> {
@@ -290,7 +294,7 @@ mod tests {
 		let app = test_app(&root);
 		let chat_id = over_threshold_chat(&app);
 		let mut events = app.events.subscribe();
-		ensure_compacted(&app, &deps(40_000.0, &Scripted::new()), &chat_id);
+		ensure_compacted(&app, &deps(40_000.0), &chat_id);
 		let marker = active(&app, &chat_id).expect("the marker landed");
 		assert_eq!(marker["details"]["local"], Json::Bool(true));
 		assert!(marker["content"].as_str().unwrap().contains("godspeed shortened the earlier part"));
@@ -321,7 +325,7 @@ mod tests {
 		let chat_id = app.stores.chats.create_chat("Sets", None, None, None, &[]).unwrap()["id"].as_str().unwrap().to_owned();
 		let opening: Vec<Json> = (0..45).flat_map(|i| turn_of_1k(&format!("t{i}"))).collect();
 		app.stores.chats.save_messages(&chat_id, &opening).unwrap();
-		let deps = deps(40_000.0, &Scripted::new());
+		let deps = deps(40_000.0);
 		ensure_compacted(&app, &deps, &chat_id);
 		assert_eq!(markers(&app, &chat_id).len(), 1);
 		assert!(lesson_of(&app, &chat_id) <= 30_000.0, "at least 10k of room: {}", lesson_of(&app, &chat_id));
@@ -349,7 +353,7 @@ mod tests {
 		let mut messages = vec![gs_core::messages::native_messages::new_space_context_message(&card)];
 		messages.extend((0..30).flat_map(|i| turn_of_1k(&format!("t{i}"))));
 		app.stores.chats.save_messages(&chat_id, &messages).unwrap();
-		ensure_compacted(&app, &deps(40_000.0, &Scripted::new()), &chat_id);
+		ensure_compacted(&app, &deps(40_000.0), &chat_id);
 		assert!(active(&app, &chat_id).is_none(), "every reply reports 60k of usage, but the lesson is about 30k");
 	}
 
@@ -358,9 +362,9 @@ mod tests {
 		let root = scratch_dir("compaction-noop");
 		let app = test_app(&root);
 		let chat_id = over_threshold_chat(&app);
-		ensure_compacted(&app, &deps(10_000_000.0, &Scripted::new()), &chat_id);
+		ensure_compacted(&app, &deps(10_000_000.0), &chat_id);
 		assert!(begin_turn(&app, &chat_id));
-		ensure_compacted(&app, &deps(40_000.0, &Scripted::new()), &chat_id);
+		ensure_compacted(&app, &deps(40_000.0), &chat_id);
 		end_turn(&app, &chat_id);
 		assert!(active(&app, &chat_id).is_none());
 	}
@@ -370,8 +374,7 @@ mod tests {
 		let root = scratch_dir("compaction-kick");
 		let app = test_app(&root);
 		let chat_id = over_threshold_chat(&app);
-		let script = Scripted::new();
-		let build: BuildDeps = Arc::new(move || Some(deps(40_000.0, &script)));
+		let build: BuildDeps = Arc::new(|| Some(deps(40_000.0)));
 		kick_compaction(&app, build.clone(), &chat_id);
 		kick_compaction(&app, build, &chat_id);
 		kick_compaction(&app, Arc::new(|| None), &chat_id);
@@ -384,7 +387,7 @@ mod tests {
 		let root = scratch_dir("compaction-chained");
 		let app = test_app(&root);
 		let chat_id = over_threshold_chat(&app);
-		let deps = deps(40_000.0, &Scripted::new());
+		let deps = deps(40_000.0);
 		ensure_compacted(&app, &deps, &chat_id);
 		add(&app, &chat_id, &[big("m9"), big("m10"), big("m11")]);
 		ensure_compacted(&app, &deps, &chat_id);
@@ -399,23 +402,23 @@ mod tests {
 		let root = scratch_dir("compaction-refine");
 		let app: Arc<App> = test_app(&root);
 		let chat_id = over_threshold_chat(&app);
-		let script = Scripted::new();
-		let deps = deps(40_000.0, &script);
+		summarizer(&app, &[" SUMMARY: the learner knows X. "]);
+		let deps = deps(40_000.0);
 		ensure_compacted(&app, &deps, &chat_id);
 		let local = active(&app, &chat_id).unwrap();
-		summary_reply(&script, " SUMMARY: the learner knows X. ");
 		refine(&app, &deps, &chat_id).await;
 		let refined = active(&app, &chat_id).unwrap();
 		assert_eq!((&refined["id"], &refined["timestamp"]), (&local["id"], &local["timestamp"]));
 		assert_eq!(refined["content"], json!(format!("{COMPACTED_HISTORY_HEADER}\n\nSUMMARY: the learner knows X.")));
 		let details = refined["details"].as_obj().unwrap();
 		assert_eq!(details.keys().map(String::as_str).collect::<Vec<_>>(), ["firstKeptMessageId", "tokensBefore", "at", "local", "model"]);
-		assert_eq!((&refined["details"]["local"], &refined["details"]["model"]), (&json!(false), &json!("faux:test")));
+		assert_eq!((&refined["details"]["local"], &refined["details"]["model"]), (&json!(false), &json!("agent:outside-agent")));
 		assert_eq!(refined["details"]["firstKeptMessageId"], local["details"]["firstKeptMessageId"]);
 		let turns = app.stores.chats.get_chat(&chat_id).unwrap()["turns"].clone();
 		assert_eq!(turns.as_arr().map(Vec::len), Some(1));
-		assert_eq!((&turns[0]["messageId"], &turns[0]["model"]), (&local["id"], &json!("faux:test")));
-		// A refined marker is not summarized again (the script has nothing left to answer).
+		assert_eq!((&turns[0]["messageId"], &turns[0]["model"]), (&local["id"], &json!("agent:outside-agent")));
+		assert_eq!(turns[0]["steps"][0]["inputTokens"], json!(9_000));
+		// A refined marker is not summarized again (the agent has nothing left to say).
 		refine(&app, &deps, &chat_id).await;
 		assert_eq!(active(&app, &chat_id).unwrap(), refined);
 	}
@@ -425,11 +428,12 @@ mod tests {
 		let root = scratch_dir("compaction-kept");
 		let app: Arc<App> = test_app(&root);
 		let chat_id = over_threshold_chat(&app);
-		let script = Scripted::new();
-		let deps = deps(40_000.0, &script);
+		let fails = vec![FakeStep::Fail("overloaded".to_owned())];
+		let empty = vec![FakeStep::Text("  ".to_owned())];
+		pick_stand_in(&app, FakeAgent::new(vec![fails, empty]).runtime());
+		let deps = deps(40_000.0);
 		ensure_compacted(&app, &deps, &chat_id);
 		refine(&app, &deps, &chat_id).await;
-		summary_reply(&script, "  ");
 		refine(&app, &deps, &chat_id).await;
 		assert_eq!(active(&app, &chat_id).unwrap()["details"]["local"], json!(true));
 		assert!(app.stores.chats.get_chat(&chat_id).unwrap()["turns"].as_arr().is_none_or(Vec::is_empty));

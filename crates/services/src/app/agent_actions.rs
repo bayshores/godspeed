@@ -16,7 +16,7 @@ use crate::App;
 
 const ACTIONS_MAX: usize = 200;
 /// The same label on the same target within this window updates the newest entry instead of
-/// adding one (a lesson turn calls respond many times).
+/// adding one (a lesson turn calls the same tool many times).
 const COALESCE_MS: i64 = 2 * 60_000;
 /// The `agent` of the app's own entries, which the teacher never flies to.
 const APP_SOURCE: &str = "godspeed";

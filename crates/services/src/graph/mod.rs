@@ -11,15 +11,12 @@ pub mod study_start;
 pub mod topics;
 
 use gs_agent::extraction::extraction::ExtractionState;
-use gs_agent::subagents::bg_llm_semaphore::BgLlmSlots;
 
 /// The graph services' live state inside `App`.
 #[derive(Default)]
 pub struct GraphState {
 	/// The pipeline's run registry and its graph lock.
 	extraction: ExtractionState,
-	/// The background-model permits topic grouping runs under.
-	bg_llm: BgLlmSlots,
 	topics: topics::TopicGrouping,
 	/// Each lesson's progress readout while its record file is unchanged.
 	readouts: progress::Readouts,

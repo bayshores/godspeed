@@ -1,65 +1,79 @@
-//! Parity with Node for the pipeline and the topic grouper (tests/golden/extraction.json, recorded from the Node server): the same synthetic lesson and notes, the same
-//! scripted replies, and every prompt, refusal, answer and graph file must match once random ids
-//! and clock times are normalized the same way.
+//! The pipeline and the topic grouper against tests/golden/extraction.json (first recorded from
+//! the Node server): the same synthetic lesson and notes, the same scripted turns, and everything
+//! godspeed sends the agent, every answer and every graph file must match once random ids and
+//! clock times are normalized. `GS_RECORD_GOLDEN=1 cargo test -p gs-agent golden_tests` records
+//! the outputs again.
 
 use std::collections::HashMap;
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 
 use gs_base::fsx;
 use gs_base::re::Re;
 use gs_core::graph::graph::get_graph;
 use gs_core::messages::native_messages::failed_output_call_ids;
-use gs_engine::turn::faux::Scripted;
-use gs_engine::turn::messages::faux_assistant_message;
 use gs_json::{Json, Obj, json, parse, stringify_pretty};
-use parking_lot::Mutex;
+use gs_runtime::fake::{FakeAgent, FakeStep};
 
 use super::context::prose_view;
 use super::extraction::{Extraction, ExtractionHost, NotesImportInput};
 use super::findings::{extractor_instructions, notes_extractor_instructions};
 use super::ledgers::ScopedGraph;
-use super::pipeline_tests::{Host, host, says};
+use super::pipeline_tests::{Host, USED, host};
 use super::topic_grouper::{TopicGrouperInput, group_topics, topic_grouper_instructions};
 
+const GOLDEN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/extraction.json");
+
 fn golden() -> HashMap<String, Json> {
-	let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/extraction.json")).unwrap();
-	let cases = parse(&text).unwrap();
+	let cases = parse(&std::fs::read_to_string(GOLDEN).unwrap()).unwrap();
 	cases.as_arr().unwrap().iter().map(|c| (c["name"].as_str().unwrap().to_owned(), c["output"].clone())).collect()
 }
 
-fn same(name: &str, rust: &Json, node: &Json) {
-	assert_eq!(stringify_pretty(rust, "\t"), stringify_pretty(node, "\t"), "case {name}");
+fn recording() -> bool {
+	std::env::var_os("GS_RECORD_GOLDEN").is_some()
 }
 
-type Requests = Arc<Mutex<Vec<Json>>>;
-
-/// Queues the case's replies on a new script (`{call}` a tool call, `{say}` text) and keeps what
-/// each call was shown.
-fn script(host: &Host, replies: &Json, tool: &str) -> Requests {
-	let requests = Requests::default();
-	let script: Arc<Scripted> = host.new_script();
-	for (i, reply) in replies.as_arr().unwrap().iter().enumerate() {
-		let answer = match reply.get("call") {
-			Some(args) => faux_assistant_message(vec![json!({ "type": "toolCall", "id": format!("call_{i}"), "name": tool, "arguments": args.clone() })], "toolUse"),
-			None => says(reply["say"].as_str().unwrap()),
-		};
-		let requests = requests.clone();
-		script.run(move |request| {
-			requests.lock().push(shown(&request.messages));
-			Box::pin(async move { Ok(answer) })
-		});
+/// Writes `outputs` over the golden file's cases of the same name.
+fn record(outputs: &[(&str, Json)]) {
+	let mut cases = parse(&std::fs::read_to_string(GOLDEN).unwrap()).unwrap();
+	for case in cases.as_arr_mut().unwrap() {
+		if let Some((_, output)) = outputs.iter().find(|(name, _)| case["name"].as_str() == Some(*name)) {
+			case.set("output", output.clone());
+		}
 	}
-	requests
+	fsx::write_text_atomic(std::path::Path::new(GOLDEN), &format!("{}\n", stringify_pretty(&cases, "\t"))).unwrap();
 }
 
-/// The golden spec's `request()`: the system prompt, its tools, then each message's role and content.
-fn shown(messages: &[Json]) -> Json {
-	let rest = messages[1..].iter().map(|m| match m["role"].as_str() {
-		Some("assistant") => json!({ "role": "assistant" }),
-		Some("toolResult") => json!({ "role": "toolResult", "toolName": m["toolName"].clone(), "isError": m["isError"].clone(), "content": m["content"].clone() }),
-		_ => json!({ "role": m["role"].clone(), "content": m["content"].clone() }),
+fn same(name: &str, rust: &Json, recorded: &Json) {
+	assert_eq!(stringify_pretty(rust, "\t"), stringify_pretty(recorded, "\t"), "case {name}");
+}
+
+/// A new stand-in playing the case's turns: each reply (`{call}` a tool call, `{say}` text) is one
+/// model call.
+fn script(host: &Host, turns: &Json, tool: &str) -> FakeAgent {
+	let agent = host.new_agent();
+	for turn in turns.items() {
+		let steps = turn.items().iter().flat_map(|reply| {
+			let step = match reply.get("call") {
+				Some(args) => FakeStep::Tool { name: tool.to_owned(), args: args.clone() },
+				None => FakeStep::Text(reply["say"].as_str().unwrap().to_owned()),
+			};
+			[FakeStep::Usage(USED), step]
+		});
+		agent.push(steps.collect());
+	}
+	agent
+}
+
+/// What godspeed sent the agent: each session's instructions and tools, its input, and every
+/// tool result.
+fn shown(agent: &FakeAgent) -> Json {
+	let sent = agent.sent().into_iter().filter_map(|m| match m["type"].as_str() {
+		Some("open") => Some(json!({ "open": { "system": m["systemPrompt"].clone(), "tools": m["tools"].clone() } })),
+		Some("send") => Some(json!({ "send": m["content"].clone() })),
+		Some("tool_result") => Some(json!({ "toolResult": { "isError": m["isError"].clone(), "endTurn": m["endTurn"].clone(), "content": m["content"].clone() } })),
+		_ => None,
 	});
-	json!({ "system": messages[0]["content"].clone(), "tools": messages[0]["toolsAdded"].clone(), "messages": Json::Arr(rest.collect()) })
+	Json::Arr(sent.collect())
 }
 
 static TIME: LazyLock<Re> = LazyLock::new(|| Re::new(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z$", ""));
@@ -133,7 +147,7 @@ async fn the_pipeline_and_the_topic_grouper_match_node() {
 
 	let mut steps = Obj::new();
 	for name in ["lesson", "shortNotes", "longNotes", "logistics", "again"] {
-		let requests = script(&host, &replies[name], "submit_findings");
+		let agent = script(&host, &replies[name], "submit_findings");
 		let result = match name {
 			"lesson" | "again" => match extraction.run_extraction(chat_id).await {
 				Ok(stats) => json!({ "ok": stats }),
@@ -147,21 +161,21 @@ async fn the_pipeline_and_the_topic_grouper_match_node() {
 				}
 			}
 		};
-		steps.insert(name, json!({ "result": result, "requests": Json::Arr(requests.lock().clone()) }));
+		steps.insert(name, json!({ "result": result, "sent": shown(&agent) }));
 	}
 
 	let graph = get_graph(&ScopedGraph::new(&host.stores.graphs, None)).unwrap();
 	let facts: Vec<Json> = graph.nodes.iter().map(|n| json!({ "id": n["id"].clone(), "name": n["name"].clone(), "statement": n["statement"].clone() })).collect();
 	let ids: Vec<Json> = facts.iter().map(|f| f["id"].clone()).collect();
-	let topic_replies = json!([
+	let topic_turn = json!([[
 		{ "call": { "topics": [{ "name": "Sorting and more and more things", "members": ids[..3].to_vec() }] } },
 		{ "call": { "topics": [
 			{ "name": "Sorting", "members": [ids[0].clone(), ids[1].clone(), ids[2].clone(), "n_unknown"], "material": " Procedure " },
 			{ "name": "Heaps", "members": [ids[3].clone(), ids[3].clone()], "material": "essay" },
 			{ "id": "tpc_aaaaaaaaaa", "name": "Old", "members": [ids[5].clone()], "material": "term" },
 		] } },
-	]);
-	let requests = script(&host, &topic_replies, "submit_topics");
+	]]);
+	let agent = script(&host, &topic_turn, "submit_topics");
 	let input = TopicGrouperInput {
 		notes: None,
 		space_name: "Algorithms".into(),
@@ -169,19 +183,18 @@ async fn the_pipeline_and_the_topic_grouper_match_node() {
 		chains: graph.chains.clone(),
 		current: vec![json!({ "id": "tpc_aaaaaaaaaa", "name": "Old", "members": [ids[0].clone()], "material": "concept" })],
 		loose: None,
-		engine: host.engine(),
 		abort: None,
 	};
-	let grouped = match group_topics(&host.bridge, input).await {
+	let grouped = match group_topics(host.job_agent().as_ref(), input).await {
 		Ok(topics) => json!({ "ok": topics }),
 		Err(err) => json!({ "error": err.to_string() }),
 	};
-	steps.insert("topics", json!({ "facts": facts, "result": grouped, "requests": Json::Arr(requests.lock().clone()) }));
+	steps.insert("topics", json!({ "facts": facts, "result": grouped, "sent": shown(&agent) }));
 	let chat = parse(&std::fs::read_to_string(&chat_file).unwrap()).unwrap();
 	steps.insert("files", json!({ "graph": ledgers(&host), "extractions": chat["extractions"].clone() }));
 
 	let story = normalized(&Json::Obj(steps));
-	for (case, key) in [
+	let cases_of = [
 		("a lesson: a stray anchor, a broken chain, then a good submit", "lesson"),
 		("short notes: reteaches left out, then a stray messageId is dropped", "shortNotes"),
 		("long notes in stretches, the later ones never submit", "longNotes"),
@@ -189,7 +202,12 @@ async fn the_pipeline_and_the_topic_grouper_match_node() {
 		("the same lesson again has nothing left", "again"),
 		("topic grouping: a long name, then a repaired grouping", "topics"),
 		("the files afterwards", "files"),
-	] {
+	];
+	if recording() {
+		record(&cases_of.map(|(case, key)| (case, story[key].clone())));
+		return;
+	}
+	for (case, key) in cases_of {
 		same(case, &story[key], &cases[case]);
 	}
 }

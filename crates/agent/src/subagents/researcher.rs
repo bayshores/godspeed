@@ -5,14 +5,14 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
-use gs_engine::turn::faux::Engine;
+use gs_engine::turn::job_session::{Approve, OnToolStart, RunError};
 use gs_engine::turn::tool::Tool;
 use gs_json::Json;
 use gs_pdf::Pdf;
 
-use super::pi_run::{OnToolStart, OnUsage, RunError, SubagentRunOptions, run_subagent};
+use super::job_agent::{JobAgent, Priority};
+use super::pi_run::{OnUsage, SubagentRunOptions, run_subagent};
 use crate::fs_tools::pdf_read::create_pdf_read_tools;
 use crate::fs_tools::web::{web_search_tool, web_tools};
 
@@ -57,25 +57,22 @@ Numbered findings with inline source citations:
 ## Gaps
 What couldn't be answered. Suggested next steps."#;
 
-/// Step 2 without a search key. The work item's rule is to use only its tools, so the
-/// exception is spelled out.
+/// Step 2 without a search key.
 const OWN_SEARCH: &str = "For each facet, find sources and read them with web_fetch. If you have a web search of your
-   own, use it to find pages: that is allowed here, even though the work item says to use only
-   its tools. With no search of your own, pick source URLs you know exist (official docs, specs,
-   standards bodies, encyclopedia articles such as Wikipedia, primary sources).";
+   own, use it to find pages. With no search of your own, pick source URLs you know exist
+   (official docs, specs, standards bodies, encyclopedia articles such as Wikipedia, primary
+   sources).";
 
 /// Step 2 while the person's search key gives the job web_search.
 const WEB_SEARCH: &str = "For each facet, search with web_search, then read the best results with web_fetch. Use
    web_search, not a web search of your own. If web_search fails, carry on with your own web
-   search if you have one (allowed here, even though the work item says to use only its tools),
-   or pick source URLs you know exist (official docs, specs, standards bodies, encyclopedia
-   articles such as Wikipedia, primary sources).";
+   search if you have one, or pick source URLs you know exist (official docs, specs, standards
+   bodies, encyclopedia articles such as Wikipedia, primary sources).";
 
 /// Model calls allowed.
 const MAX_TURNS: usize = 12;
 
 pub struct ResearcherRunOptions<'a> {
-	pub engine: Option<Engine>,
 	pub pdf: &'a Pdf,
 	/// The job's temporary folder: web_fetch_pdf downloads land here and every PDF tool is
 	/// scoped to it. The runner makes and removes it.
@@ -83,10 +80,12 @@ pub struct ResearcherRunOptions<'a> {
 	pub abort_signal: Option<Abort>,
 	pub on_usage: Option<OnUsage>,
 	pub on_tool_start: Option<OnToolStart>,
-	/// The task's name on the outside agent's work items.
-	pub task_label: Option<String>,
+	/// Names the job in the log.
+	pub label: String,
 	/// The person's Tavily key; with it the job gets web_search.
 	pub search_key: Option<String>,
+	/// The lesson that asked answers the agent's permission questions.
+	pub approve: Option<Approve>,
 }
 
 fn instructions(searching: bool) -> String {
@@ -101,17 +100,16 @@ fn research_tools(pdf: &Pdf, pdf_dir: &Path, search_key: Option<String>) -> Vec<
 }
 
 /// Runs the researcher to the end: its last text is the brief.
-pub async fn run_researcher_agent(bridge: &Bridge, prompt: &str, opts: ResearcherRunOptions<'_>) -> Result<String, RunError> {
+pub async fn run_researcher_agent(agent: &dyn JobAgent, prompt: &str, opts: ResearcherRunOptions<'_>) -> Result<String, RunError> {
 	let system_prompt = instructions(opts.search_key.is_some());
 	let tools = research_tools(opts.pdf, opts.pdf_dir, opts.search_key);
-	let mut run = SubagentRunOptions::new(&system_prompt, Json::from(prompt), MAX_TURNS);
-	run.engine = opts.engine;
+	let mut run = SubagentRunOptions::new(opts.label, &system_prompt, Json::from(prompt), MAX_TURNS);
 	run.abort_signal = opts.abort_signal;
 	run.on_usage = opts.on_usage;
 	run.on_tool_start = opts.on_tool_start;
-	run.task_label = opts.task_label;
-	run.awaited = true;
-	Ok(run_subagent(bridge, tools, run).await?.text)
+	run.priority = Priority::Waited;
+	run.approve = opts.approve;
+	Ok(run_subagent(agent, tools, run).await?.text)
 }
 
 #[cfg(test)]
@@ -133,7 +131,7 @@ mod tests {
 	#[test]
 	fn without_a_key_the_agent_may_use_its_own_search() {
 		let text = instructions(false);
-		assert!(text.contains("If you have a web search of your\n   own, use it to find pages: that is allowed here"));
+		assert!(text.contains("If you have a web search of your\n   own, use it to find pages."));
 		assert!(text.contains("With no search of your own, pick source URLs you know exist"));
 		assert!(!text.contains("web_search") && !text.contains("{find_sources}"));
 	}
@@ -143,7 +141,7 @@ mod tests {
 		let text = instructions(true);
 		assert!(text.contains("2. For each facet, search with web_search, then read the best results with web_fetch."));
 		assert!(text.contains("web_search, not a web search of your own"));
-		assert!(text.contains("If web_search fails, carry on with your own web\n   search"));
+		assert!(text.contains("If web_search fails, carry on with your own web\n   search if you have one, or pick"));
 		assert!(!text.contains("{find_sources}"));
 	}
 }

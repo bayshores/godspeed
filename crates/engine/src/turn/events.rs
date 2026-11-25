@@ -1,6 +1,11 @@
 //! The agent's lifecycle events (pi-agent-core `AgentEvent`), as the turn stream sends them.
 
+use std::sync::Arc;
+
 use gs_json::{Json, Obj};
+
+/// An event listener; called in subscription order, outside the turn's locks.
+pub type Listener = Arc<dyn Fn(&AgentEvent) + Send + Sync>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AgentEvent {

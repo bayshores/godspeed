@@ -11,7 +11,7 @@ use gs_core::contracts::chat::TOPIC_DONE_TOOL;
 use gs_core::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
 use gs_core::messages::pending::is_question_tool;
 use gs_core::session::tool_switches::{TOGGLEABLE_TOOLS, switched_off_tools_note};
-use gs_engine::turn::agent::BeforeToolCallFn;
+use gs_engine::turn::tool_host::BeforeToolCallFn;
 use gs_engine::turn::tool::Tool;
 use gs_engine::turn::tool_host::ToolHost;
 use gs_json::Json;

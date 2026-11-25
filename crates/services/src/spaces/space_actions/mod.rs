@@ -22,9 +22,6 @@ use gs_json::{Json, json};
 use crate::App;
 use crate::app::agent_actions::note_agent_action;
 
-/// Study files are read by the agent itself, as background work items.
-pub const READING_NOTE: &str = "The reading work comes to you through wait_for_work; it does not progress until you run the loop.";
-
 /// Sends a lesson's first message (chat id, text); Err holds the refusal's body text.
 pub type SendFirstMessage = Arc<dyn Fn(String, String) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> + Send + Sync>;
 

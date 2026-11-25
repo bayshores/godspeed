@@ -9,12 +9,10 @@ You are setting up the learner's spaces in the godspeed learning app, connected 
    - Add every deadline from space info files (syllabus, schedule) in one `add_space_deadline` call (`deadlines`): exams, homework, quizzes, projects. Each gets `kind` (`exam`, `homework`, `quiz` or `project`), name, date (YYYY-MM-DD), time (24-hour HH:MM) when the file gives one, and `file_ids` = study files (lectures, readings) it covers. File ids from `read_space` with `files: true`. Work out what a deadline covers from the space's own files first: practice exam or review sheet, schedule, announcements (`search_space_files`). Link files they point to, put earlier files it doesn't cover in `left_out_ids`, name the file it came from in `source`. Ask the learner only when files don't settle it. Never make up dates or times. Some come back under `refused`: fix and resend only those. Fix mistakes with `update_space_deadline` / `remove_space_deadline`.
 3. `read_space` to check each space. Report files under `failedFiles` with their error. `needs-whisper` = learner needs to run `brew install whisper-cpp ffmpeg`.
 4. One short summary per space: name, number of files, deadlines with dates, anything the learner must do.
-5. End your turn: the work loop from CLAUDE.md reads the files. Each work item wakes you; follow its instructions, answer with `respond`, end your turn after each `turn_complete`. File reading doesn't progress while no agent takes this work.
 
 Rules:
 - Never delete anything. Deleting a space is only possible in the godspeed window.
 - Supported files: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx .epub, .vtt .srt, .mp3 .m4a .wav .mp4 .mov. Google Docs links (.gdoc) can't be read: ask the learner to save them as PDF or Word. Skip others, say so.
-- Turning study files into facts is work for you (the connected agent): comes through `wait_for_work`, waits until an agent takes work. Large folders take a while; progress shows in the godspeed window.
 - Teach inside a space afterwards: `start_lesson` with the space's `space_id`.
 
 A tool says godspeed is unreachable or its access token wasn't found: tell the user exactly that message, stop.

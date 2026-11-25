@@ -27,7 +27,7 @@ use gs_core::records::settings_resolution::graph_tools_enabled;
 use gs_core::records::teaching_areas::{every_turn_rules, learner_rules_section};
 use gs_core::messages::native_messages::has_probe_done;
 use gs_core::session::tool_switches::{VISUAL_TOOL, switched_off};
-use gs_engine::turn::agent::BeforeToolCallFn;
+use gs_engine::turn::tool_host::BeforeToolCallFn;
 use gs_json::{Json, json};
 
 use super::chat_handler::send_first_message;
@@ -74,7 +74,7 @@ fn with_lesson_rules<T>(app: &App, effective: &Json, space_id: Option<&str>, tex
 /// figure tool while the lesson's teacher has it: the switch is on and its prober is done.
 pub fn every_turn_rules_for(app: &App, lesson: &Json) -> String {
 	let effective = app.stores.settings.effective_settings().unwrap_or_else(|err| {
-		eprintln!("[work item] reading the settings for the learner's rules failed: {err}");
+		eprintln!("[lesson turn] reading the settings for the learner's rules failed: {err}");
 		Json::Null
 	});
 	let probing = !matches!(lesson["kind"].as_str(), Some("practice" | "homework" | "study")) && !has_probe_done(lesson["messages"].items());

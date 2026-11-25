@@ -3,7 +3,6 @@
 
 use gs_core::records::agent_notes::{clean_note_text, parse_agent_notes};
 use gs_core::records::agent_rules::{parse_saved_rules, parse_where, rule_for, same_where, where_label};
-use gs_core::records::agent_seen::{SeenMark, parse_agent_seen, resume_at, seen_mark, with_seen};
 use gs_core::records::changelog::{changelog, compare_versions, entries_since, entry_for, is_version};
 use gs_core::records::prompt_segments::is_valid_segment_path;
 use gs_core::records::settings::{is_hex_color, sanitize_teacher_name, sanitize_user_settings};
@@ -115,40 +114,6 @@ fn agent_rules_match_node() {
 	for row in all["saved"].as_arr().unwrap() {
 		same(&stringify(&row["input"]), &Json::from(parse_saved_rules(&row["input"])), &row["output"]);
 	}
-}
-
-#[test]
-fn agent_seen_matches_node() {
-	let all = case("agent seen");
-	for row in all["parsed"].as_arr().unwrap() {
-		same(&stringify(&row["input"]), &parse_agent_seen(&row["input"]), &row["output"]);
-	}
-	let prints: Vec<String> = ["a", "b", "c", "😀", "", "x\u{0}y"].map(String::from).to_vec();
-	for row in all["marks"].as_arr().unwrap() {
-		let n = row["n"].as_i64().unwrap() as usize;
-		let mark = seen_mark(&prints[..n], if n % 2 == 1 { "lead" } else { "" });
-		same("mark", &mark.to_json(), &row["output"]);
-	}
-	let seen = seen_mark(&["a", "b", "reply"].map(String::from), "L");
-	for row in all["resumes"].as_arr().unwrap() {
-		let prints: Vec<String> = row["prints"].as_arr().unwrap().iter().map(|p| p.as_str().unwrap().to_owned()).collect();
-		let at = resume_at(Some(&seen), &prints).map_or(-1, |i| i as i64);
-		same(&stringify(&row["prints"]), &Json::from(at), &row["output"]);
-	}
-	same("no mark", &Json::from(resume_at(None, &["a".to_owned()]).map_or(-1, |i| i as i64)), &all["resumeNone"]);
-	let mut file = parse_agent_seen(&Json::Null);
-	for (i, step) in all["steps"].as_arr().unwrap().iter().enumerate() {
-		let conversation = if i % 3 == 0 { "chat".to_owned() } else { format!("chat{i}") };
-		let mark = SeenMark { count: i, hash: format!("h{i}"), last: format!("l{i}"), lead: format!("L{i}") };
-		file = with_seen(&file, &format!("agent{}", i % 23), &conversation, &mark, &format!("2026-01-{:02}T00:00:00.000Z", (i % 28) + 1));
-		same(&format!("step {i}"), &file, step);
-	}
-	let mark = SeenMark { count: 1, hash: "h".into(), last: "l".into(), lead: "L".into() };
-	let ties = with_seen(&with_seen(&parse_agent_seen(&Json::Null), "x", "c", &mark, "T"), "y", "c", &mark, "T");
-	same("ties", &ties, &all["ties"]);
-	let start = parse_agent_seen(&json!({ "agents": { "Zed": { "at": "b", "conversations": {} }, "apple": { "at": "B", "conversations": {} }, "mid": { "at": "a", "conversations": {} } } }));
-	let mixed = with_seen(&start, "new", "c", &SeenMark { count: 2, hash: "q".into(), last: String::new(), lead: String::new() }, "A");
-	same("mixed", &mixed, &all["mixed"]);
 }
 
 #[test]

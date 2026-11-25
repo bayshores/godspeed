@@ -1,6 +1,6 @@
 //! Outside agents cap each tool result: Codex keeps about 12k tokens and drops the middle, and
-//! Claude Code moves text over 50k characters into a file. A long work item therefore goes out
-//! in pages that each fit both. Pages are measured in UTF-8 bytes, because Codex counts tokens
+//! Claude Code moves text over 50k characters into a file. A long result (a lesson read with
+//! read_lesson) therefore goes out in pages that each fit both. Pages are measured in UTF-8 bytes, because Codex counts tokens
 //! from bytes: a page of Chinese or Japanese text holds about a third as many characters as an
 //! English one.
 //!

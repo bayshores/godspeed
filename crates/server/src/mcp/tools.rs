@@ -10,7 +10,7 @@ use gs_services::app::open_page::open_page;
 
 use super::reply::{failure, outcome};
 use super::schema::check_arguments;
-use super::{spaces, graph, lessons, memory, vault, work};
+use super::{spaces, graph, lessons, memory, vault};
 
 static TOOLS: LazyLock<Json> = LazyLock::new(|| gs_json::parse(include_str!("tools.json")).unwrap_or_default());
 
@@ -27,27 +27,11 @@ pub fn has_tool(name: &str) -> bool {
 	input_schema(name).is_some()
 }
 
-/// One tool call: the app, the calling agent's name, the app terminal it runs in and the
-/// request's `_meta`.
+/// One tool call: the app, the calling agent's name and the app terminal it runs in.
 pub struct ToolCall<'a> {
 	pub app: &'a Arc<App>,
 	pub caller: Option<&'a str>,
 	pub terminal: Option<&'a str>,
-	pub meta: &'a Json,
-}
-
-impl ToolCall<'_> {
-	/// The agent's session: in the teacher's terminal the chat its SessionStart hook named (the
-	/// connector keeps the id it started with, even after `/resume` opened another chat), else
-	/// the one the call says.
-	pub fn agent(&self) -> Option<String> {
-		self.terminal.and_then(|t| self.app.bridge.terminal_chat(t)).or_else(|| super::caller::agent_id_of(self.meta))
-	}
-
-	/// The folder's waiter wakes this session with each work item (`caller::woken`).
-	pub fn woken(&self) -> bool {
-		super::caller::woken(self.meta)
-	}
 }
 
 /// A tool's space_id argument, checked: absent or "none" is No space; otherwise the space must
@@ -71,14 +55,8 @@ pub async fn call_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Json {
 		Ok(args) => args,
 		Err(error) => return failure(&error),
 	};
-	if !matches!(name, "wait_for_work" | "respond") {
-		call.app.bridge.drop_typed(call.terminal);
-	}
 	super::teacher_work::note_call(call, name, &args);
 	match name {
-		"wait_for_work" => work::wait_for_work(call, &args).await,
-		"respond" => work::respond(call, &args).await,
-		"read_work" => work::read_work(call, &args),
 		"list_lessons" => lessons::list_lessons(call, &args),
 		"read_lesson" => lessons::read_lesson(call, &args),
 		"search_graph" => graph::search_graph(call, &args).await,
@@ -107,17 +85,9 @@ mod tests {
 	#[test]
 	fn lists_every_tool_in_order() {
 		let names: Vec<&str> = tool_list().as_arr().unwrap().iter().filter_map(|t| t["name"].as_str()).collect();
-		assert_eq!(names.len(), 27);
-		assert_eq!(names[..3], ["wait_for_work", "respond", "read_work"]);
-		assert_eq!(names[22..], ["start_lesson", "open_page", "unlink_space_folder", "search_vault", "write_vault_note"]);
-	}
-
-	/// Claude Code defers MCP tools until a search finds them; the two every work item needs load
-	/// upfront, so no turn spends a search on them.
-	#[test]
-	fn the_answer_tools_load_upfront() {
-		let upfront: Vec<&str> = tool_list().as_arr().unwrap().iter().filter(|t| t["_meta"]["anthropic/alwaysLoad"].as_bool() == Some(true)).filter_map(|t| t["name"].as_str()).collect();
-		assert_eq!(upfront, ["respond", "read_work"]);
+		assert_eq!(names.len(), 24);
+		assert_eq!(names[..3], ["list_lessons", "read_lesson", "search_graph"]);
+		assert_eq!(names[19..], ["start_lesson", "open_page", "unlink_space_folder", "search_vault", "write_vault_note"]);
 	}
 
 	struct NoNames;
@@ -137,8 +107,8 @@ mod tests {
 		}
 	}
 
-	/// A new tool fails here until teacher_steps.rs says what it is for Follow: the work loop, a
-	/// change the activity log names, or a step in words.
+	/// A new tool fails here until teacher_steps.rs says what it is for Follow: a change the
+	/// activity log names, or a step in words.
 	#[test]
 	fn every_tool_is_decided_for_the_teacher_s_round() {
 		for tool in tool_list().as_arr().unwrap() {

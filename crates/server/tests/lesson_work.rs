@@ -42,7 +42,7 @@ fn work(app: &App, chat_id: &str) -> Json {
 
 /// Follow's round of work as GET /api/teacher-work sends it: live or not.
 fn round_live(app: &App) -> bool {
-	app.bridge.teacher_work(clock::now_ms())["live"] == Json::Bool(true)
+	app.terminals.teacher_work(clock::now_ms())["live"] == Json::Bool(true)
 }
 
 fn call(name: &str, args: Json) -> FakeStep {

@@ -25,7 +25,7 @@ pub(super) fn file_of<'a>(space: &'a Json, deadline: &Json) -> Option<&'a Json> 
 	space["files"].as_arr()?.iter().find(|f| f["id"].as_str() == Some(file_id))
 }
 
-/// The clock a homework lesson's work items end with on the day its deadline is due
+/// The clock a homework lesson's turns end with on the day its deadline is due
 /// (`due_today_line`); None for any other lesson.
 pub fn due_today_line_for(app: &App, lesson: &Json) -> Option<String> {
 	if lesson["kind"].as_str() != Some("homework") {

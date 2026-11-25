@@ -1,34 +1,34 @@
 //! The single-submit agent seam (submit-agent.ts): one schema-checked submit call is the whole
-//! deliverable, run as a background agent only so the model can retry a refused call. The value is
-//! captured where the engine runs a schema-valid call; `fill`, `validate` and `notice` apply there.
+//! deliverable, run as a background job only so the model can retry a refused call. The value is
+//! captured where the host runs a schema-valid call; `fill`, `validate` and `notice` apply there.
+//! The final valid submit ends the job's turn; a turn that ends without one gets one reminder.
 
-use std::cell::Cell;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use futures_util::future::BoxFuture;
 use gs_core::session::argument_heal::heal_encoded_arguments;
-use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
-use gs_engine::turn::faux::Engine;
+use gs_engine::turn::job_session::{Approve, RunError};
 use gs_engine::turn::tool::{Tool, ToolContext};
 use gs_engine::turn::tool_execute::{invalid_input_result, to_tool_result};
 use gs_json::Json;
+use gs_runtime::Part;
 use parking_lot::Mutex;
 
-use crate::subagents::pi_run::{RunError, SubagentRunOptions, run_subagent};
+use crate::subagents::job_agent::{JobAgent, Priority};
+use crate::subagents::pi_run::{OnUsage, SubagentRunOptions, run_subagent};
 
 /// Defaults for omitted optional fields, applied to the schema-valid input.
 pub type Fill = Box<dyn Fn(Json) -> Json + Send + Sync>;
 /// A pipeline law the schema cannot state: `Some(problem)` goes back to the model as an error
-/// result and it tries again within its turns. May read files.
+/// result and it tries again within its model calls. May read files.
 pub type Validate = Box<dyn Fn(&Json) -> BoxFuture<'static, Option<String>> + Send + Sync>;
 /// Asked once, of the first submit that passes `validate`: `Some(text)` goes back to the model as
 /// a plain result, not an error, and its next valid submit is final. The model call this adds does
-/// not count against `max_turns`.
+/// not count against `max_calls`.
 pub type Notice = Box<dyn Fn(&Json) -> BoxFuture<'static, Option<String>> + Send + Sync>;
-/// Each finished model call's usage and `provider:model`.
-pub type OnStep = Arc<dyn Fn(&Json, &str) + Send + Sync>;
 
 pub struct SubmitAgentOptions {
 	pub tool_name: String,
@@ -41,20 +41,22 @@ pub struct SubmitAgentOptions {
 	pub system_prompt: String,
 	/// Text, or content parts.
 	pub prompt: Json,
-	/// None: the outside agent.
-	pub engine: Option<Engine>,
 	pub abort: Option<Abort>,
-	pub on_step: Option<OnStep>,
+	/// Each model call's usage and `provider:model`.
+	pub on_step: Option<OnUsage>,
 	/// The error when the model never makes a valid submit.
 	pub never_submitted: String,
-	/// The task's name on the outside agent's work items.
-	pub task_label: Option<String>,
-	/// The learner asked for it: the teacher takes it before a helper.
-	pub asked: bool,
+	/// Names the job in the log.
+	pub label: String,
+	pub priority: Priority,
 	/// Tools to look things up before submitting.
 	pub lookups: Vec<Arc<dyn Tool>>,
 	/// Model calls allowed; the default (4) only leaves room for retries.
-	pub max_turns: Option<usize>,
+	pub max_calls: Option<usize>,
+	/// The folder the agent works in; None is a folder of the job's own.
+	pub cwd: Option<PathBuf>,
+	/// The learner's answer to the agent's permission questions; None refuses them.
+	pub approve: Option<Approve>,
 }
 
 impl SubmitAgentOptions {
@@ -68,14 +70,15 @@ impl SubmitAgentOptions {
 			notice: None,
 			system_prompt,
 			prompt,
-			engine: None,
 			abort: None,
 			on_step: None,
 			never_submitted: never_submitted.to_owned(),
-			task_label: None,
-			asked: false,
+			label: tool_name.to_owned(),
+			priority: Priority::Own,
 			lookups: Vec::new(),
-			max_turns: None,
+			max_calls: None,
+			cwd: None,
+			approve: None,
 		}
 	}
 }
@@ -123,48 +126,40 @@ impl Tool for SubmitTool {
 			{
 				return Ok(to_tool_result(&Json::from(text)));
 			}
-			let result = to_tool_result(&value);
+			let mut result = to_tool_result(&value);
+			result.set("terminate", true);
 			*self.submitted.lock() = Some(value);
 			Ok(result)
 		})
 	}
 }
 
-/// The names of an assistant message's tool calls, or "(none)".
-fn called_tools(message: &Json) -> String {
-	let names: Vec<&str> = message["content"].items().iter().filter(|c| c["type"] == Json::from("toolCall")).filter_map(|c| c["name"].as_str()).collect();
-	if names.is_empty() { "(none)".to_owned() } else { names.join(", ") }
+/// What the agent reads when its turn ended without the submit.
+fn reminder(tool_name: &str) -> String {
+	format!("You have not called {tool_name} yet. Call it now; it is the only way your work reaches godspeed.")
 }
 
 /// Runs the agent until it makes one valid submit, and returns the (filled) value.
-pub async fn run_submit_agent(bridge: &Bridge, opts: SubmitAgentOptions) -> Result<Json, RunError> {
+pub async fn run_submit_agent(agent: &dyn JobAgent, opts: SubmitAgentOptions) -> Result<Json, RunError> {
 	let submitted = Arc::new(Mutex::new(None));
 	let noticed = Arc::new(AtomicBool::new(false));
-	let max_turns = opts.max_turns.unwrap_or(4);
-	let ceiling = max_turns + usize::from(opts.notice.is_some());
-	let submit = SubmitTool { name: opts.tool_name, description: opts.tool_description, parameters: opts.parameters, fill: opts.fill, validate: opts.validate, notice: opts.notice, noticed: noticed.clone(), submitted: submitted.clone() };
+	let ceiling = opts.max_calls.unwrap_or(4) + usize::from(opts.notice.is_some());
+	let reminder = reminder(&opts.tool_name);
+	let submit = SubmitTool { name: opts.tool_name, description: opts.tool_description, parameters: opts.parameters, fill: opts.fill, validate: opts.validate, notice: opts.notice, noticed, submitted: submitted.clone() };
 	let mut tools = opts.lookups;
 	tools.push(Arc::new(submit));
 
-	let mut run = SubagentRunOptions::new(&opts.system_prompt, opts.prompt, ceiling);
-	run.engine = opts.engine;
+	let mut run = SubagentRunOptions::new(opts.label, &opts.system_prompt, opts.prompt, ceiling);
 	run.abort_signal = opts.abort;
-	run.task_label = opts.task_label;
-	run.asked = opts.asked;
-	if let Some(on_step) = opts.on_step {
-		run.on_assistant_message = Some(Arc::new(move |message: &Json, step: usize| {
-			// pi reports the bare model id; usage stamps carry provider:id.
-			let model = format!("{}:{}", message["provider"].as_str().unwrap_or("undefined"), message["model"].as_str().unwrap_or("undefined"));
-			on_step(&message["usage"], &model);
-			eprintln!("[submit-agent] step {step}: {}, tools: {}", message["stopReason"].str_or_empty(), called_tools(message));
-		}));
-	}
-	let (captured, turns) = (submitted.clone(), Cell::new(0));
-	run.should_stop = Some(Box::new(move |_message, _results| {
-		turns.set(turns.get() + 1);
-		captured.lock().is_some() || turns.get() >= max_turns + usize::from(noticed.load(Ordering::SeqCst))
+	run.priority = opts.priority;
+	run.on_usage = opts.on_step;
+	run.cwd = opts.cwd;
+	run.approve = opts.approve;
+	run.follow_up = Some(Box::new({
+		let submitted = submitted.clone();
+		move |_: &str| submitted.lock().is_none().then(|| vec![Part::Text(reminder)])
 	}));
-	run_subagent(bridge, tools, run).await?;
+	run_subagent(agent, tools, run).await?;
 	let value = submitted.lock().take();
 	value.ok_or(RunError::Failed(opts.never_submitted))
 }

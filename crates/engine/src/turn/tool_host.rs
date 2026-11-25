@@ -11,13 +11,26 @@ use std::time::Instant;
 use futures_util::FutureExt;
 use gs_base::num;
 use gs_json::{Json, json};
-use gs_runtime::ToolSpec;
+use gs_runtime::{ToolReply, ToolSpec};
 
 use super::abort::Abort;
-use super::agent::{BeforeToolCall, BeforeToolCallFn};
-use super::messages::{error_tool_result, text_block};
+use super::messages::{error_tool_result, parts_of, text_block};
 use super::tool::{Tool, ToolContext};
 use super::validate::validate_tool_arguments;
+
+/// One call the `before_tool_call` hook decides on, with the whole reply it came in.
+pub struct BeforeToolCall<'a> {
+	/// The transcript before this reply.
+	pub messages: &'a [Json],
+	/// The assistant message holding every call of the reply, in any order.
+	pub message: &'a Json,
+	pub call: &'a Json,
+	/// The call's prepared and validated arguments.
+	pub args: &'a Json,
+}
+
+/// pi's `beforeToolCall`: `Some(reason)` refuses the call with that text alone (no echo).
+pub type BeforeToolCallFn = Box<dyn Fn(&BeforeToolCall) -> Option<String> + Send + Sync>;
 
 /// The assistant message whose calls run, and the transcript before it.
 #[derive(Clone, Copy)]
@@ -26,52 +39,51 @@ pub struct Reply<'a> {
 	pub message: &'a Json,
 }
 
-pub(super) struct Finalized {
-	pub call: Json,
-	pub result: Json,
-	pub is_error: bool,
-	pub duration_ms: Option<f64>,
+struct Finalized {
+	result: Json,
+	is_error: bool,
+	duration_ms: Option<f64>,
 }
 
-pub(super) enum Prepared {
+enum Prepared {
 	/// Refused before running: unknown tool, bad arguments, or aborted.
 	Immediate(Finalized),
 	Ready(Arc<dyn Tool>, Json),
 }
 
-pub(super) fn text(v: &Json) -> String {
+fn text(v: &Json) -> String {
 	v.as_str().unwrap_or("undefined").to_owned()
 }
 
-pub(super) fn refused(call: &Json, message: &str) -> Finalized {
-	Finalized { call: call.clone(), result: error_tool_result(message), is_error: true, duration_ms: None }
+fn refused(message: &str) -> Finalized {
+	Finalized { result: error_tool_result(message), is_error: true, duration_ms: None }
 }
 
 /// `prepareToolCall`: find the tool, prepare and validate its arguments, then ask the
 /// `before_tool_call` hook.
-pub(super) fn prepare(tools: &[Arc<dyn Tool>], hook: Option<&BeforeToolCallFn>, reply: Reply, call: &Json, abort: &Abort) -> Prepared {
+fn prepare(tools: &[Arc<dyn Tool>], hook: Option<&BeforeToolCallFn>, reply: Reply, call: &Json, abort: &Abort) -> Prepared {
 	let name = text(&call["name"]);
 	let Some(tool) = tools.iter().find(|t| t.name() == name) else {
-		return Prepared::Immediate(refused(call, &format!("Tool {name} not found")));
+		return Prepared::Immediate(refused(&format!("Tool {name} not found")));
 	};
 	let args = match tool.prepare_arguments(call["arguments"].clone()) {
 		Ok(args) => args,
-		Err(message) => return Prepared::Immediate(refused(call, &message)),
+		Err(message) => return Prepared::Immediate(refused(&message)),
 	};
 	let validated = match validate_tool_arguments(&name, tool.parameters(), &args) {
 		Ok(validated) => validated,
-		Err(message) => return Prepared::Immediate(refused(call, &message)),
+		Err(message) => return Prepared::Immediate(refused(&message)),
 	};
 	let blocked = hook.and_then(|hook| hook(&BeforeToolCall { messages: reply.before, message: reply.message, call, args: &validated }));
 	match blocked {
-		Some(reason) => Prepared::Immediate(refused(call, &reason)),
-		None if abort.is_aborted() => Prepared::Immediate(refused(call, "Operation aborted")),
+		Some(reason) => Prepared::Immediate(refused(&reason)),
+		None if abort.is_aborted() => Prepared::Immediate(refused("Operation aborted")),
 		None => Prepared::Ready(tool.clone(), validated),
 	}
 }
 
 /// `executePreparedToolCall`: a failed call (or a panic in the tool) becomes an error result.
-pub(super) async fn run(tool: &dyn Tool, call: &Json, args: Json, abort: &Abort) -> Finalized {
+async fn run(tool: &dyn Tool, call: &Json, args: Json, abort: &Abort) -> Finalized {
 	let started = Instant::now();
 	let ctx = ToolContext { tool_call_id: text(&call["id"]), abort: abort.clone() };
 	let outcome = AssertUnwindSafe(tool.execute(args, ctx)).catch_unwind().await;
@@ -87,7 +99,7 @@ pub(super) async fn run(tool: &dyn Tool, call: &Json, args: Json, abort: &Abort)
 			(error_tool_result(&message), true)
 		}
 	};
-	Finalized { call: call.clone(), result, is_error, duration_ms }
+	Finalized { result, is_error, duration_ms }
 }
 
 /// One call's outcome: the tool's result record (`{content, details?, isError?, terminate?,
@@ -105,6 +117,13 @@ pub struct HostReply {
 	pub releases: Option<Release>,
 	/// Set for a call that ran.
 	pub duration_ms: Option<f64>,
+}
+
+impl HostReply {
+	/// The reply as the agent gets it.
+	pub fn agent_reply(&self) -> ToolReply {
+		ToolReply { content: parts_of(self.result["content"].items()), is_error: self.is_error, ends_turn: self.ends_turn }
+	}
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -162,7 +181,7 @@ impl ToolHost {
 		let refusal = self.refused.iter().find(|(name, _)| Some(name.as_str()) == call["name"].as_str()).map(|(_, reason)| reason);
 		let finalized = match (prepare(&self.tools, self.before_tool_call.as_ref(), reply, call, abort), refusal) {
 			(Prepared::Immediate(finalized), _) => finalized,
-			(Prepared::Ready(_, _), Some(reason)) => Finalized { call: call.clone(), result: json!({ "content": [text_block(reason)], "isError": true }), is_error: true, duration_ms: None },
+			(Prepared::Ready(_, _), Some(reason)) => Finalized { result: json!({ "content": [text_block(reason)], "isError": true }), is_error: true, duration_ms: None },
 			(Prepared::Ready(tool, args), None) => run(tool.as_ref(), call, args, abort).await,
 		};
 		let stops = call["name"].as_str().is_some_and(|name| self.stops.contains(name)) || finalized.result["terminate"] == Json::Bool(true);

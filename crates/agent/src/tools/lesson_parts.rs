@@ -16,7 +16,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use gs_core::messages::role::is_ok_tool_result;
 use gs_core::session::plot::{PLOT_TOOL, check_plot, plot_details};
 use gs_core::study::topic_parts::{GUESS_DROPPED, GUESS_HELD, PLOT_DROPPED, PLOT_HELD, first_topic, question_open, reply_parts_problems};
-use gs_engine::turn::agent::BeforeToolCallFn;
+use gs_engine::turn::tool_host::BeforeToolCallFn;
 use gs_engine::turn::messages::{text_block, tool_calls};
 use gs_json::{Json, json};
 use parking_lot::Mutex;

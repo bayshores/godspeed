@@ -115,7 +115,7 @@ pub fn files_context_text(files: &[Json], problems: &[Json]) -> String {
 	lines.join("\n")
 }
 
-/// The clock a homework lesson's work items end with on the day it is due, so the teacher can
+/// The clock a homework lesson's turns end with on the day it is due, so the teacher can
 /// pace it. None on any other day, or once the deadline is done.
 pub fn due_today_line(deadline: &Json, now_ms: i64) -> Option<String> {
 	let clock = wall_clock(now_ms);

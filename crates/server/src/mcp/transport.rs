@@ -73,7 +73,7 @@ async fn dispatch(exchange: &Exchange<'_>, message: &Json, modern: bool) -> Resu
 			if !has_tool(name) {
 				return Err((INVALID_PARAMS, format!("Tool {name} not found")));
 			}
-			let call = ToolCall { app: exchange.app, caller: exchange.caller, terminal: exchange.terminal, meta: &params["_meta"] };
+			let call = ToolCall { app: exchange.app, caller: exchange.caller, terminal: exchange.terminal };
 			let result = call_tool(&call, name, &args).await;
 			Ok(if modern { modern_result(result, false) } else { result })
 		}

@@ -16,7 +16,6 @@ use gs_base::locks::LockKey;
 use gs_base::{clock, ids, text, time};
 use gs_core::mocks::mock::{MockLanguage, MockState, MockView, is_timed, mock_format, mock_state, mock_summary, new_mock, pause_mock, resume_mock, start_mock, takes_mocks, with_answer};
 use gs_core::mocks::mock_requests::mock_request_text;
-use gs_engine::turn::models::agent_engine;
 use gs_json::{Json, js_number, json};
 
 use super::mock_end::{ask_grades, current_mocks, deadline_of, end_if_over, finish, is_over, mock_label};
@@ -24,6 +23,7 @@ use super::mock_runner::run_examples;
 use super::mock_runs::{cancel_run, changed, is_running, mock_run_key, run_error, start_run};
 use crate::App;
 use crate::graph::progress::progress_for;
+use crate::jobs::job_agent::job_agent;
 use crate::outcome::{Outcome, Stop, refuse};
 use crate::spaces::deadline_about;
 
@@ -134,8 +134,8 @@ fn ask_questions(app: &Arc<App>, space_id: &str, mock: &Json) -> Result<(), Stri
 	let (task_app, id, mock) = (app.clone(), space_id.to_owned(), mock.clone());
 	start_run(app, space_id, &mock_run_key(space_id, mock["id"].str_or_empty()), move |signal| async move {
 		let from_about = fact_ids.is_empty();
-		let request = MockRequest { label: mock_label(&mock), prompt, engine: agent_engine(&task_app.bridge), signal };
-		let questions = write_mock_questions(&task_app.bridge, request, &mock["format"], fact_ids).await.map_err(|e| e.to_string())?;
+		let request = MockRequest { label: mock_label(&mock), prompt, signal };
+		let questions = write_mock_questions(job_agent(&task_app).as_ref(), request, &mock["format"], fact_ids).await.map_err(|e| e.to_string())?;
 		// The learner may have removed the mock meanwhile.
 		let _guard = task_app.locks.lock(LockKey::Space(&id));
 		if let Some(now) = task_app.stores.mocks.read_mock(&id, mock["id"].str_or_empty())?
@@ -155,8 +155,7 @@ fn ask_questions(app: &Arc<App>, space_id: &str, mock: &Json) -> Result<(), Stri
 
 /// At startup, every mock still waiting for its questions or its grades asks for them again, since
 /// a request goes with the server that sent it: one made or ended before the stop, and one whose
-/// time ran out while the server was off (ended now). Each waits on the bridge until an agent
-/// takes it.
+/// time ran out while the server was off (ended now). With no agent picked, each waits for one.
 pub fn ask_waiting_mocks(app: &Arc<App>) {
 	for record in app.stores.spaces.list_space_records() {
 		let space_id = record["id"].str_or_empty();

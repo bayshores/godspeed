@@ -1,5 +1,7 @@
-//! Parity with Node for the space rules (tests/golden/spaces.json, recorded from the Node server). Every case lists the inputs beside
-//! the output, so each test feeds the Rust function the same inputs and prints its answer as JSON.
+//! Parity with Node for the space rules (tests/golden/spaces.json, first recorded from the Node
+//! server). Every case lists the inputs beside the output, so each test feeds the Rust function the
+//! same inputs and prints its answer as JSON. `GS_RECORD_GOLDEN=1 cargo test -p gs-core --test
+//! spaces_golden briefings` writes the briefings as they are now.
 
 use std::collections::{HashMap, HashSet};
 
@@ -16,10 +18,12 @@ use gs_core::spaces::linked_folder::{folder_name, folder_source, is_google_drive
 use gs_core::spaces::new_files::{is_recent, is_recent_change, kinds_for_new_files};
 use gs_core::spaces::old_setup::{without_json_entry, without_old_codex_server};
 use gs_core::spaces::today_note::{clock_label, day_label, deadline_part_of, local_day, time_zone_label, today_note_text, today_note_to_append, wall_clock, when_label};
-use gs_json::{Json, json, parse, stringify};
+use gs_json::{Json, json, parse, stringify, stringify_pretty};
+
+const GOLDEN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/spaces.json");
 
 fn case(name: &str) -> Vec<Json> {
-	let all = parse(&std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/spaces.json")).unwrap()).unwrap();
+	let all = parse(&std::fs::read_to_string(GOLDEN).unwrap()).unwrap();
 	let found = all.as_arr().unwrap().iter().find(|c| c["name"] == Json::from(name)).unwrap_or_else(|| panic!("no golden case {name}"));
 	assert!(found.get("error").is_none(), "{name}: {:?}", found["error"]);
 	match &found["output"] {
@@ -324,7 +328,9 @@ fn today_note_append_matches_node() {
 
 #[test]
 fn briefings_match_node() {
-	for c in case("briefing") {
+	let recording = std::env::var_os("GS_RECORD_GOLDEN").is_some();
+	let mut written = Vec::new();
+	for mut c in case("briefing") {
 		let spaces = list(&c["spaces"])
 			.iter()
 			.map(|k| BriefingSpace {
@@ -349,7 +355,18 @@ fn briefings_match_node() {
 			.collect();
 		let input = BriefingInput { now_ms: ms(s(&c["now"])), spaces, lessons, notes: list(&c["notes"]).to_vec(), max_chars: c["maxChars"].as_i64().unwrap() as usize };
 		let got = agent_briefing(&input).unwrap_or_else(|err| format!("error: {err}"));
+		if recording {
+			c.as_obj_mut().unwrap().insert("output", got);
+			written.push(c);
+			continue;
+		}
 		assert_eq!(got, s(&c["output"]), "now {} max {:?}", s(&c["now"]), c["maxChars"]);
+	}
+	if recording {
+		let mut all = parse(&std::fs::read_to_string(GOLDEN).unwrap()).unwrap();
+		let briefing = all.as_arr_mut().unwrap().iter_mut().find(|c| c["name"] == Json::from("briefing")).unwrap();
+		briefing.as_obj_mut().unwrap().insert("output", Json::Arr(written));
+		std::fs::write(GOLDEN, format!("{}\n", stringify_pretty(&all, "\t"))).unwrap();
 	}
 }
 

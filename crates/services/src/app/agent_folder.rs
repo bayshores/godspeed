@@ -12,7 +12,7 @@ use std::sync::atomic::Ordering;
 use gs_base::config::resolve;
 use gs_base::fsx;
 use gs_base::locks::LockKey;
-use gs_core::spaces::agent_folder::{FolderAgent, Platform, StartCommands, StartTarget, copy_command, saved_start_commands, short_folder, usable_folder, usable_start_command};
+use gs_core::spaces::agent_folder::{FolderAgent, Platform, StartCommands, copy_command, saved_start_commands, short_folder, usable_folder, usable_start_command};
 use gs_core::spaces::space_shortcuts::space_dirs;
 use gs_json::{Json, Obj, json, stringify_pretty};
 
@@ -22,9 +22,6 @@ use super::old_setup::{OldSetup, old_setup, remove_old_setup};
 use super::old_talk::export_talk;
 use crate::App;
 use crate::spaces::space_shortcuts::{sync_shortcuts_safely, watch_shortcuts};
-
-/// Every start script the folder holds.
-pub const START_TARGETS: [StartTarget; 4] = [StartTarget::Claude, StartTarget::ClaudeHelper, StartTarget::Codex, StartTarget::CodexHelper];
 
 const STATE: LockKey<'static> = LockKey::AppFile("agent-folder.json");
 
@@ -93,7 +90,7 @@ pub(crate) fn start_command(app: &App, agent: FolderAgent) -> Option<String> {
 }
 
 /// The agent the learner picked to run the lessons, if they picked one.
-fn picked_agent(app: &App) -> Option<FolderAgent> {
+pub(crate) fn picked_agent(app: &App) -> Option<FolderAgent> {
 	read_state(app).get("agent").and_then(Json::as_str).and_then(FolderAgent::from_name)
 }
 
@@ -102,14 +99,17 @@ pub fn folder_agent(app: &App) -> FolderAgent {
 	picked_agent(app).unwrap_or(FolderAgent::Claude)
 }
 
-/// The learner picked the agent that runs the lessons; the folder as it is now.
-pub fn set_folder_agent(app: &App, agent: FolderAgent) -> Result<Json, String> {
+/// The learner picked the agent that runs the lessons; the folder as it is now. Jobs waiting for
+/// an agent start, and godspeed catches up on what waited for one.
+pub fn set_folder_agent(app: &Arc<App>, agent: FolderAgent) -> Result<Json, String> {
 	{
 		let _held = app.locks.lock(STATE);
 		let mut state = read_state(app);
 		state.insert("agent", agent.name());
 		write_state(app, state)?;
 	}
+	app.agents.picked.notify_waiters();
+	crate::turns::catch_up(app);
 	Ok(agent_folder_view(app))
 }
 
@@ -398,7 +398,7 @@ mod tests {
 		let app = test_app(&root);
 		let script = |app: &App| {
 			let folder = agent_folder(app);
-			std::fs::read_to_string(gs_core::spaces::agent_folder::start_script_path(&folder, StartTarget::Claude, platform())).unwrap()
+			std::fs::read_to_string(gs_core::spaces::agent_folder::start_script_path(&folder, FolderAgent::Claude, platform())).unwrap()
 		};
 		let view = set_start_command(&app, FolderAgent::Claude, "  standardcompute launch claude --  ").unwrap();
 		assert_eq!(stringify(&view["startCommands"]), r#"{"claude":"standardcompute launch claude --"}"#);

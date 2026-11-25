@@ -36,7 +36,7 @@ use gs_engine::turn::ui_stream::TurnHandle;
 use parking_lot::Mutex;
 use tokio::sync::Notify;
 
-pub use agent_catch_up::{ask_about_new_deadlines, catch_up_for_agent};
+pub use agent_catch_up::catch_up;
 pub use attachments::{AttachmentError, store_attachments};
 pub use chat_handler::{ChatReply, handle_chat_input, send_first_message};
 pub use chats::{Refusal, quiesce_chat_for_rewrite, running_work_blocker};
@@ -71,8 +71,6 @@ pub struct TurnsState {
 	leftover_count: Mutex<u64>,
 	/// Each chat's kept boundary that a shortening could not move past, said once in the log.
 	compaction_skips: Mutex<HashSet<(String, String)>>,
-	/// The agent sessions catch-up ran its lesson pass for.
-	lessons_caught_up: Mutex<HashSet<String>>,
 	/// The questions from earlier skipped in each lesson's sitting (review).
 	review_skips: Mutex<HashMap<String, review::Skips>>,
 	/// The reply nudges each Study lesson was given, by chat and topic (reply-nudges).
