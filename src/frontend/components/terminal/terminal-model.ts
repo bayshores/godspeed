@@ -160,7 +160,7 @@ function screenWords(f: TerminalFacts, name: string): ScreenWords {
 	if (!f.checkedIn && term.url)
 		return { need: `Finish signing in to ${agent}.`, rest: "Got a code? Click Paste." };
 	if (term.prompt === "menu") return { need: `${name} is asking you something.`, rest: null };
-	if (needsYou(f) === "no-check-in") return { need: `${name} hasn't started teaching yet.`, rest: null };
+	if (needsYou(f) === "no-check-in") return { need: `${name} hasn't connected to godspeed yet.`, rest: null };
 	if (!f.checkedIn) return { need: `${name} is starting.`, rest: null, starting: true };
 	return { need: null, rest: null };
 }
