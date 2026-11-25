@@ -143,10 +143,14 @@ const waitingRequest = `await fetch("/api/spaces/{space}/deadlines/{deadline}/re
 /** The lesson made and never sent: opened at this address, the window sends its first message once,
  *  as Study does, and with no agent connected its reply waits. */
 const waitingLesson = `/chat/{pending}?prompt=${encodeURIComponent(WAITING_TOPIC)}`;
-/** A lesson turn running: Stop in the writing row. */
+/** A lesson turn an agent runs: Stop in the writing row (while the teacher is off, the key that turns it on stands there instead). */
 const turnRuns = "[data-testid=stop-turn]";
-/** The desk in that lesson's text, still while no agent takes the reply, at work once one does. */
+/** The desk in that lesson's text: one line while the teacher is off, at work once an agent takes the reply. */
 const deskUp = "[data-testid=agent-at-work]";
+/** A line the learner sends in the printed homework, so its turn waits on the teacher. */
+const printedLine = `await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: "{homeworkPrinted}", input: { type: "text", text: "The loop ends because i grows each time." } }) })${HTTP_OK};`;
+/** That turn stopped, so no teacher holds it for the screens after it. */
+const dropPrintedLine = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{homeworkPrinted}" }) });`;
 /** That lesson's reply stopped (a screen before may have stopped it already) and the lesson deleted, so the screens after it are as before. A
  *  lesson can't be deleted while its turn runs, so the delete is tried until the stop has ended it. */
 const dropWaitingLesson = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{pending}" }) });
@@ -385,7 +389,7 @@ Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(bo
 box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`,
 		shows: "[data-testid=session-find-count]:not(:empty)",
 	},
-	{ name: "Homework lesson with a three-part problem on part (b)", url: "/chat/{homeworkOpen}", ready: "[data-part-current] ~ [data-part-head=c][aria-expanded=false]", shows: "[data-testid=lesson-assignment]" },
+	{ name: "Homework lesson with a three-part problem on part (b)", url: "/chat/{homeworkOpen}", ready: "[data-part-current] ~ [data-part-head=c][aria-expanded=false]", shows: "[data-testid=turn-sheet][data-plate] [data-part-current]" },
 	{
 		name: "Homework lesson with a folded part opened",
 		url: "/chat/{homeworkOpen}",
@@ -557,10 +561,19 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{ name: "Cheat sheet while no agent is on it", before: `${sounds(false)}; ${askSheet}`, url: sheetPage("{waitingDeadline}"), ready: "[data-testid=sheet-working]" },
 	{ name: "Mock being written", before: askMock, url: "/space/deadline/{waitingDeadline}", ready: "[data-testid=deadline-mock-continue]", setup: `document.querySelector("[data-testid=deadline-mock-continue]").click()`, shows: "[data-testid=mock-writing]" },
 	{ name: "Lesson whose first reply waits for an agent", before: dropAskedRequests, url: waitingLesson, ready: deskUp },
+	// A line sent beside the problem's page while the teacher is off: the desk is one line, the writing row has only the key that turns it on.
+	{
+		name: "Homework lesson with a problem's page, a line sent while the teacher is off",
+		before: printedLine,
+		url: "/chat/{homeworkPrinted}",
+		ready: "[data-testid=page-piece] img",
+		shows: "[data-testid=agent-at-work][data-state=off]",
+	},
 	{
 		name: "Lesson whose first reply waits for an agent, beside the teacher's panel",
+		before: dropPrintedLine,
 		url: "/chat/{pending}",
-		ready: turnRuns,
+		ready: deskUp,
 		setup: openTeacher,
 		shows: "[data-testid=terminal-none] [data-testid=open-agent]",
 	},
@@ -571,7 +584,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{
 		name: "Lesson whose first reply an agent took",
 		url: "/chat/{pending}",
-		ready: turnRuns,
+		ready: deskUp,
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]").click()`,
 		shows: "[data-testid=turn-row]:not(:has([data-testid=work-frame-open])) [data-testid=stop-turn]",
 	},
@@ -591,10 +604,18 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `document.querySelector("${turnRuns}")?.click()`,
 		shows: "[data-testid=nothing-written]",
 	},
-	// Starter keys show only while no lesson turn waits, so the waiting lesson goes first. The stand-in agent may already run.
+	// The stand-in teacher takes a line sent beside the problem's page: the desk says what it does and lays no paper of its own.
+	{
+		name: "Homework lesson with a problem's page while the teacher works",
+		before: printedLine,
+		url: "/chat/{homeworkPrinted}",
+		ready: "[data-testid=page-piece] img",
+		shows: "[data-testid=agent-at-work][data-state=working] [data-testid=desk-plan]",
+	},
+	// Starter keys show only while no lesson turn waits, so the waiting lessons go first. The stand-in agent may already run.
 	{
 		name: "The agent's screen",
-		before: dropWaitingLesson,
+		before: `${dropPrintedLine}\n${dropWaitingLesson}`,
 		url: "/",
 		ready: deadlineCard,
 		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=open-agent]")?.click()`,

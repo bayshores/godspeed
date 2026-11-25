@@ -76,9 +76,10 @@ To add a row:
 | Open a cheat sheet | Deadline, a lesson | `deadline-cheat-sheet` | | learner | `space/deadline/:id/cheat-sheet` |
 | Cheat sheet beside a lesson | Lesson | `lesson-cheat-sheet` | Lesson with a quiz and the cheat sheet docked | learner | |
 | Write to the teacher in a lesson, in the writing row at the window's foot: a question, or while it writes, what to focus on, with Stop at the row's end | Lesson | `composer` | | learner | |
-| The desk: while the teacher writes, in the lesson text with no box, one sentence on what it does, its steps (its own web searches and file reads too) and the page of the file it reads as a sheet of paper | Lesson | `agent-at-work` | Lesson whose first reply waits for an agent | learner | |
+| The desk: while the teacher writes, in the lesson text with no box, one sentence on what it does, its steps (its own web searches and file reads too) and the page of the file it reads as a sheet of paper, with no paper of its own while the open problem's sheet is on the page; while the teacher is off, one line saying so, and the writing row holds only the key that turns it on | Lesson | `agent-at-work` | Lesson whose first reply waits for an agent | learner | |
 | Stuck keys, over the writing row while a question or problem waits | Lesson | `help-hint` | | learner | |
-| Whole problem: a long problem pinned over the lesson text in a narrow window folds, and one key on its plate opens it and folds it again | Lesson | `turn-whole` | Lesson with a long problem folded over the text | learner | |
+| As printed: a problem shown as its PDF page turns into the page's own white paper, at the end of the step line | Lesson | `piece-printed` | Homework lesson with a problem's page as printed | learner | |
+| Whole problem: a long problem pinned over the lesson text in a room under 1000 points wide folds, and one key on its plate opens it and folds it again | Lesson | `turn-whole` | Lesson with a long problem folded over the text | learner | |
 | A figure the teacher draws under its reply, in the theme's colors ("Draw it" asks for one) | Lesson | `lesson-idea` | Homework lesson with a figure under the method | teacher | |
 | Answer a question with the keyboard | Lesson | `question-option` | | learner | `question-focus`, `question-next-row`, `question-prev-row`, `question-pick-row`, `question-submit`, `question-pick-number` |
 | Rename a lesson | Lesson | `lesson-title` | Lesson with a 40-letter title among five open spaces | learner | `rename-session` |
