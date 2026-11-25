@@ -33,6 +33,9 @@ const AGENTS = (["claude", "codex"] as const).map((value) => ({ value, label: AG
 export function AgentCard({ foot }: { foot?: ReactNode }) {
 	const { health } = useAgentSetup();
 	useReadySound();
+	// The model's row is at rest when the card opens on a ready agent, and steps in when the agent
+	// becomes ready while the card shows.
+	const [readyAtOpen] = useState(() => ready(health));
 	const { view, pick } = useAgentFolderView();
 	const agent: FolderAgent = health?.agent ?? view?.agent ?? "claude";
 	const action = useGuardedAction();
@@ -53,7 +56,7 @@ export function AgentCard({ foot }: { foot?: ReactNode }) {
 					{action.error}
 				</p>
 			)}
-			{ready(health) && <ModelRow agent={agent} />}
+			{ready(health) && <ModelRow agent={agent} arrives={!readyAtOpen} />}
 			{foot}
 		</div>
 	);
@@ -270,34 +273,40 @@ function Key({ k, action, className }: { k: RowKey; action: Action; className: s
 	);
 }
 
-/** The model new chats and lessons start on: the agent's models, its own default first. */
-function ModelRow({ agent }: { agent: FolderAgent }) {
+/** The model new chats and lessons start on: the agent's models, its own default first. The select
+ *  keeps its place while the list is read, so the card never grows under the learner. */
+function ModelRow({ agent, arrives }: { agent: FolderAgent; arrives: boolean }) {
 	const { view, pickModel } = useAgentFolderView();
-	const { value } = useServerResource<{ agent: FolderAgent; models: { id: string; name: string; default: boolean }[] }>("/api/agent/models");
+	const { value, error } = useServerResource<{ agent: FolderAgent; models: { id: string; name: string; default: boolean }[] }>("/api/agent/models");
 	const action = useGuardedAction();
 	const models = value?.agent === agent ? value.models : null;
-	if (!models || models.length === 0) return null;
-	const fallback = models.find((m) => m.default) ?? models[0]!;
+	// No list to pick from: the agent's own default is used, as it is with no pick.
+	if ((error && !models) || models?.length === 0) return null;
 	const saved = view?.model[agent] ?? null;
-	const picked = models.find((m) => m.id === saved) ?? fallback;
+	const picked = models ? (models.find((m) => m.id === saved) ?? models.find((m) => m.default) ?? models[0]!) : null;
 	return (
 		// It steps in after the two rows that answered with it (40 ms apart).
-		<div data-testid="agent-model" style={{ "--lh-block-delay": "80ms" } as CSSProperties} className="lh-block-in flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-2">
+		<div
+			data-testid="agent-model"
+			style={{ "--lh-block-delay": "80ms" } as CSSProperties}
+			className={cn("flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-2", arrives && "lh-block-in")}
+		>
 			<span className="text-[17px] text-ink">Model</span>
-			<span className="relative w-[224px] shrink-0">
+			{/* A flex box, so the select sits on no line of text: an empty one would drop below it. */}
+			<span className="relative flex w-[224px] shrink-0">
 				<select
 					aria-label="Model"
-					data-testid="agent-model-select"
-					value={picked.id}
-					disabled={action.busy}
+					data-testid={models ? "agent-model-select" : undefined}
+					value={picked?.id ?? ""}
+					disabled={!models || action.busy}
 					onChange={(e) => {
-						const next = models.find((m) => m.id === e.target.value);
+						const next = models?.find((m) => m.id === e.target.value);
 						// The agent's own default is saved as no pick, so it follows the agent's default.
 						void action.run(() => pickModel(agent, !next || next.default ? null : next.id).then(() => null, (err: Error) => err.message));
 					}}
 					className={SELECT}
 				>
-					{models.map((m) => (
+					{(models ?? [{ id: "", name: "" }]).map((m) => (
 						<option key={m.id} value={m.id}>
 							{m.name}
 						</option>

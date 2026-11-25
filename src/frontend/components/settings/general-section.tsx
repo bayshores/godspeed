@@ -20,8 +20,9 @@ export function GeneralSection({
 	// The same resolver the server uses, so the switches show what is in effect.
 	const effective = resolveSettings(record);
 	return (
-		// Wide, the groups sit side by side instead of as long rows.
-		<div className="grid items-start gap-6 @[1000px]/page:grid-cols-2 @[1300px]/page:grid-cols-3">
+		// Wide, the groups sit side by side instead of as long rows, each as tall as the tallest
+		// beside it, so the gap under every card is the same.
+		<div className="grid gap-6 @[1000px]/page:grid-cols-2 @[1300px]/page:grid-cols-3">
 			<SettingsGroup label="Sounds" testid="group-sounds">
 				<SettingsRow label="Startup sound" testid="startup-sound-row">
 					<Toggle
