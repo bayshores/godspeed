@@ -6,11 +6,13 @@ use axum::http::{HeaderMap, HeaderValue, Method, header};
 use axum::response::Response;
 use gs_base::config::VERSION;
 use gs_json::{Json, json};
+use gs_services::talk::tools::schema::received;
+use gs_services::talk::tools::{ToolCall, checked_arguments, has_tool, run_tool, tool_list};
 
 use super::protocol::{
 	INVALID_PARAMS, INVALID_REQUEST, LEGACY_VERSIONS, MAX_BODY_BYTES, METHOD_NOT_FOUND, MODERN, PARSE_ERROR, Rejection, SERVER_ERROR, answer, check_modern, is_message, is_request,
 };
-use super::tools::{ToolCall, call_tool, has_tool, tool_list};
+use super::teacher_work::note_call;
 use crate::http::reply;
 
 /// What one request needs besides its body: the app, the caller's name, the app terminal it
@@ -73,8 +75,16 @@ async fn dispatch(exchange: &Exchange<'_>, message: &Json, modern: bool) -> Resu
 			if !has_tool(name) {
 				return Err((INVALID_PARAMS, format!("Tool {name} not found")));
 			}
-			let call = ToolCall { app: exchange.app, caller: exchange.caller, terminal: exchange.terminal };
-			let result = call_tool(&call, name, &args).await;
+			// From godspeed's own teacher terminal the learner asked for it there.
+			let asked_here = exchange.app.terminals.is_teacher_terminal(exchange.terminal);
+			let call = ToolCall { app: exchange.app, caller: exchange.caller, asked_here };
+			let result = match checked_arguments(name, &args) {
+				Ok(args) => {
+					note_call(exchange.app, exchange.terminal, name, &args);
+					run_tool(&call, name, &args).await
+				}
+				Err(failed) => failed,
+			};
 			Ok(if modern { modern_result(result, false) } else { result })
 		}
 		_ => Err((METHOD_NOT_FOUND, "Method not found".to_owned())),
@@ -83,7 +93,7 @@ async fn dispatch(exchange: &Exchange<'_>, message: &Json, modern: bool) -> Resu
 
 /// One zod issue of the tools/call request itself, as the SDK prints it.
 fn request_issue(expected: &str, field: &str, given: Option<&Json>) -> Json {
-	let received = super::schema::received(given);
+	let received = received(given);
 	json!({ "expected": expected, "code": "invalid_type", "path": ["params", field], "message": format!("Invalid input: expected {expected}, received {received}") })
 }
 

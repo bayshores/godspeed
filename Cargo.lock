@@ -2038,7 +2038,6 @@ dependencies = [
  "axum",
  "bytes",
  "futures-util",
- "gs-agent",
  "gs-base",
  "gs-core",
  "gs-engine",

@@ -1,9 +1,10 @@
-//! One chat turn over the server-owned record (chat-handler.ts). POST /api/chat carries one input
-//! event (text, answer, side, next, continue, opener-answer), never a client transcript; the wake
-//! pipeline's steers come through here too. The event becomes record appends (written ahead, before
-//! the turn runs), the turn's instructions and tools are built from the record, and the turn runs
-//! on the lesson's agent session as a background object that views attach to through GET
-//! /api/chats/{id}/stream. The POST only acknowledges.
+//! One chat turn over the server-owned record (chat-handler.ts), a lesson's or a talk chat's. POST
+//! /api/chat carries one input event (text, answer, side, next, continue, opener-answer), never a
+//! client transcript; the wake pipeline's steers come through here too. The event becomes record
+//! appends (written ahead, before the turn runs), the turn's instructions and tools are built from
+//! the record (a talk chat's are `talk_setup`), and the turn runs on the chat's agent session as a
+//! background object that views attach to through GET /api/chats/{id}/stream. The POST only
+//! acknowledges.
 
 use std::future::Future;
 use std::pin::Pin;
@@ -12,15 +13,16 @@ use std::sync::{Arc, Weak};
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::{ids, time};
-use gs_core::contracts::chat::extracts_facts;
+use gs_core::contracts::chat::{TALK_CHAT_ID, extracts_facts};
 use gs_core::messages::app_notes::app_note_for;
 use gs_core::messages::attachments::ChatAttachment;
 use gs_core::messages::input_events::{About, ChatInput, ChatInputError, TurnInput, input_appends};
 use gs_core::messages::native_messages::{dangling_question_of, has_probe_done, is_side_turn, retry_context};
 use gs_core::messages::role::Role;
 use gs_core::session::jobs::steer_delivered;
+use gs_core::session::lesson_steps::{lesson_call, talk_call};
 use gs_core::session::prices::CallUsage;
-use gs_core::session::turn_cause::turn_cause;
+use gs_core::session::turn_cause::{TurnCause, turn_cause};
 use gs_core::spaces::agent_folder::FolderAgent;
 use gs_engine::turn::messages::agent_model;
 use gs_engine::turn::tool_host::{BeforeToolCall, BeforeToolCallFn};
@@ -53,6 +55,7 @@ use crate::app::today_note::today_note_for;
 use crate::graph::progress::lesson_ended;
 use crate::spaces::citations::{check_cites, mark_notes};
 use crate::spaces::space_actions::SendFirstMessage;
+use crate::talk::{is_talk, talk_opening, talk_setup};
 use crate::jobs::{note_steers_durable, reconcile_user_steers, register_live_agent, settle_steers, unregister_live_agent};
 
 /// The live update window of a turn's stream.
@@ -111,6 +114,8 @@ impl ChatReply {
 
 /// What a message to the old Talk chat answers.
 const TALK_REPLACED: &str = "Talk was replaced by your agent's screen";
+/// What a talk chat answers an input that is not a message or Try again.
+const TALK_TAKES_TEXT: &str = "A talk chat takes a message or Try again";
 
 pub type ReplyFuture = Pin<Box<dyn Future<Output = ChatReply> + Send>>;
 
@@ -143,10 +148,14 @@ fn input_files(input: &TurnInput) -> Option<&[ChatAttachment]> {
 }
 
 async fn run(app: &Arc<App>, chat_id: &str, input: TurnInput) -> ChatReply {
-	let Some(record) = app.stores.chats.get_chat(chat_id) else { return ChatReply::error(404, "Unknown chat") };
-	// An older build's Talk chat is kept as it was; the learner talks to the agent in its screen.
-	if record["kind"].as_str() == Some("talk") {
+	// An older build's Talk chat is kept as it was.
+	if chat_id == TALK_CHAT_ID {
 		return ChatReply::error(404, TALK_REPLACED);
+	}
+	let Some(record) = app.stores.chats.get_chat(chat_id) else { return ChatReply::error(404, "Unknown chat") };
+	let talks = matches!(input, TurnInput::Steers(_) | TurnInput::Chat(ChatInput::Text { about: None, .. } | ChatInput::Continue));
+	if is_talk(&record) && !talks {
+		return ChatReply::error(400, TALK_TAKES_TEXT);
 	}
 
 	// The learner's files first: nothing may run between the record read below and the
@@ -282,7 +291,7 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 		eprintln!("[chat {chat_id}] turn already in flight — request rejected");
 		return Err(ChatReply::error(409, "A turn is already running for this session"));
 	}
-	turn_work::begin(app, chat_id, turn_cause(input, &messages));
+	turn_work::begin(app, chat_id, if is_talk(&record) { TurnCause::Talk } else { turn_cause(input, &messages) });
 	if let Err(err) = app.stores.chats.save_messages(chat_id, &merged) {
 		eprintln!("[chat {chat_id}] write-ahead persist failed: {err}");
 		// The begun turn is announced and settled, as Node's begin and end did.
@@ -318,38 +327,44 @@ fn cites_check(app: &Arc<App>, chat_id: &str) -> TextCheck {
 	})
 }
 
-/// Builds the turn on the lesson's agent session and starts it as a background object.
+/// Builds the turn on the chat's agent session and starts it as a background object.
 fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json, accepted: Accepted) -> Result<(), String> {
 	let Accepted { record, appends, merged } = accepted;
+	let talk = is_talk(&record);
 	// Try again runs again from before a failed or stopped reply, on a new session.
 	let fresh = matches!(input, TurnInput::Chat(ChatInput::Continue));
 	let context: Vec<Json> = if fresh { retry_context(&merged).to_vec() } else { merged.clone() };
 	let side_turn = is_side_turn(&context);
 	let model = agent_model();
 	let model_id = model_id_of(&model);
-	let teaching = has_probe_done(&merged);
-	let setup = lesson_setup(app, &record, effective, LessonTurn { chat_id: chat_id.to_owned(), teaching, side_turn, call_check: Some(study_call_check(app, chat_id)) });
 	let runtime = agents::runtime(app);
 	let agent = runtime.agent();
+	let setup = if talk {
+		talk_setup(app, agent)
+	} else {
+		let teaching = has_probe_done(&merged);
+		lesson_setup(app, &record, effective, LessonTurn { chat_id: chat_id.to_owned(), teaching, side_turn, call_check: Some(study_call_check(app, chat_id)) })
+	};
 	let plan = SessionPlan {
 		chat_id: chat_id.to_owned(),
 		runtime,
 		cwd: agent_cwd(app)?,
-		model: start_model(app, agent),
+		model: record["model"].as_str().map(str::to_owned).or_else(|| start_model(app, agent)),
 		tools: setup.host.specs(),
 		prompt: setup.prompt,
 		stored: record["agentSession"].clone(),
 		messages: context.clone(),
 		fresh,
-		notes: take_notes(app, chat_id),
-		rules: every_turn_rules_for(app, &record),
-		due_today: due_today_line_for(app, &record),
+		notes: if talk { None } else { take_notes(app, chat_id) },
+		opening: talk.then(|| talk_opening(app)),
+		rules: (!talk).then(|| every_turn_rules_for(app, &record)),
+		due_today: if talk { None } else { due_today_line_for(app, &record) },
 	};
 	let facts = plan.facts();
 	let parts = setup.parts;
 	let turn = SessionTurn::new(SessionTurnSpec { open: opener(app, plan), host: setup.host, check_text: cites_check(app, chat_id), before: context, model, folds_steers: agent == FolderAgent::Codex });
 
-	turn.subscribe(turn_work::listener(app, chat_id, record["spaceId"].as_str()));
+	turn.subscribe(turn_work::listener(app, chat_id, record["spaceId"].as_str(), if talk { talk_call } else { lesson_call }));
 	turn.on_desk(turn_work::desk_listener(app, chat_id));
 
 	// One collector per turn, fed by the finished assistant messages; a reply's words are
@@ -366,7 +381,8 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 			sink.lock().push(CallUsage::from_model_usage(&message["usage"]).to_json());
 		}
 		let text: String = message["content"].items().iter().filter(|b| b["type"].as_str() == Some("text")).map(|b| b["text"].str_or_empty()).collect();
-		if let Some(app) = notes_app.upgrade().filter(|_| !text.trim().is_empty()) {
+		// The prose checks are a lesson's.
+		if let Some(app) = notes_app.upgrade().filter(|_| !talk && !text.trim().is_empty()) {
 			add_notes(&app, &notes_chat, reply_notes(&app, &notes_chat, message, &text));
 		}
 	}));

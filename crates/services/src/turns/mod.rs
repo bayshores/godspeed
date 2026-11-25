@@ -22,6 +22,8 @@ pub mod reply_nudges;
 pub mod review;
 #[cfg(test)]
 mod session_tests;
+#[cfg(test)]
+pub(crate) mod stand_in;
 pub mod step_names;
 pub mod turn_liveness;
 pub mod turn_runs;

@@ -6,7 +6,7 @@ use gs_core::session::work_pages::{WORK_PAGE_BYTES, split_pages};
 use gs_json::{Json, Obj, json};
 
 use super::reply::{failure, result, text_block};
-use super::tools::{ToolCall, space_arg};
+use super::{ToolCall, space_arg};
 
 pub fn list_lessons(call: &ToolCall<'_>, args: &Json) -> Json {
 	let app = call.app;
@@ -34,7 +34,7 @@ pub fn list_lessons(call: &ToolCall<'_>, args: &Json) -> Json {
 			lesson.insert("spaceName", space_name);
 			lesson.insert_present("phase", c.get("phase"));
 			lesson.insert("waitingForLearner", if c["pendingQuestion"].truthy() { c["pendingQuestion"].clone() } else { c["pendingProblem"].clone() });
-			lesson.insert("running", gs_services::turns::turn_liveness::is_turn_running(app, c["id"].str_or_empty()));
+			lesson.insert("running", crate::turns::turn_liveness::is_turn_running(app, c["id"].str_or_empty()));
 			lesson.insert_present("updatedAt", c.get("updatedAt"));
 			Json::Obj(lesson)
 		})

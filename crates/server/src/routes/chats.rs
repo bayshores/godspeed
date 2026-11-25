@@ -28,6 +28,7 @@ use gs_engine::turn::ui_stream::SSE_HEADERS;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
 use gs_services::spaces::{move_chat_to_space, start_space_scanner};
+use gs_services::talk::{create_talk_chat, earlier_words, set_talk_model, talk_chats};
 use gs_services::jobs::steer_live_chat;
 use gs_services::turns::chat_handler::{ChatReply, REVIEW_NOT_OPEN, ReplyBody, handle_chat_input};
 use gs_services::turns::chats::{delete_chat_session, session_coverage};
@@ -52,7 +53,7 @@ pub fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/chat", ApiRoute::new().post(chat).into_route())
 		.route("/api/chats", ApiRoute::new().get(list).post(create).into_route())
-		.route("/api/chats/{id}", ApiRoute::new().get(read).put(rename).delete(remove).into_route())
+		.route("/api/chats/{id}", ApiRoute::new().get(read).put(rename).patch(set_model).delete(remove).into_route())
 		.route("/api/chats/{id}/approvals/{approval_id}", ApiRoute::new().post(approval).into_route())
 		.route("/api/chats/{id}/artifact-ui", ApiRoute::new().post(artifact_ui).into_route())
 		.route("/api/chats/{id}/space", ApiRoute::new().put(move_space).into_route())
@@ -91,10 +92,14 @@ async fn chat(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhan
 	Ok(chat_reply(handle_chat_input(&app, chat_id, TurnInput::Chat(input)).await))
 }
 
-/// GET /api/chats[?space=<id|none>]: the lessons, all or one space's.
+/// GET /api/chats[?space=<id|none>]: the lessons, all or one space's. `?kind=talk`: the teacher
+/// panel's chats instead.
 async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
-	start_space_scanner(&app);
 	let params = query(&uri);
+	if param(&params, "kind") == Some("talk") {
+		return Ok(reply::json_no_store(200, &json!({ "chats": talk_chats(&app) })));
+	}
+	start_space_scanner(&app);
 	let scope = match param(&params, "space") {
 		None => None,
 		Some(raw) => match parse_space_scope(Some(raw)) {
@@ -109,9 +114,14 @@ async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandl
 /// POST /api/chats: a study session (typed, picked facts, topics, a mock's
 /// question, a deadline or a path topic), or with `homework: true` a homework session on the
 /// deadline. With `fileIds` a lesson on files, which answers `continued: true` when an earlier
-/// lesson goes on, so the window sends no first message; refused with 400 and the reason.
+/// lesson goes on, so the window sends no first message; refused with 400 and the reason. With
+/// `kind: "talk"` a teacher panel chat for its first message, `text`, which names it.
 async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
 	let body = fields(body).await?;
+	if body["kind"].as_str() == Some("talk") {
+		let created = create_talk_chat(&app, body["text"].as_str().unwrap_or_default())?;
+		return Ok(reply::json(200, &json!({ "id": created["id"], "title": created["title"] })));
+	}
 	let title = body["title"].as_str().unwrap_or_default();
 	let Some(space_id) = parse_space_scope(body["spaceId"].as_str()) else { return Ok(error(400, "bad spaceId")) };
 	let deadline_id = body["deadlineId"].as_str();
@@ -163,7 +173,9 @@ fn picks_of(graph_context: &Json) -> Vec<Json> {
 	graph_context["propositions"].as_arr().map_or_else(Vec::new, |picks| picks.iter().filter(is_pick).cloned().collect())
 }
 
-/// GET /api/chats/{id}: the record verbatim, with pricing, liveness, coverage and `summarizeAt`, the token count at which the lesson is summarized.
+/// GET /api/chats/{id}: the record verbatim, with pricing, liveness, coverage and `summarizeAt`, the
+/// token count at which the lesson is summarized; a talk chat from the teacher's terminal also with
+/// its `earlier` words.
 async fn read(State(app): State<Arc<App>>, Path(id): Path<String>) -> Result<Response, Unhandled> {
 	let Some(chat) = app.stores.chats.get_chat(&id) else { return Ok(error(404, "Not found")) };
 	let mut out: Obj = chat.as_obj().cloned().unwrap_or_default();
@@ -175,7 +187,20 @@ async fn read(State(app): State<Arc<App>>, Path(id): Path<String>) -> Result<Res
 	}
 	out.insert("coverage", session_coverage(&app, &chat)?);
 	out.insert("summarizeAt", summarize_at_tokens(&app.stores.settings.effective_settings()?, &agent_model()));
+	if let Some(earlier) = earlier_words(&app, &chat) {
+		out.insert("earlier", earlier);
+	}
 	Ok(reply::json(200, &Json::Obj(out)))
+}
+
+/// PATCH /api/chats/{id} `{model}`: the model a talk chat's next reply runs on.
+async fn set_model(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Response {
+	let body = json_body(body).await.unwrap_or(Json::Null);
+	let Some(model) = body["model"].as_str() else { return error(400, "model must be a string") };
+	match set_talk_model(&app, &id, model) {
+		Ok(()) => reply::ok(),
+		Err(refused) => error(400, &refused),
+	}
 }
 
 /// GET /api/chats/{id}/problems: a homework lesson's or a lesson on files' problem list,
@@ -218,7 +243,8 @@ async fn rename(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body)
 }
 
 /// DELETE /api/chats/{id}?mode=preserve-graph|delete-nodes. The mode is required: the two differ
-/// in what they destroy. An older build's Talk chat is not a lesson and is never deleted here.
+/// in what they destroy. A talk chat, and an older build's Talk chat, are not lessons and are
+/// never deleted here.
 async fn remove(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> Result<Response, Unhandled> {
 	if app.stores.chats.get_chat(&id).is_some_and(|chat| chat["kind"].as_str() == Some("talk")) {
 		return Ok(reply::coded(404, "No such lesson", "not_found"));

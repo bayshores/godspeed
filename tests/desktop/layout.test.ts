@@ -336,13 +336,13 @@ describe("the stand-in helper", () => {
 			fs.rmSync(dir, { recursive: true, force: true });
 		}
 	});
-	it("answers a job with the tool it must call, and holds the spring exam's mock until it is stopped", async () => {
+	it("answers a job with its tokens and the tool it must call, and holds the spring exam's mock until it is stopped", async () => {
 		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "layout-helper-"));
 		fs.writeFileSync(path.join(dir, "passage"), "f_000000000000:1");
 		const helper = spawn(process.execPath, [path.join(import.meta.dirname, "../../scripts/layout-helper.mjs")], { env: { ...process.env, LAYOUT_HELPER_DIR: dir }, stdio: ["pipe", "pipe", "inherit"] });
 		const lines = createInterface({ input: helper.stdout })[Symbol.asyncIterator]();
 		const say = (message: object) => helper.stdin.write(`${JSON.stringify(message)}\n`);
-		const next = async () => JSON.parse((await lines.next()).value as string) as { type: string; message?: { type: string; subtype?: string }; name?: string; id?: string };
+		const next = async () => JSON.parse((await lines.next()).value as string) as { type: string; message?: { type: string; subtype?: string; event?: { type: string } }; name?: string; id?: string };
 		const past = async (type: string) => {
 			let message = await next();
 			while (message.type === "sdk" && message.message?.type !== type) message = await next();
@@ -355,6 +355,8 @@ describe("the stand-in helper", () => {
 		try {
 			job("s1", "Midterm");
 			assert.equal((await next()).type, "opened");
+			assert.equal((await next()).message?.type, "system");
+			assert.deepEqual([(await next()).message?.event?.type, (await next()).message?.event?.type], ["message_start", "message_delta"], "a model call's tokens, so the run keeps its cost");
 			const call = await past("tool_call");
 			assert.deepEqual([call.type, call.name], ["tool_call", "write_mock_questions"]);
 			say({ type: "tool_result", id: call.id, content: [{ type: "text", text: "Saved." }], isError: false });

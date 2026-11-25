@@ -172,6 +172,13 @@ async function citedPassage(session) {
 	return CITED && fs.existsSync(CITED) ? fs.readFileSync(CITED, "utf8").trim() : null;
 }
 
+/** One model call's tokens, as Claude Code streams them, so the job's run keeps what it took
+ *  (Activity's graph costs read it). */
+function modelCall(session) {
+	sdk(session.key, { type: "stream_event", event: { type: "message_start", message: { usage: { input_tokens: 1200, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } } } });
+	sdk(session.key, { type: "stream_event", event: { type: "message_delta", usage: { output_tokens: 300 } } });
+}
+
 /** A job's turn: its answer, once. A follow-up turn, or a job no answer fits, ends with no reply. */
 async function playJob(session, texts) {
 	session.passage = await citedPassage(session);
@@ -182,6 +189,7 @@ async function playJob(session, texts) {
 		while (!session.stopped) await new Promise((done) => setTimeout(done, 100));
 		return finish(session, true);
 	}
+	if (answer) modelCall(session);
 	const how = answer ? await playReply(session, answer) : "done";
 	return finish(session, how === "stopped");
 }

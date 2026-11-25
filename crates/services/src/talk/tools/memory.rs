@@ -4,7 +4,7 @@
 use gs_json::{Json, json};
 
 use super::reply::{failure, result};
-use super::tools::{ToolCall, space_arg};
+use super::{ToolCall, space_arg};
 
 pub fn remember(call: &ToolCall<'_>, args: &Json) -> Json {
 	let scope = match space_arg(call.app, args["space_id"].as_str()) {
@@ -36,7 +36,7 @@ pub fn save_rule(call: &ToolCall<'_>, args: &Json) -> Json {
 		None => json!({ "area": args["area"].as_str().unwrap_or("teaching") }),
 	};
 	let rule = args["rule"].str_or_empty();
-	match gs_services::app::agent_rules::save_rule_by_agent(call.app, rule, &place, Some(call.caller.unwrap_or("Your agent"))) {
+	match crate::app::agent_rules::save_rule_by_agent(call.app, rule, &place, Some(call.caller.unwrap_or("Your agent"))) {
 		Ok(saved) => result(&json!({ "saved": saved["rule"], "for": saved["for"], "note": "The learner sees it in the godspeed window and can undo or edit it." })),
 		Err(error) => failure(&error),
 	}

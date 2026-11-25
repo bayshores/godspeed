@@ -1,0 +1,1802 @@
+{
+  "version": "2.25",
+  "children": [
+    {
+      "type": "frame",
+      "id": "CtVKX",
+      "x": 0,
+      "y": 700,
+      "name": "Concept 1, board 1. New chat (picked)",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "yM49j",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 1, board 1. New chat (picked)",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "h80dg",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "Lesson page. The panel reads like a narrow lesson page. Your lines are plates, the desk shows the steps, and the newest is at the foot.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "dISZC",
+          "name": "State line",
+          "fill": "$dim",
+          "content": "Nothing asked yet. The page's starters show, with All ideas under them.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "QlmFD",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "eQ9Jk",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c1-empty-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "QD58J",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c1-empty-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "UO8IY",
+      "x": 2788,
+      "y": 700,
+      "name": "Concept 1, board 2. A card waits (picked)",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "tMWRN",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 1, board 2. A card waits (picked)",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "vRpQ2",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "Three steps are done and the teacher waits for Allow before it runs a command.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "tYu35",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "wvTri",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c1-approval-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "dAbpc",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c1-approval-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "tVvzb",
+      "x": 5576,
+      "y": 700,
+      "name": "Concept 1, board 3. Reply being written (picked)",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "i6nDrQ",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 1, board 3. Reply being written (picked)",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "O0CR3",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "The reply is being written. Stop shows until it ends.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "li65O",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "F6LxZp",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c1-streaming-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "J4f7BQ",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c1-streaming-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "vHeoG",
+      "x": 8364,
+      "y": 700,
+      "name": "Concept 1, board 4. Logged out (picked)",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "z9PBI1",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 1, board 4. Logged out (picked)",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "T7riT",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "The agent can't run, so the setup card takes the panel.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "gdFlX",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "upv0O",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c1-loggedout-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "gQVfM",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c1-loggedout-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "soocz",
+      "x": 11152,
+      "y": 700,
+      "name": "Concept 1, board 5. Logging in (picked)",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "nQjDY",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 1, board 5. Logging in (picked)",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "ftaah",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "After Log in the browser is open. If the page shows a code, it goes in the field.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "brQ7g",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "UtVGQ",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c1-login-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "d0612s",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c1-login-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "e9FND1",
+      "x": 0,
+      "y": 2100,
+      "name": "Concept 2, board 1. New chat",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "eC5c6",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 2, board 1. New chat",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "CwQGq",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "Work log. The panel stays the dark tool the terminal was. Your lines and the steps are monospace lines, and each reply is a slip of paper.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "p3BXgl",
+          "name": "State line",
+          "fill": "$dim",
+          "content": "Nothing asked yet. The page's starters show, with All ideas under them.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "o5cGI",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "zDinf",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c2-empty-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "zjqWq",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c2-empty-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "kRUzn",
+      "x": 2788,
+      "y": 2100,
+      "name": "Concept 2, board 2. A card waits",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "Rz2EZ",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 2, board 2. A card waits",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "mdzxV",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "Three steps are done and the teacher waits for Allow before it runs a command.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "sOe5x",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "bgOnf",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c2-approval-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "n0Mju",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c2-approval-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "WWoDM",
+      "x": 5576,
+      "y": 2100,
+      "name": "Concept 2, board 3. Reply being written",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "sEsjF",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 2, board 3. Reply being written",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "ZBkPL",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "The reply is being written. Stop shows until it ends.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "efUfJ",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "b1VWv4",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c2-streaming-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "fXm4g",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c2-streaming-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "q5kUh",
+      "x": 8364,
+      "y": 2100,
+      "name": "Concept 2, board 4. Logged out",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "Mzbqe",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 2, board 4. Logged out",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "JC2tw",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "The agent can't run, so the setup card takes the panel.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "OJrvC",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "y5QVP",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c2-loggedout-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "iaxxP",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c2-loggedout-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "x1MTWE",
+      "x": 11152,
+      "y": 2100,
+      "name": "Concept 2, board 5. Logging in",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "tSlAO",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 2, board 5. Logging in",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "e5ZFd",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "After Log in the browser is open. If the page shows a code, it goes in the field.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "ROliL",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "iiZnE",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c2-login-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "LsJ9j",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c2-login-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "LDRQg",
+      "x": 0,
+      "y": 3500,
+      "name": "Concept 3, board 1. New chat",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "Uhxg5",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 3, board 1. New chat",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "flFen",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "Newest first. You ask at the top. Each question and its answer is its own sheet, with the newest right under the box.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "TLIJV",
+          "name": "State line",
+          "fill": "$dim",
+          "content": "Nothing asked yet. The page's starters show, with All ideas under them.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "a5hsde",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "UhsA8",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c3-empty-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "S74xK",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c3-empty-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "U7CmtM",
+      "x": 2788,
+      "y": 3500,
+      "name": "Concept 3, board 2. A card waits",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "f7Qvc",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 3, board 2. A card waits",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "NtSYG",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "Three steps are done and the teacher waits for Allow before it runs a command.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "HDb5Y",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "nEson",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c3-approval-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "IsedC",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c3-approval-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "IH6WR",
+      "x": 5576,
+      "y": 3500,
+      "name": "Concept 3, board 3. Reply being written",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "H6jOZ",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 3, board 3. Reply being written",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "AGB8p",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "The reply is being written. Stop shows until it ends.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "jWC3j",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "W0Yvds",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c3-streaming-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "Vm2SJ",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c3-streaming-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "ioz1u",
+      "x": 8364,
+      "y": 3500,
+      "name": "Concept 3, board 4. Logged out",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "u9ktx2",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 3, board 4. Logged out",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "zl7kp",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "The agent can't run, so the setup card takes the panel.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "gG8jS",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "h6wr7",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c3-loggedout-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "Tbith",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c3-loggedout-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "xoqGP",
+      "x": 11152,
+      "y": 3500,
+      "name": "Concept 3, board 5. Logging in",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "pbhY2",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 3, board 5. Logging in",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "V5GFY",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "After Log in the browser is open. If the page shows a code, it goes in the field.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "WTeYu",
+          "name": "Widths",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "Swmgw",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c3-login-1440.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "XbAcq",
+              "name": "1100 wide",
+              "width": 1100,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/c3-login-1100.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "E3OKS",
+      "x": 13940,
+      "y": 700,
+      "name": "Concept 1, board 6. Motion (picked)",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "yaMEi",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 1, board 6. Motion (picked)",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "o1MGnE",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "The plate glides to the top, the desk opens under it, the card waits, then the desk folds into the reply. Frames left to right at one third speed. The moving file is teacher-chat/film-c1.gif.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "kawbf",
+          "name": "Film",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "Eaks5",
+              "name": "Frames",
+              "width": 2025,
+              "height": 876,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/film-c1-strip.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "RmICp",
+              "name": "Moving",
+              "width": 668,
+              "height": 876,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/film-c1.gif",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "K0RSxQ",
+      "x": 13940,
+      "y": 2100,
+      "name": "Concept 2, board 6. Motion",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "H2Svj",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 2, board 6. Motion",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "azwH9",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "Your line and the steps print as a log; the steps fold into one key and the reply's paper rises. Frames left to right at one third speed. The moving file is teacher-chat/film-c2.gif.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "GFTZo",
+          "name": "Film",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "eInIY",
+              "name": "Frames",
+              "width": 2025,
+              "height": 876,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/film-c2-strip.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "WBePv",
+              "name": "Moving",
+              "width": 668,
+              "height": 876,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/film-c2.gif",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Zb8I4",
+      "x": 13940,
+      "y": 3500,
+      "name": "Concept 3, board 6. Motion",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "On4Nk",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Concept 3, board 6. Motion",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "C684r",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "A new sheet unfolds under the box and pushes the earlier ones down; the desk folds into the reply on it. Frames left to right at one third speed. The moving file is teacher-chat/film-c3.gif.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "uVN5e",
+          "name": "Film",
+          "gap": 32,
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "B1UBe",
+              "name": "Frames",
+              "width": 2025,
+              "height": 876,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/film-c3-strip.png",
+                "mode": "contain"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "aBv1W",
+              "name": "Moving",
+              "width": 668,
+              "height": 876,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/film-c3.gif",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "KCWXm",
+      "x": 0,
+      "y": 4900,
+      "name": "Settings A. A Teacher tab (picked)",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "DPMRU",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Settings A. A Teacher tab (picked)",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "n9aMuC",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "The card gets its own tab where Connection was, and the teacher's name moves into it from General. Any concept can take any of these.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "P1wrx",
+          "name": "Window",
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "lH7z6",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/settings-a-1440.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "ec44y",
+      "x": 1656,
+      "y": 4900,
+      "name": "Settings B. Rows in General",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "K43rl",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Settings B. Rows in General",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "kS9oa",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "No card. Agent, Account, Model, Folder and Start command join General's Teacher and sounds. Any concept can take any of these.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "fKIui",
+          "name": "Window",
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "xj133",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/settings-b-1440.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "iSVUB",
+      "x": 3312,
+      "y": 4900,
+      "name": "Settings C. Top of Teaching",
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "Ianj1",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Settings C. Top of Teaching",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "UsVTm",
+          "name": "Line",
+          "fill": "$dim",
+          "content": "The card sits across the top of Teaching, above how the teacher teaches. Any concept can take any of these.",
+          "fontFamily": "Literata",
+          "fontSize": 20,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "lJV6m",
+          "name": "Window",
+          "padding": [
+            16,
+            0,
+            0,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "npZzf",
+              "name": "1440 wide",
+              "width": 1440,
+              "height": 900,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "teacher-chat/settings-c-1440.png",
+                "mode": "contain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "hW5ht",
+      "x": 0,
+      "y": 0,
+      "name": "Open picks",
+      "width": 2668,
+      "fill": "$panel",
+      "layout": "vertical",
+      "gap": 14,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "M8SkLl",
+          "name": "Title",
+          "fill": "$ink",
+          "content": "Teacher chat. Picks (decided)",
+          "fontFamily": "Literata",
+          "fontSize": 34,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "UBDoM",
+          "name": "Pick 0",
+          "fill": "$ink",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Which concept: 1 Lesson page, 2 Work log, or 3 Newest first. Answer like \"concept 2, board 3\" to point at a picture. Picked: concept 1, Lesson page.",
+          "fontFamily": "Literata",
+          "fontSize": 21,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "j1ntr",
+          "name": "Pick 1",
+          "fill": "$ink",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "1. The panel's box on a lesson or cheat sheet page. A: it gives way, the page's box is the one place to type. B: the panel stays its own chat. C: it sends into the page's chat. Picked: A.",
+          "fontFamily": "Literata",
+          "fontSize": 21,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "ZTsEV",
+          "name": "Pick 2",
+          "fill": "$ink",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "2. Model. A: each chat has its own; Settings sets the one new chats and lessons start on. B: one model for both. Picked: A.",
+          "fontFamily": "Literata",
+          "fontSize": 21,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "HlTf1",
+          "name": "Pick 3",
+          "fill": "$ink",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "3. Where the card sits in Settings: A, B or C (the bottom row). Picked: A, a Teacher tab.",
+          "fontFamily": "Literata",
+          "fontSize": 21,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "PtfZ9",
+          "name": "Pick 4",
+          "fill": "$ink",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "4. Steps after a reply. A: gone, as in lessons. B: one folded line that opens them. Picked: A.",
+          "fontFamily": "Literata",
+          "fontSize": 21,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "MwWC7",
+          "name": "Pick 5",
+          "fill": "$ink",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "5. A chat made on the other agent. A: it continues on the agent picked now. B: a send asks to switch back. Picked: A, from the chat's summary.",
+          "fontFamily": "Literata",
+          "fontSize": 21,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "aA7JB",
+          "name": "Pick 6",
+          "fill": "$ink",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "6. Get it, when the agent is not installed. A: opens the install page. B: godspeed installs it, with ticks as it goes. Picked: A.",
+          "fontFamily": "Literata",
+          "fontSize": 21,
+          "fontWeight": "normal"
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "ink": {
+      "type": "color",
+      "value": "#EDEDEF"
+    },
+    "bg": {
+      "type": "color",
+      "value": "#141416"
+    },
+    "panel": {
+      "type": "color",
+      "value": "#1B1B1E"
+    },
+    "line": {
+      "type": "color",
+      "value": "#2A2A2F"
+    },
+    "dim": {
+      "type": "color",
+      "value": "#8C8C94"
+    },
+    "faint": {
+      "type": "color",
+      "value": "#5A5A62"
+    },
+    "red": {
+      "type": "color",
+      "value": "#FF453A"
+    },
+    "blue": {
+      "type": "color",
+      "value": "#0A84FF"
+    },
+    "g-bg": {
+      "type": "color",
+      "value": "#000000"
+    },
+    "g-ink": {
+      "type": "color",
+      "value": "#E6E6E6"
+    },
+    "g-mute": {
+      "type": "color",
+      "value": "#8D8D8D"
+    },
+    "g-faint": {
+      "type": "color",
+      "value": "#5E5E5E"
+    },
+    "g-tone": {
+      "type": "color",
+      "value": "#141414"
+    },
+    "g-line": {
+      "type": "color",
+      "value": "#222222"
+    },
+    "g-red": {
+      "type": "color",
+      "value": "#EF4444"
+    },
+    "g-orange": {
+      "type": "color",
+      "value": "#F97316"
+    },
+    "g-yellow": {
+      "type": "color",
+      "value": "#EAB308"
+    },
+    "g-green": {
+      "type": "color",
+      "value": "#10B981"
+    }
+  },
+  "fileToken": "e46b8a32-cc64-4c22-8096-0b7960533b53",
+  "fonts": [
+    {
+      "name": "KaTeX_AMS",
+      "url": "fonts/localhost/34494743736fda75.woff2"
+    },
+    {
+      "name": "KaTeX_Caligraphic",
+      "url": "fonts/localhost/5bfa49cac46cd1d7.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Caligraphic",
+      "url": "fonts/localhost/9f8077e0b38a290c.woff2"
+    },
+    {
+      "name": "KaTeX_Fraktur",
+      "url": "fonts/localhost/f98f89272eca11ae.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Fraktur",
+      "url": "fonts/localhost/a5764c6e2784d028.woff2"
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/31050a1b1b123fb2.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/a4a4905b8b126f9f.woff2",
+      "style": "italic",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/c9b2b5ffd2f27aa5.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/c884086c25cec855.woff2"
+    },
+    {
+      "name": "KaTeX_Math",
+      "url": "fonts/localhost/8fcb9d2de65ac71a.woff2",
+      "style": "italic",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Math",
+      "url": "fonts/localhost/db4883d0cff95ecb.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/886e61797a525d4a.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/3d5fa3cb309f8d83.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/e45d5f4f4a7f2ff3.woff2"
+    },
+    {
+      "name": "KaTeX_Script",
+      "url": "fonts/localhost/63b80959f1fc5689.woff2"
+    },
+    {
+      "name": "KaTeX_Size1",
+      "url": "fonts/localhost/57fa599974a1bc0b.woff2"
+    },
+    {
+      "name": "KaTeX_Size2",
+      "url": "fonts/localhost/ee18713634a3be8c.woff2"
+    },
+    {
+      "name": "KaTeX_Size3",
+      "url": "fonts/localhost/19a7caadfb66bd27.woff2"
+    },
+    {
+      "name": "KaTeX_Size4",
+      "url": "fonts/localhost/9bed17fb92f26505.woff2"
+    },
+    {
+      "name": "KaTeX_Typewriter",
+      "url": "fonts/localhost/7a08883fffc6958c.woff2"
+    }
+  ]
+}

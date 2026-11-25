@@ -36,7 +36,6 @@ pub async fn take_terminal_line(app: &App, terminal: Option<&str>, line: &str) -
 		&& let Some(terminal) = terminal
 	{
 		app.terminals.chat_line(terminal, clock::now_ms());
-		super::teacher_chats::typed(app, terminal, line);
 	}
 	page
 }

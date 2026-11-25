@@ -1,5 +1,5 @@
 //! Why a lesson's turn runs, which the desk's head sentence words: decided from the turn's input
-//! and the record it lands on.
+//! and the record it lands on. Every turn of a talk chat is `Talk`.
 
 use gs_json::Json;
 
@@ -8,7 +8,7 @@ use crate::messages::native_messages::active_problem_of;
 use crate::messages::role::Role;
 
 /// The causes by name, in `TurnCause` order (the window's `TURN_CAUSES`).
-pub const TURN_CAUSES: [&str; 8] = ["first", "answer", "problem", "ask", "next", "retry", "open_problem", "job"];
+pub const TURN_CAUSES: [&str; 9] = ["first", "answer", "problem", "ask", "next", "retry", "open_problem", "job", "talk"];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TurnCause {
@@ -28,6 +28,8 @@ pub enum TurnCause {
 	OpenProblem,
 	/// A finished job woke the lesson.
 	Job,
+	/// The learner's message in a talk chat.
+	Talk,
 }
 
 impl TurnCause {
@@ -68,7 +70,7 @@ mod tests {
 
 	#[test]
 	fn each_name_is_its_cause_s() {
-		let all = [TurnCause::First, TurnCause::Answer, TurnCause::Problem, TurnCause::Ask, TurnCause::Next, TurnCause::Retry, TurnCause::OpenProblem, TurnCause::Job];
+		let all = [TurnCause::First, TurnCause::Answer, TurnCause::Problem, TurnCause::Ask, TurnCause::Next, TurnCause::Retry, TurnCause::OpenProblem, TurnCause::Job, TurnCause::Talk];
 		assert_eq!(all.map(TurnCause::name), TURN_CAUSES);
 	}
 

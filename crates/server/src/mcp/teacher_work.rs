@@ -10,18 +10,16 @@ use gs_json::Json;
 use gs_services::App;
 use gs_services::turns::step_names::AppStepNames;
 
-use super::tools::ToolCall;
-
-/// Notes one checked call before it runs, so a slow search shows while it runs.
-pub fn note_call(call: &ToolCall<'_>, name: &str, args: &Json) {
-	let app = call.app;
-	if !(call.terminal.is_none() || app.terminals.is_teacher_terminal(call.terminal)) {
+/// Notes one checked call from the agent in `terminal` (None: outside godspeed) before it runs,
+/// so a slow search shows while it runs.
+pub fn note_call(app: &App, terminal: Option<&str>, name: &str, args: &Json) {
+	if !(terminal.is_none() || app.terminals.is_teacher_terminal(terminal)) {
 		return;
 	}
 	match round_call(name, args, &AppStepNames(app)) {
 		None => {}
-		Some(RoundCall::Logged) => app.terminals.teacher_call(call.terminal, None, clock::now_ms()),
-		Some(RoundCall::Step(step)) => app.terminals.teacher_call(call.terminal, Some(step), clock::now_ms()),
+		Some(RoundCall::Logged) => app.terminals.teacher_call(terminal, None, clock::now_ms()),
+		Some(RoundCall::Step(step)) => app.terminals.teacher_call(terminal, Some(step), clock::now_ms()),
 	}
 }
 

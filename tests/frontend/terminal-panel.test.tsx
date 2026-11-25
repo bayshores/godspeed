@@ -276,7 +276,7 @@ describe("opening by itself", () => {
 				Date.now = () => realNow() + 15_000;
 				await act(async () => void dom.window.dispatchEvent(new dom.window.Event("focus")));
 				await settle();
-				assert.equal(text("teacher-panel-agent"), "Ada hasn't started teaching yet.");
+				assert.equal(text("teacher-panel-agent"), "Ada hasn't connected to godspeed yet.");
 				assert.ok(q("teacher-panel") !== null, "the need opened it");
 			});
 		} finally {

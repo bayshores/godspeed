@@ -76,7 +76,7 @@ describe("the footer's words", () => {
 	});
 
 	it("the check-in timer", () => {
-		const late = "Ada hasn't started teaching yet.";
+		const late = "Ada hasn't connected to godspeed yet.";
 		assert.equal(words(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, late);
 		assert.equal(tab(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, null);
 	});
@@ -134,7 +134,7 @@ describe("the teacher's status line", () => {
 		assert.equal(screenStatusLine(facts({}, { prompt: "enter" }), "Ada"), "Ada is asking you to continue.");
 		assert.equal(screenStatusLine(facts({}, { prompt: "menu" }), "Ada"), "Ada is asking you something.");
 		assert.equal(screenStatusLine(facts({ checkedIn: false }, { prompt: "menu" }), "Ada"), "Ada is asking you something.");
-		assert.equal(screenStatusLine(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS }), "Ada"), "Ada hasn't started teaching yet.");
+		assert.equal(screenStatusLine(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS }), "Ada"), "Ada hasn't connected to godspeed yet.");
 		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 1 } }), "Ada"), "Ada closed with an error.");
 		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 3 } }), "Ada"), "Claude Code isn't installed on this computer.");
 		assert.equal(screenStatusLine(facts({}, { ended: { stopped: false, code: 4 } }), "Ada"), "godspeed needs Node.js to connect Claude Code.");

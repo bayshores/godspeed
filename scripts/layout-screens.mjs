@@ -718,13 +718,13 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		// The stand-in teacher goes back to a chat, which has a line typed in it: a chat to list.
 		name: "Teacher's chats under the Chats key",
 		before: `const shell = window.lh.terminals;
-const running = (await shell.list()).find((t) => t.role === "teacher" && !t.ended);
+const running = (await shell.list()).find((t) => !t.ended);
 if (running) await shell.stop(running.id);
-for (let tries = 0; (await shell.list()).some((t) => t.role === "teacher" && !t.ended); tries++) {
+for (let tries = 0; (await shell.list()).some((t) => !t.ended); tries++) {
 	if (tries > 50) throw new Error("the teacher never stopped");
 	await new Promise((done) => setTimeout(done, 100));
 }
-await shell.start("teacher", "claude", "7c9e6679-7425-40de-944b-e07fc1f90ae7")`,
+await shell.start("claude", "7c9e6679-7425-40de-944b-e07fc1f90ae7")`,
 		url: "/",
 		ready: "[data-testid=strip]",
 		setup: `if (!document.querySelector("[data-teacher-panel]")) { ${openTeacher}; ${pause}; }

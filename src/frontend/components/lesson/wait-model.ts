@@ -25,6 +25,7 @@ export function deskHead(name: string, work: LessonWork): string | null {
 			return `${name} is getting the problem ready.`;
 		case "next":
 		case "job":
+		case "talk":
 		case null:
 			return `${name} is writing the next step.`;
 	}

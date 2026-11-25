@@ -1,20 +1,30 @@
-//! The tool list and the call router. tools.json is tools/list (order, titles, descriptions,
-//! annotations, JSON Schemas); calls are checked against those schemas before a handler runs.
+//! godspeed's data tools, which the agent calls in free talk and the outside MCP door still calls:
+//! lessons and graphs (`lessons`, `graph`), spaces (`spaces`), memory (`memory`) and the notes
+//! vault (`vault`). Deleting a space is app-only on purpose. tools.json is the list (order,
+//! titles, descriptions, annotations, JSON Schemas); a call's arguments are checked against its
+//! schema (`schema`) before its handler runs.
+
+mod graph;
+mod lessons;
+mod memory;
+pub mod reply;
+pub mod schema;
+mod spaces;
+mod vault;
 
 use std::sync::{Arc, LazyLock};
 
 use gs_core::contracts::space::parse_space_scope;
 use gs_json::Json;
-use gs_services::App;
-use gs_services::app::open_page::open_page;
 
-use super::reply::{failure, outcome};
-use super::schema::check_arguments;
-use super::{spaces, graph, lessons, memory, vault};
+use crate::App;
+use crate::app::open_page::open_page;
+use reply::{failure, outcome};
+use schema::check_arguments;
 
 static TOOLS: LazyLock<Json> = LazyLock::new(|| gs_json::parse(include_str!("tools.json")).unwrap_or_default());
 
-/// tools/list's `tools`.
+/// The tools, as MCP's tools/list gives them.
 pub fn tool_list() -> &'static Json {
 	&TOOLS
 }
@@ -27,11 +37,12 @@ pub fn has_tool(name: &str) -> bool {
 	input_schema(name).is_some()
 }
 
-/// One tool call: the app, the calling agent's name and the app terminal it runs in.
+/// One tool call: the app, the calling agent's name, and whether the learner asked for it in
+/// godspeed itself, so the window opens what it starts even with Follow off.
 pub struct ToolCall<'a> {
 	pub app: &'a Arc<App>,
 	pub caller: Option<&'a str>,
-	pub terminal: Option<&'a str>,
+	pub asked_here: bool,
 }
 
 /// A tool's space_id argument, checked: absent or "none" is No space; otherwise the space must
@@ -48,26 +59,26 @@ pub fn space_arg(app: &App, space_id: Option<&str>) -> Result<Option<String>, St
 	Ok(scope)
 }
 
-/// Runs a listed tool (`has_tool`) on its raw arguments.
-pub async fn call_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Json {
-	let Some(schema) = input_schema(name) else { return failure(&format!("Tool {name} not found")) };
-	let args = match check_arguments(name, schema, args) {
-		Ok(args) => args,
-		Err(error) => return failure(&error),
-	};
-	super::teacher_work::note_call(call, name, &args);
+/// A listed tool's raw arguments, checked against its schema; Err is the failed result.
+pub fn checked_arguments(name: &str, args: &Json) -> Result<Json, Json> {
+	let Some(schema) = input_schema(name) else { return Err(failure(&format!("Tool {name} not found"))) };
+	check_arguments(name, schema, args).map_err(|error| failure(&error))
+}
+
+/// Runs a listed tool on arguments `checked_arguments` passed.
+pub async fn run_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Json {
 	match name {
-		"list_lessons" => lessons::list_lessons(call, &args),
-		"read_lesson" => lessons::read_lesson(call, &args),
-		"search_graph" => graph::search_graph(call, &args).await,
-		"import_notes" => graph::import_notes(call, &args),
-		"remember" => memory::remember(call, &args),
-		"forget" => memory::forget(call, &args),
-		"save_rule" => memory::save_rule(call, &args),
-		"open_page" => outcome(open_page(call.app, call.caller, &args)),
-		"search_vault" => vault::search_vault(call, &args),
-		"write_vault_note" => vault::write_vault_note(call, &args),
-		other => spaces::space_tool(call, other, &args).await.unwrap_or_else(|| failure(&format!("Tool {other} not found"))),
+		"list_lessons" => lessons::list_lessons(call, args),
+		"read_lesson" => lessons::read_lesson(call, args),
+		"search_graph" => graph::search_graph(call, args).await,
+		"import_notes" => graph::import_notes(call, args),
+		"remember" => memory::remember(call, args),
+		"forget" => memory::forget(call, args),
+		"save_rule" => memory::save_rule(call, args),
+		"open_page" => outcome(open_page(call.app, call.caller, args)),
+		"search_vault" => vault::search_vault(call, args),
+		"write_vault_note" => vault::write_vault_note(call, args),
+		other => spaces::space_tool(call, other, args).await.unwrap_or_else(|| failure(&format!("Tool {other} not found"))),
 	}
 }
 
@@ -78,7 +89,7 @@ mod tests {
 	use gs_core::spaces::space_path::PATH_COVERS_MAX;
 	use gs_core::spaces::space_tools::{SPACE_ARG_TEXT, SPACE_TOOL_TEXT};
 	use gs_core::records::agent_notes::NOTE_MAX_CHARS;
-	use gs_services::turns::files_lesson::MAX_LESSON_FILES;
+	use crate::turns::files_lesson::MAX_LESSON_FILES;
 
 	use super::*;
 

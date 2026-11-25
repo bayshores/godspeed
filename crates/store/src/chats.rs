@@ -5,8 +5,9 @@
 //! list's shape. The content writers stay silent, because every list-visible change they cause
 //! is already announced by turn-started and turn-settled.
 //!
-//! The Talk chat an older build kept (`chat_talk.json`, kind "talk", and its folder) is the
-//! learner's: it is only read here, never written, made or deleted, and it is not a lesson.
+//! A record of kind "talk" is a free-talk chat from the teacher panel, not a lesson: the lesson
+//! list leaves it out. The Talk chat an older build kept (`chat_talk.json` and its folder) is the
+//! learner's: it is only read here, never written, made or deleted.
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -30,9 +31,9 @@ const UNTITLED: &str = "Untitled lesson";
 /// What a write to the old Talk chat answers.
 pub const TALK_KEPT: &str = "The Talk chat is kept as it was and can't be changed";
 
-/// The old Talk chat, by its id or (in a record) its kind.
-fn is_old_talk(id: &str, record: Option<&Json>) -> bool {
-	id == TALK_CHAT_ID || record.is_some_and(|r| r["kind"].as_str() == Some("talk"))
+/// The old Talk chat, by its id.
+fn is_old_talk(id: &str) -> bool {
+	id == TALK_CHAT_ID
 }
 
 /// A summary kept while its record file's version (modified time and size) is unchanged, so a
@@ -61,15 +62,12 @@ impl ChatStore {
 		Ok(self.chat_dir(id)?.with_extension("json"))
 	}
 
-	/// Starts a lesson. `kind` is absent for a teach lesson, and `space_id` for "No space";
-	/// `file_ids` are the files a lesson on files works from, its first file first.
-	/// Returns the record as it landed on disk.
+	/// Starts a lesson, or with kind "talk" a free-talk chat. `kind` is absent for a teach lesson,
+	/// and `space_id` for "No space"; `file_ids` are the files a lesson on files works from, its
+	/// first file first. Returns the record as it landed on disk.
 	pub fn create_chat(&self, title: &str, kind: Option<&str>, space_id: Option<&str>, deadline_id: Option<&str>, file_ids: &[String]) -> Result<Json, String> {
 		let now = time::iso_now();
 		let kind = kind.filter(|k| !k.is_empty());
-		if kind == Some("talk") {
-			return Err(TALK_KEPT.to_owned());
-		}
 		let id = ids::timed("chat");
 		let title = text::trim(title);
 		let mut record = Obj::new();
@@ -100,7 +98,7 @@ impl ChatStore {
 	/// files only get stamped on their next write.
 	fn write_chat(&self, record: &Json) -> Result<(), String> {
 		let id = record["id"].str_or_empty();
-		if is_old_talk(id, Some(record)) {
+		if is_old_talk(id) {
 			return Err(TALK_KEPT.to_owned());
 		}
 		self.summaries.lock().remove(id);
@@ -140,17 +138,27 @@ impl ChatStore {
 		Some(format!("{}:{}", js_number(fsx::modified_ms(&meta)), meta.len()))
 	}
 
-	/// Every lesson's summary, newest activity first. Talk is not a lesson and never shows.
+	/// Every lesson's summary, newest activity first. A talk chat is not a lesson and never shows.
 	pub fn list_chats(&self) -> Vec<Json> {
+		self.summaries_where(|summary| summary["kind"].as_str() != Some("talk"))
+	}
+
+	/// Every talk chat's summary (`{id, title, createdAt, updatedAt, kind, agent, model}`), newest
+	/// activity first. The old Talk chat is not one.
+	pub fn list_talk_chats(&self) -> Vec<Json> {
+		self.summaries_where(|summary| summary["kind"].as_str() == Some("talk") && !is_old_talk(summary["id"].str_or_empty()))
+	}
+
+	fn summaries_where(&self, keep: impl Fn(&Json) -> bool) -> Vec<Json> {
 		let names = crate::json_ids_in(&self.dir);
 		let present: HashSet<&String> = names.iter().collect();
 		self.summaries.lock().retain(|cached, _| present.contains(cached));
-		let mut summaries: Vec<Json> = names.iter().filter_map(|id| self.summary_of(id)).collect();
+		let mut summaries: Vec<Json> = names.iter().filter_map(|id| self.summary_of(id)).filter(|summary| keep(summary)).collect();
 		summaries.sort_by(newer_first);
 		summaries
 	}
 
-	/// One lesson's summary through the cache; None for an unreadable record, an invalid id or Talk.
+	/// One record's summary through the cache; None for an unreadable record or an invalid id.
 	fn summary_of(&self, id: &str) -> Option<Json> {
 		let version = self.chat_version(id)?;
 		if let Some((cached, summary)) = self.summaries.lock().get(id)
@@ -185,6 +193,34 @@ impl ChatStore {
 	/// sidebar order stays put.
 	pub fn save_tree(&self, id: &str, tree: &Json) -> Result<(), String> {
 		self.update(id, |record| set_field(record, "tree", tree.clone())).map(drop)
+	}
+
+	/// A chat from the teacher's terminal in an older build, carried over as a talk chat: named
+	/// `title`, last used `at`, with `fields` (`agentSession`, `terminalChat`) set on it.
+	pub fn import_talk_chat(&self, title: &str, at: &str, fields: &Json) -> Result<Json, String> {
+		let id = ids::timed("chat");
+		let mut record = Obj::new();
+		record.insert("id", id.as_str());
+		record.insert("title", title);
+		record.insert("createdAt", at);
+		record.insert("updatedAt", at);
+		record.insert("messages", Json::Arr(vec![]));
+		record.insert("kind", "talk");
+		for (key, value) in fields.as_obj().into_iter().flatten() {
+			record.insert(key.as_str(), value.clone());
+		}
+		let record = Json::Obj(record);
+		{
+			let _guard = self.locks.lock(LockKey::Chat(&id));
+			self.write_chat(&record)?;
+		}
+		self.events.emit(EventKind::ChatsChanged, json!({}));
+		Ok(record)
+	}
+
+	/// Sets the talk chat's model, which its next reply runs on. Quiet like a plan save.
+	pub fn set_chat_model(&self, id: &str, model: &str) -> Result<(), String> {
+		self.update(id, |record| set_field(record, "model", model)).map(drop)
 	}
 
 	/// Saves which agent session holds the lesson (`{agent, id, promptHash, seen}`, null for none).
@@ -224,7 +260,7 @@ impl ChatStore {
 	/// and jobs are the route's job.
 	pub fn delete_chat(&self, id: &str) -> bool {
 		let _guard = self.locks.lock(LockKey::Chat(id));
-		if is_old_talk(id, self.get_chat(id).as_ref()) {
+		if is_old_talk(id) {
 			return false;
 		}
 		self.summaries.lock().remove(id);
@@ -253,7 +289,7 @@ impl ChatStore {
 		if file_name.contains('/') {
 			return Err(format!("Invalid attachment name: {file_name}"));
 		}
-		if is_old_talk(id, self.get_chat(id).as_ref()) {
+		if is_old_talk(id) {
 			return Err(TALK_KEPT.to_owned());
 		}
 		let file = self.chat_dir(id)?.join(file_name);
@@ -279,12 +315,12 @@ impl ChatStore {
 }
 
 /// The record's list summary: everything but the bulky parts, with the kind normalized and what
-/// the session picker shows folded from the messages. Liveness is not here; the route adds it.
-/// None for Talk, and for a record whose messages the folds cannot read (Node's folds throw there,
-/// and the lesson stays out of the list rather than blanking it).
+/// the session picker shows folded from the messages; a talk chat's own (`talk_summary`).
+/// Liveness is not here; the route adds it. None for a record whose messages the folds cannot
+/// read (Node's folds throw there, and the lesson stays out of the list rather than blanking it).
 fn summarize(id: &str, record: &Json) -> Option<Json> {
 	if record["kind"].as_str() == Some("talk") {
-		return None;
+		return Some(talk_summary(record));
 	}
 	let messages = record["messages"].items();
 	let start = first_phase(record["kind"].as_str());
@@ -301,6 +337,16 @@ fn summarize(id: &str, record: &Json) -> Option<Json> {
 	summary.insert("pendingQuestion", dangling_question_of(messages).is_some());
 	summary.insert("pendingProblem", active_problem_of(messages).is_some());
 	Some(Json::Obj(summary))
+}
+
+/// A talk chat's list summary: its name, times, model, and the agent whose session holds it.
+fn talk_summary(record: &Json) -> Json {
+	let mut summary = Obj::new();
+	for key in ["id", "title", "createdAt", "updatedAt", "kind", "model"] {
+		summary.insert_present(key, record.get(key));
+	}
+	summary.insert("agent", record["agentSession"]["agent"].clone());
+	Json::Obj(summary)
 }
 
 /// Sets `key` on a record, keeping its place when it already has one.
@@ -473,7 +519,6 @@ mod tests {
 		assert_eq!(fx.store.get_chat("chat_talk").unwrap()["messages"].as_arr().map(Vec::len), Some(1));
 		assert!(fx.store.list_chats().is_empty(), "not a lesson");
 		let kept = Err(TALK_KEPT.to_owned());
-		assert_eq!(fx.store.create_chat("Talk", Some("talk"), None, None, &[]).map(drop), kept);
 		assert_eq!(fx.store.save_messages("chat_talk", &[]), kept);
 		assert_eq!(fx.store.save_tree("chat_talk", &json!({})), kept);
 		assert_eq!(fx.store.append_turn_usage("chat_talk", &json!({ "id": "t" })), kept);
@@ -485,11 +530,18 @@ mod tests {
 		assert_eq!(std::fs::read_to_string(fx.file("chat_talk")).unwrap(), text);
 		assert_eq!(std::fs::read_dir(fx.store.dir.join("chat_talk")).unwrap().count(), 1);
 		assert_eq!(std::fs::read(fx.store.dir.join("chat_talk/0123456789ab-Notes.pdf")).unwrap(), b"%PDF-1.4 made up");
+	}
 
-		// A lesson whose file was given the kind by hand is kept the same way.
-		fsx::write_text_atomic(&fx.file("chat_other"), r#"{"id":"chat_other","updatedAt":"x","kind":"talk","messages":[]}"#).unwrap();
-		assert_eq!(fx.store.rename_chat("chat_other", "Mine").map(drop), kept);
-		assert!(!fx.store.delete_chat("chat_other"));
+	#[test]
+	fn a_talk_chat_is_written_like_a_lesson_and_left_out_of_the_list() {
+		let fx = Fixture::new();
+		let talk = fx.store.create_chat("What is due this week?", Some("talk"), None, None, &[]).unwrap();
+		let id = talk["id"].as_str().unwrap();
+		assert_eq!(talk["kind"], json!("talk"));
+		fx.store.save_messages(id, &[json!({ "role": "user", "content": "What is due this week?" })]).unwrap();
+		assert_eq!(fx.store.get_chat(id).unwrap()["messages"].as_arr().map(Vec::len), Some(1));
+		assert!(fx.store.list_chats().is_empty(), "not a lesson");
+		assert!(fx.store.delete_chat(id));
 	}
 
 	#[test]

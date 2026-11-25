@@ -32,7 +32,7 @@ pub fn queue_waiting_files(app: &Arc<App>) {
 
 /// Starts the 60-second linked-folder scan, vault check and space check, once per process. Ten
 /// seconds after the start (so it never competes with the window's first load) every space is
-/// checked once: waiting files queued, linked folders rescanned, unindexed files indexed.
+/// gone over once (`scan_at_start`).
 pub fn start_space_scanner(app: &Arc<App>) {
 	if app.spaces.scanner_started.swap(true, std::sync::atomic::Ordering::SeqCst) {
 		return;
@@ -56,12 +56,38 @@ pub fn start_space_scanner(app: &Arc<App>) {
 	let startup = app.clone();
 	detach("spaces", async move {
 		clock::sleep(STARTUP_SCAN_DELAY_MS).await;
-		queue_waiting_files(&startup);
-		for record in startup.stores.spaces.list_space_records() {
-			if !record["closed"].truthy() {
-				scan_linked_folder(&startup, record["id"].str_or_empty(), false);
-			}
-		}
-		index_unindexed_files(&startup).await;
+		scan_at_start(&startup).await;
 	});
+}
+
+/// Waiting files queued, linked folders rescanned, the spaces checked and unindexed files
+/// indexed. The agent jobs run on is there from the start, so the spaces are checked now rather
+/// than at the first minute's scan.
+async fn scan_at_start(app: &Arc<App>) {
+	queue_waiting_files(app);
+	for record in app.stores.spaces.list_space_records() {
+		if !record["closed"].truthy() {
+			scan_linked_folder(app, record["id"].str_or_empty(), false);
+		}
+	}
+	crate::spaces::space_checks::check_spaces(app, clock::now_ms());
+	index_unindexed_files(app).await;
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_json::json;
+
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	#[tokio::test]
+	async fn the_spaces_are_checked_at_the_start() {
+		let app = test_app(&scratch_dir("scan-at-start"));
+		let id = app.stores.spaces.create_space(&json!({ "name": "Wave Optics" })).unwrap()["id"].str_or_empty().to_owned();
+		app.stores.spaces.save_files(&id, vec![json!({ "id": "f1", "origin": "copied", "name": "Notes.md", "path": "f1/Notes.md", "kind": "study", "contentFp": "x", "status": "ready", "addedAt": "2026-11-01T10:00:00.000Z" })], &[]).unwrap();
+		app.stores.spaces.add_deadline(&id, &json!({ "kind": "exam", "name": "Final", "date": "2099-03-02" })).unwrap();
+		scan_at_start(&app).await;
+		assert_eq!(app.spaces.requests.running.lock().checking.as_deref(), Some(id.as_str()), "the exam with nothing linked is checked");
+	}
 }
