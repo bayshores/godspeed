@@ -33,7 +33,7 @@ export function AgentAtWork({ state, head, work, arrive, foot }: { state: DeskSt
 					</span>
 				)}
 			</p>
-			<div className={cn("flex flex-1 gap-7 @max-[440px]/desk:flex-col", stack.length > 0 ? "min-h-[320px] @max-[440px]/desk:min-h-0" : "items-center justify-center")}>
+			<div className={cn("flex flex-1 gap-(--lh-gap) @max-[440px]/desk:flex-col", stack.length > 0 ? "min-h-[320px] @max-[440px]/desk:min-h-0" : "items-center justify-center")}>
 				<div className={cn("flex min-w-0 flex-col", stack.length > 0 ? "flex-1" : "w-full max-w-[420px]")}>
 					<DeskRows rows={rows} under={under} state={state} slot={slot} arrive={arrive} />
 					<ApprovalCards approvals={work.approvals} slot={slot} arrive={arrive} />
