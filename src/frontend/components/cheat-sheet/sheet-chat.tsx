@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ChatAttachment, CheatSheetView, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
 import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
@@ -74,7 +74,8 @@ export function SheetChat({
 	const busy = view.running !== null;
 	const messages = view.sheet.messages;
 	const endRef = useRef<HTMLDivElement>(null);
-	useEffect(() => {
+	// Before the picture is drawn: a chat that opens long is never seen at its top first.
+	useLayoutEffect(() => {
 		endRef.current?.scrollIntoView({ block: "end" });
 	}, [messages.length, busy, view.error]);
 
