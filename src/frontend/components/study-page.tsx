@@ -64,7 +64,7 @@ export function NewLesson() {
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div className="@container/page lh-page flex flex-col gap-(--lh-head-gap) pt-(--lh-page-top) pb-(--lh-page-end)">
 					<div className="flex flex-col items-start gap-2.5">
-						<Link to="/space" data-testid="page-back" className="lh-btn lh-btn-quiet">
+						<Link to="/space" data-testid="page-back" className="lh-btn lh-btn-quiet lh-btn-flush">
 							<PixelIcon name="chevron" className="-scale-x-100" />
 							Progress
 						</Link>

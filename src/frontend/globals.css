@@ -605,21 +605,26 @@ body {
 	}
 }
 
-/* Buttons are tiles, drawn like the g tile in the logo: a face inside an ink
-   edge, on a dithered ink shadow down and to the right. Pressing slides the
-   tile into its shadow. .lh-btn-main is the one dark key of a view;
-   .lh-btn-quiet is a paler key for its lesser actions. The shadow (::before)
-   and the face (::after) lie behind the label, so the focus ring stays
-   whole. --lh-key is the face, --lh-key-hover the face under the pointer.
+/* Keys come in three ranks, so a view's one main action is the only heavy
+   thing on it. .lh-btn is a plate: a small sheet with stepped corners on a
+   lip, which a press sinks onto. .lh-btn-main (and the red .lh-btn-danger)
+   is a tile, drawn like the g tile in the logo: a face inside an ink edge,
+   on a dithered ink shadow that a press slides it into. .lh-btn-quiet is a
+   plain word, for a lesser or repeated action; the pointer lays a plate
+   under it. The shadow (::before) and the face (::after) lie behind the
+   label, so the focus ring stays whole. --lh-key is the face, --lh-key-hover
+   the face under the pointer; a plate's face lets what it lies on through,
+   since it lies on the page and on sheets alike.
    In the components layer, so a size utility on one button wins. */
 @layer components {
 	.lh-btn {
-		--lh-key: color-mix(in srgb, #fff 22%, var(--background));
-		--lh-key-hover: color-mix(in srgb, #fff 38%, var(--background));
+		--lh-key: color-mix(in srgb, var(--foreground) 15%, transparent);
+		--lh-key-hover: color-mix(in srgb, var(--foreground) 26%, transparent);
 		--lh-key-edge: var(--foreground);
 		--lh-key-face: var(--lh-key);
-		/* How far the shadow falls. */
-		--lh-drop: 4px;
+		/* How far a tile's shadow falls, and how tall a plate's lip is. */
+		--lh-drop: 0px;
+		--lh-lip: 3px;
 		--lh-pad: 18px;
 		position: relative;
 		isolation: isolate;
@@ -627,79 +632,116 @@ body {
 		align-items: center;
 		gap: 8px;
 		height: 40px;
-		/* The label centers on the face, which leaves the shadow's room right and below. */
-		padding: 0 calc(var(--lh-pad) + var(--lh-drop) / 2) var(--lh-drop) calc(var(--lh-pad) - var(--lh-drop) / 2);
+		/* The label centers on the face, which leaves the shadow's and the lip's room. */
+		padding: 0 calc(var(--lh-pad) + var(--lh-drop) / 2) calc(var(--lh-drop) + var(--lh-lip)) calc(var(--lh-pad) - var(--lh-drop) / 2);
 		border: 0;
 		border-radius: 0;
 		background: none;
 		font-family: var(--font-ui);
 		font-size: 15px;
-		/* A touch above regular, so a legend holds its own inside the ink edge. */
 		font-weight: 450;
 		line-height: 1.4;
 		white-space: nowrap;
 		color: var(--foreground);
 	}
-	.lh-btn::before,
-	.lh-btn::after {
+	.lh-btn::after,
+	:is(.lh-btn-main, .lh-btn-danger)::before {
 		content: "";
 		position: absolute;
 		z-index: -1;
 		pointer-events: none;
 	}
-	/* The shadow: the edge's ink through a one-pixel checker. */
-	.lh-btn::before {
-		inset: var(--lh-drop) 0 0 var(--lh-drop);
-		background: var(--lh-key-edge);
-		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Crect width='1' height='1'/%3E%3Crect x='1' y='1' width='1' height='1'/%3E%3C/svg%3E") 0 0 / 2px 2px;
-	}
 	.lh-btn::after {
 		inset: 0 var(--lh-drop) var(--lh-drop) 0;
-		border: 2px solid var(--lh-key-edge);
+		border-bottom: var(--lh-lip) solid color-mix(in srgb, var(--foreground) 14%, transparent);
 		background: var(--lh-key-face);
+		/* One step cut from each corner, as a sheet's corners are. */
+		clip-path: polygon(0 3px, 3px 3px, 3px 0, calc(100% - 3px) 0, calc(100% - 3px) 3px, 100% 3px, 100% calc(100% - 3px), calc(100% - 3px) calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 3px calc(100% - 3px), 0 calc(100% - 3px));
 		transition: background-color var(--lh-dur-fast) var(--lh-ease-out);
 	}
 	.lh-btn:hover {
 		--lh-key-face: var(--lh-key-hover);
 	}
+	/* A pressed plate sinks onto its lip: its foot stays where it was. */
 	.lh-btn:active {
-		translate: var(--lh-drop) var(--lh-drop);
+		translate: 0 calc(var(--lh-lip) - 1px);
 	}
-	.lh-btn:active::before {
-		visibility: hidden;
+	.lh-btn:active::after {
+		bottom: calc(var(--lh-lip) - 1px);
+		border-bottom-width: 1px;
 	}
 	.lh-btn:disabled {
 		opacity: 0.5;
 		pointer-events: none;
 	}
-	/* The button that deletes or removes: a red key. */
-	.lh-btn-danger {
-		--lh-key: var(--color-ans-wrong);
-		--lh-key-hover: var(--color-ans-wrong-hover);
-		--lh-key-edge: var(--color-ans-wrong);
-		font-weight: 560;
-		color: var(--background);
-	}
-	.lh-btn-main {
-		--lh-key: var(--lh-tint);
-		--lh-key-hover: color-mix(in srgb, var(--lh-tint) 82%, #fff);
-		/* Light letters on a dark key read thinner than dark on light. */
-		font-weight: 560;
-		color: var(--background);
-	}
-	.lh-btn-quiet {
-		--lh-key: color-mix(in srgb, #fff 12%, var(--background));
-		--lh-key-hover: color-mix(in srgb, #fff 28%, var(--background));
-		--lh-key-edge: color-mix(in srgb, var(--foreground) 70%, var(--background));
-		--lh-drop: 3px;
-	}
 	/* A small key: one that sits in a line of text or a card's corner. */
 	.lh-btn-small {
-		--lh-drop: 3px;
+		--lh-lip: 2px;
 		--lh-pad: 10px;
 		gap: 6px;
 		height: 30px;
 		font-size: 14px;
+	}
+	.lh-btn-main,
+	.lh-btn-danger {
+		--lh-drop: 4px;
+		--lh-lip: 0px;
+		/* Light letters on a dark key read thinner than dark on light. */
+		font-weight: 560;
+		color: var(--background);
+	}
+	.lh-btn-small:is(.lh-btn-main, .lh-btn-danger) {
+		--lh-drop: 3px;
+	}
+	.lh-btn-main {
+		--lh-key: var(--lh-tint);
+		--lh-key-hover: color-mix(in srgb, var(--lh-tint) 82%, #fff);
+	}
+	/* The button that deletes or removes: a red tile. */
+	.lh-btn-danger {
+		--lh-key: var(--color-ans-wrong);
+		--lh-key-hover: var(--color-ans-wrong-hover);
+		--lh-key-edge: var(--color-ans-wrong);
+	}
+	/* The shadow: the edge's ink through a one-pixel checker. */
+	:is(.lh-btn-main, .lh-btn-danger)::before {
+		inset: var(--lh-drop) 0 0 var(--lh-drop);
+		background: var(--lh-key-edge);
+		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Crect width='1' height='1'/%3E%3Crect x='1' y='1' width='1' height='1'/%3E%3C/svg%3E") 0 0 / 2px 2px;
+	}
+	:is(.lh-btn-main, .lh-btn-danger)::after {
+		border: 2px solid var(--lh-key-edge);
+		clip-path: none;
+	}
+	:is(.lh-btn-main, .lh-btn-danger):active {
+		translate: var(--lh-drop) var(--lh-drop);
+	}
+	:is(.lh-btn-main, .lh-btn-danger):active::after {
+		bottom: var(--lh-drop);
+		border-bottom-width: 2px;
+	}
+	:is(.lh-btn-main, .lh-btn-danger):active::before {
+		visibility: hidden;
+	}
+	.lh-btn-quiet {
+		--lh-key: transparent;
+		--lh-key-hover: color-mix(in srgb, var(--foreground) 10%, transparent);
+		--lh-lip: 0px;
+		color: color-mix(in srgb, var(--foreground) 86%, var(--background));
+	}
+	.lh-btn-quiet:hover {
+		color: var(--foreground);
+	}
+	.lh-btn-quiet:active {
+		translate: 0 1px;
+	}
+	.lh-btn-quiet:active::after {
+		bottom: 0;
+		border-bottom-width: 0;
+	}
+	/* A word that starts a column of text stands on the column's edge; its plate reaches past it. */
+	.lh-btn-flush {
+		margin-left: calc(var(--lh-pad) * -1);
 	}
 }
 

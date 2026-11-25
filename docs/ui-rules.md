@@ -196,7 +196,15 @@ Interface and lesson text are one face, Literata, so they stay apart by size, we
 - Settings, Appearance, Reading font changes lesson text only; the interface stays Literata.
 - Dates and counts are DotGothic16 (`font-count`). Code and the agent's screen are the system monospace.
 - Italic only where a book would set it (a work's title, a term as it is defined), never for decoration.
-- Every button is a key, never a bare word: `lh-btn-main` for a view's one main action, `lh-btn` for the others, `lh-btn-quiet` (a lighter key) for its lesser ones, `barWord` on a dark bar.
-- A key is a tile like the g in the logo: a face inside a 2-point ink edge, on a dithered ink shadow down and to the right, with square corners. Pressing slides it into its shadow. A key's own color goes in `--lh-key` (its face) and `--lh-key-hover`, never in a fill, edge or corner utility.
+- Keys come in three ranks, so a view's one main action is the only heavy thing on it:
+
+| Rank | Class | Look | For |
+|---|---|---|---|
+| Main | `lh-btn-main` | A tile like the g in the logo: a face inside a 2-point ink edge, on a dithered ink shadow down and to the right. Pressing slides it into its shadow. `lh-btn-danger` is the same tile in red. | A view's one main action; the key that deletes |
+| Plate | `lh-btn` | A small sheet: a soft face with one step cut from each corner, on a lip. Pressing sinks it onto the lip. | A view's other actions |
+| Word | `lh-btn-quiet` | A plain word. The pointer lays a plate under it. | A lesser action, and one that repeats on every row or card (a deadline's "Mark done") |
+
+- A word key that starts a column of text also carries `lh-btn-flush`, so its word stands on the column's edge.
+- A key's own color goes in `--lh-key` (its face) and `--lh-key-hover`, never in a fill, edge or corner utility. On a dark bar a button is a `barWord`.
 - A key takes its size from `lh-btn`, or `lh-btn-small` for a key in a row, a line of text or a card's corner. A new key never gets a height or font size of its own.
 - Before calling a UI change finished, check that a new key uses one of those two sizes and that no interface text is set at lesson text's size and weight.

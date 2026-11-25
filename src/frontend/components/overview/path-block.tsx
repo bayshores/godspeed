@@ -5,6 +5,7 @@ import { Key } from "@/frontend/components/ui/key";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { CHANGE_PATH_LINE } from "@/frontend/components/terminal/starter-model";
 import { Pane } from "@/frontend/components/ui/pane";
+import { cn } from "@/frontend/lib/utils";
 import { pathBlockView } from "./path-block-model";
 import { MAIN_KEY } from "./styles";
 
@@ -59,12 +60,12 @@ export const PathBlock = memo(function PathBlock({ path, main, busyOn, onStudy }
 			{(view.showAll !== null || teacher?.canAsk) && (
 				<div className="flex flex-wrap items-center gap-x-4 gap-y-1">
 					{view.showAll !== null && (
-						<button type="button" data-testid="space-path-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet">
+						<button type="button" data-testid="space-path-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet lh-btn-flush">
 							Show all {view.showAll}
 						</button>
 					)}
 					{teacher?.canAsk && (
-						<button type="button" data-testid="path-change" onClick={() => teacher.ask(CHANGE_PATH_LINE)} className="lh-btn lh-btn-quiet">
+						<button type="button" data-testid="path-change" onClick={() => teacher.ask(CHANGE_PATH_LINE)} className={cn("lh-btn lh-btn-quiet", view.showAll === null && "lh-btn-flush")}>
 							Ask {teacher.name} to change it
 						</button>
 					)}

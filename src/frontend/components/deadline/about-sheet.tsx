@@ -46,7 +46,7 @@ export function AboutSheet({
 			) : (
 				<LoadingBox className="h-24 bg-tone" />
 			)}
-			<button type="button" data-testid="deadline-about-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-quiet self-start">
+			<button type="button" data-testid="deadline-about-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-quiet lh-btn-flush self-start">
 				Ask {teacherName} to rewrite
 			</button>
 			{requestLine && (

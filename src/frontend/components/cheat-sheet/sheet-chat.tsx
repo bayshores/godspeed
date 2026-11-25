@@ -262,7 +262,7 @@ function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[
 	if (rules.length === 0) return null;
 	return (
 		<div data-testid="sheet-rules" className="flex shrink-0 flex-col gap-3.5">
-			<button type="button" data-testid="sheet-rules-toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lh-btn lh-btn-quiet lh-btn-small self-start">
+			<button type="button" data-testid="sheet-rules-toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lh-btn lh-btn-quiet lh-btn-small lh-btn-flush self-start">
 				<PixelIcon name="chevron" className={cn("transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open && "rotate-90")} />
 				This sheet&apos;s rules ({rules.length})
 			</button>

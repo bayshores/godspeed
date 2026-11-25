@@ -25,7 +25,7 @@ describe("a key", () => {
 		assert.ok(!html.includes('disabled=""'));
 	});
 
-	it("is the tile key, and a submit type and a plain disabled still work", () => {
+	it("is the app's key, and a submit type and a plain disabled still work", () => {
 		const html = renderToStaticMarkup(
 			<Key type="submit" disabled className="lh-btn-main">
 				Go
