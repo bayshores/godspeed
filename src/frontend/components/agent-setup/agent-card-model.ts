@@ -86,7 +86,7 @@ function failureOf(h: AgentHealth, checks: (check: string) => boolean): Failure 
 /** The card's rows: Version and Account, or one "Own start command" row for the learner's own
  *  command. Before the first answer the rows are blank with the spinner on the first. */
 export function cardRows(h: AgentHealth | null, update: AgentUpdate | null): CardRow[] {
-	const first = !h || (h.checking && h.checks.every((c) => c.state === "unchecked"));
+	const first = !answered(h);
 	if (h?.ownCommand) {
 		if (first) return [row("own", "Own start command", "busy")];
 		const f = failureOf(h, (check) => VERSION_CHECKS.has(check));
@@ -125,6 +125,9 @@ export function cardRows(h: AgentHealth | null, update: AgentUpdate | null): Car
 	return [versionRow, accountRow];
 }
 
+/** A check has answered for the picked agent; before that it may or may not run. */
+export const answered = (h: AgentHealth | null): h is AgentHealth => !!h && !(h.checking && h.checks.every((c) => c.state === "unchecked"));
+
 /** The agent can't run: a check failed, so a send would fail too. */
 export const cantRun = (h: AgentHealth | null): boolean => !!h?.failing;
 
@@ -144,11 +147,11 @@ const SENTENCE: Record<AgentProblem, (agent: string, needs: string | null) => st
 };
 
 /** The compact card and the peek's row: why the agent can't run, in one sentence, and the row
- *  that fixes it. Null while it can run. */
+ *  that fixes it; once Log in was pressed, what to do now. Null while it can run. */
 export function compact(h: AgentHealth | null, update: AgentUpdate | null): { sentence: string; row: CardRow } | null {
 	const f = h?.failing;
 	if (!h || !f) return null;
 	const rows = cardRows(h, update);
 	const fixes = rows.find((r) => (h.ownCommand ? r.id === "own" : f.check === "loggedIn" ? r.id === "account" : r.id === "version")) ?? rows[0]!;
-	return { sentence: SENTENCE[f.problem](AGENT_LABEL[h.agent], f.needs), row: fixes };
+	return { sentence: fixes.signing ? "Finish in your browser." : SENTENCE[f.problem](AGENT_LABEL[h.agent], f.needs), row: fixes };
 }

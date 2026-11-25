@@ -107,7 +107,8 @@ To add a row:
 | Notes in Obsidian or a notes folder | Settings, General; Progress; lesson end; Graph | `vault-pick` | Settings, General | teacher | `write_vault_note`, `search_vault` |
 | Add a remembered note | Settings, Teaching | none: only the teacher adds one; you can only delete | | teacher | `remember` |
 | Settings | Menu | `settings-entry` | | learner | `settings`, `open-settings` |
-| Pick the teacher's agent and model, and see whether it can teach | Settings, Teacher; onboarding; the teacher's panel while the agent can't run | `agent-card` | Settings, Teacher | learner | |
+| Pick the teacher's agent and model, and see whether it can teach | Settings, Teacher; onboarding | `agent-card` | Settings, Teacher | learner | |
+| While the agent can't run, the panel's box place says why, with the key that fixes it and the other agent | Teacher panel | `panel-setup` | Teacher's panel while the agent isn't logged in | learner | |
 | Log in to the agent | Settings, Teacher, and the card wherever it shows | `agent-row-account` | Settings, Teacher, logged out | learner | |
 | Update the agent | Settings, Teacher, and the card wherever it shows | `agent-row-version` | Settings, Teacher, too old | learner | |
 | Teacher name | Settings, Teacher | `teacher-name-row` | Settings, Teacher | learner | |

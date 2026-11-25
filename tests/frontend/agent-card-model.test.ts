@@ -107,6 +107,12 @@ describe("the compact card", () => {
 		assert.equal(compact(health({}, { check: "upToDate", problem: "tooOld" }), null)?.row.id, "version");
 		assert.equal(compact(health(), null), null, "nothing while the agent can run");
 	});
+
+	it("once Log in was pressed, says to finish in the browser, with the sign-in's own keys", () => {
+		const said = compact(health({ login: { url: "https://claude.ai/oauth", code: true } }, { check: "loggedIn", problem: "signedOut" }), null);
+		assert.equal(said?.sentence, "Finish in your browser.");
+		assert.deepEqual(said?.row.signing, { code: true, keys: [{ kind: "open", label: "Open again", href: "https://claude.ai/oauth" }, { kind: "cancel" }] });
+	});
 });
 
 describe("the answer, read", () => {

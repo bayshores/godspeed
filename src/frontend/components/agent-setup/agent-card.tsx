@@ -1,9 +1,9 @@
 /**
  * THE SETUP CARD: whether the picked agent can teach, and the key that fixes what stops it. Full
- * (Settings › Teacher, onboarding's first step, the teacher's panel while the agent can't run): the
- * agent pick, the Version and Account rows, then the model new chats and lessons start on once both
- * pass. Compact (where a send failed and the panel is shut): one sentence that names the agent and
- * the failing row's key. The words come from agent-card-model.ts; the state from the server.
+ * (Settings › Teacher, onboarding's first step): the agent pick, the Version and Account rows, then
+ * the model new chats and lessons start on once both pass. Compact (the teacher panel's foot, and
+ * where a job failed while the panel is shut): one sentence that names the agent and the failing
+ * row's key. The words come from agent-card-model.ts; the state from the server.
  */
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
@@ -63,7 +63,7 @@ export function AgentCard({ foot }: { foot?: ReactNode }) {
 }
 
 /** The compact card stands in a job's failure line while the agent can't run and the teacher's
- *  panel, which then shows the full card, is shut: one card per screen. */
+ *  panel, whose foot then shows it, is shut: one card per screen. */
 export function useCompactShown(): boolean {
 	const { health } = useAgentSetup();
 	const panelOpen = useTeacher()?.panelOpen ?? false;
@@ -76,15 +76,16 @@ export function JobFailure({ children }: { children: ReactNode }) {
 	return useCompactShown() ? <AgentCompact /> : children;
 }
 
-/** The compact card where a job failed (see useCompactShown). */
-export function AgentCompact() {
+/** The compact card where a job failed (see useCompactShown), and the teacher panel's foot. */
+export function AgentCompact({ className }: { className?: string }) {
 	const { health, update } = useAgentSetup();
 	useReadySound();
 	const action = useGuardedAction();
 	const said = compact(health, update);
 	if (!said) return null;
 	return (
-		<div data-testid="agent-compact" className="lh-rise flex flex-col gap-3 lh-well px-4 py-3 text-base">
+		// The code field stands out of the card's well.
+		<div data-testid="agent-compact" className={cn("lh-rise flex flex-col gap-3 lh-well px-4 py-3 text-base [&_input]:bg-background", className)}>
 			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
 				<span className="text-ink">{said.sentence}</span>
 				<RowEnd row={said.row} action={action} main />
@@ -101,7 +102,7 @@ export function AgentCompact() {
 
 /** The "connected" sound once the agent can teach, where the card saw it could not (or before the
  *  first check answered). A card opened on a ready agent stays quiet. */
-function useReadySound(): void {
+export function useReadySound(): void {
 	const { health } = useAgentSetup();
 	const play = useSound();
 	const now = ready(health);

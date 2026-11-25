@@ -27,6 +27,7 @@ const { panelBody } = await import("../../src/frontend/components/teacher/dock-m
 const { ChatWindow } = await import("../../src/frontend/components/teacher/chat-window.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { AgentFolderProvider } = await import("../../src/frontend/components/agent-folder/agent-folder-context.tsx");
+const { AgentSetupProvider } = await import("../../src/frontend/components/agent-setup/agent-setup-context.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 
 // The chat's writing box is CodeMirror.
@@ -35,6 +36,10 @@ stubCodeMirrorDom(dom);
 const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, turnsRunning: 0, terminals: [], outsideHere: false, ...over });
 const teacher = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", agent: "claude", startedAt: Date.now(), ended: null, prompt: null, url: false, ...over });
 const FOLDER = { folder: "/home/ada/godspeed", short: "~/godspeed", exists: true, commands: { claude: "claude", codex: "codex" }, startCommands: {}, oldSetup: { plugin: false, codex: false }, agent: "claude" as string | null, model: {} };
+
+/** The agent can run: the panel's chat is open to ask. */
+const passed = (check: string) => ({ check, state: "passed", fact: null, problem: null, reason: null, needs: null, link: null });
+const READY = { agent: "claude", checking: false, ownCommand: false, checks: ["installed", "node", "upToDate", "loggedIn"].map(passed), failing: null, login: null, update: null };
 
 const realFetch = globalThis.fetch;
 const stored = new Map<string, string>();
@@ -51,6 +56,7 @@ beforeEach(() => {
 	let folder = FOLDER;
 	globalThis.fetch = (async (url: string, init?: RequestInit) => {
 		if (url.startsWith("/api/graph/costs")) return new Response(null, { status: 404 });
+		if (url === "/api/agent/health") return Response.json(READY);
 		if (url === "/api/chats" && init?.method === "POST") {
 			made.push(JSON.parse(String(init.body)));
 			return Response.json({ id: "chat_new" });
@@ -156,9 +162,11 @@ async function mounted(status: Access, run: (render: (s: Access, extra?: React.R
 				<MemoryRouter>
 					<ServerEventsProvider connect={noEvents as never}>
 						<AgentFolderProvider>
-							<TerminalsProvider status={s}>
-								<PanelHost>{more}</PanelHost>
-							</TerminalsProvider>
+							<AgentSetupProvider>
+								<TerminalsProvider status={s}>
+									<PanelHost>{more}</PanelHost>
+								</TerminalsProvider>
+							</AgentSetupProvider>
 						</AgentFolderProvider>
 					</ServerEventsProvider>
 				</MemoryRouter>,

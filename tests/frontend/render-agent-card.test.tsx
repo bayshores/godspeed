@@ -150,6 +150,12 @@ describe("Settings › Teacher", () => {
 			assert.ok(sent.includes('POST /api/agent/login/code {"code":"abc#123"}'), sent.join(" | "));
 			await click(keyNamed("Cancel")!);
 			assert.ok(sent.includes("POST /api/agent/login/cancel {}"));
+			// The sign-in ended: the checks run again, still carrying the answer before it.
+			health = { ...SIGNED_OUT, checking: true };
+			await act(async () => fire("agent-health", {}));
+			await settle();
+			assert.equal(keyNamed("Log in"), null, "no Log in key while the check after the sign-in runs");
+			assert.equal(text("agent-row-account-fact"), "Finish in your browser");
 			health = READY;
 			await act(async () => fire("agent-health", {}));
 			await settle();
@@ -208,7 +214,7 @@ describe("the compact card", () => {
 		);
 	});
 
-	it("is not drawn while the panel is open on the full card", async () => {
+	it("is not drawn while the panel is open, whose foot says it", async () => {
 		await mounted(
 			<TeacherContext.Provider value={teacher(true)}>
 				<Failed />

@@ -5,27 +5,23 @@
  * left to make room and covering it where there is none; the learner
  * drags its left edge. One head row (panel-head.tsx), then its chat
  * (talk-chat.tsx), or Activity (teacher-activity.tsx) while the chat is in
- * a window of its own. While the agent can't run, the setup card stands in
- * for the chat.
+ * a window of its own. While the agent can't run, the head keeps only
+ * Activity and the chat's foot says what stops the agent (setup-foot.tsx).
  */
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { cn } from "@/frontend/lib/utils";
 import type { TalkChat } from "@/shared/core";
 import { BarWindow, observeBar } from "@/frontend/components/ui/bar-window";
 import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import type { AgentStatus } from "@/frontend/components/agent-status";
-import { AgentCard } from "@/frontend/components/agent-setup/agent-card";
-import { cantRun } from "@/frontend/components/agent-setup/agent-card-model";
-import { useAgentSetup } from "@/frontend/components/agent-setup/agent-setup-context";
-import { LoadingBox } from "@/frontend/components/loading";
-import { usePresence } from "@/frontend/components/presence";
 import { screenStatusLine, teacherTerminalState, type TerminalFacts } from "@/frontend/components/terminal/terminal-model";
 import { stripWidth } from "@/frontend/components/strip/strip-dom";
 import { useTeacher } from "./teacher-context";
 import type { AgentDoing } from "./follow-status";
 import { TeacherActivity } from "./teacher-activity";
 import { PanelHead } from "./panel-head";
+import { useAskable } from "./setup-foot";
 import { boxPage } from "./starter-model";
 import { TalkChatView } from "./talk-chat";
 import { PANEL_WIDTH, panelLayout, type PanelView } from "./dock-model";
@@ -91,12 +87,7 @@ export function TeacherPanel({
 	const teacher = useTeacher();
 	const { pathname } = useLocation();
 	const doing = teacher?.doing ?? null;
-	const setup = useAgentSetup();
-	const blocked = cantRun(setup.health);
-	// The card arrives at rest and fades out (110 ms) once the agent can run; the chat then fades in.
-	const card = usePresence(blocked);
-	const cardLeft = useRef(false);
-	if (card.mounted && !blocked) cardLeft.current = true;
+	const blocked = useAskable() !== true;
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
 	const [{ width, whole }, setLayout] = useState({ width: wanted, whole: false });
 	const [popError, setPopError] = useState<string | null>(null);
@@ -142,6 +133,7 @@ export function TeacherPanel({
 				list={popped ? null : { open: list, onOpen: onList }}
 				popOut={!popped && popOut ? () => void popOut().then(setPopError) : null}
 				putBack={popped ? putBack : null}
+				blocked={blocked}
 			/>
 			{popError && (
 				<p role="alert" className="shrink-0 px-[18px] pb-2 text-[15px] text-ans-wrong">
@@ -161,21 +153,7 @@ export function TeacherPanel({
 						<TeacherActivity />
 					</div>
 				) : (
-					<>
-						{!setup.read ? (
-							<LoadingBox data-testid="panel-loading" className="flex-1" />
-						) : (
-							card.mounted && (
-								<div data-testid="panel-setup" data-state={card.state} className={cn("overflow-y-auto px-[18px] pt-1.5 pb-[18px]", card.state === "closed" && "lh-fade")}>
-									<AgentCard />
-								</div>
-							)
-						)}
-						{/* Kept under the card, so its draft and its place stay. */}
-						<div className={cn("min-h-0 flex-1 flex-col", !setup.read || card.mounted ? "hidden" : "flex", cardLeft.current && "lh-fade")}>
-							<TalkChatView chatId={chat.id} chat={chat.row} onChat={chat.show} name={name} page={boxPage(pathname)} ask={asking} focus={focus} />
-						</div>
-					</>
+					<TalkChatView chatId={chat.id} chat={chat.row} onChat={chat.show} name={name} page={boxPage(pathname)} ask={asking} focus={focus} />
 				)}
 			</div>
 		</BarWindow>

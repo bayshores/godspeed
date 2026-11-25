@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { useFold } from "@/frontend/components/use-fold";
+import { cn } from "@/frontend/lib/utils";
 import { IdeaGroups } from "./idea-list";
 import type { IdeaGroup } from "./starter-model";
 
 /** "Try asking" in a new chat: the page's lines as rows, each sent as if typed, then "All ideas",
- *  which unfolds every group in place. */
-export function TryAsking({ starters, groups, onSend }: { starters: readonly string[]; groups: readonly IdeaGroup[]; onSend: (line: string) => void }) {
+ *  which unfolds every group in place. `off` while nothing can answer them (the agent can't run):
+ *  dim, and no key takes a click. */
+export function TryAsking({ starters, groups, off, onSend }: { starters: readonly string[]; groups: readonly IdeaGroup[]; off: boolean; onSend: (line: string) => void }) {
 	const [all, setAll] = useState(false);
 	const fold = useFold(all);
 	if (starters.length === 0) return null;
 	return (
-		<div data-testid="talk-try" className="flex flex-col gap-3">
+		<div data-testid="talk-try" inert={off} className={cn("flex flex-col gap-3 transition-opacity duration-(--lh-dur) ease-(--lh-ease-out)", off && "opacity-45")}>
 			<h3 className="text-[18px] leading-7 text-ink">Try asking</h3>
 			<div className="flex flex-col gap-1.5">
 				{starters.map((line) => (

@@ -304,11 +304,21 @@ describe("Follow in the panel's head", () => {
 	const html = (over: Partial<TeacherApi>) =>
 		renderToStaticMarkup(
 			<TeacherContext.Provider value={api(over)}>
-				<PanelHead name="Ada" working={false} elsewhere={false} list={{ open: false, onOpen: () => {} }} popOut={null} putBack={null} />
+				<PanelHead name="Ada" working={false} elsewhere={false} list={{ open: false, onOpen: () => {} }} popOut={null} putBack={null} blocked={false} />
 			</TeacherContext.Provider>,
 		);
 	it("says Following while it is on, and Follow once stopped, working or not", () => {
 		assert.match(html({}), /data-testid="follow-stop"[^>]*aria-pressed="true"[^>]*>Following</);
 		assert.match(html({ follow: false, doing: null }), /data-testid="follow-start"[^>]*aria-pressed="false"[^>]*>Follow</);
+	});
+
+	it("while the agent can't run, only Activity stays in the head", () => {
+		const blocked = renderToStaticMarkup(
+			<TeacherContext.Provider value={api({ talk: { chats: [], chatId: null } })}>
+				<PanelHead name="Ada" working={false} elsewhere={false} list={{ open: false, onOpen: () => {} }} popOut={() => {}} putBack={null} blocked />
+			</TeacherContext.Provider>,
+		);
+		assert.match(blocked, /teacher-panel-activity/);
+		assert.doesNotMatch(blocked, /follow-|teacher-panel-chats|teacher-panel-pop-out/);
 	});
 });

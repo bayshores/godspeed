@@ -498,7 +498,17 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	},
 	{ name: "Settings, Teacher, too old", agent: "old", url: "/settings?section=teacher", ready: "[data-testid=agent-row-version][data-mark=need] [data-testid=agent-key]" },
 	{ name: "Settings, Teacher, not installed", agent: "missing", url: "/settings?section=teacher", ready: "[data-testid=agent-row-version][data-mark=need] [data-testid=agent-key]" },
-	{ name: "Teacher's panel while the agent isn't logged in", agent: "signed-out", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=panel-setup] [data-testid=agent-row-account][data-mark=need]" },
+	// While the agent can't run, the writing row's place says why, with the key that fixes it.
+	{ name: "Teacher's panel while the agent isn't logged in", agent: "signed-out", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=panel-setup][data-state=open] [data-testid=agent-compact] [data-testid=agent-key]" },
+	{
+		name: "Teacher's panel while logging in with the code field",
+		agent: "signed-out",
+		url: "/",
+		ready: deadlineCard,
+		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=panel-setup] [data-testid=agent-key]").click()`,
+		shows: "[data-testid=panel-setup] [data-testid=agent-compact] [data-testid=agent-login-code]",
+	},
+	{ name: "Teacher's panel while the agent is too old", agent: "old", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=panel-setup][data-state=open] [data-testid=agent-compact] [data-testid=agent-key]" },
 	{ name: "Home, the strip's peek while the agent isn't logged in", agent: "signed-out", url: "/", ready: deadlineCard, setup: peekOut, shows: peekShown },
 	{ name: "Settings, Connection", url: "/settings?section=connection", ready: "[data-testid=agent-status]" },
 	{ name: "Settings, Teaching", url: "/settings?section=teaching", ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)" },
