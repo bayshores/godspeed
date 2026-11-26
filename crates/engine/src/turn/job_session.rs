@@ -93,7 +93,7 @@ pub async fn run_once(runtime: &Runtime, cwd: &Path, job: OneOff) -> Result<Fini
 	if job.abort.is_aborted() {
 		return Err(RunError::Aborted);
 	}
-	let spec = SessionSpec { cwd: cwd.to_path_buf(), model: None, instructions: job.instructions.clone(), tools: job.host.specs(), resume: None, persist: false };
+	let spec = SessionSpec { cwd: cwd.to_path_buf(), read_dirs: Vec::new(), model: None, instructions: job.instructions.clone(), tools: job.host.specs(), resume: None, persist: false };
 	let abort = job.abort.clone();
 	let session = tokio::select! {
 		biased;

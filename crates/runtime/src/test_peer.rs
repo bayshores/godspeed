@@ -63,6 +63,7 @@ pub fn runtime(agent: FolderAgent) -> (Runtime, mpsc::UnboundedReceiver<Peer>) {
 pub fn spec(resume: Option<&str>) -> SessionSpec {
 	SessionSpec {
 		cwd: "/work".into(),
+		read_dirs: Vec::new(),
 		model: Some("claude-sonnet-5-5".into()),
 		instructions: "You are a tutor inside godspeed.".into(),
 		tools: vec![ToolSpec { name: "quiz".into(), description: "Show the learner one quiz question.".into(), input_schema: json!({ "type": "object", "properties": { "question": { "type": "string" } }, "required": ["question"] }) }],

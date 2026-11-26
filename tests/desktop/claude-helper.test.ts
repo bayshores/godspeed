@@ -107,11 +107,11 @@ function helper() {
 }
 
 const QUIZ = { name: "quiz", description: "Show the learner one quiz question.", inputSchema: { type: "object", properties: { question: { type: "string" } }, required: ["question"] } };
-const open = (session: string, extra: Json) => ({ type: "open", session, cwd: "/work", model: "claude-sonnet-5-5", resume: null, persist: true, systemPrompt: "You are a tutor.", tools: [QUIZ], ...extra });
+const open = (session: string, extra: Json) => ({ type: "open", session, cwd: "/work", readDirs: [], model: "claude-sonnet-5-5", resume: null, persist: true, systemPrompt: "You are a tutor.", tools: [QUIZ], ...extra });
 
 test("two sessions open at once, one new and one resumed, each with its own options", async () => {
 	const { seen, send, next } = helper();
-	send(open("s1", { claudePath: "/bin/claude" }));
+	send(open("s1", { claudePath: "/bin/claude", readDirs: ["/data/chats/c1"] }));
 	send(open("s2", { resume: "sess-old", launcher: "my-launcher --" }));
 	const first = await next();
 	const second = await next();
@@ -123,6 +123,8 @@ test("two sessions open at once, one new and one resumed, each with its own opti
 	assert.equal(fresh!.resume, undefined);
 	assert.equal(resumed!.resume, "sess-old");
 	assert.equal(resumed!.sessionId, undefined);
+	assert.deepEqual(fresh!.additionalDirectories, ["/data/chats/c1"], "the learner's files are read there without asking");
+	assert.deepEqual(resumed!.additionalDirectories, []);
 	for (const options of [fresh!, resumed!]) {
 		assert.deepEqual(options.settingSources, []);
 		assert.deepEqual(options.settings, { autoMemoryEnabled: false }, "Claude Code's own memory is off in a lesson");

@@ -98,7 +98,7 @@ async fn play(case: &Case) -> Json {
 				if !opens {
 					return Err("godspeed couldn't find Claude Code on this computer.".to_owned());
 				}
-				let spec = SessionSpec { cwd: std::env::temp_dir(), model: None, instructions: "P".to_owned(), tools: Vec::new(), resume: None, persist: false };
+				let spec = SessionSpec { cwd: std::env::temp_dir(), read_dirs: Vec::new(), model: None, instructions: "P".to_owned(), tools: Vec::new(), resume: None, persist: false };
 				Ok(Opened { session: Arc::new(runtime.open(spec).await?), input: vec![Part::Text("again".to_owned())], knew: false })
 			})
 		}),

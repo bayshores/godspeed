@@ -284,6 +284,14 @@ impl ChatStore {
 		true
 	}
 
+	/// The lesson's folder for files the learner sent, made when missing: its agent session may read
+	/// there from the first turn, before any file comes.
+	pub fn attachments_dir(&self, id: &str) -> Result<PathBuf, String> {
+		let dir = self.chat_dir(id)?;
+		std::fs::create_dir_all(&dir).map_err(|err| fsx::node_error_message(&err, "mkdir", &dir))?;
+		Ok(dir)
+	}
+
 	/// Saves a file the learner sent into the lesson's folder and returns where it landed.
 	pub fn save_attachment(&self, id: &str, file_name: &str, data: &[u8]) -> Result<PathBuf, String> {
 		if file_name.contains('/') {

@@ -29,6 +29,9 @@ pub struct ToolSpec {
 pub struct SessionSpec {
 	/// The folder the agent works in.
 	pub cwd: PathBuf,
+	/// Folders besides `cwd` the agent reads without asking: those holding files the learner sent.
+	/// Claude Code takes them as added folders; Codex's sandbox reads every folder already.
+	pub read_dirs: Vec<PathBuf>,
 	/// None is the agent's own default.
 	pub model: Option<String>,
 	/// godspeed's instructions, added to the agent's own.

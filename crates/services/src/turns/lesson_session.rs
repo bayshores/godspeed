@@ -19,7 +19,6 @@ use gs_json::{Json, json, stringify};
 use gs_runtime::{Part, Runtime, Session, SessionSpec, ToolSpec};
 
 use crate::App;
-use crate::app::agent_folder::agent_folder;
 
 const IDLE_CLOSE_MS: i64 = 10 * 60_000;
 
@@ -38,6 +37,8 @@ pub(super) struct SessionPlan {
 	pub runtime: Arc<Runtime>,
 	/// The folder the agent works in.
 	pub cwd: PathBuf,
+	/// The chat's folder of files the learner sent, which the agent reads without asking.
+	pub attachments: PathBuf,
 	/// The chat's own model, else the one the learner picked for new chats and lessons; None is the
 	/// agent's own default.
 	pub model: Option<String>,
@@ -58,13 +59,6 @@ pub(super) struct SessionPlan {
 	/// The time now and the time due, for a homework lesson on the day it is due: no stored
 	/// message keeps it current, so every turn ends with it.
 	pub due_today: Option<String>,
-}
-
-/// The folder the agent works in: the godspeed folder, made when it is missing.
-pub(super) fn agent_cwd(app: &App) -> Result<PathBuf, String> {
-	let folder = PathBuf::from(agent_folder(app));
-	std::fs::create_dir_all(&folder).map_err(|err| format!("cannot make the godspeed folder {}: {err}", folder.display()))?;
-	Ok(folder)
 }
 
 /// What a turn's settle needs of its plan.
@@ -111,7 +105,7 @@ impl SessionPlan {
 	}
 
 	fn spec(&self, resume: Option<&str>) -> SessionSpec {
-		SessionSpec { cwd: self.cwd.clone(), model: self.model.clone(), instructions: self.prompt.clone(), tools: self.tools.clone(), resume: resume.map(str::to_owned), persist: true }
+		SessionSpec { cwd: self.cwd.clone(), read_dirs: vec![self.attachments.clone()], model: self.model.clone(), instructions: self.prompt.clone(), tools: self.tools.clone(), resume: resume.map(str::to_owned), persist: true }
 	}
 
 	/// The notes, the opening for a new session, what the session has not seen, the rules for a

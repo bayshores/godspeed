@@ -3,7 +3,8 @@
 
 use std::sync::Arc;
 
-use gs_base::clock;
+use gs_base::{base64, clock};
+use gs_core::messages::attachments::{ChatAttachment, pdf_note_of};
 use gs_core::messages::input_events::{ChatInput, TurnInput};
 use gs_core::messages::native_messages::new_user_steer;
 use gs_core::messages::role::Role;
@@ -23,10 +24,10 @@ use super::turn_liveness::is_turn_running;
 use super::turn_runs::{abort_turn, answer_approval, running_turn};
 use super::turn_work::lesson_work;
 use crate::App;
-use crate::app::agent_folder::{folder_agent, set_agent_models};
+use crate::app::agent_folder::{agent_folder, folder_agent, set_agent_models};
 use crate::app::test_support::scratch_dir;
 use crate::jobs::steer_live_chat;
-use crate::spaces::write_agent_file;
+use crate::spaces::{add_file_from_path, write_agent_file};
 
 const CURVE: &str = "| lambda | error |\n|---|---|\n| 0.1 | 9 |\n| 1 | 4 |\n| 10 | 6 |";
 const QUESTIONS: &str = "1. What is the score?\n2. Which lambda wins?";
@@ -439,4 +440,42 @@ async fn try_again_after_a_failed_reply_answers_the_line_once() {
 		let users = fx.messages().iter().filter(|m| Role::User.is(m) && m["content"].as_str() == Some(LINE)).count();
 		assert_eq!(users, 1, "{}: the record holds the line once", agent.name());
 	}
+}
+
+/// A new install has no godspeed folder: the first session sets it up, so the agent finds its
+/// space-setup steps there, and what an older godspeed left in the folder goes.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_first_session_sets_up_the_godspeed_folder() {
+	let fx = lesson("session-folder", Some("talk"), vec![vec![text("Let's set one up.")]]);
+	let folder = std::path::PathBuf::from(agent_folder(&fx.app));
+	std::fs::create_dir_all(&folder).unwrap();
+	gs_base::fsx::write_text_atomic(&folder.join("CLAUDE.md"), "<!-- godspeed rewrites this file each time it starts. Put your own notes for Claude in CLAUDE.local.md. -->\n").unwrap();
+	assert!(!folder.join(".godspeed/setup-spaces.md").exists());
+	fx.say("Set up a space").await;
+	fx.settled().await;
+	assert!(folder.join(".godspeed/setup-spaces.md").is_file(), "the space-setup steps are there");
+	assert!(!folder.join("CLAUDE.md").exists(), "an older godspeed's file goes");
+	assert_eq!(fx.sent("open")[0]["cwd"].as_str(), folder.to_str());
+	assert_eq!(fx.replies(), ["Let's set one up."]);
+}
+
+/// A PDF the learner attaches is saved in the chat's own folder, which the agent reads without
+/// asking: Claude Code takes it as an added folder, and Codex's sandbox reads every folder. A
+/// space file made from it keeps the name the learner gave it.
+#[tokio::test(flavor = "multi_thread")]
+async fn an_attached_pdf_is_read_without_asking_and_keeps_its_name_in_a_space() {
+	let fx = lesson("session-attached-pdf", Some("talk"), vec![vec![text("A space from your notes, then.")]]);
+	let pdf = ChatAttachment { name: "graph notes.pdf".to_owned(), mime_type: "application/pdf".to_owned(), data: base64::encode(b"%PDF-1.4 notes") };
+	let sent = handle_chat_input(&fx.app, &fx.chat_id, TurnInput::Chat(ChatInput::Text { text: "Make a space from this".to_owned(), attachments: Some(vec![pdf]), about: None })).await;
+	assert!(sent.ok(), "{}", sent.text());
+	fx.settled().await;
+	let parts: Vec<Json> = fx.messages().iter().flat_map(|m| m["content"].items().to_vec()).collect();
+	let (_, path) = parts.iter().find_map(|part| pdf_note_of(part["text"].as_str()?)).expect("the PDF's note");
+	let read_dirs = fx.sent("open")[0]["readDirs"].clone();
+	assert_eq!(read_dirs.items().len(), 1);
+	assert!(std::path::Path::new(&path).starts_with(read_dirs[0].str_or_empty()), "{path} is in a folder the agent reads without asking");
+	assert!(std::path::Path::new(&path).file_name().unwrap().to_string_lossy().ends_with("-graph notes.pdf"), "stored by its content");
+	let space_id = fx.app.stores.spaces.create_space(&json!({ "name": "Graphs" })).unwrap()["id"].str_or_empty().to_owned();
+	let file = add_file_from_path(&fx.app, &space_id, &path, FileKind::Study).unwrap();
+	assert_eq!(file["name"].as_str(), Some("graph notes.pdf"));
 }

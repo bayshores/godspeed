@@ -313,15 +313,32 @@ pub fn refresh_agent_folder(app: &Arc<App>) {
 		return;
 	}
 	let folder = agent_folder(app);
-	if !is_set_up(&folder) {
-		return;
-	}
-	if let Err(err) = write_folder(&folder) {
+	if is_set_up(&folder)
+		&& let Err(err) = fill_folder(app, &folder)
+	{
 		eprintln!("[agent-folder] refresh failed: {err}");
 	}
-	sync_shortcuts_safely(app, &tidy(&folder), false);
+}
+
+/// The folder the agent works in. Every session opens here, so a folder without godspeed's file
+/// (a new install, or a folder the learner emptied) is set up first, and the agent always finds
+/// its space-setup steps.
+pub(crate) fn working_folder(app: &Arc<App>) -> Result<PathBuf, String> {
+	let folder = agent_folder(app);
+	if !is_set_up(&folder) {
+		fill_folder(app, &folder).map_err(|err| format!("cannot make the godspeed folder {folder}: {err}"))?;
+	}
+	Ok(PathBuf::from(folder))
+}
+
+/// Writes the folder's file and spaces/ shortcuts, keeps the shortcuts in step, and exports the old
+/// Talk chat once. The shortcuts are made even when the file failed; Err is that failure.
+fn fill_folder(app: &Arc<App>, folder: &str) -> Result<(), String> {
+	let written = write_folder(folder);
+	sync_shortcuts_safely(app, &tidy(folder), false);
 	watch_space_shortcuts(app);
-	export_old_talk(app, &folder);
+	export_old_talk(app, folder);
+	written
 }
 
 /// The old Talk chat goes into the first folder set up after the update, once: a `Talk.md` the

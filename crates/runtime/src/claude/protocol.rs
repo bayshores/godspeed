@@ -34,6 +34,7 @@ pub fn open(session: &str, spec: &SessionSpec, program: &ClaudeProgram) -> Json 
 		"type": "open",
 		"session": session,
 		"cwd": spec.cwd.to_string_lossy(),
+		"readDirs": spec.read_dirs.iter().map(|dir| dir.to_string_lossy().into_owned()).collect::<Json>(),
 		"model": spec.model,
 		"resume": spec.resume,
 		"persist": spec.persist,

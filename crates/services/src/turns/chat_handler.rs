@@ -39,7 +39,7 @@ use super::dismissal_park::apply_parked_dismissal;
 use super::homework::due_today_line_for;
 use super::lesson_problems::problems_view;
 use super::job_host::run_job;
-use super::lesson_session::{SessionPlan, SessionPlanFacts, agent_cwd, opener, settle_session};
+use super::lesson_session::{SessionPlan, SessionPlanFacts, opener, settle_session};
 use super::lesson_setup::{LessonTurn, every_turn_rules_for, lesson_setup};
 use super::reply_nudges::{add_notes, call_refusal, reply_notes, take_notes};
 use super::review::askable;
@@ -49,7 +49,7 @@ use super::turn_service::{persist_turn, trigger_extraction};
 use super::turn_work;
 use crate::App;
 use crate::app::agent_actions::record_answer;
-use crate::app::agent_folder::chat_model;
+use crate::app::agent_folder::{chat_model, working_folder};
 use crate::app::agents;
 use crate::app::today_note::today_note_for;
 use crate::graph::progress::lesson_ended;
@@ -348,7 +348,8 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 	let plan = SessionPlan {
 		chat_id: chat_id.to_owned(),
 		runtime,
-		cwd: agent_cwd(app)?,
+		cwd: working_folder(app)?,
+		attachments: app.stores.chats.attachments_dir(chat_id)?,
 		model: chat_model(app, &record, agent),
 		tools: setup.host.specs(),
 		prompt: setup.prompt,

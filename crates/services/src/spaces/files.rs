@@ -24,6 +24,7 @@ use super::{SpaceOutcome, fail, no_space};
 use crate::App;
 use crate::graph::extraction_runs::extraction_statuses;
 use crate::graph::graph::graph_store_for;
+use crate::turns::attachments::attached_pdf_name;
 
 /// The extraction_running refusal for the agent.
 pub const AGENT_FILE_READING_REFUSAL: &str = "This file is still being turned into facts. Try again once that is done.";
@@ -219,9 +220,11 @@ fn read_at(abs_path: &str) -> SpaceOutcome<Vec<u8>> {
 	std::fs::read(abs_path).map_err(|err| super::SpaceFailure::thrown(fsx::node_error_message(&err, "open", Path::new(abs_path))))
 }
 
-/// Copies a file from an absolute path on this computer (MCP add_space_file), as the agent's kind.
+/// Copies a file from an absolute path on this computer (add_space_file), as the agent's kind. A
+/// PDF the learner attached in a chat keeps the name they gave it.
 pub fn add_file_from_path(app: &Arc<App>, space_id: &str, abs_path: &str, kind: FileKind) -> SpaceOutcome<Json> {
-	add_file(app, space_id, &node_basename(abs_path), &read_at(abs_path)?, Some(kind), false)
+	let name = attached_pdf_name(app, abs_path).unwrap_or_else(|| node_basename(abs_path));
+	add_file(app, space_id, &name, &read_at(abs_path)?, Some(kind), false)
 }
 
 /// Copies in a file the agent built in the godspeed folder's made/ (a practice test, its .tex).

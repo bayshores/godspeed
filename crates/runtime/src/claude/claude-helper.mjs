@@ -110,7 +110,7 @@ export function serve({ input, output, query = sdkQuery }) {
 	}
 
 	function open(message) {
-		const { session: key, cwd, model, resume, persist, systemPrompt, tools, claudePath, launcher: command } = message;
+		const { session: key, cwd, readDirs, model, resume, persist, systemPrompt, tools, claudePath, launcher: command } = message;
 		const session = { key, queue: inputQueue(), endAfter: new Set(), query: null, closing: false };
 		const nativeId = resume ?? randomUUID();
 		try {
@@ -118,6 +118,8 @@ export function serve({ input, output, query = sdkQuery }) {
 				prompt: session.queue,
 				options: {
 					cwd,
+					// The learner's files: read there without asking, as in cwd.
+					additionalDirectories: readDirs,
 					model: model ?? undefined,
 					...(resume ? { resume } : { sessionId: nativeId }),
 					persistSession: persist,

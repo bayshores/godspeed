@@ -2,11 +2,16 @@
 //! and re-encoded inline (gs_media), each PDF saved by `save_pdf` (beside the lesson, or the cheat
 //! sheet) with a note naming its path. A file that is not what it claims is a 400.
 
+use std::path::Path;
+
 use gs_base::base64;
+use gs_base::config::resolve;
 use gs_base::hash::sha256_hex;
-use gs_core::messages::attachments::{ChatAttachment, is_pdf_type, pdf_file_name, pdf_note};
+use gs_core::messages::attachments::{ChatAttachment, is_pdf_type, pdf_file_name, pdf_note, pdf_note_of};
 use gs_core::messages::input_events::ChatInputError;
 use gs_json::{Json, json};
+
+use crate::App;
 
 /// Why the files could not be stored.
 #[derive(Debug, PartialEq)]
@@ -38,6 +43,16 @@ fn pdf_part(name: &str, bytes: &[u8], save_pdf: &mut SavePdf) -> Result<Json, At
 	}
 	let path = save_pdf(&pdf_file_name(name, &sha256_hex(bytes)), bytes).map_err(AttachmentError::Save)?;
 	Ok(pdf_note(name, &path))
+}
+
+/// The learner's own name for a PDF they attached in a chat, from the note beside it in that
+/// chat's record: the saved file's name starts with its content's hash. None for any other path.
+pub fn attached_pdf_name(app: &App, path: &str) -> Option<String> {
+	let at = resolve(Path::new(path));
+	let chat_dir = at.parent().filter(|dir| dir.parent() == Some(resolve(&app.paths.chats).as_path()))?;
+	let record = app.stores.chats.get_chat(chat_dir.file_name()?.to_str()?)?;
+	let notes = record["messages"].items().iter().flat_map(|m| m["content"].items()).filter_map(|part| pdf_note_of(part["text"].as_str()?));
+	notes.into_iter().find(|(_, saved)| resolve(Path::new(saved)) == at).map(|(name, _)| name)
 }
 
 fn image_part(name: &str, bytes: &[u8]) -> Result<Json, AttachmentError> {

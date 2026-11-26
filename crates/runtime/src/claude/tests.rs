@@ -5,7 +5,7 @@ use gs_json::json;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::event::{Ask, End, Part, SessionEvent, ToolCall, ToolReply, Usage};
-use crate::session::{Runtime, Session};
+use crate::session::{Runtime, Session, SessionSpec};
 use crate::test_peer::{Peer, Seen, fixture, next, replay, runtime, seen_until_end, spec, text_reply};
 
 /// Opens a session: the helper is asked to open it and answers with Claude Code's session id.
@@ -31,7 +31,8 @@ async fn send(session: &Session, peer: &mut Peer) {
 #[tokio::test]
 async fn a_session_opens_with_godspeeds_tools_on_the_learners_own_claude() {
 	let (runtime, mut peers) = runtime(FolderAgent::Claude);
-	let (session, mut peer) = tokio::join!(runtime.open(spec(None)), async {
+	let spec = SessionSpec { read_dirs: vec!["/data/chats/c1".into()], ..spec(None) };
+	let (session, mut peer) = tokio::join!(runtime.open(spec), async {
 		let mut peer = peers.recv().await.unwrap();
 		let open = peer.recv().await;
 		assert_eq!(
@@ -40,6 +41,7 @@ async fn a_session_opens_with_godspeeds_tools_on_the_learners_own_claude() {
 				"type": "open",
 				"session": "s1",
 				"cwd": "/work",
+				"readDirs": ["/data/chats/c1"],
 				"model": "claude-sonnet-5-5",
 				"resume": null,
 				"persist": true,
