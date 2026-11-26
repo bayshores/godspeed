@@ -168,13 +168,18 @@ jobs:
             *) target/debug/godspeed --self-test ;;
           esac
 
-  # The Mac's debug builds in the real app window, on their own runner so the layout walk (the
-  # longest step, in one part on this small runner) runs beside the release server build in the
-  # desktop job instead of after it.
+  # The Mac's debug builds in the real app window, beside the release server build in the desktop
+  # job instead of after it. The layout walk is the longest step and a runner is too small to walk
+  # its parts side by side, so each part has a runner of its own; the last, the shortest, also
+  # runs the shell's tests.
   window:
-    name: App window (mac)
+    name: App window (mac, part ${{ matrix.part }} of 4)
     runs-on: macos-15
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -185,25 +190,30 @@ jobs:
         run: rustup toolchain install
       - uses: Swatinem/rust-cache@v2
         with:
-          save-if: ${{ github.event_name != 'pull_request' }}
+          # The parts share one cache; the part that builds the most saves it.
+          save-if: ${{ github.event_name != 'pull_request' && matrix.part == 4 }}
       - run: npm ci
       - run: node scripts/fetch-model.mjs
       - run: node scripts/fetch-pdfium.mjs
       - name: Shell tests
+        if: matrix.part == 4
         timeout-minutes: 15
         run: cargo test -p gs-shell
       - name: Demo runner self-test in the real app
+        if: matrix.part == 4
         run: |
           cargo build -p gs-shell --features self-test
           target/debug/godspeed --self-test
       # The screens in the real WebKit window on made-up data, checked for broken layout.
       - name: Layout check in the real app window
+        env:
+          LAYOUT_SHARE: ${{ matrix.part }}/4
         run: npm run layout
       - name: Keep the layout report and pictures
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: layout
+          name: layout-part-${{ matrix.part }}
           path: target/layout
 
   # Tag runs restore the release build caches that a rehearsal on main saved

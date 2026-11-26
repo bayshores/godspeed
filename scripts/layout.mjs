@@ -22,7 +22,8 @@
  * `LAYOUT_ONLY` set to words, only the screens whose name holds them are walked (several, split by
  * commas): for a second look at a fix, never in place of the whole run. An opening is still watched
  * only on the first screen of the whole list at its address, as in the whole run; what a skipped
- * screen's `before` or `setup` leaves behind is missing. Mac only:
+ * screen's `before` or `setup` leaves behind is missing. With `LAYOUT_SHARE` set to "2/4", only the
+ * second of four parts is walked: CI gives each part its own runner. Mac only:
  * elsewhere it passes at once. Two runs in one worktree share that folder, so run one at a time.
  */
 import { execFileSync, spawn } from "node:child_process";
@@ -149,6 +150,9 @@ export function widthParts(widthLists, count) {
 
 /** How many parts run side by side: each is an app, its server and its page. One on a small machine, as CI's. */
 const partCount = () => Math.max(1, Math.min(4, Math.floor(os.availableParallelism() / 4)));
+
+/** `LAYOUT_SHARE` "2/4": this run walks only the second of four parts, as each of CI's runners does. */
+const SHARE = process.env.LAYOUT_SHARE?.split("/").map(Number);
 
 /** `LAYOUT_ONLY`'s words, and whether a screen is walked. */
 const ONLY = (process.env.LAYOUT_ONLY ?? "").toLowerCase().split(",").map((word) => word.trim()).filter(Boolean);
@@ -407,7 +411,8 @@ async function main() {
 	fs.rmSync(TOP, { recursive: true, force: true });
 	fs.mkdirSync(TOP, { recursive: true });
 	if (process.env.LAYOUT_STATES) fs.mkdirSync(process.env.LAYOUT_STATES, { recursive: true });
-	const parts = widthParts(screens.map(widthsOf), partCount());
+	const dealt = widthParts(screens.map(widthsOf), SHARE ? SHARE[1] : partCount());
+	const parts = SHARE ? dealt.slice(SHARE[0] - 1, SHARE[0]) : dealt;
 	const results = await Promise.all(parts.map((widths, index) => runPart(index + 1, widths)));
 
 	const failures = results.flatMap((result) => result.failures);
@@ -415,7 +420,7 @@ async function main() {
 	const errors = results.flatMap((result) => (result.error ? [result.error] : []));
 	const watched = new Set(results.flatMap((result) => result.watched)).size;
 	const report = path.join(TOP, "report.txt");
-	const checked = `${ONLY.length > 0 ? `ONLY ${screens.length} of ${SCREENS.length}` : SCREENS.length} screens at 1440, 1100 and 640 points (lessons at 1320 and 800 too), each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")} (and at its top where it opens scrolled), and ${watched} openings watched, in ${Math.round((Date.now() - started) / 1000)} s (${Math.round((built - started) / 1000)} s to build, ${parts.length} parts side by side)`;
+	const checked = `${ONLY.length > 0 ? `ONLY ${screens.length} of ${SCREENS.length}` : SCREENS.length} screens at ${SHARE ? `${parts.flat().join(" and ")} points (part ${SHARE[0]} of ${SHARE[1]})` : "1440, 1100 and 640 points (lessons at 1320 and 800 too)"}, each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")} (and at its top where it opens scrolled), and ${watched} openings watched, in ${Math.round((Date.now() - started) / 1000)} s (${Math.round((built - started) / 1000)} s to build, ${parts.length === 1 ? "one part" : `${parts.length} parts side by side`})`;
 	fs.writeFileSync(report, `${[...failures, ...errors, ...warnings, checked].join("\n")}\n`);
 	for (const warning of warnings) console.warn(warning);
 	if (errors.length > 0) {
