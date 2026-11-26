@@ -45,6 +45,12 @@ describe("question tools", () => {
 	});
 });
 
+describe("the figure tool", () => {
+	it("is the same name", () => {
+		assert.deepEqual(strings(ts("native-messages"), "VISUAL_TOOL"), strings(rust("session/tool_switches"), "VISUAL_TOOL"));
+	});
+});
+
 describe("why a lesson's turn runs", () => {
 	it("is the same causes in the same order", () => {
 		assert.deepEqual(strings(ts("contracts/lesson-work"), "TURN_CAUSES"), strings(rust("session/turn_cause"), "TURN_CAUSES"));

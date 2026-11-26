@@ -164,6 +164,9 @@ export function newAnswerResult(
 export const PRACTICE_PROBLEM_TOOL = "problem";
 export const PRACTICE_CONCLUDE_TOOL = "conclude";
 
+/** The teacher's figure: its result's details hold the drawn svg. */
+export const VISUAL_TOOL = "visual";
+
 /** One picked proposition of the graph-context marker (the learner's map
  *  pick — name + statement as the learner SAW them at pick time). */
 export interface GraphContextPick {

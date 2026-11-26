@@ -1,8 +1,9 @@
 //! visual, the teacher's figure: the teacher writes the finished SVG, the server checks it, cuts
 //! its view box to the drawing, draws it once and hands the render back, and the lesson shows it
 //! under the reply. Every rule is checked before the drawing, so a refused call lists all its
-//! problems at once. A drawn figure ends the turn: the teacher sees its render with the learner's
-//! next message.
+//! problems at once. A figure drawn after the reply's words ends the turn: the teacher sees its
+//! render with the learner's next message. One drawn before any words lets the turn go on, so the
+//! teacher sees it now and writes the words (the teacher's host names it, `ending_after_words`).
 
 use std::sync::Arc;
 

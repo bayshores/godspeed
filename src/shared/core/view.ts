@@ -30,7 +30,7 @@
 
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 import type { LhMarkerMessage, LhMessage } from "./native-messages.ts";
-import { PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, SEND_TO_USER_TOOL, sendToUserText } from "./native-messages.ts";
+import { PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, SEND_TO_USER_TOOL, VISUAL_TOOL, sendToUserText } from "./native-messages.ts";
 import { answeredCallIds, interruptedQuestions, sideHeldQuestions } from "./native-scans.ts";
 import { problemInputForConclude } from "./practice-problem.ts";
 import { problemPieceOf } from "./problem-piece.ts";
@@ -337,7 +337,31 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 
 	joinPlots(out);
 	joinKept(out, messages);
+	for (const group of out) if (group.role === "assistant") group.parts = figuresUnderWords(group.parts);
 	return out;
+}
+
+const isWords = (part: LhViewPart) => part.type === "text" && !!part.text;
+
+/**
+ * A figure the teacher drew before any words of its turn draws under the turn's last words, where a
+ * figure drawn after them is. A group's turns run up to the question that ends each, whose answer
+ * the next turn follows; a turn with no words keeps its figure where it is.
+ */
+function figuresUnderWords(parts: LhViewPart[]): LhViewPart[] {
+	const turns: LhViewPart[][] = [[]];
+	for (const part of parts) {
+		turns[turns.length - 1]!.push(part);
+		if (part.type.startsWith("tool-") && isQuestionTool(part.type.slice("tool-".length))) turns.push([]);
+	}
+	return turns.flatMap((turn) => {
+		const first = turn.findIndex(isWords);
+		const figures = first === -1 ? [] : turn.slice(0, first).filter((part) => part.type === `tool-${VISUAL_TOOL}`);
+		if (figures.length === 0) return turn;
+		const rest = turn.filter((part) => !figures.includes(part));
+		rest.splice(rest.findLastIndex(isWords) + 1, 0, ...figures);
+		return rest;
+	});
 }
 
 /** A shown opener where it was posed: its lead as teacher text, then its

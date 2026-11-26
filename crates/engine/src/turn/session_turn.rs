@@ -19,7 +19,7 @@ use tokio::sync::{mpsc, oneshot, watch};
 use super::abort::Abort;
 use super::events::{AgentEvent, Listener};
 use super::messages::{parts_of, tool_result_message};
-use super::record::{TranscriptBuilder, wrote_anything};
+use super::record::{TranscriptBuilder, has_words, wrote_anything};
 use super::tool_host::{HostReply, Reply, ToolHost};
 
 /// Which session a turn asks for: the lesson's own, or a new one that starts from the record.
@@ -363,10 +363,13 @@ impl SessionTurn {
 					emit(AgentEvent::ToolExecutionStart { tool_call_id: call.id.clone(), tool_name: call.name.clone(), args: call.args.clone() });
 					(block, b.reply().cloned().unwrap_or_default(), b.before_reply().to_vec())
 				});
+				// A tool that ends the turn only after words lets the agent go on to write them.
+				let ends = has_words(&message) || earlier.iter().any(has_words) || self.host.ends_without_words(&call.name);
 				let before: Vec<Json> = self.before.iter().cloned().chain(earlier).collect();
 				let (host, abort, ran) = (self.host.clone(), self.abort.clone(), ran.clone());
 				tasks::detach("lesson tool", async move {
-					let out = host.call(&block, Reply { before: &before, message: &message }, &abort).await;
+					let mut out = host.call(&block, Reply { before: &before, message: &message }, &abort).await;
+					out.ends_turn &= ends;
 					let _ = ran.send(Ran { block, reply: out, answer: reply });
 				});
 				return true;

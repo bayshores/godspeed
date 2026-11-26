@@ -1579,9 +1579,14 @@ describe("needsContinuation (the native lastAssistantMessageIsCompleteWithToolCa
 		assert.equal(needsContinuation([...asked, resultMsg("call-q1", "quiz")]), true, "his answer is owed its reaction");
 	});
 
-	it("a figure the teacher drew ended its turn, and a refused or an old job's receipt did not", () => {
-		const figure = (details: unknown, isError = false) => [userText("u1", "topic"), assistantWithCall("a1", "call-v1", "visual"), { ...resultMsg("call-v1", "visual"), details, isError } as unknown as LhMessage];
+	it("a figure drawn after the turn's words ended its turn, and one drawn before any, a refused one or an old job's receipt did not", () => {
+		const call = assistantWithCall("a1", "call-v1", "visual") as LhMessage & { content: unknown[] };
+		const withWords = { ...call, content: [{ type: "text", text: "Look at the line." }, ...call.content] } as unknown as LhMessage;
+		const figure = (details: unknown, isError = false, drawing: LhMessage = withWords) => [userText("u1", "topic"), drawing, { ...resultMsg("call-v1", "visual"), details, isError } as unknown as LhMessage];
 		assert.equal(needsContinuation(figure({ svg: "<svg/>" })), false);
+		assert.equal(needsContinuation(figure({ svg: "<svg/>" }, false, call)), true, "a figure drawn before any words is owed its words");
+		const wordsFirst = [userText("u1", "topic"), assistantMsg("a0", "Look at the line."), call, { ...resultMsg("call-v1", "visual"), details: { svg: "<svg/>" } } as unknown as LhMessage];
+		assert.equal(needsContinuation(wordsFirst), false, "words in an earlier step of the turn count");
 		assert.equal(needsContinuation(figure({ problems: ["svg: the root needs a view box."] }, true)), true, "the teacher is owed the refusal");
 		assert.equal(needsContinuation(figure({ jobId: "job_1" })), true, "a receipt from before the teacher drew figures itself");
 		const quiz = assistantWithCall("a0", "call-q1", "quiz");

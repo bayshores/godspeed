@@ -16,7 +16,7 @@ use gs_runtime::Runtime;
 use gs_runtime::fake::{FakeAgent, FakeStep};
 use parking_lot::Mutex;
 
-use super::stand_in::{bash, lesson, lesson_in, lesson_on, text, tool};
+use super::stand_in::{Lesson, bash, lesson, lesson_in, lesson_on, text, tool};
 use super::turn_liveness::is_turn_running;
 use super::turn_runs::{abort_turn, answer_approval, running_turn};
 use super::turn_work::lesson_work;
@@ -67,6 +67,48 @@ async fn a_drawn_figure_is_stored_with_its_svg_its_render_goes_back_as_an_image_
 	let image = &reply["content"][1];
 	assert_eq!((image["type"].as_str(), image["mimeType"].as_str(), reply["endTurn"].as_bool()), (Some("image"), Some("image/png"), Some(true)), "{reply:?}");
 	assert!(!image["data"].str_or_empty().is_empty());
+}
+
+const FIGURE: &str = r#"<svg viewBox="0 0 100 40"><line x1="10" y1="20" x2="90" y2="20" stroke="var(--ink)" stroke-width="2"/></svg>"#;
+
+/// The last assistant message's stop reason: "stop" for a turn that ended by itself.
+fn last_stop(fx: &Lesson) -> Option<String> {
+	fx.messages().iter().rev().find(|m| Role::Assistant.is(m)).and_then(|m| m["stopReason"].as_str().map(str::to_owned))
+}
+
+/// A figure drawn before the reply has any words does not end the turn: the teacher gets its
+/// render back at once and goes on to write the words, and the turn ends by itself.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_figure_drawn_before_any_words_lets_the_turn_go_on_to_write_them() {
+	let fx = lesson("session-figure-first", Some("study"), vec![vec![tool("visual", json!({ "svg": FIGURE })), text("Look at the line.")]]);
+	fx.say("Draw the number line").await;
+	fx.settled().await;
+	assert_eq!(fx.replies(), ["Look at the line."], "the words came after the figure");
+	let reply = fx.sent("tool_result").pop().expect("the figure's result went back to the agent");
+	assert_eq!(reply["endTurn"].as_bool(), Some(false), "{reply:?}");
+	assert_eq!(last_stop(&fx).as_deref(), Some("stop"), "the turn ended by itself");
+}
+
+/// Once the turn has words, a second figure ends it, as one drawn after the words always does.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_figure_drawn_after_the_words_ends_the_turn_even_when_one_came_before_them() {
+	let draw = || tool("visual", json!({ "svg": FIGURE }));
+	let fx = lesson("session-figure-twice", Some("study"), vec![vec![draw(), text("Here is the line."), draw(), text("never played")]]);
+	fx.say("Draw the number line").await;
+	fx.settled().await;
+	assert_eq!(fx.replies(), ["Here is the line."], "the second figure ended the turn");
+	let ends: Vec<Option<bool>> = fx.sent("tool_result").iter().map(|r| r["endTurn"].as_bool()).collect();
+	assert_eq!(ends, [Some(false), Some(true)]);
+}
+
+/// Over Codex too, a figure drawn before any words lets the turn go on to write them.
+#[tokio::test(flavor = "multi_thread")]
+async fn over_codex_a_figure_drawn_before_any_words_lets_the_turn_go_on() {
+	let fx = lesson_on("session-figure-codex", Some("study"), vec![vec![tool("visual", json!({ "svg": FIGURE })), text("Look at the line.")]], FakeAgent::codex_runtime);
+	fx.say("Draw the number line").await;
+	fx.settled().await;
+	assert_eq!(fx.replies(), ["Look at the line."]);
+	assert_eq!(last_stop(&fx).as_deref(), Some("stop"), "the turn ended by itself, not by an interrupt");
 }
 
 /// A homework lesson's turns end with the time now and the time due on the day it is due, after
