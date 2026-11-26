@@ -19,9 +19,6 @@ pub enum ToShell {
 	Notify { id: u64, title: String, body: String },
 	/// The answer to `ToServer::AgentFolder`: the godspeed folder, when it is set up.
 	AgentFolder { id: u64, folder: Option<String> },
-	/// The learner's line went to a page: clear it from the agent's input, where Claude Code puts
-	/// a line its prompt hook blocked.
-	ClearLine { terminal: String, line: String },
 	/// The agent opened a page: bring the window forward, and send a window made again (or still
 	/// loading) to `page`, an app path with its `?space=`.
 	ShowWindow { page: String },
@@ -57,12 +54,7 @@ pub enum ToServer {
 	},
 	/// Whether the notification went to the system.
 	NotifyDone { id: u64, shown: bool },
-	/// The ids of the agents' terminals that run now (after every start and end), and which of
-	/// them is the teacher's. An agent that sends another id was stopped in the app.
-	Terminals { live: Vec<String>, teacher: Option<String> },
-	/// The learner pressed Enter in this terminal while it showed no question.
-	Typed { terminal: String },
-	/// Where the godspeed folder is: a terminal runs only that folder's start scripts.
+	/// Where the godspeed folder is, for the menu's Open godspeed Folder.
 	AgentFolder { id: u64 },
 }
 
@@ -151,10 +143,7 @@ mod tests {
 		round_trip(ToServer::SvgDone { id: 6, outcome: SvgOutcome::Png("iVBO".into()) }, r#"{"t":"svg_done","id":6,"png":"iVBO"}"#);
 		round_trip(ToServer::SvgDone { id: 7, outcome: SvgOutcome::Error("too big".into()) }, r#"{"t":"svg_done","id":7,"error":"too big"}"#);
 		round_trip(ToServer::NotifyDone { id: 8, shown: false }, r#"{"t":"notify_done","id":8,"shown":false}"#);
-		round_trip(ToServer::Terminals { live: vec!["ab".repeat(16)], teacher: Some("ab".repeat(16)) }, &format!(r#"{{"t":"terminals","live":["{0}"],"teacher":"{0}"}}"#, "ab".repeat(16)));
-		round_trip(ToServer::Terminals { live: vec![], teacher: None }, r#"{"t":"terminals","live":[],"teacher":null}"#);
 		round_trip(ToServer::AgentFolder { id: 9 }, r#"{"t":"agent_folder","id":9}"#);
-		round_trip(ToServer::Typed { terminal: "ab".repeat(16) }, &format!(r#"{{"t":"typed","terminal":"{}"}}"#, "ab".repeat(16)));
 	}
 
 	#[test]

@@ -1,5 +1,4 @@
-//! The space tools the outside agent's MCP server offers (and a lesson or a deadline request
-//! some of): their names, descriptions (`space_tool_text`), argument shapes and outcome.
+//! The space tools the teacher panel's chat offers (and a lesson or a deadline request some of): their names, descriptions (`space_tool_text`), argument shapes and outcome.
 
 use gs_json::Json;
 

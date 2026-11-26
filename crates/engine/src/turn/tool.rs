@@ -25,7 +25,7 @@ pub trait Tool: Send + Sync {
 	fn name(&self) -> &str;
 	fn description(&self) -> &str;
 	/// The JSON Schema exactly as TypeBox emits it for the TS tool (key order included: the
-	/// outside agent sees it, and a changed text sends the tools again).
+	/// agent sees it, and a changed text sends the tools again).
 	fn parameters(&self) -> &Json;
 	fn execution_mode(&self) -> ExecutionMode {
 		ExecutionMode::Parallel

@@ -1,5 +1,5 @@
 /**
- * The corner notice when an outside agent saves a rule from the terminal:
+ * The corner notice when the teacher saves a rule from the teacher panel's chat:
  * "Teacher saved a rule" (by the teacher's name), the rule, where it applies, Undo and Edit.
  * It hides after a while, but not while the pointer is on it, focus is
  * in it or the rule is being edited.

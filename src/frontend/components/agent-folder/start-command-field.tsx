@@ -5,7 +5,7 @@ import type { FolderAgent } from "@/shared/core";
 import { AGENT_LABEL } from "./agent-folder-model";
 
 /**
- * The box "Change command" opens: the learner's own command for starting
+ * The box the Start command row's Change opens: the learner's own command for starting
  * this agent, for people who start it through a launcher. Empty goes back
  * to the usual command.
  */

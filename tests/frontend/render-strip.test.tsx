@@ -36,7 +36,6 @@ const { createRoot } = await import("react-dom/client");
 const { createPortal } = await import("react-dom");
 const { MemoryRouter, RouterProvider, createMemoryRouter } = await import("react-router");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
-const { AgentStatusContext } = await import("../../src/frontend/components/agent-status.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { PeekSheet, PEEK_ROWS_ID } = await import("../../src/frontend/components/strip/peek-sheet.tsx");
 const { Strip } = await import("../../src/frontend/components/strip/strip.tsx");
@@ -445,7 +444,6 @@ describe("A notice's close key", () => {
 });
 
 describe("The strip", () => {
-	const TEACHING = { connected: false, turnsRunning: 0 };
 	const api = (over: Partial<TeacherApi> = {}): TeacherApi => ({
 		name: "Ada",
 		follow: false,
@@ -485,16 +483,14 @@ describe("The strip", () => {
 		listeners.clear();
 	});
 
-	async function mountStrip(teacher: TeacherApi | null, { agent = true, notices = false }: { agent?: boolean; notices?: boolean } = {}) {
+	async function mountStrip(teacher: TeacherApi | null, { notices = false }: { notices?: boolean } = {}) {
 		globalThis.fetch = (async () => Response.json({ chats: [{ id: "c1", title: "Counting" }] })) as typeof fetch;
 		const page = (
 			<ServerEventsProvider connect={connect as never}>
-				<AgentStatusContext.Provider value={agent ? TEACHING : null}>
-					<TeacherContext.Provider value={teacher}>
-						<Strip />
-						<PeekSheet>{notices && <Notices ids={["a"]} />}</PeekSheet>
-					</TeacherContext.Provider>
-				</AgentStatusContext.Provider>
+				<TeacherContext.Provider value={teacher}>
+					<Strip />
+					<PeekSheet>{notices && <Notices ids={["a"]} />}</PeekSheet>
+				</TeacherContext.Provider>
 			</ServerEventsProvider>
 		);
 		router = createMemoryRouter([{ path: "*", element: page }], { initialEntries: ["/"] });
@@ -516,7 +512,7 @@ describe("The strip", () => {
 		await mountStrip(api());
 		assert.equal(q("strip")!.textContent!.includes("Ada"), true);
 		assert.equal(q("strip")!.getAttribute("aria-expanded"), "false");
-		assert.equal(q("strip")!.getAttribute("aria-label"), "Ada. Ready");
+		assert.equal(q("strip")!.getAttribute("aria-label"), "Ada");
 		await act(async () => root!.unmount());
 		await mountStrip(api({ panelOpen: true }));
 		assert.equal(q("strip")!.getAttribute("aria-expanded"), "true");
@@ -546,7 +542,7 @@ describe("The strip", () => {
 		await fire("turn-settled", { chatId: "c1" });
 		await settle();
 		assert.equal(q("strip-flag")!.textContent, "your turn");
-		assert.equal(q("strip")!.getAttribute("aria-label"), "Ada. Ready. your turn");
+		assert.equal(q("strip")!.getAttribute("aria-label"), "Ada. your turn");
 
 		await act(async () => peekKeyboard(true));
 		const row = q("peek-ready")!;
@@ -558,11 +554,15 @@ describe("The strip", () => {
 		assert.ok(!peekIsOut(), "the peek tucks away");
 	});
 
-	it("the peek's status row is the strip's click", async () => {
+	it("the peek's status row says the work the teacher does, else its name, and is the strip's click", async () => {
 		const opened: boolean[] = [];
 		await mountStrip(api({ setPanelOpen: (open) => void opened.push(open) }));
 		await act(async () => peekKeyboard(true));
-		assert.equal(q("peek-status")!.textContent, "Ready");
+		assert.equal(q("peek-status")!.textContent, "Ada", "as the panel's head says it");
+		await act(async () => root!.unmount());
+		await mountStrip(api({ doing: { text: "Reading notes", working: true }, setPanelOpen: (open) => void opened.push(open) }));
+		await act(async () => peekKeyboard(true));
+		assert.equal(q("peek-status")!.textContent, "Reading notes");
 		await act(async () => q("peek-status")!.click());
 		assert.deepEqual(opened, [true]);
 	});

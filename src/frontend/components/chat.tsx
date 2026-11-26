@@ -64,7 +64,6 @@ import type { TurnPlace } from "@/frontend/components/lesson/turn-place";
 import { useBook } from "@/frontend/components/lesson/use-book";
 import { nothingWritten, titleEcho } from "@/frontend/components/lesson/wait-model";
 import type { QuestionHandle } from "@/frontend/components/question-dock";
-import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
@@ -92,10 +91,8 @@ const NO_PAGES: ReadonlyMap<string, string> = new Map();
  * the step line, the lesson text and the learner's turn (what is asked over
  * the writing row, beside the text in a wide room), with the panel beside both
  * when one is open: the lesson's document or the cheat sheet. The learner
- * talks to the teacher in the writing row's field; a line typed in the teacher's
- * terminal comes here the same way
- * (useTerminalLines). This component owns the lesson's state and
- * wiring; the pieces live in src/frontend/components/lesson/.
+ * talks to the teacher in the writing row's field. This component owns the
+ * lesson's state and wiring; the pieces live in src/frontend/components/lesson/.
  */
 
 export function Chat({
@@ -321,12 +318,11 @@ export function Chat({
 		if (problemId) saveQuestion(problemId, { form: { selection } });
 	};
 
-	/* A LINE FOR THE TEACHER, from the box or its terminal: while a turn
-	 * runs (ours or a wake) it steers it; idle it is the learner's next
-	 * message (a raced settle 409s and falls back to exactly that). Under a
-	 * waiting question it is a side question; about the opener or a question
-	 * from earlier, it leaves that open too. False when the lesson can't
-	 * take it now: a terminal line then goes on to the agent. */
+	/* A LINE FOR THE TEACHER: while a turn runs (ours or a wake) it steers
+	 * it; idle it is the learner's next message (a raced settle 409s and
+	 * falls back to exactly that). Under a waiting question it is a side
+	 * question; about the opener or a question from earlier, it leaves that
+	 * open too. False when the lesson can't take it now. */
 	const sendLine = (line: string, files: ChatAttachment[]): Promise<boolean> => {
 		const t = line.trim();
 		if (busy && !sideOpen) return t && files.length === 0 ? steer(t) : Promise.resolve(false);
@@ -338,7 +334,6 @@ export function Chat({
 		const input = about ? ({ type: "text", text: t, about } as const) : ({ type: sideOpen ? "side" : "text", text: t } as const);
 		return send({ ...input, ...(files.length > 0 ? { attachments: files } : {}) });
 	};
-	useTerminalLines("lesson", sendLine);
 
 	// What the box holds, sent as a line: a problem's work goes with its
 	// picks. A line the lesson can't take is put back.

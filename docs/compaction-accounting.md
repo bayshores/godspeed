@@ -24,7 +24,7 @@ Tests:
 | Setting or constant | Value |
 |---|---|
 | Summarize threshold (`compaction.thresholdTokens` in `factory_settings`, not a setting; a value in an old `settings.json` is ignored) | 40,000 |
-| Context window assumed for the outside agent (`OUTSIDE_AGENT_CONTEXT_WINDOW`) | 200,000 |
+| Context window assumed for the learner's agent (`OUTSIDE_AGENT_CONTEXT_WINDOW`) | 200,000 |
 | Reserve subtracted from that window | 16,384 |
 | Recent tail kept word for word (`KEEP_RECENT_TOKENS`) | about 20,000 |
 | Quiet time before the agent writes the summary | 5 minutes |
@@ -39,9 +39,9 @@ The threshold measures the lesson's transcript only (`lesson_tokens`): the messa
 
 A cut that drops no active history adds no marker. A cut that can't move past the previous kept boundary (the kept tail alone is over the threshold) adds none either, and says so in the log once for that boundary. Full history always stays in the record. The model sees the summary, then every message from the cut onward.
 
-## The teacher session
+## The teacher panel's chats
 
-The agent in godspeed's terminal is not the lesson record: lessons run on sessions of their own ([5.3](architecture/05.3-the-agent-session.md)) and jobs on one-off sessions ([5.4](architecture/05.4-background-jobs.md)), so its chat holds only what the learner says to it outside lessons. Every Claude Code start sets `--autocompact 150000` ([Claude Code's start](architecture/08.1.4-claude-codes-start.md#claude-codes-start)), so Claude Code compacts it at 150,000 tokens. The lesson record is unchanged by that.
+A teacher panel chat is a chat record like a lesson's ([8.1.8](architecture/08.1.8-the-teacher-panels-chat.md)), so the same gate shortens it at the same threshold, before each turn. Jobs run on one-off sessions ([5.4](architecture/05.4-background-jobs.md)) and keep no record to shorten.
 
 ## The cutoff rule
 
@@ -76,7 +76,7 @@ The Lesson stats pop-up (open lesson's More menu) shows it in pages against the 
 
 ## Usage, not dollars
 
-Every model call runs on the outside agent, which bills the learner's own plan. Nothing has a dollar price, so the app only counts tokens.
+Every model call runs on the learner's own agent, which bills the learner's own plan. Nothing has a dollar price, so the app only counts tokens.
 
 - `prices.ts` and `cost-summary.ts` add up token counts and name the plan "Your agent".
 - Records from before the built-in sign-ins were removed keep their old plan labels: ChatGPT, GitHub Copilot and Grok.

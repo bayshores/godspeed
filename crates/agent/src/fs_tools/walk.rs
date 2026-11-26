@@ -139,7 +139,7 @@ mod tests {
 		dir.put("notes/.env", "");
 		dir.put("notes/.env.local", "");
 		dir.put(".claude/projects/x.jsonl", "");
-		dir.put("data/mcp-token", "");
+		dir.put("data/search-key", "");
 		dir.put("data/chats/c.json", "");
 		let (seen, _) = collect(dir.path(), &Abort::new());
 		assert_eq!(seen, [".config/other/ok.txt", "data/chats/c.json", "notes/a.txt"]);

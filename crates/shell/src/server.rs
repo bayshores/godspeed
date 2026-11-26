@@ -16,11 +16,10 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, Me
 
 use crate::lock::lock;
 use crate::paths::{self, Paths};
-use crate::terminal::Terminals;
 use crate::{bug_report, log, restarts, rpc, window};
 
-/// Outside agents keep their saved setup when the port stays the same. Taken, any free port
-/// works: the real one is always in `<data>/mcp-endpoint.json`.
+/// The window's browser storage belongs to its origin, port included, so a release asks for the
+/// same port each launch. Taken, any free port works.
 #[cfg(not(debug_assertions))]
 const PREFERRED_PORT: u16 = 47613;
 const READY_LIMIT: Duration = Duration::from_secs(30);
@@ -162,20 +161,14 @@ impl Server {
 		}
 	}
 
-	/// Starts a server and waits until it says it listens, then tells the agents where it is.
+	/// Starts a server and waits until it says it listens.
 	fn spawn_ready(&self, app: &AppHandle, restarted: bool) -> Result<(), String> {
 		let ready = self.spawn(app, restarted)?;
 		match ready.recv_timeout(READY_LIMIT) {
-			Ok(()) => {}
-			Err(RecvTimeoutError::Disconnected) => return Err("server exited before it was ready".to_owned()),
-			Err(RecvTimeoutError::Timeout) => return Err(format!("server was not ready after {} s", READY_LIMIT.as_secs())),
+			Ok(()) => Ok(()),
+			Err(RecvTimeoutError::Disconnected) => Err("server exited before it was ready".to_owned()),
+			Err(RecvTimeoutError::Timeout) => Err(format!("server was not ready after {} s", READY_LIMIT.as_secs())),
 		}
-		self.write_endpoint(&app.state::<Paths>());
-		// An end or a start while it started may have gone to the old server.
-		if let Some(terminals) = app.try_state::<Terminals>() {
-			terminals.tell_live();
-		}
-		Ok(())
 	}
 
 	/// Starts the child and its readers. The receiver gets a message once the server listens and
@@ -193,7 +186,6 @@ impl Server {
 			.env("LH_DATA_DIR", &paths.data)
 			.env("LH_SHELL", "1")
 			.env("LH_PDFIUM_PATH", &paths.pdfium)
-			.env("LH_TERMINALS", live_terminals(app))
 			.env_remove("LH_DEV_URL");
 		match &self.mode {
 			Mode::Desktop { secret } => command.env("LH_DESKTOP_SERVER", "1").env("LH_DESKTOP_API_SECRET", secret),
@@ -283,15 +275,6 @@ impl Server {
 		}
 	}
 
-	/// The agents' connector reads where this launch's server is.
-	fn write_endpoint(&self, paths: &Paths) {
-		let text = format!("{}\n", serde_json::json!({ "url": format!("{}/api/mcp", self.url()) }));
-		let written = std::fs::create_dir_all(&paths.data).and_then(|()| gs_base::fsx::write_text_atomic(&paths.data.join("mcp-endpoint.json"), &text));
-		if let Err(err) = written {
-			log::line(&format!("could not write mcp-endpoint.json: {err}"));
-		}
-	}
-
 	/// The server is gone for good: offer a relaunch, since the window can't work without it.
 	fn stopped(&self, app: &AppHandle) {
 		if self.stopping.load(Ordering::SeqCst) {
@@ -323,12 +306,6 @@ impl Server {
 }
 
 /// Report a bug opens the issue page and asks again.
-/// The live terminals for a server that starts now: `{ live, teacher }`, as the shell sends them.
-fn live_terminals(app: &AppHandle) -> String {
-	let (live, teacher) = app.try_state::<Terminals>().map(|t| t.live()).unwrap_or_default();
-	serde_json::json!({ "live": live, "teacher": teacher }).to_string()
-}
-
 fn ask_after_stop(app: AppHandle) {
 	let buttons = MessageDialogButtons::YesNoCancelCustom("Relaunch".to_owned(), "Report a bug".to_owned(), "Quit".to_owned());
 	app.dialog().message("The app's server stopped running.").title("godspeed stopped working").kind(MessageDialogKind::Error).buttons(buttons).show_with_result(move |answer| match answer {

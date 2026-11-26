@@ -10,9 +10,9 @@
  * look at Home opens it once.
  */
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { FIRST_LOOK, isWritingBox, stepPanel, typingWaitLeft, welcomeNow, WELCOME_KEY } from "./panel-auto-model";
+import type { ChatWindow } from "./use-chat-window";
 
 interface PanelState {
 	open: boolean;
@@ -27,28 +27,26 @@ interface PanelState {
 const CLOSED: PanelState = { open: false, list: false, focus: false, byApp: false };
 
 /** `replying`: a reply is running in the open lesson, null with no lesson open. `onHome`: Home is
- *  the page. `need`: a card in the panel's chat waits to be allowed. `loaded`: the chats were read. */
-export function useTeacherPanel(replying: boolean | null, onHome: boolean, need: boolean, loaded: boolean) {
+ *  the page. `need`: a card in the panel's chat waits to be allowed. `loaded`: the chats were read.
+ *  `chatWindow`: the window the chat pops out to. */
+export function useTeacherPanel(replying: boolean | null, onHome: boolean, need: boolean, loaded: boolean, chatWindow: ChatWindow) {
 	const [state, setState] = useState<PanelState>(CLOSED);
 	const showScreen = useCallback(() => setState({ open: true, list: false, focus: true, byApp: false }), []);
 	// Opened by the learner, the panel is on its chat, or on Activity while that is in its own window.
 	const setOpen = useCallback((open: boolean) => (open ? showScreen() : setState(CLOSED)), [showScreen]);
 	const setList = useCallback((list: boolean) => setState((s) => ({ ...s, list })), []);
 
-	const terminals = useTerminals();
-	const popped = !!terminals?.popped;
-	const focusWindow = terminals?.focusWindow;
+	const { popped, focusWindow, putBacks } = chatWindow;
 	// Popped out, the chat has a window of its own: the column gives the page its room back.
 	useEffect(() => {
 		if (popped) setState(CLOSED);
 	}, [popped]);
 	// Put back, from either window: the chat shows here again, with the keyboard.
-	const putBacks = terminals?.putBacks ?? 0;
 	useEffect(() => {
 		if (putBacks > 0) showScreen();
 	}, [putBacks, showScreen]);
 	// The chat is in its window while popped.
-	const showChat = useCallback(() => (popped ? focusWindow?.() : showScreen()), [popped, focusWindow, showScreen]);
+	const showChat = useCallback(() => (popped ? focusWindow() : showScreen()), [popped, focusWindow, showScreen]);
 
 	// The key presses that hold the opening back while the learner writes.
 	const lastKey = useRef<number | null>(null);
@@ -57,7 +55,7 @@ export function useTeacherPanel(replying: boolean | null, onHome: boolean, need:
 			const el = e.target as HTMLElement | null;
 			if (!el?.tagName) return;
 			const inputType = el.tagName === "INPUT" ? (el as HTMLInputElement).type : "";
-			if (isWritingBox({ tag: el.tagName, inputType, editable: el.isContentEditable, inTerminal: !!el.closest("[data-terminal-screen]") })) lastKey.current = Date.now();
+			if (isWritingBox({ tag: el.tagName, inputType, editable: el.isContentEditable })) lastKey.current = Date.now();
 		};
 		document.addEventListener("keydown", note, true);
 		return () => document.removeEventListener("keydown", note, true);

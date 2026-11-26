@@ -6,53 +6,51 @@ import { describe, it } from "node:test";
 import { ANNOUNCE_GAP_MS, agentDoing, announceDelay, workElsewhere } from "../../src/frontend/components/teacher/follow-status.ts";
 
 const t = Date.parse("2026-11-02T12:00:00Z");
-const teaching = { turnsRunning: 0 };
-const none = { round: null, lesson: null, extractions: [], jobs: [], talkTurns: 0 };
+const none = { turnsRunning: 0, round: null, lesson: null, extractions: [], jobs: [], talkTurns: 0 };
 
 describe("agentDoing", () => {
 	it("a reply in the teacher panel's chat is not work elsewhere", () => {
-		assert.deepEqual(agentDoing({ ...none, agent: { turnsRunning: 1 }, talkTurns: 1 }), { text: "Idle", working: false });
-		assert.equal(agentDoing({ ...none, agent: { turnsRunning: 2 }, talkTurns: 1 })?.text, "Working");
+		assert.deepEqual(agentDoing({ ...none, turnsRunning: 1, talkTurns: 1 }), { text: "Idle", working: false });
+		assert.equal(agentDoing({ ...none, turnsRunning: 2, talkTurns: 1 })?.text, "Working");
 	});
 
-	it("nothing before the first read of the agent, then idle", () => {
-		assert.equal(agentDoing({ ...none, agent: null }), null);
-		assert.deepEqual(agentDoing({ ...none, agent: teaching }), { text: "Idle", working: false });
+	it("nothing before the first read of the turns running, then idle", () => {
+		assert.equal(agentDoing({ ...none, turnsRunning: null }), null);
+		assert.deepEqual(agentDoing(none), { text: "Idle", working: false });
 	});
 	it("the teacher's live round comes first", () => {
-		assert.deepEqual(agentDoing({ ...none, agent: teaching, round: "Reading HW7_F26.pdf", lesson: { working: true } }), { text: "Reading HW7_F26.pdf", working: true });
+		assert.deepEqual(agentDoing({ ...none, round: "Reading HW7_F26.pdf", lesson: { working: true } }), { text: "Reading HW7_F26.pdf", working: true });
 	});
 	it("the lesson on screen: one word, since its desk says what the teacher does", () => {
-		assert.equal(agentDoing({ ...none, agent: teaching, lesson: { working: true } })?.text, "Working");
+		assert.equal(agentDoing({ ...none, lesson: { working: true } })?.text, "Working");
 	});
 	it("a file read in parts names the file and the part", () => {
 		const extractions = [
 			{ kind: "notes" as const, phase: "waiting", title: "Slides/07_Graphs.pdf" },
 			{ kind: "notes" as const, phase: "extracting", title: "Slides/06_Counting.pdf (3/12)", part: { i: 3, n: 12 } },
 		];
-		assert.deepEqual(agentDoing({ ...none, agent: teaching, extractions }), { text: "Reading 06_Counting.pdf", count: "3 of 12", working: true });
-		assert.deepEqual(agentDoing({ ...none, agent: teaching, extractions: [{ ...extractions[1]!, phase: "merging" }] }), {
+		assert.deepEqual(agentDoing({ ...none, extractions }), { text: "Reading 06_Counting.pdf", count: "3 of 12", working: true });
+		assert.deepEqual(agentDoing({ ...none, extractions: [{ ...extractions[1]!, phase: "merging" }] }), {
 			text: "Saving facts from 06_Counting.pdf",
 			count: "3 of 12",
 			working: true,
 		});
 	});
 	it("a lesson's facts, topic grouping, a background job, a lesson turn elsewhere", () => {
-		assert.equal(agentDoing({ ...none, agent: teaching, extractions: [{ kind: "chat", phase: "extracting", title: "Counting" }] })?.text, "Saving facts from “Counting”");
-		assert.equal(agentDoing({ ...none, agent: teaching, extractions: [{ kind: "topics", phase: "grouping", title: "CSE 21" }] })?.text, "Grouping topics");
-		assert.equal(agentDoing({ ...none, agent: teaching, jobs: [{ kind: "demo" }] })?.text, "Building a demo");
-		assert.deepEqual(agentDoing({ ...none, agent: { ...teaching, turnsRunning: 1 } }), { text: "Working", working: true });
+		assert.equal(agentDoing({ ...none, extractions: [{ kind: "chat", phase: "extracting", title: "Counting" }] })?.text, "Saving facts from “Counting”");
+		assert.equal(agentDoing({ ...none, extractions: [{ kind: "topics", phase: "grouping", title: "CSE 21" }] })?.text, "Grouping topics");
+		assert.equal(agentDoing({ ...none, jobs: [{ kind: "demo" }] })?.text, "Building a demo");
+		assert.deepEqual(agentDoing({ ...none, turnsRunning: 1 }), { text: "Working", working: true });
 	});
 });
 
 describe("workElsewhere", () => {
-	const talking = { ...none, agent: { turnsRunning: 1 }, talkTurns: 1, round: "Looking at your spaces" };
+	const talking = { ...none, turnsRunning: 1, talkTurns: 1, round: "Looking at your spaces" };
 	it("leaves out the round of the chat the panel shows, which its own thread shows", () => {
 		assert.equal(workElsewhere({ ...talking, roundChat: "chat_a", shown: "chat_a" }), false);
 	});
-	it("counts another chat's round, a terminal's round and other work", () => {
+	it("counts another chat's round and other work", () => {
 		assert.equal(workElsewhere({ ...talking, roundChat: "chat_b", shown: "chat_a" }), true);
-		assert.equal(workElsewhere({ ...talking, roundChat: null, shown: "chat_a" }), true, "a terminal's round");
 		assert.equal(workElsewhere({ ...talking, roundChat: "chat_a", shown: "chat_a", jobs: [{ kind: "research" }] }), true, "a job besides");
 		assert.equal(workElsewhere({ ...talking, roundChat: "chat_a", shown: null }), true, "a new chat is shown");
 	});

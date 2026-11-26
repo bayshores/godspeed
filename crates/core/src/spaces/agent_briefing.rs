@@ -1,7 +1,6 @@
-//! "Where you left off": part of godspeed's MCP instructions, built each time an agent connects,
-//! so an agent started in any folder knows the learner's spaces, their unfinished setup, last
-//! lessons, next deadlines and saved notes. It is trimmed to fit a length budget, least
-//! important lines first.
+//! "Where you left off": the first message of each new teacher panel chat session, so the teacher
+//! knows the learner's spaces, their unfinished setup, last lessons, next deadlines and saved notes.
+//! It is trimmed to fit a length budget, least important lines first.
 
 use std::collections::HashMap;
 

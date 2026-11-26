@@ -1,6 +1,6 @@
 /**
  * Undo and Edit for a rule an agent just saved, shared by the chat line
- * (lessons) and the corner notice (the terminal). Edit turns the rule into
+ * (lessons) and the corner notice (the teacher panel's chat). Edit turns the rule into
  * a text box with Save and Cancel.
  */
 

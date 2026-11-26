@@ -13,11 +13,8 @@ One JSON object per line, UTF-8, ending `\n`. Field `t` names the message. The s
 | shell to server | `{"t":"demo_done","id":n,"result":{"consoleErrors":[],"pageErrors":[],"failedRequests":[],"probeResult":…,"ok":true}}` or `{"t":"demo_done","id":n,"error":"…"}` | `probeResult` absent when no probe ran. |
 | shell to server | `{"t":"svg_done","id":n,"png":"<base64>"}` or `{"t":"svg_done","id":n,"error":"…"}` | A PNG of exactly w × h px. |
 | shell to server | `{"t":"notify_done","id":n,"shown":true\|false}` | False while the main window has focus, or when the plugin refused. |
-| shell to server | `{"t":"terminals","live":["<32 hex>",…],"teacher":"<32 hex>"\|null}` | Ids of running agent terminals, and the teacher's among them. Sent after every start, Stop and end, in order, and again once a restarted server is ready. |
-| shell to server | `{"t":"typed","terminal":"<32 hex>"}` | The learner sent the agent in that terminal a message: Enter on its own while the screen showed no question. |
-| shell to server | `{"t":"agent_folder","id":n}` | Where is the godspeed folder? Asked at every terminal start. |
+| shell to server | `{"t":"agent_folder","id":n}` | Where is the godspeed folder? Asked by the Mac menu's Open godspeed Folder. |
 | server to shell | `{"t":"agent_folder","id":n,"folder":"…"\|null}` | The folder in use, or `null` while not set up. The shell waits 2 s. |
-| server to shell | `{"t":"clear_line","terminal":"<32 hex>","line":"…"}` | The learner's line went to a lesson or cheat sheet page. In Claude Code's teacher terminal, the shell clears that line from the agent's input box within 3 s. |
 | server to shell | `{"t":"show_window","page":"<app path>?space=<id or none>"}` | The agent opened a page. The shell brings the window forward and sends a window that has not loaded to that page. |
 | server to shell | `{"t":"menu_bar_countdown","title":"3d"\|null,"rows":[{"text":"Quiz 2 is tomorrow","page":"/space/deadline/<id>?space=<id>"},…]}` | Mac only. Show the menu bar item, made the first time: the title beside the logo (none shows the logo alone) and a menu row for each deadline. Sent at the start and each time the words change. |
 | server to shell | `{"t":"menu_bar_countdown_off"}` | Mac only. The setting is off: remove the menu bar item. |

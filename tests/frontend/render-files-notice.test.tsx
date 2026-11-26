@@ -44,16 +44,15 @@ describe("folder notice model", () => {
 	});
 
 	it("says how many files were removed", () => {
-		assert.equal(changeTitle(removed("a", [{ id: "7", name: "Old.pdf" }]), "CSE 21", false, "Ada"), "1 file removed from CSE 21");
-		assert.equal(changeTitle(removed("a", [{ id: "7", name: "a" }, { id: "8", name: "b" }]), "CSE 21", true, "Ada"), "2 files removed from CSE 21");
+		assert.equal(changeTitle(removed("a", [{ id: "7", name: "Old.pdf" }]), "CSE 21"), "1 file removed from CSE 21");
+		assert.equal(changeTitle(removed("a", [{ id: "7", name: "a" }, { id: "8", name: "b" }]), "CSE 21"), "2 files removed from CSE 21");
 	});
 
-	it("says how many, and that study material waits for the teacher while none is connected", () => {
+	it("says how many files came, and names them", () => {
 		const study = added("a", [file("1", "Day1.pdf"), file("2", "Day2.pdf"), file("3", "HW5.pdf", "info")]);
 		const info = added("a", [file("3", "HW5.pdf", "info")]);
-		assert.equal(changeTitle(study, "CSE 21", true, "Ada"), "3 new files in CSE 21");
-		assert.equal(changeTitle(study, "CSE 21", false, "Ada"), "3 new files in CSE 21, read when Ada is on");
-		assert.equal(changeTitle(info, "CSE 21", false, "Ada"), "1 new file in CSE 21", "space info needs no teacher");
+		assert.equal(changeTitle(study, "CSE 21"), "3 new files in CSE 21");
+		assert.equal(changeTitle(info, "CSE 21"), "1 new file in CSE 21");
 		assert.equal(changeNames(study.files), "Day1.pdf and 2 more");
 		assert.equal(changeNames(study.files.slice(0, 2)), "Day1.pdf and Day2.pdf");
 		assert.equal(changeNames(info.files), "HW5.pdf");
@@ -81,8 +80,6 @@ describe("folder notices", () => {
 						added("gone", [file("4", "x.pdf")]),
 						removed("a", [{ id: "5", name: "Week4.pdf" }]),
 					]}
-					agentConnected={false}
-					teacher="Ada"
 					nameOf={(id) => (id === "a" ? "CSE 21" : null)}
 					onSee={(e) => seen.push(`${e.spaceId}:${e.change}`)}
 					onDismiss={(e) => closed.push(`${e.spaceId}:${e.change}`)}
@@ -95,7 +92,7 @@ describe("folder notices", () => {
 		assert.match(gone?.textContent ?? "", /1 file removed from CSE 21/);
 		assert.match(gone?.textContent ?? "", /Week4\.pdf/);
 		assert.match(gone?.textContent ?? "", /See changes/);
-		assert.match(cards[0]!.textContent ?? "", /3 new files in CSE 21, read when Ada is on/);
+		assert.match(cards[0]!.textContent ?? "", /3 new files in CSE 21/);
 		assert.match(cards[0]!.textContent ?? "", /Lecture11\.srt and 2 more/);
 		assert.match(cards[0]!.textContent ?? "", /See files/);
 		const close = document.querySelector<HTMLElement>('[data-testid="files-notice-close"]')!;

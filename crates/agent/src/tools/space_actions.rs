@@ -1,4 +1,4 @@
-//! Space tools that run the same space actions as the outside agent's MCP tools: a lesson's
+//! Space tools that run the same space actions as the teacher panel chat's tools: a lesson's
 //! deadline changes, and what a deadline request or a space check reads and writes. Nothing here
 //! deletes a space or a file. Each result's details carry the changes it made.
 

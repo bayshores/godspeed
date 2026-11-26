@@ -7,7 +7,6 @@ import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray
 import { restoreUnsent } from "@/frontend/components/lesson/chat-helpers";
 import { LessonBox } from "@/frontend/components/lesson/lesson-box";
 import { savedDay } from "@/frontend/components/rule-chips";
-import { useTerminalLines } from "@/frontend/components/terminal/use-terminal-lines";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useFold } from "@/frontend/components/use-fold";
 import { cn } from "@/frontend/lib/utils";
@@ -31,8 +30,7 @@ const NOTE = "flex items-center gap-2.5 lh-well self-start rounded px-2.5 py-1.5
  * learner's messages on plates with the part they pointed at and their
  * pictures, the agent's answers (markdown and math) with a "Made version N"
  * note that shows that version on the canvas and the rules it saved. The learner writes in the box at its foot (the lesson's box, with
- * sheetBox's one key); a line typed in the teacher's terminal comes the
- * same way (useTerminalLines). Both carry the part pointed at. Stop while
+ * sheetBox's one key), and a line carries the part pointed at. Stop while
  * the agent works, Try again when it failed.
  */
 export function SheetChat({
@@ -80,7 +78,7 @@ export function SheetChat({
 	const arrive = useArrivals();
 	const slot = useId();
 	const answer = (id: string, allow: boolean) => act({ action: "approval", id, allow });
-	// A line typed while the sheet is being worked on goes on to the agent.
+	// False when the sheet can't take the line now: the box keeps it.
 	const sendLine = async (line: string, files: ChatAttachment[]): Promise<boolean> => {
 		if (busy || view.newer || (!line.trim() && files.length === 0 && !pointed)) return false;
 		const all = [...(pointed ? [pointed.picture] : []), ...files];
@@ -95,7 +93,6 @@ export function SheetChat({
 		onClearPointed();
 		return true;
 	};
-	useTerminalLines("cheat sheet", sendLine);
 	const sendBox = () => {
 		const typed = text;
 		const files = attachments.files;

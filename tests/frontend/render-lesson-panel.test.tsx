@@ -458,7 +458,7 @@ describe("Your turn in each state", () => {
 		});
 	});
 
-	it("the lesson reads what is picked through the question's handle, for a question typed in the terminal", async () => {
+	it("the lesson reads what is picked through the question's handle, for a line sent beside the question", async () => {
 		const ref: { current: QuestionHandle | null } = { current: null };
 		await mounted(turn({ pending: quiz, questionRef: ref }), async (host) => {
 			assert.deepEqual(ref.current!.picked(), []);

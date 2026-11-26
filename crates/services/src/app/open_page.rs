@@ -13,7 +13,7 @@ use gs_json::{Json, json};
 
 use super::agent_actions::note_agent_action;
 use super::settings_record::teacher_name;
-use super::terminal_state::WindowPage;
+use super::window_page::{WindowPage, window_page};
 use crate::App;
 use crate::spaces::deadline_with_space;
 use crate::spaces::space_actions::{CLOSED_SPACE, no_space_text};
@@ -130,7 +130,7 @@ pub fn open_page(app: &App, caller: Option<&str>, args: &Json) -> ToolOutcome {
 		Ok(page) => page,
 		Err(refused) => return ToolOutcome::Err(refused),
 	};
-	let here = app.terminals.window_page();
+	let here = window_page(app);
 	let there = already_there(app, &page, here.as_ref());
 	let action = json!({ "label": format!("Opening {}", page.name), "spaceId": page.space_id, "target": page.target, "page": page.path, "open": true });
 	note_agent_action(app, caller, &action);
@@ -221,7 +221,7 @@ mod tests {
 	}
 
 	fn set_window(app: &App, page: Option<WindowPage>) {
-		app.terminals.set_talk_page(None, page);
+		*app.misc.window_page.lock() = page;
 	}
 
 	#[test]

@@ -67,6 +67,7 @@ test("every window.lh member calls its shell command with its arguments", async 
 	await lh!.showInFolder!("/a/b.pdf");
 	await lh!.openPath!("/a");
 	await lh!.openInObsidian!("/a/b.md");
+	await lh!.openLink!("https://nodejs.org");
 	lh!.reportBug!();
 	await lh!.listFonts!();
 	await lh!.printPdf!("/a/b.pdf");
@@ -82,6 +83,7 @@ test("every window.lh member calls its shell command with its arguments", async 
 		["show_in_folder", { path: "/a/b.pdf" }],
 		["open_path", { path: "/a" }],
 		["open_in_obsidian", { path: "/a/b.md" }],
+		["open_link", { url: "https://nodejs.org" }],
 		["report_bug"],
 		["list_fonts"],
 		["print_pdf", { path: "/a/b.pdf" }],
@@ -92,59 +94,18 @@ test("every window.lh member calls its shell command with its arguments", async 
 	]);
 });
 
-test("the terminal members name an agent and an id, and hear their pushes", async () => {
-	const { lh, invoked, window } = page({ reply: (cmd) => (cmd === "terminal_start" ? { id: "a1" } : undefined) });
-	const terminals = lh!.terminals as unknown as Record<string, (...args: unknown[]) => unknown>;
-	assert.deepEqual(await terminals.start!("claude"), { id: "a1" });
-	await terminals.attach!("a1");
-	await terminals.resize!("a1", 50, 34);
-	await terminals.write!("a1", "y");
-	await terminals.answer!("a1", "trust");
-	await terminals.paste!("a1");
-	await terminals.send!("a1", "What's due?");
-	await terminals.addFile!("a1", "week 3.png", "iVBO");
-	await terminals.detach!("a1");
-	await terminals.stop!("a1");
-	await terminals.list!();
-	await lh!.openLink!("https://nodejs.org");
-	assert.deepEqual(invoked, [
-		["terminal_start", { agent: "claude", resume: null }],
-		["terminal_attach", { id: "a1" }],
-		["terminal_resize", { id: "a1", cols: 50, rows: 34 }],
-		["terminal_write", { id: "a1", data: "y" }],
-		["terminal_answer", { id: "a1", kind: "trust" }],
-		["terminal_paste", { id: "a1" }],
-		["terminal_send", { id: "a1", line: "What's due?" }],
-		["terminal_add_file", { id: "a1", name: "week 3.png", data: "iVBO" }],
-		["terminal_detach", { id: "a1" }],
-		["terminal_stop", { id: "a1" }],
-		["terminal_list"],
-		["open_link", { url: "https://nodejs.org" }],
-	]);
-	const push = window.__lhPush as (channel: string, payload: unknown) => void;
-	const heard: unknown[] = [];
-	terminals.onOutput!((p: unknown) => heard.push(p));
-	terminals.onState!((p: unknown) => heard.push(p));
-	push("terminal-output", { id: "a1", data: "eA==" });
-	push("terminal-state", { id: "a1", ended: null, prompt: "menu", url: false });
-	assert.deepEqual(heard, [
-		{ id: "a1", data: "eA==" },
-		{ id: "a1", ended: null, prompt: "menu", url: false },
-	]);
-});
-
-test("the terminal window members call their commands and hear whether it is open", async () => {
+test("the chat window members call their commands and hear whether it is open", async () => {
 	const { lh, invoked, window } = page();
-	const terminalWindow = lh!.terminalWindow as unknown as Record<string, (...args: unknown[]) => unknown>;
-	await terminalWindow.open!("Ada");
-	await terminalWindow.focus!();
-	await terminalWindow.close!();
-	assert.deepEqual(invoked, [["terminal_window_open", { title: "Ada" }], ["terminal_window_focus"], ["terminal_window_close"]]);
+	const chatWindow = lh!.chatWindow as unknown as Record<string, (...args: unknown[]) => unknown>;
+	await chatWindow.open!("Ada");
+	await chatWindow.focus!();
+	await chatWindow.close!();
+	assert.deepEqual(invoked, [["chat_window_open", { title: "Ada" }], ["chat_window_focus"], ["chat_window_close"]]);
 	const push = window.__lhPush as (channel: string, payload: unknown) => void;
-	push("terminal-window", { open: true });
+	push("chat-window", { open: true });
 	const heard: unknown[] = [];
-	terminalWindow.onChange!((state: unknown) => heard.push(state));
-	push("terminal-window", { open: false });
+	chatWindow.onChange!((state: unknown) => heard.push(state));
+	push("chat-window", { open: false });
 	assert.deepEqual(heard, [{ open: true }, { open: false }], "a push before the first listener is kept for it");
 });
 

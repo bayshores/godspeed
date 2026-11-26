@@ -25,7 +25,7 @@ use crate::App;
 use crate::graph::extraction_runs::extraction_statuses;
 use crate::graph::graph::graph_store_for;
 
-/// The extraction_running refusal for the outside agent.
+/// The extraction_running refusal for the agent.
 pub const AGENT_FILE_READING_REFUSAL: &str = "This file is still being turned into facts. Try again once that is done.";
 
 /// The notes-source id a space file's facts are born under: unique per space + file, so the same

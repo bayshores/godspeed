@@ -1,6 +1,6 @@
 # Tool-content presentation recovery
 
-How screens repair broken LaTeX and escaping in text the outside agent wrote into a tool call, without changing what is saved. Read this before you touch math display in question cards, problems or answer reveals.
+How screens repair broken LaTeX and escaping in text the agent wrote into a tool call, without changing what is saved. Read this before you touch math display in question cards, problems or answer reveals.
 
 ## Where the code lives
 
@@ -60,7 +60,7 @@ Inside math, a control character can be what is left after JSON consumed the sta
 | Commands already written correctly | Stay commands in both modes. `\nu` is never decoded into a line feed plus `u`. |
 | Unrecognized whitespace | Stays. `x<TAB>+<TAB>y` does not become invented `\t` or `\ty` commands. |
 
-This is ambiguous by nature: whitespace followed by a variable can spell a command, and a successful TeX parse cannot tell the meanings apart. The policy targets LaTeX the outside agent typically writes, not every arrangement a person could type.
+This is ambiguous by nature: whitespace followed by a variable can spell a command, and a successful TeX parse cannot tell the meanings apart. The policy targets LaTeX the agent typically writes, not every arrangement a person could type.
 
 ### Extra backslashes, percentages and rows
 
@@ -80,7 +80,7 @@ Every lesson text, the teacher's prose included, goes through `transformMathDeli
 
 ## Saved answers
 
-`answerForPresentation` joins the display text the outside agent wrote to the original tool call, without changing the recorded answer.
+`answerForPresentation` joins the display text the agent wrote to the original tool call, without changing the recorded answer.
 
 - Option labels match only through an unambiguous selected value, an exact or recovered label, or the one pair left in a complete one-to-one match.
 - Ambiguous rows keep their saved snapshots.

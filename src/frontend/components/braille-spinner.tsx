@@ -1,8 +1,8 @@
 import { cn } from "@/frontend/lib/utils";
 
 /**
- * THE BRAILLE SPINNER: the one working-state indicator, in the terminal's
- * own glyph language. Pure function + CSS — no JS frame timer, no React
+ * THE BRAILLE SPINNER: the one working-state indicator, in a command
+ * line's own glyph language. Pure function + CSS — no JS frame timer, no React
  * re-render per frame; each frame is a tiny <g> whose opacity is
  * compositor-animated, so it stays cheap.
  *

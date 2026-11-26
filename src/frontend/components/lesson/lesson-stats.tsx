@@ -16,7 +16,7 @@ export interface LessonUsage {
 /**
  * The Lesson stats pop-up, hanging from the open lesson's More key.
  *
- * Lessons run on the outside agent's own plan, so who pays reads as the
+ * Lessons run on the learner's agent's own plan, so who pays reads as the
  * plan's label; none known stays "–". The size is a separate
  * completed-conversation measurement, never a money-log/summarizer fold or
  * transcript estimate; what it is held against is where the lesson gets

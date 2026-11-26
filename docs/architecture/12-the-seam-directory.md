@@ -9,7 +9,7 @@ Each seam is the one place a future change should touch.
 | Background jobs | `agent::subagents::job_agent` (`JobAgent`), `services::jobs::job_agent` | where and when a job's session runs |
 | Turn composition | `services::turns::chat_handler` | what a turn consists of |
 | Extraction trigger | `services::turns::turn_service` (`trigger_extraction`) | when Library runs |
-| Outside-agent boundary | `server::mcp` (tools, access check), `services::app::terminal_state` | what an agent in godspeed's terminal or outside it can do |
+| The agent's tools | `services::talk::tools` (the panel's chat), `engine::turn::tool_host` (a lesson's) | which of godspeed's tools each session gets |
 | Teacher's graph access | `agent::tools::graph` (`search_graph`), filled in by `services::turns::lesson_setup` | what teacher can read of graph |
 | Steer delivery | `services::jobs` (`deliver_job_result`, `set_turn_runner`, `set_job_respawn`) | how background results re-enter lessons |
 | Push events | `Events` in `crates/base`, `server::http::events`, `src/frontend/components/server-events.tsx`; vocabulary in `src/shared/core/events.ts` | change notification, end to end |

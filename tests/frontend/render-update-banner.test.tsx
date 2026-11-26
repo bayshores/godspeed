@@ -17,7 +17,7 @@ import { flushSync } from "react-dom";
 import { parseHTML } from "linkedom";
 import UpdateBanner from "../../src/frontend/components/update-banner.tsx";
 import { UpdateStateProvider, type UpdateState } from "../../src/frontend/components/settings/update-settings.tsx";
-import { AgentStatusContext, parseAgentStatus } from "../../src/frontend/components/agent-status.tsx";
+import { TurnsRunningContext } from "../../src/frontend/components/turns-running.tsx";
 
 // linkedom as the DOM for the interactive pass (first createRoot test in
 // the repo — the banner's push→render→click flow needs real effects).
@@ -96,14 +96,13 @@ describe("update banner (Wave C)", () => {
 		const host = document.createElement("div");
 		document.body.appendChild(host);
 		const root = ReactDOMClient.createRoot(host);
-		const running = parseAgentStatus({ turnsRunning: 1 });
 		flushSync(() =>
 			root.render(
-				<AgentStatusContext.Provider value={running}>
+				<TurnsRunningContext.Provider value={1}>
 					<UpdateStateProvider>
 						<UpdateBanner />
 					</UpdateStateProvider>
-				</AgentStatusContext.Provider>,
+				</TurnsRunningContext.Provider>,
 			),
 		);
 		await new Promise((r) => setTimeout(r, 0));

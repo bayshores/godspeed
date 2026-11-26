@@ -9,10 +9,9 @@ mod deadline_requests;
 mod spaces;
 mod graph;
 mod jobs;
-mod mcp;
 mod mocks;
 mod plugins;
-mod terminal_lines;
+mod teacher;
 mod vault;
 mod web_search;
 
@@ -31,10 +30,9 @@ pub fn api() -> Router<Arc<App>> {
 		.merge(cheat_sheets::routes())
 		.merge(deadline_requests::routes())
 		.merge(graph::routes())
-		.merge(mcp::routes())
 		.merge(mocks::routes())
 		.merge(plugins::routes())
-		.merge(terminal_lines::routes())
+		.merge(teacher::routes())
 		.merge(vault::routes())
 		.merge(web_search::routes())
 }

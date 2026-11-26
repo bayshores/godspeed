@@ -1,6 +1,6 @@
 # The Rust server
 
-`godspeed-server` serves the UI files, /api routes and MCP endpoint, and reads and writes the data files. Read "Rules for every module" before changing it. Data from earlier versions (including the Node server) keeps working; written files read the same byte for byte.
+`godspeed-server` serves the UI files and /api routes, and reads and writes the data files. Read "Rules for every module" before changing it. Data from earlier versions (including the Node server) keeps working; written files read the same byte for byte.
 
 ## Layout
 
@@ -19,11 +19,11 @@ All Rust lives in `crates/`, a Cargo workspace (`Cargo.toml` at repo root, toolc
 | `search` | embedding model (ort), MiniSearch BM25+, fusion, index tables |
 | `web` | web page to markdown, PDF downloads, plugin zips, godspeed's plugin list from GitHub |
 | `transcribe` | recordings to captions with brew's ffmpeg and whisper |
-| `runtime` | the learner's Claude Code and Codex as child processes: environment and login-shell PATH, process groups and job objects, `codex app-server`'s JSON-RPC (in godspeed's own Codex settings folder, with its own ChatGPT sign-in), the bundled Claude helper's JSON lines, one event stream for both, the setup card's checks, signing in with no terminal, updating the agent the way it was installed, the model lists; knows nothing about lessons |
+| `runtime` | the learner's Claude Code and Codex as child processes: environment and login-shell PATH, process groups and job objects, `codex app-server`'s JSON-RPC (in godspeed's own Codex settings folder, with its own ChatGPT sign-in), the bundled Claude helper's JSON lines, one event stream for both, the setup card's checks, signing in from godspeed, updating the agent the way it was installed, the model lists; knows nothing about lessons |
 | `engine` | a lesson's turn and a background job on the learner's agent: the session, godspeed's tools, the record |
 | `agent` | prompts, lesson tools, file tools, background jobs, extraction |
 | `services` | `App` (all server state) and the services |
-| `server` (gs-server, binary `godspeed-server`) | HTTP layer, /api routes, MCP endpoint |
+| `server` (gs-server, binary `godspeed-server`) | HTTP layer, /api routes |
 
 ## Rules for every module
 
@@ -63,12 +63,12 @@ Use `gs_base::re::Re::new(pattern, flags)` with the pattern as the screens' JS w
 
 - Write only with `fsx::write_atomic`, `fsx::write_text_atomic` or `fsx::write_atomic_pair`. Each writes temp file `<name>.tmp-<8 hex>`, then renames, like `write-file-atomic`. `write_atomic_pair` streams two files that go together and renames only once both are written.
 - A data file the app rewrites is read with `fsx::read_json_or_set_aside`: one that is not valid JSON is kept as `<name>.corrupt-<ms>`, so the next save cannot replace it. `fsx::read_json` is only for a file the app does not rewrite (a plugin's `manifest.json`) or a read that must not rename (`list_mocks_unlocked`). Other unreadable records go aside with `fsx::set_aside_corrupt`.
-- Error texts the learner or outside agent sees come from `fsx::node_error_message`, which spells libuv's messages as Node did (`ENOENT: no such file or directory, open '<path>'`).
+- Error texts the learner or the agent sees come from `fsx::node_error_message`, which spells libuv's messages as Node did (`ENOENT: no such file or directory, open '<path>'`).
 - Directory and file order must not depend on the file system. Sort explicitly.
 
 ### No globals
 
-Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `locks`, `stores`, `pdf`, `search`, `terminals`, `agents`, `shell` and one state struct per service package. Routes and MCP tools get `Arc<App>`. Service state is a field of its package's state struct, behind a `parking_lot::Mutex`.
+Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `locks`, `stores`, `pdf`, `search`, `teacher_round`, `agents`, `shell` and one state struct per service package. Routes and tools get `Arc<App>`. Service state is a field of its package's state struct, behind a `parking_lot::Mutex`.
 
 ### Events, errors and concurrency
 
@@ -80,7 +80,7 @@ Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `lo
 
 ### Tests
 
-Every module gets unit tests. Route and MCP work is checked with contract scenarios (see [Checking against the recordings](#checking-against-the-recordings)).
+Every module gets unit tests. Route work is checked with contract scenarios (see [Checking against the recordings](#checking-against-the-recordings)).
 
 Where output must equal the original TypeScript's (formatting, ranking, merging, texts), a golden case replays a recorded output. `crates/<crate>/tests/golden/<name>.json` holds the cases; a Rust test in `crates/<crate>/tests/` replays them (see `crates/base/tests/golden.rs`). The `.json` files are recordings, not hand-written; change one only when behaviour is meant to change.
 
@@ -174,14 +174,13 @@ Locks outside `LockKey`, each guarding one piece of memory or one task:
 | `LH_SHELL` | `1` when the desktop shell started the server. Turns on the line protocol. |
 | `LH_PDFIUM_PATH` | pdfium's library file, when not in the working directory. |
 | `LH_SERVER_RESTARTED` | `1` after the shell restarted a crashed server. The first page then skips the welcome screen and shows the notice "godspeed restarted after a problem" in the strip's peek. |
-| `LH_TERMINALS` | The desktop app's live terminal ids and the teacher's, `{"live":[…],"teacher":…}`. The shell's `terminals` message updates them. |
 | `LH_PLUGIN_LIST` | Debug builds only: a file read as godspeed's plugin list, each time the list is asked for, in place of GitHub's (`npm run layout` names `tests/fixtures/plugins/layout-list.json`). |
 | `GODSPEED_CONTRACT_NOW`, `GODSPEED_CONTRACT_CLOCK_FILE` | The contract suite's clock. |
 | `CLAUDE_CONFIG_DIR`, `CODEX_HOME` | Read where the TypeScript read them. |
 
 ### Start-up and writes
 
-- At start-up the server writes only a missing data folder, made empty so its lock is held from the start. The shell writes `mcp-endpoint.json`.
+- At start-up the server writes only a missing data folder, made empty so its lock is held from the start.
 - With a shell, the deadline reminder check writes `reminders.json`: 10 seconds after start, then every 10 minutes.
 - Reading `settings.json` can rewrite an old one or set aside one that does not parse.
 - Data from before spaces were called spaces moves just before the first request that reaches an /api route (not a 404 or refused request): `data/classes` to `data/spaces`, and a saved `shared/12-class-context.md` to `12-space-context.md` (`Stores::adopt_old_names`).
@@ -214,7 +213,7 @@ With `LH_SHELL=1` the server speaks the line protocol of `gs-shell-rpc` ([tauri-
 `http/access.rs` guards /api when a secret is set.
 
 - Every /api path needs cookie `gs_desktop` equal to the secret and exactly one `Sec-Fetch-Site: same-origin`.
-- Exempt: `/api/mcp`, `/api/mcp/forget`, `/api/mcp/compacting`, `/api/mcp/line` and `/api/mcp/agent-event` (each checks the bearer token in its route), and `/api/desktop/login`.
+- Exempt: `/api/desktop/login`.
 - Refusals are 403 `{"error":"Desktop API access requires the trusted godspeed window."}`.
 - `LH_DESKTOP_SERVER=1` without a secret refuses all. Browser mode (neither set) allows all.
 
@@ -222,7 +221,7 @@ Demo iframes and plugin frames send `Sec-Fetch-Site: cross-site`, so their reque
 
 ## Checking against the recordings
 
-The contract lab replays recorded HTTP and MCP traffic from the last Node build against a server. It lives outside this repository, with its own README.
+The contract lab replays recorded HTTP traffic from the last Node build against a server. It lives outside this repository, with its own README.
 
 1. Build a release server: `cargo build --release -p gs-server`.
 2. Run a scenario on it from the lab:

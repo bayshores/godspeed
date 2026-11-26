@@ -8,8 +8,8 @@ export interface SessionPricing {
 	subscriptionProviders?: string[];
 }
 
-/** Plan-billed model ids → the plan's label. The outside agent (MCP) runs
- *  on the agent's own plan: no per-token price here. The other prefixes
+/** Plan-billed model ids → the plan's label. The agent runs on its own
+ *  plan: no per-token price here. The other prefixes
  *  only appear in records from before the built-in sign-ins were removed
  *  and keep their historical labels. */
 const PLAN_LABELS: readonly (readonly [prefix: string, label: string])[] = [

@@ -1,4 +1,4 @@
-//! The space tools' work (space-actions.ts), shared by the outside agent's MCP server, lessons
+//! The space tools' work (space-actions.ts), shared by the teacher panel's chat, lessons
 //! and deadline requests: each checks its arguments, changes the space, records what it changed for the
 //! teacher's panel, and returns what the agent sees. `caller` names the agent in the panel's rows;
 //! `send` gives a new lesson its first message (the chat handler's input, passed in by the
@@ -28,10 +28,10 @@ pub type SendFirstMessage = Arc<dyn Fn(String, String) -> Pin<Box<dyn Future<Out
 /// How the window shows a caller's changes, by who asked for them.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Mark {
-	/// The learner, in a lesson or in godspeed's own teacher terminal: the window opens the lesson
-	/// or space it starts even with Follow off.
+	/// The learner, in a lesson or in the teacher panel's chat: the window opens the lesson or
+	/// space it starts even with Follow off.
 	Started,
-	/// The outside agent or a page: Follow shows each change.
+	/// A page's request (a deadline's): Follow shows each change.
 	Asked,
 	/// godspeed's own check: each change is listed, marked `background`, and Follow stays put.
 	Background,

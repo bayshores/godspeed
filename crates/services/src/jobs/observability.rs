@@ -37,7 +37,7 @@ pub fn activity_feed(app: &Arc<App>) -> Json {
 /// The feed from lesson summaries, job records and extraction runs: jobs oldest activity first,
 /// extractions by start, failures newest first. Jobs of unlisted lessons stay out.
 pub fn compose_feed<J: Borrow<Json>>(now: i64, chats: &[Json], all_jobs: &[J], runs: &[Json]) -> Json {
-	// Every job runs on the outside agent: one context window.
+	// Every job runs on the learner's agent: one context window.
 	let model = agent_model();
 	let agent_window = model["contextWindow"].clone();
 	let agent_model_id = format!("{}:{}", model["provider"].str_or_empty(), model["id"].str_or_empty());

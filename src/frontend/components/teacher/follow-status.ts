@@ -4,7 +4,7 @@
  *
  * In order: its round of work while it lasts, the lesson on screen, a file
  * or lesson it is reading for facts, a background job, a lesson turn
- * elsewhere, idle. Nothing before the first read of the agent.
+ * elsewhere, idle. Nothing before the first read of the turns running.
  */
 import type { JobKind } from "@/shared/core";
 
@@ -27,7 +27,8 @@ interface Extraction {
 }
 
 interface DoingInputs {
-	agent: { turnsRunning: number } | null;
+	/** The turns running now, in lessons and the panel's chats; null until read. */
+	turnsRunning: number | null;
 	/** What the teacher's live round says it does (its newest step or change, or "Working"); null with no live round. */
 	round: string | null;
 	/** The lesson on screen, if one is. */
@@ -66,14 +67,13 @@ function readingLine(run: Extraction): Omit<AgentDoing, "working"> {
 }
 
 export function agentDoing(i: DoingInputs): AgentDoing | null {
-	const agent = i.agent;
-	if (!agent) return null;
+	if (i.turnsRunning === null) return null;
 	if (i.round) return { text: i.round, working: true };
 	// The lesson's desk says what the teacher does there, so the line says it once.
 	if (i.lesson?.working) return { text: "Working", working: true };
 	const background = backgroundLine(i.extractions, i.jobs);
 	if (background) return { ...background, working: true };
-	if (agent.turnsRunning > i.talkTurns) return { text: "Working", working: true };
+	if (i.turnsRunning > i.talkTurns) return { text: "Working", working: true };
 	return { text: "Idle", working: false };
 }
 

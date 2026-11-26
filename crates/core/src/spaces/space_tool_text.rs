@@ -1,5 +1,5 @@
 //! The space tools' descriptions and argument texts (src/shared/core/space-tools.ts). They go to
-//! outside agents, lessons and deadline requests, so they stay word for word the same as the TypeScript's.
+//! the teacher panel's chat, lessons and deadline requests, so they stay word for word the same as the TypeScript's.
 
 use std::sync::LazyLock;
 

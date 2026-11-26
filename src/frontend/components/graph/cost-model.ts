@@ -23,8 +23,8 @@ function graphProviders(value: { subscriptionRuns?: number; subscriptionProvider
 	return value.subscriptionProviders ?? ((value.subscriptionRuns ?? 0) > 0 ? ["ChatGPT"] : []);
 }
 
-/** "On your ChatGPT plan. Nothing is billed per use."; the outside agent
- *  is "your agent's plan". */
+/** "On your ChatGPT plan. Nothing is billed per use."; the learner's own
+ *  agent is "your agent's plan". */
 export function planLine(costs: Pick<GraphCostSummary, "stages">): string {
 	const labels = [...new Set([costs.stages.extraction, costs.stages.audit].flatMap(graphProviders))];
 	const plans = labels.map((l) => (l === "Your agent" ? "your agent's plan" : `your ${l} plan`));

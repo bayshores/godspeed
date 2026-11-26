@@ -1,7 +1,7 @@
 //! App-level services: boot, onboarding, welcome, what's new, settings bodies, the agent folder,
 //! the agent's checks, sign-in and models, old setups, agent memory, agent rules, agent actions,
-//! today's note, reading pages, the web search key, deadline reminders, the menu bar countdown
-//! and the pages the agent opens.
+//! today's note, reading pages, the web search key, deadline reminders, the menu bar countdown,
+//! the pages the agent opens, the page the window shows and the teacher's round of work.
 
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -33,15 +33,14 @@ pub mod reading_pages;
 pub mod settings_body;
 mod settings_put;
 pub(crate) mod settings_record;
-pub(crate) mod teacher_round;
-pub mod terminal_state;
-pub mod terminal_lines;
+pub mod teacher_round;
 pub mod vault_settings;
 #[cfg(test)]
 pub(crate) mod test_support;
 pub mod today_note;
 pub mod web_search;
 mod welcome;
+pub mod window_page;
 mod whats_new;
 
 pub use settings_put::{patch_settings_section, put_settings_section};
@@ -61,8 +60,8 @@ pub struct MiscState {
 	pieces: Mutex<reading_pages::PieceCache>,
 	/// Where quoted words sit on cited PDF pages, oldest first.
 	pub(crate) quote_boxes: Mutex<VecDeque<(String, Json)>>,
-	/// Lines from the teacher's terminal waiting for the window to send them.
-	lines: terminal_lines::Lines,
+	/// The page the window shows, as it last said.
+	pub(crate) window_page: Mutex<Option<window_page::WindowPage>>,
 	/// Poked when a settings section is saved, so the menu bar countdown reads its switch again.
 	pub(crate) settings_saved: tokio::sync::Notify,
 }

@@ -14,37 +14,14 @@ import { cn } from "@/frontend/lib/utils";
 import type { TalkChat } from "@/shared/core";
 import { BarWindow, observeBar } from "@/frontend/components/ui/bar-window";
 import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
-import type { AgentStatus } from "@/frontend/components/agent-status";
-import { screenStatusLine, teacherTerminalState, type TerminalFacts } from "@/frontend/components/terminal/terminal-model";
 import { stripWidth } from "@/frontend/components/strip/strip-dom";
 import { useTeacher } from "./teacher-context";
-import type { AgentDoing } from "./follow-status";
 import { TeacherActivity } from "./teacher-activity";
 import { PanelHead } from "./panel-head";
 import { useAskable } from "./setup-foot";
 import { boxPage } from "./starter-model";
 import { TalkChatView } from "./talk-chat";
 import { PANEL_WIDTH, panelLayout, type PanelView } from "./dock-model";
-
-/** The status line under the name: what the agent is doing while it works,
- *  else "on" while an agent in its terminal is connected, else ready.
- *  Nothing until the first read of the agent. */
-export function agentLine(agent: AgentStatus | null, teacher: string, doing: AgentDoing | null = null): string | null {
-	if (!agent) return null;
-	if (doing?.working) return doing.text;
-	return agent.connected ? `${teacher} is on` : "Ready";
-}
-
-/**
- * What the teacher's own head says: its screen's line while its terminal
- * starts or needs the learner (lit while it needs them), else the status
- * line, with the square breathing while that line is the work it does.
- */
-export function teacherHead(i: { agent: AgentStatus | null; name: string; doing: AgentDoing | null; facts: TerminalFacts | null }): { status: string | null; lit: boolean; working: boolean } {
-	const line = agentLine(i.agent, i.name, i.doing);
-	const screen = screenStatusLine(i.facts, i.name);
-	return { status: screen ?? line, lit: teacherTerminalState(i.facts) === "needsYou", working: !screen && !!i.doing?.working && line === i.doing.text };
-}
 
 /** The page's push while the panel is open (main's padding reads it). */
 const PUSH_VAR = "--lh-dock-push";

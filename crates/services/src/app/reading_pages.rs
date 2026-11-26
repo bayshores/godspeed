@@ -309,13 +309,13 @@ mod tests {
 			std::fs::create_dir_all(root.join(name)).unwrap();
 		}
 		let app = App::new(gs_base::config::Paths::new(data.clone(), home, root.join("tmp"), root.join("res")), None);
-		crate::app::disk::write_file_atomic(&data.join("mcp-token"), "secret").unwrap();
+		crate::app::disk::write_file_atomic(&data.join("search-key"), "secret").unwrap();
 		crate::app::disk::write_file_atomic(&data.join("other.txt"), "fine").unwrap();
 		let shown = |name: &'static str| {
 			let (app, path) = (&app, data.join(name));
 			async move { reading_document(app, &path.to_string_lossy()).await }
 		};
-		assert_eq!(shown("mcp-token").await, Err(ReadingError::Refused(403, "Not a file the teacher can show")));
+		assert_eq!(shown("search-key").await, Err(ReadingError::Refused(403, "Not a file the teacher can show")));
 		assert_eq!(shown("other.txt").await.unwrap()["text"], Json::from("fine"));
 	}
 

@@ -1,5 +1,4 @@
-//! godspeed's data tools, which the agent calls in free talk and the outside MCP door still calls:
-//! lessons and graphs (`lessons`, `graph`), spaces (`spaces`), memory (`memory`) and the notes
+//! godspeed's data tools, which the agent calls in free talk: lessons and graphs (`lessons`, `graph`), spaces (`spaces`), memory (`memory`) and the notes
 //! vault (`vault`). Deleting a space is app-only on purpose. tools.json is the list (order,
 //! titles, descriptions, annotations, JSON Schemas); a call's arguments are checked against its
 //! schema (`schema`) before its handler runs.
@@ -8,7 +7,7 @@ mod graph;
 mod lessons;
 mod memory;
 pub mod reply;
-pub mod schema;
+mod schema;
 mod spaces;
 mod vault;
 
@@ -24,7 +23,7 @@ use schema::check_arguments;
 
 static TOOLS: LazyLock<Json> = LazyLock::new(|| gs_json::parse(include_str!("tools.json")).unwrap_or_default());
 
-/// The tools, as MCP's tools/list gives them.
+/// The tools: each one's name, title, description, annotations and JSON Schema.
 pub fn tool_list() -> &'static Json {
 	&TOOLS
 }
@@ -33,16 +32,10 @@ fn input_schema(name: &str) -> Option<&'static Json> {
 	TOOLS.as_arr()?.iter().find(|t| t["name"].as_str() == Some(name)).map(|t| &t["inputSchema"])
 }
 
-pub fn has_tool(name: &str) -> bool {
-	input_schema(name).is_some()
-}
-
-/// One tool call: the app, the calling agent's name, and whether the learner asked for it in
-/// godspeed itself, so the window opens what it starts even with Follow off.
+/// One tool call: the app and the calling agent's name.
 pub struct ToolCall<'a> {
 	pub app: &'a Arc<App>,
 	pub caller: Option<&'a str>,
-	pub asked_here: bool,
 }
 
 /// A tool's space_id argument, checked: absent or "none" is No space; otherwise the space must

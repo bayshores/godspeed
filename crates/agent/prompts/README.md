@@ -12,7 +12,7 @@ System prompts are composed per agent when the agent is built (`compose_instruct
 
 **The homework agent** (working on one assignment's problems, hints only) has no base either: `homework/*.md`, then practice's `20-hints.md`, then the same shared files as practice.
 
-**The study agent** is the teacher's parts except `10-planning.md`, then practice's `20-hints.md`, then `study/*.md` (`study/20-files.md` only in a lesson on files, `FILES_PART`), then every shared file except `14-deadline-changes.md` (both in `STUDY_SKIPPED`). Study plans from its [Study plan] note, or writes its own plan with `plan_init` when the space has no topics for the lesson, has no deadline tools, and `study/10-study.md` sends deadline changes to the terminal, outside lessons.
+**The study agent** is the teacher's parts except `10-planning.md`, then practice's `20-hints.md`, then `study/*.md` (`study/20-files.md` only in a lesson on files, `FILES_PART`), then every shared file except `14-deadline-changes.md` (both in `STUDY_SKIPPED`). Study plans from its [Study plan] note, or writes its own plan with `plan_init` when the space has no topics for the lesson, has no deadline tools, and `study/10-study.md` sends deadline changes to the teacher panel, outside lessons.
 
 **The shared files** hold the doctrine every agent shares: the voice (`10-voice.md`), the learner's question first (`11-learner-first.md`), source marks (`13-source-marks.md`, also in `PRACTICE_SHARED`), deadline changes mid-lesson (`14-deadline-changes.md`, read by the teacher, the prober, practice and homework, not by Study), accuracy (`15-accuracy.md`), the mental model and space context, plus tool, file and format mechanics. See the folder for the full list.
 

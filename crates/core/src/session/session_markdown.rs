@@ -1,6 +1,6 @@
 //! A teaching session as readable markdown
-//! (speaker headers, quiz and check-in blocks, tool notes) for the markdown export and the MCP
-//! read_lesson tool. Every message that produces view lines produces a block, in the same order.
+//! (speaker headers, quiz and check-in blocks, tool notes) for the markdown export and the teacher
+//! panel's read_lesson tool. Every message that produces view lines produces a block, in the same order.
 //! A failed tool call renders nothing (retry context, not learning evidence), and custom markers
 //! are invisible, same as the view, except what the agent was told: a shown opener's lead and
 //! question follow its topic_done, and his answer to it is a learner line.

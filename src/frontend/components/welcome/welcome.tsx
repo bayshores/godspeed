@@ -2,7 +2,7 @@
  * THE WELCOME SCREEN: covers the app on the first page load of each
  * launch and plays the startup sound. Over the
  * onboarding sky, the logo flashes in. Under it,
- * start lines type out (the version, whether the teacher is on, the next deadline; after
+ * start lines type out (the version and the next deadline; after
  * updating from the old look, "New look"), then "Let's go", which closes
  * it; after an update the release notes open next. A click during the
  * animation skips to the end. The first paint waits for /api/boot
@@ -11,9 +11,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { prefersReducedMotion } from "@/frontend/components/presence";
-import { DEFAULT_TEACHER_NAME } from "@/shared/core";
-import { useAgentStatus } from "@/frontend/components/agent-status";
-import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { byDue } from "@/frontend/components/deadlines-model";
 import { Constellation } from "@/frontend/components/onboarding/constellation";
@@ -49,8 +46,6 @@ export function Welcome({ initialOpen, whatsNewSince }: { initialOpen: boolean; 
 }
 
 function WelcomeScreen({ leaving, onClose, upgraded }: { leaving: boolean; onClose: () => void; upgraded: boolean }) {
-	const agent = useAgentStatus();
-	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const nowMs = useMinute();
 	const { deadlines } = useOpenDeadlines();
 	const [played, setPlayed] = useState(false);
@@ -97,7 +92,7 @@ function WelcomeScreen({ leaving, onClose, upgraded }: { leaving: boolean; onClo
 			<Constellation mode="welcome" />
 			<Wordmark className="wl-word" />
 			<div className={cn("wl-rise relative flex flex-col items-center gap-[30px]", !ready && "pointer-events-none")}>
-				<BootLog lines={agent && nowMs !== null ? bootLines(VERSION, agent, teacher, next, nowMs, upgraded) : []} skipped={skipped} />
+				<BootLog lines={nowMs !== null ? bootLines(VERSION, next, nowMs, upgraded) : []} skipped={skipped} />
 				<button
 					type="button"
 					data-testid="welcome-go"

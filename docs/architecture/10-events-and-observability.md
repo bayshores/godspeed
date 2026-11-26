@@ -27,10 +27,9 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 | `activity-changed` | `{}` | an extraction run changed phase, a deadline request, space check, topic grouping or plugin question started or ended (`agent::extraction::extraction_runs`, `services::spaces::deadline_requests`, `services::spaces::space_checks`, `services::graph::topics`, `services::plugins::ask`) |
 | `chats-changed` | `{}` | a lesson was created, renamed, moved to another space or deleted. The lesson list and the progress hook (`use-progress.tsx`) read it |
 | `spaces-changed` | `{}` | a space was created, edited, closed or deleted, or its files changed |
-| `agent-changed` | `{}` | an agent connected, was renamed or lapsed, or a request came from a terminal that had been quiet for 3 minutes (`services::app::terminal_state`) |
 | `record-changed` | `{chatId}` | a lesson record changed without a turn: a problem discard, Keep going at a stop, an answer to a question from earlier, a kept sentence's part dropped or brought back, an answer that leaves a sibling question open, or a finished compaction. The `keep-going`, `review` and `kept` routes also emit it during a turn |
 | `agent-action` | action | a new line in activity log (`services::app::agent_actions`, saved in `data/agent-actions.json`) |
-| `rules-changed` | `{saved?}` | a teaching rule was saved, undone or edited (`services::app::agent_rules`). `saved` carries rule when an outside agent saved it from terminal |
+| `rules-changed` | `{saved?}` | a teaching rule was saved, undone or edited (`services::app::agent_rules`). `saved` carries the rule when the teacher saved it from the panel's chat |
 | `mocks-changed` | `{spaceId}` | one of a space's mocks changed, or a request for one started or ended (`services::mocks`). A saved mock answer is silent |
 | `files-added` | `{spaceId, files}` | a linked folder scan added files (`services::spaces::folder`). The window shows a notice |
 | `files-removed` | `{spaceId, files}` | files a linked folder no longer holds were dropped with their facts (`services::spaces::folder`). The window shows a notice |
@@ -38,7 +37,7 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 | `deadline-request-changed` | `{spaceId, deadlineId}` | a deadline request started or ended (`services::spaces::deadline_requests`) |
 | `space-checked` | `{run, spaceId, agent, lines, said}` | a space check changed something: `lines` for the learner, `said` the agent's last line or null (`services::spaces::space_checks`) |
 | `vault-notes-changed` | `{}` | the notes folder setting changed, or a note godspeed writes there was written, found again, marked removed or began waiting (`services::vault`) |
-| `teacher-work` | `{}` | the teacher's round of work (a teacher panel chat's turn, or the agent in its terminal) began, gained a step or ended (`services::app::terminal_state`); the window reads it at `GET /api/teacher-work` |
+| `teacher-work` | `{}` | the teacher's round of work (a teacher panel chat's turn) began, gained a step or ended (`services::app::teacher_round`); the window reads it at `GET /api/teacher-work` |
 | `lesson-work` | `{chatId}` | a lesson's running turn began, gained a step or a plan, or ended (`services::turns::turn_work`); the lesson's desk reads it at `GET /api/chats/{id}/work` |
 | `agent-health` | `{}` | a check of the picked agent began or ended, or its sign-in started, ended or failed (`services::app::agent_health`, `agent_login`); the setup card reads it at `GET /api/agent/health` |
 | `agent-update` | `{state, line, command}` | the picked agent's update started, printed a line (`running`), finished (`done`) or failed (`failed`, with its last line); `command` is what it runs (`services::app::agent_update`), which the setup card offers to copy |

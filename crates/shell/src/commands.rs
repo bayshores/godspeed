@@ -4,7 +4,7 @@
 use tauri::{Manager, State, Webview};
 use tauri_plugin_dialog::DialogExt;
 
-use crate::window::{MAIN, TERMINAL_WINDOWS};
+use crate::window::{MAIN, WINDOWS};
 use crate::{bug_report, fonts, open};
 
 /// The origin of the app page: the server's, or Vite's in `desktop:dev`.
@@ -15,10 +15,10 @@ pub fn trusted(webview: &Webview, state: &AppOrigin) -> Result<(), String> {
 	trusted_in(webview, state, &[MAIN])
 }
 
-/// The commands the terminal window may also call: the terminal commands, its own window's, and
-/// the few the page of any window needs (zoom, links, opening a path).
-pub fn trusted_terminal(webview: &Webview, state: &AppOrigin) -> Result<(), String> {
-	trusted_in(webview, state, &TERMINAL_WINDOWS)
+/// The commands the chat window may also call: its own window's, and the few the page of any
+/// window needs (zoom, links, opening a path).
+pub fn trusted_any(webview: &Webview, state: &AppOrigin) -> Result<(), String> {
+	trusted_in(webview, state, &WINDOWS)
 }
 
 fn trusted_in(webview: &Webview, state: &AppOrigin, labels: &[&str]) -> Result<(), String> {
@@ -40,14 +40,14 @@ pub async fn pick_folder(webview: Webview, origin: State<'_, AppOrigin>) -> Resu
 /// Shows a file selected in Finder (the OS file manager).
 #[tauri::command(async)]
 pub fn show_in_folder(webview: Webview, origin: State<AppOrigin>, path: String) -> Result<(), String> {
-	trusted_terminal(&webview, &origin)?;
+	trusted_any(&webview, &origin)?;
 	open::show_in_folder(&path)
 }
 
 /// Opens a folder or a PDF in its default app.
 #[tauri::command(async)]
 pub fn open_path(webview: Webview, origin: State<AppOrigin>, path: String) -> Result<(), String> {
-	trusted_terminal(&webview, &origin)?;
+	trusted_any(&webview, &origin)?;
 	open::open_path(&path)
 }
 
@@ -81,7 +81,7 @@ pub mod appkit {
 
 	use tauri::{State, Webview};
 
-	use super::{AppOrigin, trusted, trusted_terminal};
+	use super::{AppOrigin, trusted, trusted_any};
 	use crate::mac::window::DoubleClick;
 	use crate::paths::Paths;
 	use crate::{mac, window};
@@ -119,7 +119,7 @@ pub mod appkit {
 	/// page's own window.
 	#[tauri::command]
 	pub fn title_bar_double_click(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
-		trusted_terminal(&webview, &origin)?;
+		trusted_any(&webview, &origin)?;
 		let own = window::own_window(&webview)?;
 		match mac::window::double_click_action() {
 			DoubleClick::Minimize => own.minimize(),

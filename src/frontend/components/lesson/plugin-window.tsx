@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { inTerminal } from "@/frontend/components/focus-hygiene";
 import { PluginFrame } from "@/frontend/components/plugins/plugin-frame";
 import type { PluginContext } from "@/frontend/components/plugins/plugin-frame-model";
 import { usePresence } from "@/frontend/components/presence";
@@ -53,7 +52,7 @@ function Window({ plugin, context, state, onClose }: { plugin: ShownPlugin; cont
 		if (state !== "open") return;
 		const onKey = (e: KeyboardEvent) => {
 			// Find, a menu or a dialog closes first, and the agent's screen keeps its keys.
-			if (e.key !== "Escape" || e.defaultPrevented || inTerminal(e) || sessionFindHasForegroundLayer(document) || document.querySelector('[data-testid="session-find"]')) return;
+			if (e.key !== "Escape" || e.defaultPrevented || sessionFindHasForegroundLayer(document) || document.querySelector('[data-testid="session-find"]')) return;
 			e.preventDefault();
 			e.stopPropagation();
 			onClose();

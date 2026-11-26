@@ -1,12 +1,12 @@
 //! The app's commands are listed by hand in build.rs, capabilities/main.json and main.rs. A command
 //! missing from one of them only fails in the built app, so this test compares the three lists.
-//! The terminal window's capability may name only some of them.
+//! The chat window's capability may name only some of them.
 
 use std::collections::BTreeSet;
 
 const BUILD_RS: &str = include_str!("../build.rs");
 const CAPABILITY: &str = include_str!("../capabilities/main.json");
-const TERMINAL_CAPABILITY: &str = include_str!("../capabilities/terminal.json");
+const CHAT_CAPABILITY: &str = include_str!("../capabilities/chat.json");
 const MAIN_RS: &str = include_str!("../src/main.rs");
 
 type Names = BTreeSet<String>;
@@ -17,7 +17,7 @@ fn quoted_between(source: &str, start: &str, end: &str) -> Vec<String> {
 	lines.filter_map(|line| line.trim().trim_end_matches(',').strip_prefix('"')?.strip_suffix('"')).map(str::to_owned).collect()
 }
 
-/// `allow-terminal-add-file` is the permission for the command `terminal_add_file`.
+/// `allow-show-in-folder` is the permission for the command `show_in_folder`.
 fn command_of_permission(permission: &str) -> String {
 	permission.strip_prefix("allow-").unwrap_or(permission).replace('-', "_")
 }
@@ -51,7 +51,7 @@ fn the_three_command_lists_name_the_same_commands() {
 	assert!(problems.is_empty(), "{}", problems.join("\n"));
 }
 
-/// What the terminal window's page must never reach: the main window's own, the updater, the
+/// What the chat window's page must never reach: the main window's own, the updater, the
 /// folder picker, printing and file paths, and the call that opens the window itself.
 const MAIN_ONLY: [&str; 12] = [
 	"show_window",
@@ -65,15 +65,15 @@ const MAIN_ONLY: [&str; 12] = [
 	"apply_app_icon",
 	"print_pdf",
 	"drag_paths",
-	"terminal_window_open",
+	"chat_window_open",
 ];
 
 #[test]
-fn the_terminal_window_may_call_only_some_of_the_commands() {
-	let (terminal, main) = (capability_commands(TERMINAL_CAPABILITY), capability_commands(CAPABILITY));
-	assert!(terminal.len() > 10, "the capability was not read: {terminal:?}");
-	let unknown: Vec<&String> = terminal.difference(&main).collect();
-	assert!(unknown.is_empty(), "capabilities/terminal.json names commands main.json does not: {unknown:?}");
-	let forbidden: Vec<&String> = terminal.iter().filter(|command| MAIN_ONLY.contains(&command.as_str())).collect();
-	assert!(forbidden.is_empty(), "capabilities/terminal.json grants main-only commands: {forbidden:?}");
+fn the_chat_window_may_call_only_some_of_the_commands() {
+	let (chat, main) = (capability_commands(CHAT_CAPABILITY), capability_commands(CAPABILITY));
+	assert!(chat.len() > 5, "the capability was not read: {chat:?}");
+	let unknown: Vec<&String> = chat.difference(&main).collect();
+	assert!(unknown.is_empty(), "capabilities/chat.json names commands main.json does not: {unknown:?}");
+	let forbidden: Vec<&String> = chat.iter().filter(|command| MAIN_ONLY.contains(&command.as_str())).collect();
+	assert!(forbidden.is_empty(), "capabilities/chat.json grants main-only commands: {forbidden:?}");
 }

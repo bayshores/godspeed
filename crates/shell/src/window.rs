@@ -1,5 +1,5 @@
 //! The main window: built hidden on the boot page while the server starts, then sent to the app.
-//! Every app window (`base_builder`, the terminal window too) keeps to the app origin, sends web
+//! Every app window (`base_builder`, the chat window too) keeps to the app origin, sends web
 //! links to the browser and saves downloads where the learner picks. The main window also
 //! follows the page's title and shows itself once the page has drawn.
 //!
@@ -18,20 +18,18 @@ use tauri::webview::{DownloadEvent, NewWindowResponse, PageLoadEvent};
 use tauri::window::Color;
 use tauri::{AppHandle, Manager, State, Url, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Wry};
 
-use crate::commands::{AppOrigin, trusted, trusted_terminal};
+use crate::commands::{AppOrigin, trusted, trusted_any};
 use crate::lock::lock;
 use crate::paths::Paths;
 use crate::push::push;
 use crate::server::Server;
-use crate::{log, terminal_window, zoom};
+use crate::{chat_window, log, zoom};
 
-/// The labels of the app's windows. The terminal window shows only the teacher's terminal.
+/// The labels of the app's windows. The chat window shows only the teacher panel's chat.
 pub const MAIN: &str = "main";
-pub const TERMINAL: &str = "terminal";
+pub const CHAT: &str = "chat";
 /// Every window with an app page.
-pub const WINDOWS: [&str; 2] = [MAIN, TERMINAL];
-/// The windows that can show a terminal.
-pub const TERMINAL_WINDOWS: [&str; 2] = WINDOWS;
+pub const WINDOWS: [&str; 2] = [MAIN, CHAT];
 
 /// Graphite, the window's color when no background is picked.
 const GRAPHITE: Color = Color(0x16, 0x16, 0x16, 0xff);
@@ -131,7 +129,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 					page.loaded.store(true, Ordering::SeqCst);
 					let app = window.app_handle();
 					zoom::push_current(app);
-					terminal_window::push_current(app);
+					chat_window::push_current(app);
 					flush_waiting(app);
 					if show_armed.swap(false, Ordering::SeqCst) {
 						show_later(window);
@@ -337,7 +335,7 @@ pub fn bring_forward(app: &AppHandle, page: Option<&str>) {
 /// A web or mail link the learner clicked in the page (shim.js).
 #[tauri::command]
 pub fn open_link(webview: Webview, origin: State<AppOrigin>, url: String) -> Result<(), String> {
-	trusted_terminal(&webview, &origin)?;
+	trusted_any(&webview, &origin)?;
 	let url: Url = url.parse().map_err(|_| "Not a link.".to_owned())?;
 	if route(&url, &origin.0) != Route::Browser {
 		return Err("Not a web link.".to_owned());
@@ -371,7 +369,7 @@ pub fn own_window(webview: &Webview) -> Result<WebviewWindow, String> {
 /// page's own window.
 #[tauri::command]
 pub fn start_drag(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
-	trusted_terminal(&webview, &origin)?;
+	trusted_any(&webview, &origin)?;
 	own_window(&webview)?.start_dragging().map_err(|e| e.to_string())
 }
 

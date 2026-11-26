@@ -1,5 +1,5 @@
 //! What a program godspeed starts runs under: the app's own variables it must not inherit, and
-//! the login shell that reads the learner's profile. The terminal and the agent runtime share them.
+//! the login shell that reads the learner's profile. The agent runtime uses them.
 
 use std::ffi::OsStr;
 use std::path::Path;

@@ -1,7 +1,7 @@
 /**
  * Tests for the resolution layer: core/settings-resolution.ts — the
  * delta→concrete projection. There are no model settings anymore: the
- * outside agent (MCP) is the only model.
+ * learner's own agent is the only model.
  */
 
 import assert from "node:assert/strict";

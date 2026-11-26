@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useRouteLoaderData } from "react-router";
 import { useActivity } from "@/frontend/components/activity-dock";
-import { useAgentStatus } from "@/frontend/components/agent-status";
 import { compact } from "@/frontend/components/agent-setup/agent-card-model";
 import { useAgentSetup } from "@/frontend/components/agent-setup/agent-setup-context";
 import { useMinute } from "@/frontend/components/countdown";
@@ -10,9 +9,6 @@ import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { teacherHead } from "@/frontend/components/teacher/teacher-panel";
-import { teacherTerminalState } from "@/frontend/components/terminal/terminal-model";
-import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { goLabel } from "@/frontend/components/top-bar/top-bar-model";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { prefersReducedMotion } from "@/frontend/components/presence";
@@ -27,8 +23,6 @@ import { useReadyLessons } from "./use-ready-lessons";
  */
 export function useStrip() {
 	const teacher = useTeacher();
-	const agent = useAgentStatus();
-	const terminals = useTerminals();
 	const { spaces } = useSpaces();
 	const openInSpace = useOpenInSpace();
 	const { feed } = useActivity();
@@ -43,24 +37,23 @@ export function useStrip() {
 	const name = teacher?.name ?? "";
 	const doing = teacher?.doing ?? null;
 	const panelOpen = teacher?.panelOpen ?? false;
-	const teacherFacts = terminals?.facts ?? null;
-	const terminal = teacherTerminalState(teacherFacts);
 	const requests = useMemo(() => (feed.requests ?? []).map((r) => r.title), [feed.requests]);
 	const work = useMemo(() => workProgress({ spaces, extractions: feed.extractions, jobs: feed.jobs, requests }), [spaces, feed.extractions, feed.jobs, requests]);
 	const waiting = teacher?.waiting ?? null;
 	// A reply in the panel's chat is work too, though its thread shows it there.
 	const talkWorking = !!teacher?.talk.chats?.some((c) => c.running);
 	const view = useMemo(
-		() => stripView({ agent, terminal, talkWaits: !!waiting?.talk, working: !!doing?.working || talkWorking, work, ready, asking: waiting?.lessons ?? [], panelOpen }),
-		[agent, terminal, waiting, doing, talkWorking, work, ready, panelOpen],
+		() => stripView({ talkWaits: !!waiting?.talk, working: !!doing?.working || talkWorking, work, ready, asking: waiting?.lessons ?? [], panelOpen }),
+		[waiting, doing, talkWorking, work, ready, panelOpen],
 	);
-	// While the agent can't run the peek says why, unlit: a skipped setup is not nagged about.
+	// While the agent can't run the peek says why, quietly: a skipped setup is not nagged about.
 	const { health, update } = useAgentSetup();
 	const cantRun = compact(health, update)?.sentence ?? null;
-	// The open panel's head says the teacher's status: the peek leaves it out.
+	// What stops the agent, else as the panel's head: the work it does, else its name. The open
+	// panel's head says it, so the peek leaves it out.
 	const status = useMemo(
-		() => (panelOpen ? null : cantRun ? { status: cantRun, lit: false, working: false } : teacherHead({ agent, name, doing, facts: teacherFacts })),
-		[panelOpen, cantRun, agent, name, doing, teacherFacts],
+		() => (panelOpen ? null : cantRun ? { status: cantRun, working: false } : doing?.working ? { status: doing.text, working: true } : { status: name, working: false }),
+		[panelOpen, cantRun, doing, name],
 	);
 	const due = useMemo(() => (deadlines && minute !== null ? dueSoon(deadlines, minute, pathname) : null), [deadlines, minute, pathname]);
 

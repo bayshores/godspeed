@@ -7,7 +7,6 @@
 
 import { useCallback, useEffect, useId, useState } from "react";
 import { PART_NAMES, type PromptSegmentInfo, type TeachingArea } from "@/shared/core";
-import { inTerminal } from "@/frontend/components/focus-hygiene";
 import { jsonInit, send } from "@/frontend/lib/api";
 import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -51,7 +50,7 @@ export function InstructionsPanel({
 	}, [busy, asking, unsaved, onClose]);
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key !== "Escape" || inTerminal(e)) return;
+			if (e.key !== "Escape") return;
 			e.stopPropagation();
 			leave();
 		};

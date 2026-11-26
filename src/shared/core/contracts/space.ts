@@ -125,7 +125,7 @@ const DEADLINE_KINDS = ["exam", "homework", "quiz", "project", "interview"] as c
 export type DeadlineKind = (typeof DEADLINE_KINDS)[number];
 
 /** One deadline of a space: added by the learner (Edit space) or by an
- *  outside agent from the syllabus (MCP add_space_deadline). Its topics are
+ *  teacher from the syllabus (add_space_deadline). Its topics are
  *  the topics with facts born in its files. */
 export interface SpaceDeadline {
 	/** "ddl_" + 12 hex. Deadlines upgraded from v2 exams keep their "exm_" id. */

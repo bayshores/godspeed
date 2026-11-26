@@ -44,9 +44,9 @@ The lesson page (the step line, the lesson text, the turn, the writing row and w
 | Nothing, while the teacher writes | Tell (teacher's name) what to focus on | Send |
 | A "My words" ask at the lesson's end | One or two sentences | Done for today, Skip, Save |
 
-One key is bright, the one Enter presses: Submit answer, or the ask key under choices while nothing is picked, or the ask or Send key when it is the only one and no next key ends the row, or Save once the words can be saved. The field is one line tall and grows with its text to five lines. `sendBox` in `chat.tsx` sends through `sendLine`, which a line typed in the teacher's terminal on a lesson page goes through too: the line steers a reply being written (a steer carries no files, so files wait), is a side question while a question waits, or is the next message. The "Give me a hint" and "Explain it simpler" keys send those words the same way. "I don't know" answers the question: `dontKnow: true`, or for `ask_user_question` the words as its answer (`dontKnowRequest`).
+One key is bright, the one Enter presses: Submit answer, or the ask key under choices while nothing is picked, or the ask or Send key when it is the only one and no next key ends the row, or Save once the words can be saved. The field is one line tall and grows with its text to five lines. `sendBox` in `chat.tsx` sends through `sendLine`: the line steers a reply being written (a steer carries no files, so files wait), is a side question while a question waits, or is the next message. The "Give me a hint" and "Explain it simpler" keys send those words the same way. "I don't know" answers the question: `dontKnow: true`, or for `ask_user_question` the words as its answer (`dontKnowRequest`).
 
-- A side question is the field's words sent with its ask key while a question waits. Enter asks only under a question with choices while nothing is picked; with a pick Enter submits and the words are the reasoning. A line typed in the teacher's terminal while a question waits is a side question too.
+- A side question is the field's words sent with its ask key while a question waits. Enter asks only under a question with choices while nothing is picked; with a pick Enter submits and the words are the reasoning.
 - It posts a `side` input event, refused unless a question waits. The server saves it as a user message with `side: true` (`new_side_question`, `core::messages::native_messages`). Pictures and PDFs are stored like any message's.
 - Question stays open: `dangling_question_of` looks past side questions and their replies.
 - `is_side_turn` marks reply turn. A job result arriving after side question ends it.
@@ -161,4 +161,4 @@ Rules:
 
 In the window, a wake turn is adopted like a turn in progress (`turnInFlight`); steers render as artifact cards, never chat bubbles.
 
-Sub-agents check their work before delivering. The demo-builder runs its HTML in the shell's hidden web view. A figure's render (resvg, or the shell's web view for an SVG resvg cannot draw) goes back to the teacher as an image, so the outside agent must accept images.
+Sub-agents check their work before delivering. The demo-builder runs its HTML in the shell's hidden web view. A figure's render (resvg, or the shell's web view for an SVG resvg cannot draw) goes back to the teacher as an image, so the agent must accept images.

@@ -14,11 +14,11 @@
 | `log.rs` | `main.log` writer, rotation, panic hook. |
 | `old_app.rs` | Whether Electron runs on this userData; writes and removes `shell.pid`. |
 | `first_run.rs` | One-time data backup, cleanup of Electron leftovers. |
-| `quit.rs` | The one exit routine: stop the agents' terminals, then the server, clean up, install a downloaded update. |
-| `server.rs` | Port choice, secret, spawn, ready wait, login tokens, restarts, stop, `mcp-endpoint.json`. |
-| `rpc.rs` | Reads the server's stdout lines, queues demo work, passes notifications, line clears, page opens and the menu bar countdown on, and writes replies to its stdin. |
+| `quit.rs` | The one exit routine: stop the server, clean up, install a downloaded update. |
+| `server.rs` | Port choice, secret, spawn, ready wait, login tokens, the folder question, restarts, stop. |
+| `rpc.rs` | Reads the server's stdout lines, queues demo work, passes notifications, page opens and the menu bar countdown on, and writes replies to its stdin. |
 | `notify.rs` | System notifications the server asks for. |
-| `terminal_window.rs` | The terminal window: its place and size, its commands, the `terminal-window` push. |
+| `chat_window.rs` | The chat window: the teacher panel's chat popped out, its place and size, its commands, the `chat-window` push. |
 | `window.rs` | Window labels, the builder every window shares, main window, navigation rules, `open_link`, show fallback, title, downloads, pending `open-settings` push, window commands. |
 | `menu.rs` | Application menu, and the handler for every menu click, the menu bar item's too. |
 | `menu_bar_countdown.rs` | Mac only: the menu bar item (the g logo, the time left to the nearest deadline, a menu of the coming ones), drawn from the server's `menu_bar_countdown` lines. |
@@ -26,7 +26,6 @@
 | `commands.rs` | Trust check `trusted()` and OS commands. Mac-only commands sit in its `appkit` module. |
 | `fonts.rs` | Installed font families for `list_fonts`. |
 | `open.rs` | App bundle checks, open path, show in folder. |
-| `terminal/` | The agents' terminals: records and threads (`mod.rs`), commands (`commands.rs`), start script in a pseudo-terminal per OS (`spawn.rs`), screen and what the shell recognises on it (`screen.rs`). See [Terminals](terminals.md#terminals). |
 | `bug_report.rs` | Issue URL. |
 | `update.rs` | Updater state, checks, download, update commands, the install step `quit.rs` calls. |
 | `restarts.rs` | Restart limit. |
@@ -41,9 +40,9 @@
 
 | Folder | Holds |
 |---|---|
-| `mac/` | `app_icon.rs` (the app icon picked in Settings), `clipboard.rs` (Paste text), `demo.rs` (hidden WKWebView demo runner, SVG snapshot), `print.rs` (PDFKit printing), `window.rs` (drag pasteboard paths, title bar double-click setting, WebKit text defaults, traffic-light title fix), `fonts.rs` (`NSFontManager` families), `screens.rs` (lab snapshots, the unseen window). |
-| `win/` | `drop.rs` (dropped file paths through WebView2 `WebMessageReceived`), `demo.rs` (demo window's browser arguments, SVG snapshot), `clipboard.rs` (Paste text), `job.rs` (Job Object holding a terminal's processes), `path.rs` (fresh registry `Path` for a terminal). |
-| `linux/` | `demo.rs` (WebKitGTK content filter for the demo window, via `webkit2gtk-sys`), `clipboard.rs` (GTK Paste text). |
+| `mac/` | `app_icon.rs` (the app icon picked in Settings), `demo.rs` (hidden WKWebView demo runner, SVG snapshot), `print.rs` (PDFKit printing), `window.rs` (drag pasteboard paths, title bar double-click setting, WebKit text defaults, traffic-light title fix), `fonts.rs` (`NSFontManager` families), `screens.rs` (lab snapshots, the unseen window). |
+| `win/` | `drop.rs` (dropped file paths through WebView2 `WebMessageReceived`), `demo.rs` (demo window's browser arguments, SVG snapshot). |
+| `linux/` | `demo.rs` (WebKitGTK content filter for the demo window, via `webkit2gtk-sys`). |
 
 ### Rules
 

@@ -24,6 +24,9 @@ export const TALK_HOLDS = "run my slope checker";
 export const PRINTED_HOLDS = "The loop ends because i grows each time.";
 /** A teacher panel chat message with these words is the teacher's round of work that Follow's slip shows (layout-helper.mjs). */
 export const TALK_ROUND = "Update Lab Algebra";
+/** A teacher panel chat message that starts with these words is one of the seed's tool calls, as JSON
+ *  after them; the stand-in helper calls the tool and replies with its answer (layout-seed.mjs). */
+export const SEED_CALL = "Layout seed call: ";
 
 export const FIRST_TOPIC = "Solving linear equations by graphing";
 /** The lesson whose reply the helper holds; its address sends the first message (layout-screens.mjs). */

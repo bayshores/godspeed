@@ -32,13 +32,12 @@ Object.assign(globalThis, {
 // Nothing here answers a request.
 globalThis.fetch = (() => new Promise(() => {})) as typeof fetch;
 
-const { TeacherPanel, agentLine, teacherHead } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
+const { TeacherPanel } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
 const { PANEL_WIDTH, panelLayout, panelBody } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/teacher/teacher-activity.tsx");
 const { PanelHead } = await import("../../src/frontend/components/teacher/panel-head.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
-import type { TerminalFacts } from "../../src/frontend/components/terminal/terminal-model.ts";
 const { DEFAULT_TEACHER_NAME } = await import("../../src/shared/core/settings.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { MemoryRouter } = await import("react-router");
@@ -66,9 +65,6 @@ const ACTIONS: AgentAction[] = [
 	{ id: "a1", at: "2026-10-28T22:52:00.000Z", agent: "Claude Code", label: "Reading notes", spaceId: null, target: null, page: "javascript:alert(1)" },
 ];
 const names = (id: string | null) => (id === "cls_29" ? "CSE 29" : null);
-
-const IDLE = { connected: false, turnsRunning: 0 };
-const TEACHING = { ...IDLE, connected: true, name: "Claude Code" };
 
 type PanelProps = React.ComponentProps<typeof TeacherPanel>;
 /** The panel while its chat is in a window of its own: Activity is its body. */
@@ -112,12 +108,6 @@ describe("the panel", () => {
 		assert.match(section, new RegExp(`width:${PANEL_WIDTH.initial}px;height:100%`));
 		assert.doesNotMatch(section, /border-l|bg-panel|blur/);
 	});
-	it("the status line says what the teacher does, else that it is on while its terminal agent is connected, else ready; never off", () => {
-		assert.equal(agentLine(null, "Ada"), null, "nothing until the first read");
-		assert.equal(agentLine(IDLE, "Ada"), "Ready", "lessons and jobs need no terminal");
-		assert.equal(agentLine({ ...IDLE, connected: true, name: "Codex" }, "Ada"), "Ada is on", "the teacher's name, never the program's");
-		assert.equal(agentLine({ ...IDLE, connected: true }, "Ada", { text: "Reading a PDF", working: true }), "Reading a PDF");
-	});
 	it("is as wide as the learner left it, pushing the page while it keeps 480 px", () => {
 		const docked = (w: number, wanted: number) => panelLayout(w, w, wanted);
 		assert.deepEqual(docked(1440, 440), { width: 440, push: 440 });
@@ -141,22 +131,6 @@ describe("the panel", () => {
 		assert.deepEqual(panelLayout(1400, 1400, 620), { width: 620, push: 620 });
 		assert.deepEqual(panelLayout(1400, 900, 620), { width: 420, push: 420 }, "the page keeps 480");
 		assert.deepEqual(panelLayout(1400, 700, 900), { width: 900, push: 0 }, "no room for even the narrowest: it covers the page");
-	});
-	it("the head says the terminal's line while it starts or needs the learner, else the status line", () => {
-		const T0 = 1_000_000;
-		const facts = (over: Partial<TerminalFacts> = {}, prompt: "menu" | null = null): TerminalFacts => ({
-			term: { id: "t1", agent: "claude", startedAt: T0, ended: null, prompt, url: false },
-			checkedIn: true,
-			outsideHere: false,
-			now: T0 + 1000,
-			...over,
-		});
-		const doing = { text: "Reading notes", working: true };
-		assert.deepEqual(teacherHead({ agent: IDLE, name: "Ada", doing: null, facts: null }), { status: "Ready", lit: false, working: false });
-		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing, facts: null }), { status: "Reading notes", lit: false, working: true }, "the square breathes while the line is the work it does");
-		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing, facts: facts({ checkedIn: false }) }), { status: "Ada is starting.", lit: false, working: false });
-		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing, facts: facts({}, "menu") }), { status: "Ada is asking you something.", lit: true, working: false });
-		assert.deepEqual(teacherHead({ agent: TEACHING, name: "Ada", doing: null, facts: null }), { status: "Ada is on", lit: false, working: false });
 	});
 	it("is its chat, or Activity while the chat is in a window of its own", () => {
 		assert.equal(panelBody(false), "chat");

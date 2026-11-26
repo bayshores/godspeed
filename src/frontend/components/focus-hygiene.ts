@@ -87,16 +87,11 @@ export function dialogTabTarget<T>(controls: readonly T[], active: T | null, ins
 	return null;
 }
 
-/** A key typed into an agent's live screen: every key there is the agent's. */
-export function inTerminal(e: KeyboardEvent): boolean {
-	return !!(e.target as Element | null)?.closest?.("[data-terminal-screen]");
-}
-
 /** Keeps Tab inside the topmost open modal dialog (any element with
  *  aria-modal="true" outside an inert, closing layer). Run it in the
  *  capture phase so no surface's own Tab handling sees a wrapped key. */
 export function trapTabInDialog(e: KeyboardEvent): void {
-	if (e.key !== "Tab" || e.metaKey || e.ctrlKey || e.altKey || inTerminal(e)) return;
+	if (e.key !== "Tab" || e.metaKey || e.ctrlKey || e.altKey) return;
 	const dialog = [...document.querySelectorAll<HTMLElement>('[aria-modal="true"]')].filter((d) => !d.closest("[inert]")).at(-1);
 	if (!dialog) return;
 	// A control with no box (display: none) can't take focus.

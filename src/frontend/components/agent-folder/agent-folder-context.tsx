@@ -13,8 +13,6 @@ import { pickAgent, pickModel as patchModel, postAgentFolder, sendOldAgent } fro
 interface FolderState {
 	/** null until read. */
 	view: FolderView | null;
-	/** Read it again: a terminal start may have made the folder. */
-	reload: () => Promise<void>;
 	/** One action; its answer becomes the view. Throws the line to show. */
 	post: (body: object) => Promise<FolderView>;
 	/** The agent that runs the lessons, picked. Throws the line to show. */
@@ -29,7 +27,7 @@ interface FolderState {
 const FolderContext = createContext<FolderState | null>(null);
 
 export function AgentFolderProvider({ children }: { children: ReactNode }) {
-	const { value: view, reload, update } = useServerResource<FolderView>("/api/agent-folder");
+	const { value: view, update } = useServerResource<FolderView>("/api/agent-folder");
 	const [removed, setRemoved] = useState<OldSetup | null>(null);
 	const post = useCallback(
 		async (body: object) => {
@@ -58,13 +56,13 @@ export function AgentFolderProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		sendOldAgent(pick).catch((err: unknown) => console.error("[agent folder] the agent this window kept could not be sent:", err));
 	}, [pick]);
-	const value = useMemo(() => ({ view, reload, post, pick, pickModel, removed, setRemoved }), [view, reload, post, pick, pickModel, removed]);
+	const value = useMemo(() => ({ view, post, pick, pickModel, removed, setRemoved }), [view, post, pick, pickModel, removed]);
 	return <FolderContext.Provider value={value}>{children}</FolderContext.Provider>;
 }
 
 /** Outside a provider (isolated renders, tests): nothing read, and posts
  *  that still reach the server. */
-const OUTSIDE: FolderState = { view: null, reload: async () => {}, post: postAgentFolder, pick: pickAgent, pickModel: patchModel, removed: null, setRemoved: () => {} };
+const OUTSIDE: FolderState = { view: null, post: postAgentFolder, pick: pickAgent, pickModel: patchModel, removed: null, setRemoved: () => {} };
 
 export function useAgentFolderView(): FolderState {
 	return useContext(FolderContext) ?? OUTSIDE;

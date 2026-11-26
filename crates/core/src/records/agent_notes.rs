@@ -1,4 +1,4 @@
-//! Notes an outside agent saves about the learner.
+//! Notes the teacher saves about the learner.
 
 use gs_base::re::collapse_spaces;
 use gs_base::text;

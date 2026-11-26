@@ -65,14 +65,13 @@ describe("readTeacherWork", () => {
 	it("keeps a well-formed round, its links and the chat whose turn it is", () => {
 		const raw = { live: true, since: at(0), chatId: "chat_1", steps: [{ id: "s", at: at(1), text: "Reading a.pdf", link: { spaceId: "spc", fileId: "f", name: "a.pdf", passage: 3 } }] };
 		assert.deepEqual(readTeacherWork(raw), raw);
-		assert.equal(readTeacherWork({ ...raw, chatId: null }).chatId, null, "a terminal's round");
 	});
 	it("drops what is not a step, and a link it can't open", () => {
-		const raw = { live: true, since: at(0), steps: [{ id: "s", at: at(1), text: "Reading a.pdf", link: { spaceId: "spc", fileId: "f" } }, { id: "", at: at(1), text: "x" }, null] };
-		assert.deepEqual(readTeacherWork(raw), { live: true, since: at(0), chatId: null, steps: [{ id: "s", at: at(1), text: "Reading a.pdf" }] });
+		const raw = { live: true, since: at(0), chatId: "chat_1", steps: [{ id: "s", at: at(1), text: "Reading a.pdf", link: { spaceId: "spc", fileId: "f" } }, { id: "", at: at(1), text: "x" }, null] };
+		assert.deepEqual(readTeacherWork(raw), { live: true, since: at(0), chatId: "chat_1", steps: [{ id: "s", at: at(1), text: "Reading a.pdf" }] });
 	});
 	it("reads anything else as no round", () => {
-		for (const raw of [null, {}, { live: false, since: null, steps: [] }, { live: true, since: null, steps: [] }, "x"]) {
+		for (const raw of [null, {}, { live: false, since: null, steps: [] }, { live: true, since: null, steps: [] }, { live: true, since: at(0), steps: [] }, "x"]) {
 			assert.deepEqual(readTeacherWork(raw), { live: false, since: null, chatId: null, steps: [] });
 		}
 	});

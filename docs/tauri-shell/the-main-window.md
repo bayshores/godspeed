@@ -14,7 +14,7 @@
 | Windows browser arguments | `--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required`. WebView2 refuses a second webview with other arguments in the same profile, which is why the demo window has its own. |
 | Debug builds | Mac: `data_store_identifier(*b"godspeed-dev-web")`. Windows and Linux: `data_directory(<userData>/webview)`. A debug build never shares localStorage or cookies with the installed app. |
 
-Every app window, the terminal window too, is built from `window::base_builder`: the shim, the navigation and new-window rules, downloads, the window color, the page's own drops, the Windows browser arguments and the debug profile above, and `allow_link_preview(false)` on the Mac.
+Every app window, the chat window too, is built from `window::base_builder`: the shim, the navigation and new-window rules, downloads, the window color, the page's own drops, the Windows browser arguments and the debug profile above, and `allow_link_preview(false)` on the Mac.
 
 ### Mac traffic lights
 
@@ -26,7 +26,7 @@ WebKit has no `-webkit-app-region`, so the shim copies Chromium's rule.
 
 1. On a plain primary `mousedown` while `html.lh-desktop[data-lh-platform="darwin"]` matches, the shim walks `.lh-drag, .lh-no-drag, .lh-drag :is(button, input, textarea, select, a, summary, [contenteditable])` in document order.
 2. The last element under the point decides: drag unless it matches the no-drag part.
-3. On a drag, the shim calls `preventDefault()` and invokes `start_drag`. It drags the window the page is in (main, or the terminal window, whose head is a drag area too).
+3. On a drag, the shim calls `preventDefault()` and invokes `start_drag`. It drags the window the page is in (main, or the chat window, whose head is a drag area too).
 4. The second press of a double click starts no drag, because the drag would swallow the mouse-up and WebKit would never send `dblclick`. That press remembers its point instead.
 5. A `mouseup` with `detail === 2` at the same point invokes `title_bar_double_click`. It reads `AppleActionOnDoubleClick`: `Minimize` minimizes, `None` does nothing, anything else toggles zoom.
 
@@ -34,11 +34,11 @@ Windows and Linux have no drag areas.
 
 ### Zoom
 
-Ladder: `[0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]`. Applying a factor sets the webview zoom of every open app window, stores it and pushes `zoom` to each. A terminal window made later starts at the stored factor.
+Ladder: `[0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]`. Applying a factor sets the webview zoom of every open app window, stores it and pushes `zoom` to each. A chat window made later starts at the stored factor.
 
 - The menu owns `CmdOrCtrl+0`, `CmdOrCtrl+=` and `CmdOrCtrl+-`. muda has no Plus key.
 - The shim's `keydown` listener catches the keys the menu does not claim (⌘ or Ctrl with `=`, `+`, `-` or `0`) and calls `zoom_step` or `zoom_reset`. Menu keys never reach the page, so exactly one applies.
-- A trackpad pinch, or a scroll with ⌘ or Ctrl held, does not change the factor: the shim sends it to the page as an `lh-pinch` event on `window` (`{ by, x, y }`: how much bigger, and the pointer's point), and the page magnifies there ([Magnifier](magnifier-menu-bar-and-icon.md#magnifier)). One mouse notch is a quarter at most. Its listeners are in the capture phase, before the terminal takes the wheel.
+- A trackpad pinch, or a scroll with ⌘ or Ctrl held, does not change the factor: the shim sends it to the page as an `lh-pinch` event on `window` (`{ by, x, y }`: how much bigger, and the pointer's point), and the page magnifies there ([Magnifier](magnifier-menu-bar-and-icon.md#magnifier)). One mouse notch is a quarter at most. Its listeners are in the capture phase, before any listener on the page.
   - A pinch reaches it as `wheel` events with Ctrl held, and in WebKit on the Mac as `gesturestart`, `gesturechange` and `gestureend` too. A pinch counted from its gesture events is not counted again from its wheels.
   - Wheels less than 100 ms apart are one run, and the keys at its start decide for all of it, so a key pressed while a scroll coasts does not magnify.
   - A view that zooms itself (the graph, a cheat sheet, a diagram or plan in focus) takes its wheel with `ownWheel` in `src/frontend/lib/own-wheel.ts`, which marks it `data-lh-own-zoom`. The shim leaves a wheel or pinch over that mark alone.
@@ -63,7 +63,7 @@ The magnifier is in [magnifier-menu-bar-and-icon.md](magnifier-menu-bar-and-icon
 | Window | Mac: Minimize, Zoom, separator, Bring All to Front, set as the windows menu. Windows: Minimize, Close Window. Linux: custom Minimize and Close Window. |
 | Help | Report a Bug…; on the Mac set as the help menu. |
 
-The bar's order on the Mac is godspeed, File, Edit, View, Go, Window, Help. Windows and Linux have no File or Go menu: their keys would be Ctrl keys, which the agent's terminal needs (Ctrl+[ is Esc).
+The bar's order on the Mac is godspeed, File, Edit, View, Go, Window, Help. Windows and Linux have no File or Go menu.
 
 Settings…, Check for Updates… and every File and Go item except Open godspeed Folder reopen the window if gone, unminimize and focus it. Check for Updates… then pushes `open-settings` with `general` and starts a manual check. Settings… and a File or Go item push `menu` with the item's id: a keyboard action id (`open-settings`, `new-session`, `sessions-search`, `jump-graph`), `go:<path>`, `back` or `forward`. The page runs it (`keyboard-shortcuts.tsx`). Menu keys never reach the page, so each runs once.
 
@@ -84,25 +84,25 @@ The Mac menu bar countdown is in [magnifier-menu-bar-and-icon.md](magnifier-menu
 
 ### Single instance
 
-Release builds register `tauri_plugin_single_instance` first. Debug builds skip it, so `tauri dev` runs beside the installed app. A second launch unminimizes and focuses the main window if visible, otherwise does nothing; the terminal window is never brought forward by it. The plugin does not see a running Electron godspeed; see [The old app still open](data.md#the-old-app-still-open).
+Release builds register `tauri_plugin_single_instance` first. Debug builds skip it, so `tauri dev` runs beside the installed app. A second launch unminimizes and focuses the main window if visible, otherwise does nothing; the chat window is never brought forward by it. The plugin does not see a running Electron godspeed; see [The old app still open](data.md#the-old-app-still-open).
 
 ### Window lifecycle
 
 - Mac: closing the window keeps the app running. `RunEvent::ExitRequested` with no code is the only prevented exit.
 - Mac: `RunEvent::Reopen` creates the window again and logs it in when no `main` window exists. It does nothing while the server is not managed yet (the old-app dialog, a failed port choice).
-- Destroying the main window destroys the terminal window too (`RunEvent::WindowEvent`, `terminal_window::close`). On the Mac the last window is then gone, so the app keeps running as above.
+- Destroying the main window destroys the chat window too (`RunEvent::WindowEvent`, `chat_window::close`). On the Mac the last window is then gone, so the app keeps running as above.
 - Windows and Linux: when the main window is destroyed, the shell calls `app.exit(0)`. A `demo` window would otherwise keep the process alive.
 - A server restart reloads every open app window.
 - Every way out ends in `RunEvent::Exit`, where `quit.rs` runs. See [Shutdown](the-server-child.md#shutdown).
 
-### The terminal window
+### The chat window
 
-The teacher panel's chat popped out beside the main window (the shell still names it the terminal window). The page is `/terminal-window` (`routes/terminal-window.tsx`: the providers the main window has, from `routes/app-providers.tsx`, and no app frame, top bar or teacher provider); the shell only makes the window. The page is the teacher panel's head with only "Put back", and the chat the panel showed (`teacher/chat-window.tsx`). On the Mac the head is the title bar: it has the shim's drag class and the traffic lights' gutter.
+The teacher panel's chat popped out beside the main window. The page is `/chat-window` (`routes/chat-window.tsx`: the providers the main window has, from `routes/app-providers.tsx`, and no app frame, top bar or teacher provider); the shell only makes the window. The page is the teacher panel's head with only "Put back", and the chat the panel showed (`teacher/chat-window.tsx`). On the Mac the head is the title bar: it has the shim's drag class and the traffic lights' gutter.
 
 | Item | Value |
 |---|---|
-| Label | `terminal` (`window::TERMINAL`), one at a time, never open at launch. |
-| Made by | `terminal_window_open(title)` from the main window only. When the window exists, the call brings it forward instead (unminimize, show, focus). |
+| Label | `chat` (`window::CHAT`), one at a time, never open at launch. |
+| Made by | `chat_window_open(title)` from the main window only. When the window exists, the call brings it forward instead (unminimize, show, focus). |
 | Place | Its left edge on the main window's right edge, its top on the main window's top, on the screen the main window is on, inside that screen's work area. With no room at the right, it moves left until it fits and covers the main window's right part. Not remembered. |
 | Size | 720 × 900 logical, never taller than the main window's frame or the screen; minimum 400 × 300. The title bar's height is taken off the inner height after the build, so the frame is as tall as placed. Not remembered. |
 | Title | The name the page passes: control characters dropped, cut at 60 characters, `godspeed` when nothing is left. The page's own title is not followed. Windows and Linux show it in the system title bar. On the Mac the title bar is the page's, as main's is (overlay style, title hidden, the traffic lights centered on the page's head row at `{16, 28}`), and the name shows in Mission Control and the Window menu. |
@@ -111,9 +111,9 @@ The teacher panel's chat popped out beside the main window (the shell still name
 | Shown | Hidden until its first app page has loaded (then focused), or 5 s after it was made. In the screens lab it goes through `screens::appear` like main: unseen, never focused. |
 | Zoom | Shares main's factor (see Zoom). |
 | Focus | The app counts as focused when either window is: `notify.rs` shows no notification then. |
-| Closing | Its close button, `terminal_window_close` from either window ("Put back"), or the main window being destroyed. Nothing is remembered and nothing asks. |
+| Closing | Its close button, `chat_window_close` from either window ("Put back"), or the main window being destroyed. Nothing is remembered and nothing asks. |
 
-The shell owns whether it is open. It pushes `terminal-window` `{open}` to the main window when the window is made, when it is destroyed and after every load of the main page, so a reloaded main page knows. `terminal_window_close` also pushes `{open: false, back: true}`: a page asked to put the chat back, so the main page opens its panel on the chat, which the close button does not ask. When the window is destroyed the shell also detaches every terminal it showed (`Terminals::window_closed`), because its page cannot say so; the main page attaches again when its panel mounts the screen's view. Its page never starts the helper or wakes the teacher, so two windows never start two agents.
+The shell owns whether it is open. It pushes `chat-window` `{open}` to the main window when the window is made, when it is destroyed and after every load of the main page, so a reloaded main page knows. `chat_window_close` also pushes `{open: false, back: true}`: a page asked to put the chat back, so the main page opens its panel on the chat, which the close button does not ask.
 
 ### Links and navigation
 

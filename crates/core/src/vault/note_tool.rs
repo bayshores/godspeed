@@ -1,5 +1,5 @@
-//! The limits of the two vault tools, shared by the outside agent's schema, the lesson tool and
-//! the server's checks.
+//! The limits of the two vault tools, shared by the teacher panel chat's schema, the lesson tool
+//! and the server's checks.
 
 pub const TITLE_MAX: usize = 80;
 pub const TEXT_MAX: usize = 1_200;

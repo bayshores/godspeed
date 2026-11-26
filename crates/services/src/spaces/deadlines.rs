@@ -1,5 +1,5 @@
-//! A space's deadlines, added by the learner (Edit space) or an outside agent from the syllabus
-//! (MCP add_space_deadline). The store validates; these map its refusals.
+//! A space's deadlines, added by the learner (Edit space) or the teacher from the syllabus
+//! (add_space_deadline). The store validates; these map its refusals.
 
 use std::sync::Arc;
 

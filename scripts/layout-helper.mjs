@@ -25,14 +25,16 @@
  * asks for the slope checker holds its turn like a holding lesson (the desk's screens); one that
  * asks to update Lab Algebra is the teacher's round of work that Follow's slip shows (it reads the
  * space, searches the web and holds, and the desk file's `change` adds a homework in that round,
- * `done` takes it away and ends the turn); any other is answered at once with TALK_REPLY.
+ * `done` takes it away and ends the turn); one the seed sends (SEED_CALL) calls the tool it names
+ * and replies with the tool's answer as base64url JSON; any other is answered at once with
+ * TALK_REPLY.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
 import { jobAnswer } from "./layout-jobs.mjs";
-import { LESSONS, PLAN_ORDER_SENT_BACK, PRINTED_HOLDS, TALK_HOLDS, TALK_ROUND } from "./layout-lessons.mjs";
+import { LESSONS, PLAN_ORDER_SENT_BACK, PRINTED_HOLDS, SEED_CALL, TALK_HOLDS, TALK_ROUND } from "./layout-lessons.mjs";
 
 const DIR = process.env.LAYOUT_HELPER_DIR;
 const STATE = DIR && path.join(DIR, "state.json");
@@ -247,9 +249,23 @@ async function playRound(session) {
 	return finish(session, false);
 }
 
-/** A panel chat's turn: held while the learner asks for the slope checker, the teacher's round when
- *  they ask to update Lab Algebra, else one fixed reply. */
+/** One of the seed's tool calls: the tool's answer goes back as the reply, `{ isError, texts }` in
+ *  base64url, so the chat keeps it word for word. */
+async function playSeedCall(session, { name, arguments: args }) {
+	const call = newCall(name, args);
+	assistant(session, "", [call]);
+	const answer = await callTool(session, call);
+	if (answer.stopped) return finish(session, true);
+	const texts = (answer.content ?? []).filter((part) => part.type === "text").map((part) => part.text);
+	assistant(session, Buffer.from(JSON.stringify({ isError: !!answer.isError, texts })).toString("base64url"), []);
+	return finish(session, false);
+}
+
+/** A panel chat's turn: one of the seed's tool calls, held while the learner asks for the slope
+ *  checker, the teacher's round when they ask to update Lab Algebra, else one fixed reply. */
 async function playTalk(session, texts) {
+	const seed = texts.find((text) => text.startsWith(SEED_CALL));
+	if (seed) return playSeedCall(session, JSON.parse(seed.slice(SEED_CALL.length)));
 	if (texts.some((text) => text.includes(TALK_HOLDS))) {
 		await hold(session);
 		return finish(session, true);

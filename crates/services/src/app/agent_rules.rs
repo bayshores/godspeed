@@ -144,8 +144,8 @@ fn save(app: &App, text: &str, place: &Json, agent: Option<&str>) -> Result<Json
 	Ok(saved)
 }
 
-/// Save a rule for the learner. With `agent` (an outside agent's name, from the terminal) the
-/// window shows a notice; a lesson shows it in the chat. Ok has `rule`, `for` and `where`; Err
+/// Save a rule for the learner. With `agent` (the agent's name, from the teacher panel's chat)
+/// the window shows a notice; a lesson shows it in the chat. Ok has `rule`, `for` and `where`; Err
 /// is the message for the agent.
 pub fn save_rule_by_agent(app: &App, text: &str, place: &Json, agent: Option<&str>) -> Result<Json, String> {
 	save(app, text, place, agent).map_err(|failure| failure.message().to_owned())

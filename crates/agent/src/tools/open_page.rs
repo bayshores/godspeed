@@ -1,5 +1,5 @@
 //! open_page: a lesson's teacher, or the cheat sheet's agent, opens a page in the learner's
-//! window when they ask to see something, like the outside agent's tool of the same name.
+//! window when they ask to see something, like the teacher panel chat's tool of the same name.
 
 use std::sync::Arc;
 
@@ -37,7 +37,7 @@ mod tests {
 
 	use super::*;
 
-	/// The same tool as the outside agent's (tools.json), so a lesson's teacher opens pages the
+	/// The same tool as the teacher panel chat's (tools.json), so a lesson's teacher opens pages the
 	/// same way.
 	#[test]
 	fn takes_a_page_and_its_id() {

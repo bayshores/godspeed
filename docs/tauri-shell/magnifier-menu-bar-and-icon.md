@@ -9,7 +9,7 @@ How the page magnifies under a pinch, how the Mac menu bar item is drawn, and ho
 - The point under the pointer stays under it. The shown part never leaves the page's room. Pinching out to 100% ends it.
 - While magnified, a scroll moves the shown part. At the room's edge in that direction the scroll is the page's own.
 - A mini map in the page's bottom-left corner shows the shown part as a box. A press or drag on it moves the part there.
-- It ends on a page change and with a click on the bar word. The terminal window has no magnifier.
+- It ends on a page change and with a click on the bar word. The chat window has no magnifier.
 
 ## Menu bar countdown
 

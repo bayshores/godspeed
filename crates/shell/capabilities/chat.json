@@ -1,0 +1,19 @@
+{
+  "identifier": "chat",
+  "webviews": ["chat"],
+  "local": false,
+  "remote": { "urls": ["http://127.0.0.1:*"] },
+  "permissions": [
+    "allow-get-zoom",
+    "allow-set-zoom",
+    "allow-zoom-step",
+    "allow-zoom-reset",
+    "allow-open-link",
+    "allow-show-in-folder",
+    "allow-open-path",
+    "allow-start-drag",
+    "allow-title-bar-double-click",
+    "allow-chat-window-close",
+    "allow-chat-window-focus"
+  ]
+}

@@ -6,7 +6,6 @@ pub mod agent_notes;
 pub mod agent_rules;
 pub mod agent_actions;
 pub mod asked;
-pub mod mcp_token;
 pub mod search_key;
 pub mod jobs;
 pub mod graph;
@@ -45,7 +44,6 @@ pub struct Stores {
 	pub agent_rules: agent_rules::AgentRulesStore,
 	pub agent_actions: agent_actions::AgentActionsStore,
 	pub asked: asked::AskedStore,
-	pub mcp_token: mcp_token::McpTokenStore,
 	pub search_key: search_key::SearchKeyStore,
 	/// The lesson tools hold these for a whole turn, so they are shared.
 	pub jobs: Arc<jobs::JobStore>,
@@ -67,7 +65,6 @@ impl Stores {
 			agent_rules: agent_rules::AgentRulesStore::new(paths, locks),
 			agent_actions: agent_actions::AgentActionsStore::new(paths, locks),
 			asked: asked::AskedStore::new(paths, locks),
-			mcp_token: mcp_token::McpTokenStore::new(paths),
 			search_key: search_key::SearchKeyStore::new(paths),
 			jobs: Arc::new(jobs::JobStore::new(paths, events, locks)),
 			graphs: Arc::new(graph::GraphStores::new(paths, locks)),

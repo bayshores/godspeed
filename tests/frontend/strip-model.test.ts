@@ -7,9 +7,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { dueSoon, keepReady, noticeCount, stripClick, stripView } from "../../src/frontend/components/strip/strip-model.ts";
 
-const off = { connected: false, turnsRunning: 0 };
-const teaching = { ...off, connected: true, name: "Claude Code" };
-const nothing = { agent: teaching, terminal: null, talkWaits: false, working: false, work: null, ready: [], asking: [], panelOpen: false };
+const nothing = { talkWaits: false, working: false, work: null, ready: [], asking: [], panelOpen: false };
 const reading = { doing: "Reading files", count: "6 of 17" };
 const counting = { id: "l1", title: "Counting" };
 
@@ -18,20 +16,16 @@ describe("the strip at rest", () => {
 		assert.deepEqual(stripView(nothing), { square: "still", need: false, ask: null, flag: null, rows: [] });
 	});
 
-	it("its square breathes while the teacher works, and is hollow before the agent's state is read", () => {
+	it("its square breathes while the teacher works", () => {
 		assert.equal(stripView({ ...nothing, working: true }).square, "working");
-		assert.equal(stripView({ ...nothing, working: true, agent: null }).square, "off", "before the agent's state is read");
-		assert.equal(stripView({ ...nothing, agent: off }).square, "still", "lessons and jobs need no terminal");
-		assert.equal(stripView({ ...nothing, agent: null, terminal: "starting" }).square, "still", "godspeed's own terminal starts it");
-		assert.equal(stripView({ ...nothing, working: true, terminal: "needsYou" }).square, "still", "it waits for the learner");
+		assert.equal(stripView({ ...nothing, working: true, talkWaits: true }).square, "still", "it waits for the learner");
 	});
 
-	it("puts what waits for the learner on the highlighter: an agent's screen first, then a reply in another lesson", () => {
-		assert.deepEqual([stripView({ ...nothing, terminal: "needsYou" }).flag, stripView({ ...nothing, terminal: "needsYou" }).need], ["needs you", true]);
+	it("puts what waits for the learner on the highlighter: a card in the panel's chat first, then a reply in another lesson", () => {
 		assert.deepEqual([stripView({ ...nothing, talkWaits: true }).flag, stripView({ ...nothing, talkWaits: true }).need], ["needs you", true], "a card in the panel's chat");
 		assert.equal(stripView({ ...nothing, talkWaits: true, panelOpen: true }).need, false, "the open panel shows the card");
 		assert.deepEqual([stripView({ ...nothing, ready: [counting] }).flag, stripView({ ...nothing, ready: [counting] }).need], ["your turn", false]);
-		assert.equal(stripView({ ...nothing, ready: [counting], terminal: "needsYou" }).flag, "needs you");
+		assert.equal(stripView({ ...nothing, ready: [counting], talkWaits: true }).flag, "needs you");
 		assert.equal(stripView({ ...nothing, work: reading, working: true }).flag, null, "work under way waits for nobody");
 	});
 
@@ -42,10 +36,10 @@ describe("the strip at rest", () => {
 	});
 
 	it("beside the open panel it leaves out what the panel's head says", () => {
-		const open = stripView({ ...nothing, terminal: "needsYou", ready: [counting], panelOpen: true });
+		const open = stripView({ ...nothing, talkWaits: true, ready: [counting], panelOpen: true });
 		assert.deepEqual([open.need, open.flag], [false, "your turn"]);
 		assert.deepEqual(open.rows, [{ kind: "ready", lesson: counting }]);
-		assert.deepEqual(stripView({ ...nothing, terminal: "needsYou", panelOpen: true }), { square: "still", need: false, ask: null, flag: null, rows: [] });
+		assert.deepEqual(stripView({ ...nothing, talkWaits: true, panelOpen: true }), { square: "still", need: false, ask: null, flag: null, rows: [] });
 	});
 });
 
@@ -60,7 +54,7 @@ describe("the peek's rows", () => {
 	});
 
 	it("the teacher's own need is the status row's, never a row of its own", () => {
-		assert.deepEqual(stripView({ ...nothing, terminal: "needsYou" }).rows, []);
+		assert.deepEqual(stripView({ ...nothing, talkWaits: true }).rows, []);
 	});
 
 	it("counts the folded notices in words", () => {

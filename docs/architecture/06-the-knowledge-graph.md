@@ -29,7 +29,7 @@ The prompt is a short `SESSION_PREAMBLE` or `NOTES_PREAMBLE`, then a goal and a 
 
 The extractor references those ids instead of restating them, and lists ideas it teaches again under `reteaches`. Each stretch builds on every earlier merge, so a source's batches run strictly in order.
 
-`core::session::session_markdown` renders a whole lesson for the markdown export (`GET /api/chats/{id}/markdown`) and the MCP `read_lesson` tool. Extraction does not use it.
+`core::session::session_markdown` renders a whole lesson for the markdown export (`GET /api/chats/{id}/markdown`) and the panel chat's `read_lesson` tool. Extraction does not use it.
 
 ### Propositions and chains
 
@@ -93,7 +93,7 @@ Each message's view is hashed into the lesson's `coverage.jsonl`. Covered means 
 
 The same pipeline reads notes and space files:
 
-- Notes come in through `POST /api/graph/import` or MCP `import_notes` tool. A notes file's source id is `src_` plus first 12 hex of sha256 of its path. A "No space" re-import reads whole file again and adds to that source. In a space, `import_notes` writes through `write_agent_file` (`services::spaces`), like `add_space_file` with text: it replaces only a file marked `written` and refuses any other file of that name (learner's own, or notes an older version imported; nothing stored tells those two apart).
+- Notes come in through `POST /api/graph/import` or the panel chat's `import_notes` tool. A notes file's source id is `src_` plus first 12 hex of sha256 of its path. A "No space" re-import reads whole file again and adds to that source. In a space, `import_notes` writes through `write_agent_file` (`services::spaces`), like `add_space_file` with text: it replaces only a file marked `written` and refuses any other file of that name (learner's own, or notes an older version imported; nothing stored tells those two apart).
 - A space file's source id is unique per space. A changed or removed file has its old facts removed first (`delete_source_traces`), then is read again.
 - Notes split at line boundaries under same token budget; each chunk runs as its own job, in order, under graph lock. No model call carries a whole file.
 
@@ -122,7 +122,7 @@ Every lesson kind has one graph tool, `search_graph` (`agent::tools::graph`):
 3. It returns at most 8 facts and at most 8 chains whose conclusion or a premise is among them, as "premises → conclusion".
 4. Each fact is `{id, name, statement, from, asked}`. `from` is `files`, `lessons` or `both`, read from the fact's provenance (`fact_from`). `asked` is the learner's latest answer on the fact from the Progress read (`right`, `hinted`, `wrong`, `dontKnow`), or `never`. The graph holds what files and lessons say, so a fact never asked is not one the learner holds.
 
-Its body is `services::graph::graph::search_graph`, shared with the MCP tool of the same name (§8.1). The `agent.graphTools` setting, or the graph switched off, removes it from every lesson (`graph_tools_enabled`). Besides the tool, a study lesson starts with the `[Session context]` and `[Study plan]` notes (§7).
+Its body is `services::graph::graph::search_graph`, shared with the panel chat's tool of the same name (§8.1). The `agent.graphTools` setting, or the graph switched off, removes it from every lesson (`graph_tools_enabled`). Besides the tool, a study lesson starts with the `[Session context]` and `[Study plan]` notes (§7).
 
 ### The Graph page
 

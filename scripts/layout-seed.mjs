@@ -1,7 +1,8 @@
 /**
  * layout-seed.mjs — the made-up data `npm run layout` walks, written by the real server.
  *
- * A small stand-in agent talks to the app over MCP, as Claude Code would: it makes the space
+ * A small stand-in agent talks to the app in a teacher panel chat, as the learner's agent would: it
+ * calls godspeed's tools there to make the space
  * "Lab Algebra" with a deadline and one file, reads the file into ten facts that the stand-in sorts
  * into five linked topics, and starts the lessons. The lessons play on the stand-in helper
  * (layout-helper.mjs, the lessons in layout-lessons.mjs); the seed starts them, says what the
@@ -38,6 +39,7 @@ import {
 	OPEN_TOPICS,
 	PROBLEM_FIRST_TOPIC,
 	QUIZ_FILE_NAMES,
+	SEED_CALL,
 	SHEETLESS_TOPIC,
 	SKIPPED_TOPIC,
 	STUDIED_TOPICS,
@@ -60,33 +62,41 @@ const WORKSHEET = path.resolve(import.meta.dirname, "..", "crates", "pdf", "test
 const REVIEW_QUIZ = "Review quiz: equations by graphing";
 
 const MOCK_CODE = "function solveLinear(a, b, c) {\n\treturn (c - b) / a;\n}";
-/** The stand-in agent: tool calls to the app's MCP endpoint, each logged when sent and answered. */
-function standIn(dataDir, log) {
-	const { url } = JSON.parse(fs.readFileSync(path.join(dataDir, "mcp-endpoint.json"), "utf8"));
-	const token = fs.readFileSync(path.join(dataDir, "mcp-token"), "utf8").trim();
-	let id = 0;
-	const rpc = async (method, params) => {
-		const res = await fetch(url, {
-			method: "POST",
-			headers: { authorization: `Bearer ${token}`, accept: "application/json, text/event-stream", "content-type": "application/json" },
-			body: JSON.stringify({ jsonrpc: "2.0", id: ++id, method, params }),
-		});
-		if (!res.ok) throw new Error(`${method}: the app answered ${res.status}`);
-		const body = await res.json();
-		if (body.error) throw new Error(`${method}: ${body.error.message}`);
-		return body.result;
+const JSON_BODY = { "content-type": "application/json" };
+
+/** The stand-in agent: each tool call is a message in one teacher panel chat, which the stand-in
+ *  helper plays (layout-helper.mjs) by calling the tool and replying with its answer. Each call is
+ *  logged when sent and answered. `chat` is that chat's id, whose file layout.mjs removes before
+ *  the walk, so the panel's list is the screens' own. */
+function standIn(page, log) {
+	let chatId = null;
+	/** The answers the chat holds so far, oldest first. */
+	const answers = async () => {
+		const { messages, turnInFlight, turnError } = await page.json(`/api/chats/${chatId}`);
+		if (turnError) throw new Error(`the seed's chat failed: ${turnError}`);
+		const texts = messages.filter((m) => m.role === "assistant").flatMap((m) => (Array.isArray(m.content) ? m.content : [])).filter((block) => block.type === "text" && block.text.trim());
+		return { turnInFlight, texts: texts.map((block) => block.text.trim()) };
 	};
 	/** A tool's text blocks; `json` parses the first. */
 	const call = async (name, args) => {
 		log(`agent sends ${name}`);
-		const result = await rpc("tools/call", { name, arguments: args });
-		const text = (result.content ?? []).filter((block) => block.type === "text").map((block) => block.text);
-		log(`agent got ${name}: ${(text[0] ?? "").slice(0, 80)}`);
-		if (result.isError) throw new Error(`${name}: ${text.join(" ")}`);
-		return text;
+		const text = `${SEED_CALL}${JSON.stringify({ name, arguments: args })}`;
+		chatId ??= (await page.json("/api/chats", { method: "POST", headers: JSON_BODY, body: JSON.stringify({ kind: "talk", text }) })).id;
+		const before = (await answers()).texts.length;
+		await page.fetch("/api/chat", { method: "POST", headers: JSON_BODY, body: JSON.stringify({ chatId, input: { type: "text", text } }) });
+		let reply;
+		for (let tries = 0; !reply; tries++) {
+			if (tries > LESSON_POLLS) throw new Error(`${name}: the seed's chat never answered`);
+			const now = await answers();
+			if (!now.turnInFlight && now.texts.length > before) reply = JSON.parse(Buffer.from(now.texts.at(-1), "base64url").toString("utf8"));
+			else await sleep(100);
+		}
+		log(`agent got ${name}: ${(reply.texts[0] ?? "").slice(0, 80)}`);
+		if (reply.isError) throw new Error(`${name}: ${reply.texts.join(" ")}`);
+		return reply.texts;
 	};
 	const json = async (name, args) => JSON.parse((await call(name, args))[0]);
-	return { init: () => rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "layout-stand-in", version: "1" } }), call, json };
+	return { call, json, chat: () => chatId };
 }
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -115,12 +125,11 @@ function listVaults(dataDir) {
  * Writes the made-up data into the running app. `helperDir` is the stand-in helper's folder
  * (LAYOUT_HELPER_DIR), where the passage the lessons cite is left. `page.fetch(path, init)` runs
  * fetch in the window, as the page itself would, and answers the status. `log` keeps a line per
- * step. Answers the ids the screens' addresses use.
+ * step. Answers the ids the screens' addresses use, and the seed's own chat (`seedChat`).
  */
 export async function seed(dataDir, helperDir, page, log) {
 	const vault = listVaults(dataDir);
-	const agent = standIn(dataDir, log);
-	await agent.init();
+	const agent = standIn(page, log);
 	const date = inDays(3);
 	const { space } = await agent.json("create_space", {
 		name: "Lab Algebra",
@@ -329,5 +338,5 @@ export async function seed(dataDir, helperDir, page, log) {
 		await sleep(250);
 	}
 	await jobsIdle();
-	return { vault, ...turnStates, quizAnswered: studied[0], sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, codeWrite, pending, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
+	return { seedChat: agent.chat(), vault, ...turnStates, quizAnswered: studied[0], sheetless, space: space.id, sheetMade: midterm, sheetVersions: quiz, mockRunDeadline: reviewQuiz, waitingDeadline: deadlineNamed(SPRING_EXAM), mockGraded: graded, mockReady: ready, mockRunning: running, mockPaused: paused, lesson: lessonId, written, longProblem, problemFirst, twoSheets, askedFirst, codeChoices, codeWrite, pending, deadline: deadlineNamed(DEADLINE), homeworkOpen, homeworkFirst, homeworkMany, homeworkPrinted, filesLesson, homeworkOpenDeadline: deadlineNamed(HOMEWORK_OPEN), homeworkFirstDeadline: deadlineNamed(HOMEWORK_FIRST), homeworkManyDeadline: deadlineNamed(HOMEWORK_MANY), homeworkPrintedDeadline: deadlineNamed(HOMEWORK_PRINTED), pathSpace: goal.space.id };
 }

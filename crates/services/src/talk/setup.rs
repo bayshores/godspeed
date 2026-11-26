@@ -50,7 +50,7 @@ impl Tool for DataTool {
 	fn execute(&self, args: Json, _ctx: ToolContext) -> BoxFuture<'_, Result<Json, String>> {
 		Box::pin(async move {
 			let app = self.app.upgrade().ok_or("godspeed is closing")?;
-			let call = ToolCall { app: &app, caller: Some(self.caller), asked_here: true };
+			let call = ToolCall { app: &app, caller: Some(self.caller) };
 			Ok(run_tool(&call, &self.name, &args).await)
 		})
 	}

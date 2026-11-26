@@ -26,7 +26,7 @@ const F_RESUMED: &str = "[Resumed] line: he came back to a stopped session. No r
 /// Decision 3, the strong topic's extra question.
 const EXTRA_QUESTION: &str = "Strong topic's extra question = `quiz` before `conclude`; he may skip it. Skip it yourself when a deadline is 2 days away or less.";
 /// Decision 1, the line Study gets in place of the deadline tools.
-const OUTSIDE_DEADLINES: &str = "Deadline changes happen outside lessons, in your terminal. He asks for one: say so in one line, back to the lesson.";
+const OUTSIDE_DEADLINES: &str = "Deadline changes happen outside lessons, in the teacher panel. He asks for one: say so in one line, back to the lesson.";
 const F3: &str = "[From earlier] line lists earlier questions godspeed just re-asked. Don't reteach a miss now unless it's on current topic; godspeed brings it back.";
 const G: &str = "`standalone: true` on a quiz that makes sense with no lesson around it: name the setting, never \"above\", \"the plot\" or \"the slide\". godspeed may ask it again weeks later.";
 const I: &str = "Point at exact words: a few words copied from the passage in quotes after the id: `[[f_1a2b3c4d5e6f:7 \"degree 12\"]]`. godspeed marks them on his page. Once per topic, in the message opening it or in topic_done's opener.lead. Quote = 2+ words (on code: exact expression from the line), found once in the passage, max 80 characters, no [ ] backtick or $.";

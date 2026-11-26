@@ -6,7 +6,7 @@
  *
  * Resolution rule: explicit value in the record wins;
  * absent key resolves to the compiled factory default. There are no model
- * settings to resolve: the outside agent (MCP) is the only model.
+ * settings to resolve: the learner's agent is the only model.
  * This module stays browser-safe/pure.
  *
  * Deliberately NOT resolved here (see settings.ts module doc):

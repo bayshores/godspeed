@@ -109,7 +109,7 @@ beforeEach(() => {
 		sent.push({ url, method: init?.method ?? "GET", body: init?.body ? JSON.parse(String(init.body)) : null });
 		if (url === "/api/agent/models") return Response.json({ agent: "claude", models: MODELS });
 		if (url === "/api/agent/health") return Response.json(health);
-		if (url === "/api/agent-folder") return Response.json({ folder: "/home/ada/godspeed", short: "~/godspeed", exists: true, commands: { claude: "claude", codex: "codex" }, startCommands: {}, oldSetup: { plugin: false, codex: false }, agent: "claude", model: {} });
+		if (url === "/api/agent-folder") return Response.json({ folder: "/home/ada/godspeed", short: "~/godspeed", exists: true, startCommands: {}, oldSetup: { plugin: false, codex: false }, agent: "claude", model: {} });
 		if (url === "/api/chats" && init?.method === "POST") return makeChat === "ok" ? Response.json({ id: "chat_new" }) : new Response("down", { status: 500 });
 		if (url === "/api/chats/chat_1") return Response.json(readChat);
 		return Response.json({});

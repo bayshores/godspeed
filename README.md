@@ -28,7 +28,6 @@
   <a href="https://github.com/bayshores/godspeed/releases/latest"><img src="https://img.shields.io/github/v/release/bayshores/godspeed?label=version&color=b85c57" alt="Latest version"></a>
   <img src="https://img.shields.io/badge/stage-alpha-b85c57" alt="Stage: alpha">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-b85c57" alt="License AGPL-3.0"></a>
-  <a href="https://m8ven.ai/mcp/bayshores-godspeed-1epilf?s=readme"><img src="https://m8ven.ai/badge/mcp/bayshores-godspeed-1epilf" alt="M8ven Score"></a>
 </p>
 
 <p align="center">
@@ -54,13 +53,13 @@ After a right answer the teacher can give you one sentence to keep, and it shows
 
 I was using Claude to study for discrete math and it kept going in circles. I'd get stuck on a counting problem, work through it with Claude, and then ten days later I'd get stuck on basically the same problem in a new chat that had no idea we'd already done this. I even wrote a tutoring skill so it would give me hints instead of answers, but that didn't really help because every new chat still knew nothing about me.
 
-So godspeed keeps all of that outside the chat. It saves your lessons, your answers, how sure you were on each one and a graph of what you know, and whatever agent you use (Claude Code, Codex or anything else with MCP) teaches from that.
+So godspeed keeps all of that outside the chat. It saves your lessons, your answers, how sure you were on each one and a graph of what you know, and the agent you already use (Claude Code or Codex) teaches from that.
 
 ## Where it came from
 
 godspeed is a fork of [LearnHarness](https://github.com/amosblomqvist/learnharness) by Amos Blomqvist, and the way it teaches comes from there. Working out where your understanding stops, building up from that one step at a time and saving what you learn as a graph were all in LearnHarness before I touched anything.
 
-I forked it in late October because I couldn't hook it up to the Claude plan I was already paying for, and I didn't want to buy API credits on top of that. So the first thing I changed was who does the teaching. godspeed has no model built in, and the agent you already use connects to it over MCP and teaches from there.
+I forked it in late October because I couldn't hook it up to the Claude plan I was already paying for, and I didn't want to buy API credits on top of that. So the first thing I changed was who does the teaching. godspeed has no model built in, and it runs the agent you already use on your own plan to teach you.
 
 After that I kept changing it to fit how I actually study, and about 1,500 commits later it's pretty much its own app. Spaces, files, deadlines, homework, mocks, cheat sheets, paths, plugins, the calculator and the look all got added here.
 
@@ -116,7 +115,7 @@ It isn't noticeably faster to use, it's just a lot smaller and lighter on your c
 
 ## How it works
 
-![How godspeed works: you study in the godspeed app, your own agent teaches through MCP, and your data stays on your computer](docs/assets/how-godspeed-works.png)
+![How godspeed works: you study in the godspeed app, your own agent teaches inside it, and your data stays on your computer](docs/assets/how-godspeed-works.png)
 
 The teacher figures out where your understanding stops, from your answers and how sure you were. It plans the steps from there to your next deadline, and each step builds on something you already get. You predict, read the explanation, then check yourself. After that you get problems where you have to pick the right idea on your own.
 
@@ -131,19 +130,16 @@ Download it with the buttons at the top, and it updates itself after that.
 - Windows will say "Windows protected your PC" because the app isn't signed there. Click **More info**, then **Run anyway**.
 - Linux also has a [.deb](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.deb) for Ubuntu 22.04 or newer and Debian 12 or newer.
 
-Open it and click **Start Claude Code**, or pick Codex under **Use another agent**. godspeed runs your agent inside the app in its own `~/godspeed` folder, so it stays out of your other chats, and then you can start a lesson.
-
-Any other MCP app works too, and **Other app** shows the address and token (Streamable HTTP, `Authorization: Bearer <token>`).
+Open it and pick Claude Code or Codex under **Your teacher**, and godspeed checks it's installed and signed in. It runs your agent inside the app in its own `~/godspeed` folder, so it stays out of your other chats, and then you can start a lesson.
 
 <details>
-<summary>More on how the agent connects</summary>
+<summary>More on how godspeed runs your agent</summary>
 
 <br>
 
-- While godspeed is open it runs an MCP server on your computer. Only programs on your computer that hold the token can connect.
-- While you think, Claude Code waits in a background hook, so it spends no tokens until you answer. godspeed starts it without your own plugins, MCP servers and skills, which every request would otherwise carry.
+- Your agent spends no tokens while you think, only once you answer. godspeed starts it without your own plugins, MCP servers and skills, which every request would otherwise carry.
 - A second session of your agent reads your files and builds the graph in the background, so the teacher stays free for you.
-- **Change command** under **Settings → Connection** sets what godspeed runs instead of `claude` or `codex`.
+- **Start command** under **Settings → Teacher** sets what godspeed runs instead of `claude` or `codex`.
 - Ask your agent to set up your spaces, and it builds them from your course files.
 - Agents can save short notes about you (like "the midterm is over") so the next one knows. You can see and delete them under **Settings → Teaching → Remembered**.
 

@@ -99,7 +99,7 @@ To add a row:
 | On a lesson or cheat sheet page, the panel says to type in the page's box, with Stop while the teacher writes | Teacher panel | `talk-gives-way` | Teacher's panel beside a lesson | learner | |
 | Chats list | Teacher panel | `teacher-panel-chats` | Teacher's chats under the Chats key | learner | |
 | Follow: its slip at the page's foot saying what the teacher does and listing its steps (its own web searches, file reads and commands too), what it changed staying lit, and the teacher opening pages | Teacher panel; the slip on every page but a lesson, a mock and a cheat sheet | `follow-start` | | learner | `open_page` |
-| Pop out the teacher's chat into its own window, and Put back | Teacher panel | `teacher-panel-pop-out` | | learner | `terminal-window` |
+| Pop out the teacher's chat into its own window, and Put back | Teacher panel | `teacher-panel-pop-out` | | learner | `chat-window` |
 | Try asking | Teacher panel | `talk-try` | | learner | |
 | Everything the teacher can do | Teacher panel | `talk-all-ideas` | | learner | |
 | Activity and graph costs | Teacher panel | `teacher-panel-activity` | Teacher's Activity | learner | |
@@ -128,7 +128,6 @@ To add a row:
 | Quiz style | Settings, Teaching | `quiz-style` | | learner | |
 | Edit full instructions | Settings, Teaching | `area-detail` | | learner | |
 | Web search key | Settings, Teaching | `web-search` | | learner | |
-| Access token | Settings, Connection | `agent-token` | | learner | |
 | Teacher folder and start command | Settings, Teacher | `agent-folder-change` | | learner | |
 | Welcome screen | First launch | `welcome-go` | | learner | |
 | Onboarding | First launch | `onboarding-intro` | Onboarding | learner | |

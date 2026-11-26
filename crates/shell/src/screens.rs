@@ -8,7 +8,7 @@
 //! | `eval <js>` | the script's value as JSON (`null` for undefined; a promise is not awaited) |
 //! | `size <w> <h>` | `ok`, the window's inner size in points |
 //! | `snap <file>` | `ok` once the page is written as a PNG (two pixels a point, no title bar) |
-//! | `window <label>` | `ok`: `nav`, `eval`, `size` and `snap` are for that window from now on (`main` at first, `terminal` once the page popped the terminal out) |
+//! | `window <label>` | `ok`: `nav`, `eval`, `size` and `snap` are for that window from now on (`main` at first, `chat` once the page popped the chat out) |
 //! | `quit` | `ok`, then the app exits |
 //!
 //! A command that fails answers `error: <why>`, a script that throws included. `LH_SCREENS_INIT`
@@ -187,7 +187,7 @@ mod tests {
 		assert_eq!(parse("nav http://127.0.0.1:48060/x?a=b"), Ok(Request::Nav("http://127.0.0.1:48060/x?a=b")));
 		assert_eq!(parse("eval document.title + ' x'"), Ok(Request::Eval("document.title + ' x'")));
 		assert_eq!(parse("snap /lab/a b.png"), Ok(Request::Snap("/lab/a b.png")));
-		assert_eq!(parse("window terminal"), Ok(Request::Window("terminal")));
+		assert_eq!(parse("window chat"), Ok(Request::Window("chat")));
 		assert_eq!(parse("quit"), Ok(Request::Quit));
 		assert_eq!(parse("jump"), Err("unknown command jump".to_owned()));
 	}

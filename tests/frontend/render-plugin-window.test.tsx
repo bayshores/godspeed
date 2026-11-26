@@ -55,10 +55,10 @@ async function mount(onClose: () => void = () => {}) {
 }
 
 /** linkedom has no KeyboardEvent: a keydown carrying its key. */
-const escape = (target: EventTarget = document) =>
+const escape = () =>
 	act(async () => {
 		const key = Object.assign(new dom.window.Event("keydown", { bubbles: true }), { key: "Escape" });
-		target.dispatchEvent(key);
+		document.dispatchEvent(key);
 	});
 
 describe("a lesson plugin's window", () => {
@@ -72,7 +72,7 @@ describe("a lesson plugin's window", () => {
 		assert.equal(shown.querySelectorAll("button, h2, h3").length, 0);
 	});
 
-	it("closes on Escape, but not while Find is open or from the agent's screen", async () => {
+	it("closes on Escape, but not while Find is open", async () => {
 		let closed = 0;
 		await mount(() => void closed++);
 		const find = document.createElement("div");
@@ -81,11 +81,6 @@ describe("a lesson plugin's window", () => {
 		await escape();
 		assert.equal(closed, 0, "Find closes first");
 		find.remove();
-		const screen = document.createElement("div");
-		screen.setAttribute("data-terminal-screen", "");
-		document.body.append(screen);
-		await escape(screen);
-		assert.equal(closed, 0, "the agent's screen keeps its keys");
 		await escape();
 		assert.equal(closed, 1);
 	});

@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod bug_report;
+mod chat_window;
 mod commands;
 mod demo;
 #[cfg(not(target_os = "macos"))]
@@ -30,8 +31,6 @@ mod screens;
 #[cfg(feature = "self-test")]
 mod self_test;
 mod server;
-mod terminal;
-mod terminal_window;
 mod update;
 #[cfg(windows)]
 mod win;
@@ -72,9 +71,9 @@ fn main() {
 			window::start_drag,
 			window::toggle_menu,
 			window::open_link,
-			terminal_window::terminal_window_open,
-			terminal_window::terminal_window_close,
-			terminal_window::terminal_window_focus,
+			chat_window::chat_window_open,
+			chat_window::chat_window_close,
+			chat_window::chat_window_focus,
 			zoom::get_zoom,
 			zoom::set_zoom,
 			zoom::zoom_step,
@@ -86,17 +85,6 @@ fn main() {
 			commands::show_in_folder,
 			commands::open_path,
 			commands::open_in_obsidian,
-			terminal::commands::terminal_start,
-			terminal::commands::terminal_attach,
-			terminal::commands::terminal_detach,
-			terminal::commands::terminal_resize,
-			terminal::commands::terminal_write,
-			terminal::commands::terminal_answer,
-			terminal::commands::terminal_paste,
-			terminal::commands::terminal_send,
-			terminal::commands::terminal_add_file,
-			terminal::commands::terminal_stop,
-			terminal::commands::terminal_list,
 			commands::report_bug,
 			commands::list_fonts,
 			#[cfg(target_os = "macos")]
@@ -123,11 +111,11 @@ fn main() {
 		RunEvent::Exit => quit::run(app),
 		#[cfg(target_os = "macos")]
 		RunEvent::Reopen { .. } => window::reopen(app),
-		RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } if label == window::TERMINAL => terminal_window::closed(app),
+		RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } if label == window::CHAT => chat_window::closed(app),
 		RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } if label == window::MAIN => {
-			// The terminal window has no use without the main window, and on the Mac would stay
-			// open with nothing behind it.
-			terminal_window::close(app);
+			// The chat window has no use without the main window, and on the Mac would stay open
+			// with nothing behind it.
+			chat_window::close(app);
 			// A demo window left at that moment would keep the process alive.
 			#[cfg(not(target_os = "macos"))]
 			app.exit(0);
@@ -175,8 +163,6 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 	// Last of what the window needs: a managed server tells `window::reopen` it can build one.
 	app.manage(server);
 	app.manage(zoom::Zoom::default());
-	// Before the server starts: it is told which terminals are live.
-	app.manage(terminal::Terminals::new(terminal::commands::AppOutlet(handle.clone())));
 	app.manage(rpc::Demos::start(&handle));
 	update::start(&handle);
 	app.set_menu(menu::build(&handle)?)?;

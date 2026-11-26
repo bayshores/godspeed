@@ -88,15 +88,14 @@ describe("the learner is typing", () => {
 		assert.equal(typingWaitLeft(10_000, 99_000), 0);
 	});
 
-	it("counts keys in text boxes, fields and editable elements, not in the terminal or on buttons", () => {
-		const box = { tag: "TEXTAREA", inputType: "", editable: false, inTerminal: false };
+	it("counts keys in text boxes, fields and editable elements, not on buttons", () => {
+		const box = { tag: "TEXTAREA", inputType: "", editable: false };
 		assert.ok(isWritingBox(box));
 		assert.ok(isWritingBox({ ...box, tag: "INPUT", inputType: "text" }));
 		assert.ok(isWritingBox({ ...box, tag: "INPUT", inputType: "search" }));
 		assert.ok(isWritingBox({ ...box, tag: "DIV", editable: true }));
 		assert.ok(!isWritingBox({ ...box, tag: "INPUT", inputType: "checkbox" }));
 		assert.ok(!isWritingBox({ ...box, tag: "BUTTON" }));
-		assert.ok(!isWritingBox({ ...box, inTerminal: true }), "the terminal's own hidden box");
 	});
 });
 

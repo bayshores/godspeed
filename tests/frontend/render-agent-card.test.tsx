@@ -2,9 +2,10 @@
  * The setup card in a DOM: Settings › Teacher holds it with the teacher's name, the folder and the
  * start command; its keys ask the server to sign in, send the code, cancel and update, and the
  * card follows the server's events; a pick of the agent goes to the server; the compact card
- * stands in a job's failure line only while the panel is shut.
+ * stands in a job's failure line only while the panel is shut, and on onboarding's last step while
+ * the agent can't teach.
  */
-import { dom } from "../terminal-dom.ts";
+import { dom } from "../window-dom.ts";
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 import type { Root } from "react-dom/client";
@@ -23,6 +24,7 @@ const { SettingsPage } = await import("../../src/frontend/components/settings/se
 const { AgentFolderProvider } = await import("../../src/frontend/components/agent-folder/agent-folder-context.tsx");
 const { AgentSetupProvider } = await import("../../src/frontend/components/agent-setup/agent-setup-context.tsx");
 const { JobFailure } = await import("../../src/frontend/components/agent-setup/agent-card.tsx");
+const { DoneStep } = await import("../../src/frontend/components/onboarding/done-step.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 type TeacherApi = NonNullable<React.ContextType<typeof TeacherContext>>;
 
@@ -30,7 +32,6 @@ const FOLDER = {
 	folder: "/home/ada/godspeed",
 	short: "~/godspeed",
 	exists: true,
-	commands: { claude: "claude", codex: "codex" },
 	startCommands: {},
 	oldSetup: { plugin: false, codex: false },
 	agent: "claude",
@@ -224,5 +225,15 @@ describe("the compact card", () => {
 				assert.ok(q("plain-error") !== null);
 			},
 		);
+	});
+});
+
+describe("onboarding's last step", () => {
+	it("while the agent can't teach, holds the compact card with the key that fixes it", async () => {
+		await mounted(<DoneStep ready={false} onStart={() => {}} disabled={false} failed={false} />, async () => {
+			assert.match(text("onboarding-done")!, /You’re almost set\./);
+			assert.match(text("agent-compact")!, /^Claude Code isn't logged in\.Log in/);
+			assert.equal(q("onboarding-connect"), null, "nothing goes back to step 1");
+		});
 	});
 });

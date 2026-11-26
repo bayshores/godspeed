@@ -18,7 +18,6 @@ use gs_json::Json;
 use crate::App;
 use crate::app::agent_folder::{chat_model, folder_agent, usable_model};
 use crate::turns::turn_liveness::is_turn_running;
-pub use prompt::SPACE_INSTRUCTIONS;
 pub use setup::{talk_opening, talk_setup};
 
 /// A talk chat's name is its first line, cut to this many characters.

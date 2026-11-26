@@ -150,7 +150,7 @@ mod tests {
 	fn redirects_and_dots_match_the_recordings() {
 		assert_eq!(normalize("/graph/"), Target::Redirect("/graph".into()));
 		assert_eq!(normalize("//graph"), Target::Redirect("/graph".into()));
-		assert_eq!(normalize("/api/mcp//"), Target::Redirect("/api/mcp/".into()));
+		assert_eq!(normalize("/api/chats//"), Target::Redirect("/api/chats/".into()));
 		assert_eq!(normalize("/api/"), Target::Redirect("/api".into()));
 		assert_eq!(normalize("/graph/?x=1"), Target::Redirect("/graph?x=1".into()));
 		assert_eq!(normalize("/assets\\..\\..\\server.js"), Target::Redirect("/server.js".into()));

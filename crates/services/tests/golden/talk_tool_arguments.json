@@ -1,0 +1,256 @@
+[
+	{
+		"name": "remember text as an empty list",
+		"tool": "remember",
+		"arguments": {
+			"text": []
+		},
+		"refusal": "Input validation error: Invalid arguments for tool remember: text: Invalid input: expected string, received array, text: Too small: expected array to have >=1 items"
+	},
+	{
+		"name": "remember text as an object with a length",
+		"tool": "remember",
+		"arguments": {
+			"text": {
+				"length": 500
+			}
+		},
+		"refusal": "Input validation error: Invalid arguments for tool remember: text: Invalid input: expected string, received object, text: Too big: expected unknown to be <=200"
+	},
+	{
+		"name": "remember text as an object with a text length",
+		"tool": "remember",
+		"arguments": {
+			"text": {
+				"length": "x"
+			}
+		},
+		"refusal": "Input validation error: Invalid arguments for tool remember: text: Invalid input: expected string, received object, text: Too small: expected unknown to be >=1, text: Too big: expected unknown to be <=200"
+	},
+	{
+		"name": "set_space_file_kind ids as an empty string",
+		"tool": "set_space_file_kind",
+		"arguments": {
+			"space_id": "c",
+			"file_ids": "",
+			"kind": "info"
+		},
+		"refusal": "Input validation error: Invalid arguments for tool set_space_file_kind: file_ids: Invalid input: expected array, received string, file_ids: Too small: expected string to have >=1 characters"
+	},
+	{
+		"name": "add_space_deadline list of bad items",
+		"tool": "add_space_deadline",
+		"arguments": {
+			"space_id": "c",
+			"deadlines": [
+				1,
+				null
+			]
+		},
+		"refusal": "Input validation error: Invalid arguments for tool add_space_deadline: deadlines.0: Invalid input: expected object, received number, deadlines.1: Invalid input: expected object, received null"
+	},
+	{
+		"name": "create_space with nothing",
+		"tool": "create_space",
+		"arguments": {},
+		"refusal": "Input validation error: Invalid arguments for tool create_space: name: Invalid input: expected string, received undefined, icon: Invalid option: expected one of \"cpu\"|\"code\"|\"sigma\"|\"chart-line\"|\"atom\"|\"flask-conical\"|\"dna\"|\"brain\"|\"landmark\"|\"scale\"|\"trending-up\"|\"globe\"|\"languages\"|\"book-open\"|\"palette\"|\"music\""
+	},
+	{
+		"name": "create_space with a bad signature",
+		"tool": "create_space",
+		"arguments": {
+			"name": "x",
+			"icon": "cpu",
+			"signature": {
+				"kind": "poem",
+				"value": ""
+			}
+		},
+		"refusal": "Input validation error: Invalid arguments for tool create_space: signature.kind: Invalid option: expected one of \"math\"|\"code\"|\"text\", signature.value: Too small: expected string to have >=1 characters"
+	},
+	{
+		"name": "create_space with a signature string",
+		"tool": "create_space",
+		"arguments": {
+			"name": "x",
+			"icon": "cpu",
+			"signature": "x"
+		},
+		"refusal": "Input validation error: Invalid arguments for tool create_space: signature: Invalid input: expected object, received string"
+	},
+	{
+		"name": "create_space with a null signature",
+		"tool": "create_space",
+		"arguments": {
+			"name": "x",
+			"icon": "cpu",
+			"signature": null
+		},
+		"refusal": "Input validation error: Invalid arguments for tool create_space: signature: Invalid input: expected object, received null"
+	},
+	{
+		"name": "update_space wrong types",
+		"tool": "update_space",
+		"arguments": {
+			"space_id": 1,
+			"name": "",
+			"closed": "yes",
+			"icon": 3
+		},
+		"refusal": "Input validation error: Invalid arguments for tool update_space: space_id: Invalid input: expected string, received number, name: Too small: expected string to have >=1 characters, icon: Invalid option: expected one of \"cpu\"|\"code\"|\"sigma\"|\"chart-line\"|\"atom\"|\"flask-conical\"|\"dna\"|\"brain\"|\"landmark\"|\"scale\"|\"trending-up\"|\"globe\"|\"languages\"|\"book-open\"|\"palette\"|\"music\", closed: Invalid input: expected boolean, received string"
+	},
+	{
+		"name": "add_space_deadline items",
+		"tool": "add_space_deadline",
+		"arguments": {
+			"space_id": "c",
+			"deadlines": [
+				{
+					"kind": "quiz"
+				},
+				{
+					"kind": "x",
+					"name": "",
+					"date": 1,
+					"file_ids": [
+						1,
+						"a"
+					]
+				}
+			]
+		},
+		"refusal": "Input validation error: Invalid arguments for tool add_space_deadline: deadlines.0.name: Invalid input: expected string, received undefined, deadlines.0.date: Invalid input: expected string, received undefined, deadlines.1.kind: Invalid option: expected one of \"exam\"|\"homework\"|\"quiz\"|\"project\"|\"interview\", deadlines.1.name: Too small: expected string to have >=1 characters, deadlines.1.date: Invalid input: expected string, received number, deadlines.1.file_ids.0: Invalid input: expected string, received number"
+	},
+	{
+		"name": "add_space_deadline not a list",
+		"tool": "add_space_deadline",
+		"arguments": {
+			"space_id": "c",
+			"deadlines": {
+				"kind": "quiz"
+			}
+		},
+		"refusal": "Input validation error: Invalid arguments for tool add_space_deadline: deadlines: Invalid input: expected array, received object"
+	},
+	{
+		"name": "update_space_deadline nulls",
+		"tool": "update_space_deadline",
+		"arguments": {
+			"space_id": "c",
+			"deadline_id": "d",
+			"time": 5,
+			"source": false,
+			"assignment_file_id": [],
+			"done": null
+		},
+		"refusal": "Input validation error: Invalid arguments for tool update_space_deadline: time: Invalid input: expected string, received number, source: Invalid input: expected string, received boolean, assignment_file_id: Invalid input: expected string, received array, done: Invalid input: expected boolean, received null"
+	},
+	{
+		"name": "set_space_file_kind with a bad id",
+		"tool": "set_space_file_kind",
+		"arguments": {
+			"space_id": "c",
+			"file_ids": [
+				3
+			],
+			"kind": "info"
+		},
+		"refusal": "Input validation error: Invalid arguments for tool set_space_file_kind: file_ids.0: Invalid input: expected string, received number"
+	},
+	{
+		"name": "list_lessons huge limit",
+		"tool": "list_lessons",
+		"arguments": {
+			"limit": 1e+300
+		},
+		"refusal": "Input validation error: Invalid arguments for tool list_lessons: limit: Too big: expected int to be <=9007199254740991, limit: Too big: expected number to be <=200"
+	},
+	{
+		"name": "list_lessons negative fraction",
+		"tool": "list_lessons",
+		"arguments": {
+			"limit": -0.5
+		},
+		"refusal": "Input validation error: Invalid arguments for tool list_lessons: limit: Invalid input: expected int, received number"
+	},
+	{
+		"name": "read_lesson page null",
+		"tool": "read_lesson",
+		"arguments": {
+			"lesson_id": "x",
+			"page": null
+		},
+		"refusal": "Input validation error: Invalid arguments for tool read_lesson: page: Invalid input: expected number, received null"
+	},
+	{
+		"name": "remember long multi-byte",
+		"tool": "remember",
+		"arguments": {
+			"text": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+		},
+		"refusal": "A note is one line of 1 to 200 characters."
+	},
+	{
+		"name": "save_rule bad area and space",
+		"tool": "save_rule",
+		"arguments": {
+			"rule": "",
+			"space_id": 5,
+			"area": "x"
+		},
+		"refusal": "Input validation error: Invalid arguments for tool save_rule: rule: Too small: expected string to have >=1 characters, space_id: Invalid input: expected string, received number, area: Invalid option: expected one of \"voice\"|\"teaching\"|\"questions\"|\"facts\"|\"demos\"|\"files\""
+	},
+	{
+		"name": "search_space_files limit",
+		"tool": "search_space_files",
+		"arguments": {
+			"space_id": "c",
+			"query": "q",
+			"limit": 0.5
+		},
+		"refusal": "Input validation error: Invalid arguments for tool search_space_files: limit: Invalid input: expected int, received number"
+	},
+	{
+		"name": "read_passage numbers",
+		"tool": "read_passage",
+		"arguments": {
+			"space_id": "c",
+			"passage_id": 1,
+			"file_id": 2,
+			"range": 3
+		},
+		"refusal": "Input validation error: Invalid arguments for tool read_passage: passage_id: Invalid input: expected string, received number, file_id: Invalid input: expected string, received number, range: Invalid input: expected string, received number"
+	},
+	{
+		"name": "start_lesson object topic",
+		"tool": "start_lesson",
+		"arguments": {
+			"topic": {},
+			"space_id": null
+		},
+		"refusal": "Input validation error: Invalid arguments for tool start_lesson: topic: Invalid input: expected string, received object, space_id: Invalid input: expected string, received null"
+	},
+	{
+		"name": "link_space_folder nothing",
+		"tool": "link_space_folder",
+		"arguments": {},
+		"refusal": "Input validation error: Invalid arguments for tool link_space_folder: space_id: Invalid input: expected string, received undefined, path: Invalid input: expected string, received undefined"
+	},
+	{
+		"name": "unlink_space_folder number",
+		"tool": "unlink_space_folder",
+		"arguments": {
+			"space_id": 9
+		},
+		"refusal": "Input validation error: Invalid arguments for tool unlink_space_folder: space_id: Invalid input: expected string, received number"
+	},
+	{
+		"name": "import_notes empty",
+		"tool": "import_notes",
+		"arguments": {
+			"name": 1,
+			"text": ""
+		},
+		"refusal": "Input validation error: Invalid arguments for tool import_notes: name: Invalid input: expected string, received number, text: Too small: expected string to have >=1 characters"
+	}
+]

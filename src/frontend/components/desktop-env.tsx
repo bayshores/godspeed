@@ -1,7 +1,5 @@
 import { useEffect } from "react";
 import type { UpdateState } from "@/frontend/components/settings/update-settings.tsx";
-import type { FolderAgent } from "@/shared/core";
-import type { TerminalRecord } from "@/frontend/components/terminal/terminal-model";
 import { useZoom } from "@/frontend/components/use-zoom";
 
 declare global {
@@ -18,42 +16,15 @@ declare global {
 			openPath?: (path: string) => Promise<void>;
 			/** Opens this note in Obsidian; the shell builds the obsidian:// link itself. */
 			openInObsidian?: (path: string) => Promise<void>;
-			/** The agents' terminals the shell runs (terminal/use-terminals.ts). */
-			terminals?: {
-				/** Resolves to the new terminal's id; rejects with a sentence saying why it couldn't start.
-				 *  `resume`: the teacher's chat (a session id) to go back to. */
-				start: (agent: FolderAgent, resume?: string) => Promise<{ id: string }>;
-				/** Pushes the screen as it is, then its live output, until detach. */
-				attach: (id: string) => Promise<void>;
-				detach: (id: string) => Promise<void>;
-				/** Sizes the agent's terminal; answers the size in force (an ended one keeps its own). */
-				resize: (id: string, cols: number, rows: number) => Promise<{ cols: number; rows: number }>;
-				write: (id: string, data: string) => Promise<void>;
-				/** Sends Enter only if the shell still sees that prompt on the screen. */
-				answer: (id: string, kind: "trust" | "enter") => Promise<void>;
-				/** The shell reads the clipboard itself and types it in. */
-				paste: (id: string) => Promise<void>;
-				/** Types a line into the teacher's input and sends it, only once the input holds
-				 *  exactly that line; rejects with a sentence saying why it didn't. */
-				send: (id: string, line: string) => Promise<void>;
-				/** Attach: a picture or a PDF as base64; answers the saved path. */
-				addFile: (id: string, name: string, data: string) => Promise<string>;
-				stop: (id: string) => Promise<void>;
-				list: () => Promise<TerminalRecord[]>;
-				/** Base64 screen bytes: `snapshot` replaces the screen, `data` adds to it. */
-				onOutput: (cb: (out: { id: string; data?: string; snapshot?: string }) => void) => () => void;
-				/** Sent when a terminal's question, link or end changes. */
-				onState: (cb: (state: Pick<TerminalRecord, "id" | "ended" | "prompt" | "url">) => void) => () => void;
-			};
-			/** The teacher's terminal in a window of its own, beside the main window. */
-			terminalWindow?: {
+			/** The teacher panel's chat in a window of its own, beside the main window. */
+			chatWindow?: {
 				/** Opens the window, or brings it forward when it is open; the main window only. `title` is the teacher's name. */
 				open: (title: string) => Promise<void>;
 				/** Closes the window; either window may. Closing one that isn't there does nothing. */
 				close: () => Promise<void>;
 				/** Brings the window to the front, out of the Dock if minimized; rejects when it isn't open. */
 				focus: () => Promise<void>;
-				/** The main page hears whether the window is open when it opens or closes, and after every load of the main page. `back`: a page asked to put the terminal back, so the main page shows it. */
+				/** The main page hears whether the window is open when it opens or closes, and after every load of the main page. `back`: a page asked to put the chat back, so the main page shows it. */
 				onChange: (cb: (state: { open: boolean; back?: boolean }) => void) => () => void;
 			};
 			/** Opens an http, https or mailto link in the browser. */

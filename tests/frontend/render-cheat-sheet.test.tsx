@@ -2,9 +2,8 @@
  * The cheat sheet's screens: the studio's status (the paper), the
  * older-sheet notice, the sheet's chat (its rules, the learner's messages
  * with what they pointed at, the agent's answers with "Made version N" and
- * saved rules, the working and failed lines; its box, and a terminal line,
- * sent with the part pointed at, a refused one kept or passed on, Stop, Try
- * again, removing a rule),
+ * saved rules, the working and failed lines; its box, sent with the part
+ * pointed at, a refused line kept, Stop, Try again, removing a rule),
  * the canvas (each version's pages as labeled artboards, the narrow layout,
  * the toolbar with Point at the sheet), the lesson top
  * bar's Cheat sheet button, and the sheet beside a session (which sheet,
@@ -55,10 +54,7 @@ const { CheatSheetStudio } = await import("../../src/frontend/components/cheat-s
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { BarHost } = await import("../bar-host.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
-// The window's events: a test sends one by name.
-const listeners = new Map<string, (data: string) => void>();
-const noEvents = () => ({ onEvent: (name: string, cb: (data: string) => void) => void listeners.set(name, cb), onOpen() {}, close() {} });
-const sendEvent = (name: string, payload: unknown) => act(async () => listeners.get(name)?.(JSON.stringify(payload)));
+const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 const inEvents = (node: React.ReactNode) => <ServerEventsProvider connect={noEvents as never}>{node}</ServerEventsProvider>;
 
 let host: HTMLElement | null = null;
@@ -106,7 +102,6 @@ describe("the studio's status", () => {
 		assert.match(versionLabel({ ...versions[1]!, fromFolder: true }, false), /^Nov 3, .*, From the working folder$/);
 		assert.match(emptyChatLine(false), /^Say which paper, one side or both, and what must be on it\./);
 		assert.match(emptyChatLine(true), /^Ask about the sheet, point at a part that confuses you/);
-		assert.doesNotMatch(emptyChatLine(false) + emptyChatLine(true), /terminal/, "the page has its own box");
 	});
 
 	it("the box has one key that asks the teacher: for the sheet, about it, or with only a part pointed at", () => {
@@ -176,42 +171,6 @@ describe("the sheet's chat", () => {
 		assert.match(html, /data-testid="sheet-pointed-chip".*src="data:image\/png;base64,QUJD".*Pointing at the back of version 2/);
 	});
 
-	it("a line from the terminal is sent with the part pointed at first; a refused one goes on to the agent", async () => {
-		const posted: Record<string, unknown>[] = [];
-		const confirmed: { url: string; body: unknown }[] = [];
-		const originalFetch = globalThis.fetch;
-		globalThis.fetch = (async (url: string, init?: RequestInit) => {
-			confirmed.push({ url, body: init?.body ? JSON.parse(String(init.body)) : null });
-			return Response.json({});
-		}) as typeof fetch;
-		let answer: string | null = "The teacher is still answering your last message about this sheet.";
-		let cleared = 0;
-		const pointed = { region: { n: 2, page: 2, x: 0.1, y: 0.2, w: 0.3, h: 0.1 }, picture: { name: "Version 2, Back.png", mimeType: "image/png", data: "QUJD" } };
-		const act_ = async (body: Record<string, unknown>) => {
-			posted.push(body);
-			return answer;
-		};
-		try {
-			const el = mount(<SheetChat view={chatView} spaceId="cls_1" deadlineId="ddl_1" act={act_} agentName="Claude Code" pointed={pointed} onClearPointed={() => cleared++} empty="" />);
-			await settle();
-			assert.deepEqual(confirmed.at(-1), { url: "/api/talk-page", body: { page: "cheat sheet", path: null, space: null } }, "the page says it takes lines");
-			const picture = { name: "graph.png", mimeType: "image/png", data: "R1JB" };
-			await sendEvent("terminal-line", { id: 7, text: "that's what I did ", attachments: [picture] });
-			await settle();
-			assert.deepEqual(posted[0], { action: "ask", text: "that's what I did", attachments: [pointed.picture, picture], region: pointed.region });
-			assert.match(el.innerHTML, /role="alert"[^>]*>The teacher is still answering/);
-			assert.deepEqual(confirmed.at(-1), { url: "/api/terminal-lines/7", body: { sent: false } });
-			assert.equal(cleared, 0);
-			answer = null;
-			await sendEvent("terminal-line", { id: 8, text: "again", attachments: [] });
-			await settle();
-			assert.deepEqual(confirmed.at(-1), { url: "/api/terminal-lines/8", body: { sent: true } });
-			assert.equal(cleared, 1, "the part pointed at went with it");
-		} finally {
-			globalThis.fetch = originalFetch;
-		}
-	});
-
 	it("the box sends what is typed with the part pointed at, and keeps a refused line", async () => {
 		const posted: Record<string, unknown>[] = [];
 		let answer: string | null = "The teacher is still answering your last message about this sheet.";
@@ -241,23 +200,11 @@ describe("the sheet's chat", () => {
 		}
 	});
 
-	it("while the agent works on the sheet the box's key is off and a terminal line goes on to the agent", async () => {
-		const posted: Record<string, unknown>[] = [];
-		const confirmed: unknown[] = [];
-		const originalFetch = globalThis.fetch;
-		globalThis.fetch = (async (_url: string, init?: RequestInit) => (confirmed.push(init?.body ? JSON.parse(String(init.body)) : null), Response.json({}))) as typeof fetch;
-		try {
-			const el = mount(<SheetChat view={{ ...chatView, running: { messageId: "m3" } }} spaceId="cls_1" deadlineId="ddl_1" act={async (b) => (posted.push(b), null)} agentName="Claude Code" pointed={null} onClearPointed={() => {}} empty="" />);
-			const box = await mathBoxView(el);
-			await act(async () => box.dispatch({ changes: { from: 0, insert: "hurry" } }));
-			assert.equal(el.querySelector<HTMLButtonElement>("[data-testid=composer-send]")!.disabled, true);
-			await sendEvent("terminal-line", { id: 9, text: "hurry", attachments: [] });
-			await settle();
-			assert.equal(posted.length, 0);
-			assert.deepEqual(confirmed.at(-1), { sent: false });
-		} finally {
-			globalThis.fetch = originalFetch;
-		}
+	it("while the agent works on the sheet the box's key is off", async () => {
+		const el = mount(<SheetChat view={{ ...chatView, running: { messageId: "m3" } }} spaceId="cls_1" deadlineId="ddl_1" act={async () => null} agentName="Claude Code" pointed={null} onClearPointed={() => {}} empty="" />);
+		const box = await mathBoxView(el);
+		await act(async () => box.dispatch({ changes: { from: 0, insert: "hurry" } }));
+		assert.equal(el.querySelector<HTMLButtonElement>("[data-testid=composer-send]")!.disabled, true);
 	});
 
 	it("removes rules and shows a version", async () => {

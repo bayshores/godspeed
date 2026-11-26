@@ -1,5 +1,5 @@
-//! data/agent-notes.json, the notes outside agents
-//! save about the learner. Read-modify-write; small by design.
+//! data/agent-notes.json, the notes the teacher
+//! saves about the learner. Read-modify-write; small by design.
 
 use gs_base::config::Paths;
 use gs_base::locks::Locks;

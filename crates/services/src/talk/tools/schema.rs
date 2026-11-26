@@ -20,7 +20,7 @@ pub fn check_arguments(tool: &str, schema: &Json, args: &Json) -> Result<Json, S
 }
 
 /// zod's name for what it received.
-pub fn received(value: Option<&Json>) -> &'static str {
+fn received(value: Option<&Json>) -> &'static str {
 	match value {
 		None => "undefined",
 		Some(Json::Null) => "null",

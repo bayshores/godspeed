@@ -1,10 +1,7 @@
 /**
- * The godspeed folder (default ~/godspeed): the one folder an outside agent
- * is opened in. It holds the agent's instructions (CLAUDE.md, AGENTS.md),
- * the connection to the app (.mcp.json for Claude Code, command-line flags
- * for Codex) and, in .godspeed/, the scripts and the start scripts the
- * app's "Start Claude Code" button runs. Pure: the generated file contents
- * and commands. The server writes them.
+ * The godspeed folder (default ~/godspeed), where the agent works: its
+ * agent, the old setups still on the computer and the learner's own start
+ * commands. Pure.
  */
 
 export type FolderAgent = "claude" | "codex";

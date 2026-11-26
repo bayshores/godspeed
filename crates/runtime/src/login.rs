@@ -1,4 +1,4 @@
-//! Signing the learner in to their agent from godspeed, with no terminal. Codex signs in to
+//! Signing the learner in to their agent from godspeed. Codex signs in to
 //! godspeed's own settings folder through app-server; Claude Code runs its own
 //! `claude auth login`, which writes its own login. godspeed never reads or copies a login.
 

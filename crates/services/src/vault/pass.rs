@@ -163,7 +163,7 @@ pub fn catch_up(app: &Arc<App>) {
 	if app.vault.pass.caught_up.swap(true, Ordering::SeqCst) || !picked_vault(app) {
 		return;
 	}
-	let open = app.terminals.window_page().and_then(|w| w.path.strip_prefix("/chat/").map(str::to_owned));
+	let open = crate::app::window_page::window_page(app).and_then(|w| w.path.strip_prefix("/chat/").map(str::to_owned));
 	for summary in app.stores.chats.list_chats() {
 		let Some(id) = summary["id"].as_str().filter(|id| Some(*id) != open.as_deref()) else { continue };
 		queue_lesson(app, id);

@@ -6,9 +6,8 @@
  *
  * The agent step is the setup card (src/frontend/components/agent-setup);
  * "I'll do this later" skips it. The space step is optional. While the agent
- * can't teach, the done step's
- * "Turn on Teacher" goes back to step 1, whose Continue then returns to
- * the done step. Finishing writes general.onboarded and re-reads
+ * can't teach, the done step holds the setup card's compact form, whose key
+ * fixes what stops it. Finishing writes general.onboarded and re-reads
  * /api/boot, which then shows Home; if that save fails, the done step stays
  * with Try again.
  */
@@ -40,8 +39,6 @@ export function Onboarding() {
 	const [introSkipped, setIntroSkipped] = useState(false);
 	const [leaving, setLeaving] = useState(false);
 	const [spaceId, setSpaceId] = useState<string | null>(null);
-	// The space step is behind us: "Turn on Teacher" on the done step comes back here, not to it again.
-	const [spaceStepDone, setSpaceStepDone] = useState(false);
 	// Saving "onboarded" failed: stay on the done step (leaving would show the intro again).
 	const [saveFailed, setSaveFailed] = useState(false);
 	const canTeach = ready(useAgentSetup().health);
@@ -75,12 +72,11 @@ export function Onboarding() {
 			<Constellation mode={sky} />
 			<div className={cn("relative flex min-h-0 flex-1 overflow-y-auto", leaving && "ob-leave")}>
 				{step === "intro" && <Intro skipped={introSkipped} onSkip={() => setIntroSkipped(true)} onDone={() => setStep("agent")} />}
-				{step === "agent" && <AgentStep ready={canTeach} onNext={() => setStep(spaceStepDone ? "done" : "space")} />}
+				{step === "agent" && <AgentStep ready={canTeach} onNext={() => setStep("space")} />}
 				{step === "space" && (
 					<SpaceStep
 						onDone={(id) => {
 							setSpaceId(id);
-							setSpaceStepDone(true);
 							setStep("done");
 						}}
 					/>
@@ -89,7 +85,6 @@ export function Onboarding() {
 					<DoneStep
 						ready={canTeach}
 						onStart={() => void finish()}
-						onConnect={() => setStep("agent")}
 						disabled={leaving}
 						failed={saveFailed}
 					/>

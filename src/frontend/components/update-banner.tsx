@@ -13,8 +13,8 @@ import { useState } from "react";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { useUpdateState } from "@/frontend/components/settings/update-settings.tsx";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
-import { useAgentStatus } from "@/frontend/components/agent-status";
-import { RestartDialog } from "@/frontend/components/terminal/restart-dialog";
+import { useTurnsRunning } from "@/frontend/components/turns-running";
+import { RestartDialog } from "@/frontend/components/restart-dialog";
 import { useSettings } from "@/frontend/components/settings-context";
 
 export default function UpdateBanner() {
@@ -22,7 +22,7 @@ export default function UpdateBanner() {
 	const { state } = useUpdateState();
 	const [later, setLater] = useState(false);
 	const [asking, setAsking] = useState(false);
-	const turnsRunning = useAgentStatus()?.turnsRunning ?? 0;
+	const turnsRunning = useTurnsRunning() ?? 0;
 	const install = () => window.lh?.installUpdate?.();
 	const ready = state?.status === "downloaded";
 	if ((!ready && state?.status !== "downloading") || (ready && later)) return null;

@@ -1,16 +1,14 @@
 //! Who may call /api. In the desktop app only the app's own window holds the per-launch secret,
 //! as the HttpOnly cookie the login route sets, and only its own pages send `Sec-Fetch-Site:
-//! same-origin` (a demo iframe sends `cross-site`). Outside agents reach /api/mcp and its hook
-//! routes with their own token, which those routes check.
+//! same-origin` (a demo iframe sends `cross-site`).
 
 use axum::http::{HeaderMap, HeaderValue, header};
 use gs_shell_rpc::same_bytes;
 
 const COOKIE: &str = "gs_desktop";
 
-/// Open in every mode: the agents' endpoint and hooks (bearer token in the route) and the
-/// window's login.
-const EXEMPT: [&str; 6] = ["/api/mcp", "/api/mcp/forget", "/api/mcp/compacting", "/api/mcp/line", "/api/mcp/agent-event", "/api/desktop/login"];
+/// Open in every mode: the window's login.
+const LOGIN: &str = "/api/desktop/login";
 
 /// The desktop secret settings, read once at start-up. The default is browser mode.
 #[derive(Clone, Default)]
@@ -35,7 +33,7 @@ impl Access {
 	pub fn allows(&self, path: &str, headers: &HeaderMap) -> bool {
 		// Next's matcher for "/api/:path*" also takes the data-route form "/api.json".
 		let api = path == "/api" || path == "/api.json" || path.starts_with("/api/");
-		if !api || EXEMPT.contains(&path) {
+		if !api || path == LOGIN {
 			return true;
 		}
 		let Some(expected) = &self.secret else { return !self.desktop };
@@ -130,12 +128,9 @@ mod tests {
 	}
 
 	#[test]
-	fn mcp_and_login_are_exempt() {
-		for path in ["/api/mcp", "/api/mcp/forget", "/api/mcp/compacting", "/api/mcp/line", "/api/mcp/agent-event", "/api/desktop/login"] {
-			assert!(desktop().allows(path, &HeaderMap::new()), "{path}");
-		}
-		assert!(!desktop().allows("/api/mcp/other", &HeaderMap::new()));
-		assert!(!desktop().allows("/api/mcp/compacting/x", &HeaderMap::new()));
+	fn only_the_login_is_exempt() {
+		assert!(desktop().allows("/api/desktop/login", &HeaderMap::new()));
+		assert!(!desktop().allows("/api/mcp", &HeaderMap::new()));
 		assert!(!desktop().allows("/api/desktop/login/x", &HeaderMap::new()));
 	}
 

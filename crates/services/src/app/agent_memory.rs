@@ -1,5 +1,5 @@
-//! What godspeed remembers for outside agents: the "Where you left off" briefing an agent gets
-//! when it connects, and the saved notes as Settings lists them.
+//! What godspeed remembers for the teacher: the "Where you left off" briefing a teacher panel
+//! chat opens with, and the saved notes as Settings lists them.
 
 use gs_base::clock;
 use gs_core::spaces::agent_briefing::{BriefingSpace, BriefingInput, BriefingLesson, agent_briefing};

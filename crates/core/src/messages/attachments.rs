@@ -34,7 +34,7 @@ pub const HEIC_REFUSAL: &str = "Can't use HEIC photos yet. Export as JPG.";
 pub const TOO_MANY_REFUSAL: &str = "You can add up to 5 files to one message.";
 
 /// A file's type: the browser's, or read from its extension when the browser gives none.
-pub fn attachment_type(name: &str, mime: &str) -> String {
+fn attachment_type(name: &str, mime: &str) -> String {
 	if !mime.is_empty() {
 		return mime.to_owned();
 	}
@@ -123,27 +123,6 @@ pub fn pdf_note_of(note: &str) -> Option<(String, String)> {
 	}
 }
 
-/// A file the terminal's attach button saved in the godspeed folder, as its path is typed there
-/// (escaped, or quoted on Windows). Only the saved name counts, never the typed folder.
-static TYPED_ATTACHMENT: LazyLock<Re> = LazyLock::new(|| {
-	Re::new(r#""[^"]*?\.godspeed[\\/]attachments[\\/]([0-9a-f]{12}-[\w.-]+)"|(?:\\.|[^\s"])*?\.godspeed[\\/]attachments[\\/]([0-9a-f]{12}-[\w.-]+)"#, "g")
-});
-
-/// A line typed in the terminal: its words without the attached files' paths, and those files'
-/// saved names, each once, in order.
-pub fn typed_attachments(line: &str) -> (String, Vec<String>) {
-	let mut names: Vec<String> = Vec::new();
-	let words = TYPED_ATTACHMENT.replace_with(line, |caps| {
-		if let Some(name) = caps.get(1).or_else(|| caps.get(2))
-			&& !names.contains(&name)
-		{
-			names.push(name);
-		}
-		String::new()
-	});
-	(text::trim(&words).to_owned(), names)
-}
-
 /// A message's content as text: a string as is, parts joined by newlines with `[image]` for
 /// pictures.
 pub fn content_text(content: &Json) -> String {
@@ -168,18 +147,6 @@ mod tests {
 		assert_eq!(attachment_refusal("x.tar.gz", "", 1).as_deref(), Some("Can't add x.tar.gz. Use a PNG, JPG, GIF, WebP or PDF."));
 		assert_eq!(attachment_refusal("x.", "", 1).as_deref(), Some("Can't add x.. Use a PNG, JPG, GIF, WebP or PDF."));
 		assert_eq!(attachment_refusal("photo.jpeg", "", 5), None);
-	}
-
-	#[test]
-	fn a_typed_line_gives_its_words_and_the_attached_files_saved_names() {
-		let mac = r"/Users/me/My\ Drive/godspeed/.godspeed/attachments/0123456789ab-graph.png";
-		assert_eq!(typed_attachments(&format!("{mac} why is this wrong?")), ("why is this wrong?".to_owned(), vec!["0123456789ab-graph.png".to_owned()]));
-		let windows = r#""C:\Users\me\My Drive\godspeed\.godspeed\attachments\abcdef012345-hw.pdf""#;
-		assert_eq!(typed_attachments(&format!("look at {windows} and {mac}")), ("look at  and".to_owned(), vec!["abcdef012345-hw.pdf".to_owned(), "0123456789ab-graph.png".to_owned()]));
-		let plain = r"C:\godspeed\.godspeed\attachments\abcdef012345-hw.pdf";
-		assert_eq!(typed_attachments(&format!("{plain} {plain}")).1, vec!["abcdef012345-hw.pdf".to_owned()], "each file once");
-		assert_eq!(typed_attachments("explain step 2"), ("explain step 2".to_owned(), vec![]));
-		assert_eq!(typed_attachments("~/.godspeed/attachments/../../secret.txt").1, Vec::<String>::new(), "only a saved name");
 	}
 
 	#[test]

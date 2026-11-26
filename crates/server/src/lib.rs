@@ -3,5 +3,4 @@
 
 pub mod data_lock;
 pub mod http;
-pub mod mcp;
 pub mod routes;

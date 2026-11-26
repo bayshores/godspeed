@@ -50,8 +50,7 @@ export function typingWaitLeft(lastKeyAt: number | null, now: number): number {
 }
 
 /** A keyboard target the learner writes in: a text box, a text field or an editable element. */
-export function isWritingBox(target: { tag: string; inputType: string; editable: boolean; inTerminal: boolean }): boolean {
-	if (target.inTerminal) return false;
+export function isWritingBox(target: { tag: string; inputType: string; editable: boolean }): boolean {
 	if (target.editable || target.tag === "TEXTAREA") return true;
 	return target.tag === "INPUT" && !NOT_TEXT.has(target.inputType);
 }

@@ -1,7 +1,7 @@
 /**
  * Rules an agent saved, in the window: the chat line ("Saved a rule for
  * every lesson: …" with Undo and Edit), the corner notice for a rule saved
- * from the terminal, and the "Saved by Ada" label in a rule list.
+ * from the teacher panel's chat, and the "Saved by Ada" label in a rule list.
  * Mounted over linkedom with a fake fetch.
  */
 import React, { act } from "react";
@@ -103,8 +103,8 @@ describe("the chat line", () => {
 	});
 });
 
-describe("the terminal notice", () => {
-	it("shows when an outside agent saves a rule, with Undo and Edit", async () => {
+describe("the corner notice", () => {
+	it("shows when the teacher saves a rule from the panel's chat, with Undo and Edit", async () => {
 		await mount(<RuleNotice />);
 		assert.ok(q("rule-notice") === null);
 		const saved = { text: "Shorter answers.", where: { area: "voice" }, label: "Every lesson, under Voice", agent: "Claude Code" };

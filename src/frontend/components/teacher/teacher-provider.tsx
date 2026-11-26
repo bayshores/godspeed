@@ -1,7 +1,7 @@
 /**
  * The teacher: one provider in the app shell.
  *
- *  - Follow: every "agent-action" event is a change the outside agent
+ *  - Follow: every "agent-action" event is a change the teacher
  *    made. With Follow on, the window goes to the change's page and the
  *    changed item (data-teacher-target) lights up (tour.ts paces it) and
  *    stays lit (lit-model.ts: one style rule per mark, drawn here). On by
@@ -37,17 +37,17 @@ import { createPortal } from "react-dom";
 import { useLocation } from "react-router";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { useDoneSound } from "./use-done-sound";
-import { useAgentStatus } from "@/frontend/components/agent-status";
+import { useTurnsRunning } from "@/frontend/components/turns-running";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { useSpaces } from "@/frontend/components/space-context";
 import { usePresence } from "@/frontend/components/presence";
 import { useSettings } from "@/frontend/components/settings-context";
-import { useTerminals } from "@/frontend/components/terminal/use-terminals";
-import { useWindowPage } from "@/frontend/components/terminal/use-terminal-lines";
+import { useWindowPage } from "@/frontend/components/teacher/use-window-page";
 import { useAskingLessons } from "@/frontend/components/strip/use-asking-lessons";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { TeacherPanel } from "./teacher-panel";
 import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
+import { useChatWindow } from "./use-chat-window";
 import { useTeacherPanel } from "./use-teacher-panel";
 import { useTalkChats } from "./use-talk-chats";
 import { panelBody, SHOWN_CHAT_KEY } from "./dock-model";
@@ -77,7 +77,7 @@ export function useTeacherLesson(working: boolean, draft: boolean): void {
 
 export function TeacherProvider({ children }: { children: ReactNode }) {
 	const name = useSettings().teacherName;
-	const agent = useAgentStatus();
+	const turnsRunning = useTurnsRunning();
 	const { feed } = useActivity();
 	const spaces = useSpaces();
 	const { pathname } = useLocation();
@@ -102,7 +102,8 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 		const talk = new Set((chats ?? []).map((c) => c.id));
 		return { lessons: asking.filter((id) => !talk.has(id)), talk: asking.find((id) => talk.has(id)) ?? null };
 	}, [chats, asking]);
-	const panel = useTeacherPanel(lesson?.working ?? null, pathname === "/", waiting.talk !== null, chats !== null);
+	const chatWindow = useChatWindow();
+	const panel = useTeacherPanel(lesson?.working ?? null, pathname === "/", waiting.talk !== null, chats !== null, chatWindow);
 	const { open: panelOpen, setOpen: setPanelOpen, setList, showChat: showPanel } = panel;
 	// The chat shown: undefined is the newest, null a new chat. The panel opens on the newest again.
 	const [picked, setPicked] = useState<string | null | undefined>(undefined);
@@ -114,10 +115,8 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		if (waiting.talk) setPicked(waiting.talk);
 	}, [waiting.talk]);
-	const terminals = useTerminals();
-	const popOut = terminals?.popOut;
+	const { popOut, popped, putBack, putBacks } = chatWindow;
 	// The window the chat pops out to shows the chat the panel showed; put back, the panel shows the one it left on.
-	const putBacks = terminals?.putBacks ?? 0;
 	useEffect(() => {
 		if (putBacks > 0) setPicked(readStorage(SHOWN_CHAT_KEY) || null);
 	}, [putBacks]);
@@ -138,7 +137,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 		},
 		[showPanel],
 	);
-	useDoneSound(panelOpen);
+	useDoneSound();
 	const [panelWhole, setPanelWhole] = useState(false);
 	const [slipRoom, setSlipRoom] = useState(true);
 	const onBeside = useCallback((beside: number | null) => {
@@ -168,11 +167,11 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	// While the slip is up it says what the teacher does, and the other places say only "Working".
 	const round = work?.live ? (slip ? "Working" : (timeline.at(-1)?.text ?? "Working")) : null;
 	const talkTurns = (chats ?? []).filter((c) => c.running).length;
-	const doing = useMemo(() => agentDoing({ agent, round, lesson, extractions: feed.extractions, jobs: feed.jobs, talkTurns }), [agent, round, lesson, feed.extractions, feed.jobs, talkTurns]);
+	const doing = useMemo(() => agentDoing({ turnsRunning, round, lesson, extractions: feed.extractions, jobs: feed.jobs, talkTurns }), [turnsRunning, round, lesson, feed.extractions, feed.jobs, talkTurns]);
 	const roundChat = work?.live ? work.chatId : null;
 	const elsewhere = useMemo(
-		() => workElsewhere({ agent, round, lesson, extractions: feed.extractions, jobs: feed.jobs, talkTurns, roundChat, shown: chatId }),
-		[agent, round, lesson, feed.extractions, feed.jobs, talkTurns, roundChat, chatId],
+		() => workElsewhere({ turnsRunning, round, lesson, extractions: feed.extractions, jobs: feed.jobs, talkTurns, roundChat, shown: chatId }),
+		[turnsRunning, round, lesson, feed.extractions, feed.jobs, talkTurns, roundChat, chatId],
 	);
 
 	useServerEvent("agent-action", (action) => {
@@ -181,7 +180,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 		take(action);
 	});
 
-	const view = panelBody(!!terminals?.popped);
+	const view = panelBody(popped);
 	const shown = usePresence(panelOpen);
 
 	// One line a page key handed over; the panel's chat sends it and clears it, or it goes when the panel closes.
@@ -197,7 +196,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 		if (!panelOpen) setAskLine(null);
 	}, [panelOpen]);
 	const asked = useMemo(() => (askLine === null ? null : { line: askLine, clear: () => setAskLine(null) }), [askLine]);
-	const canAsk = !terminals?.popped;
+	const canAsk = !popped;
 
 	const spaceList = spaces.spaces;
 	const spaceNameOf = useCallback((id: string | null) => (id ? (spaceList.find((c) => c.id === id)?.name ?? null) : null), [spaceList]);
@@ -243,7 +242,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 						chat={{ id: chatId, row: chats?.find((c) => c.id === chatId) ?? null, show: setPicked }}
 						asking={asked}
 						popOut={popChat}
-						putBack={terminals?.putBack ?? null}
+						putBack={putBack}
 						list={panel.list}
 						onList={panel.setList}
 						focus={panel.focus}

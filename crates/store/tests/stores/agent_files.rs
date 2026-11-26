@@ -3,7 +3,6 @@ use gs_json::{Json, parse, stringify};
 use gs_store::agent_actions::AgentActionsStore;
 use gs_store::agent_notes::AgentNotesStore;
 use gs_store::agent_rules::AgentRulesStore;
-use gs_store::mcp_token::McpTokenStore;
 use gs_store::search_key::SearchKeyStore;
 
 use crate::support::{Lab, tabbed};
@@ -189,47 +188,6 @@ fn the_seed_memory_files_read_and_save_back_byte_for_byte() {
 fn file_mode(lab: &Lab, rel: &str) -> u32 {
 	use std::os::unix::fs::PermissionsExt;
 	std::fs::metadata(lab.file(rel)).unwrap().permissions().mode() & 0o777
-}
-
-#[test]
-fn the_token_is_made_once_as_64_hex_characters_readable_only_by_the_owner() {
-	let lab = Lab::new("token-ensure");
-	let store = McpTokenStore::new(&lab.paths);
-	assert_eq!(store.read_mcp_token(), None);
-	let token = store.ensure_mcp_token().unwrap();
-	assert_eq!(token.len(), 64);
-	assert!(token.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)));
-	#[cfg(unix)]
-	assert_eq!(file_mode(&lab, "mcp-token"), 0o600);
-	assert_eq!(lab.get("mcp-token"), token);
-	assert_eq!(store.ensure_mcp_token().unwrap(), token);
-	assert_eq!(store.read_mcp_token(), Some(token));
-}
-
-#[test]
-fn a_short_token_is_replaced_and_a_long_one_is_trimmed() {
-	let lab = Lab::new("token-short");
-	let store = McpTokenStore::new(&lab.paths);
-	lab.put("mcp-token", "abc123\n");
-	assert_eq!(store.read_mcp_token(), None);
-	let fresh = store.ensure_mcp_token().unwrap();
-	assert_eq!(fresh.len(), 64);
-	let kept = "k".repeat(40);
-	lab.put("mcp-token", &format!("  {kept}\n"));
-	assert_eq!(store.read_mcp_token(), Some(kept.clone()));
-	assert_eq!(store.ensure_mcp_token().unwrap(), kept);
-}
-
-#[test]
-fn rotating_the_token_writes_a_different_one() {
-	let lab = Lab::new("token-rotate");
-	let store = McpTokenStore::new(&lab.paths);
-	let first = store.ensure_mcp_token().unwrap();
-	let second = store.write_new_mcp_token().unwrap();
-	assert_ne!(first, second);
-	assert_eq!(store.read_mcp_token(), Some(second));
-	#[cfg(unix)]
-	assert_eq!(file_mode(&lab, "mcp-token"), 0o600);
 }
 
 #[test]

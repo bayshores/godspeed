@@ -44,7 +44,7 @@ const HOME_LOCATIONS: [&str; 31] = [
 ];
 
 /// Files in the data folder that hold a secret. The rest of the data folder stays readable.
-const DATA_SECRETS: [&str; 3] = ["mcp-token", "search-key", "settings.json"];
+const DATA_SECRETS: [&str; 2] = ["search-key", "settings.json"];
 
 /// Protected locations as lower-case path parts, in the spelling they are named by and with
 /// symlinks settled. A part is compared whole, so `.sshfoo` is not `.ssh`.
@@ -216,9 +216,9 @@ mod tests {
 	}
 
 	#[test]
-	fn the_data_folder_keeps_only_its_three_secret_files() {
+	fn the_data_folder_keeps_only_its_two_secret_files() {
 		let (dir, guard) = lab("protected-data");
-		for rel in ["data/mcp-token", "data/search-key", "data/settings.json", "data/Settings.JSON", "data/search-key.tmp-0123abcd"] {
+		for rel in ["data/search-key", "data/settings.json", "data/Settings.JSON", "data/search-key.tmp-0123abcd"] {
 			assert!(denied(&guard, &dir, rel), "{rel}");
 		}
 		for rel in ["data", "data/chats/chat_a.json", "data/spaces/spc_a/space.json", "data/spaces/spc_a/files/settings.json", "data/search-keys.txt", "home/notes/settings.json"] {

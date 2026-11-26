@@ -1,6 +1,6 @@
 //! The teacher panel's chats over HTTP: the list of talk chats apart from the lessons, a new chat
-//! named by its first message, a chat's model, and the earlier words of a chat carried over from
-//! the teacher's terminal.
+//! named by its first message, the turns running, a chat's model, and the earlier words of a chat
+//! carried over from an older build's terminal.
 
 use std::sync::Arc;
 
@@ -9,6 +9,7 @@ use gs_base::{fsx, ids};
 use gs_json::{Json, json, parse, stringify};
 use gs_server::http::access::Access;
 use gs_services::App;
+use gs_services::turns::turn_liveness::{begin_turn, end_turn};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -46,6 +47,12 @@ async fn talk_chats_are_listed_made_given_a_model_and_read_with_their_earlier_wo
 	let (_, lessons) = call(port, "GET", "/api/chats", "").await;
 	let ids: Vec<&str> = lessons["chats"].items().iter().filter_map(|c| c["id"].as_str()).collect();
 	assert_eq!(ids, [lesson.as_str()], "and a talk chat is not a lesson");
+
+	assert_eq!(call(port, "GET", "/api/turns", "").await, (200, json!({ "running": 0 })));
+	assert!(begin_turn(&app, &lesson) && begin_turn(&app, &talk));
+	assert_eq!(call(port, "GET", "/api/turns", "").await, (200, json!({ "running": 2 })), "a lesson's turn and a panel chat's");
+	end_turn(&app, &lesson);
+	end_turn(&app, &talk);
 
 	let (code, _) = call(port, "PATCH", &format!("/api/chats/{talk}"), r#"{"model":"claude-sonnet-5-5"}"#).await;
 	assert_eq!(code, 200);

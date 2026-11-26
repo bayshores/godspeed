@@ -31,7 +31,6 @@ Entries marked `displayOnly` are keys one surface owns, like the question rows b
 
 - Tab moves focus as usual, through buttons and links too. An open question claims Tab from its rows (see below). An open modal dialog keeps Tab inside itself (`trapTabInDialog`).
 - In a text field only shortcuts with a modifier fire, like ⌘B. Bare keys, `?` included, type normally.
-- In the agent's terminal every key goes to the agent. Shift+Enter is sent as Ctrl+J (a line feed), which Claude Code and Codex read as a new line, so it adds a line instead of sending. On a Mac, Cmd+Backspace is sent as Ctrl+U, which clears the line.
 - One Esc does one thing. The top open layer handles it first: the shortcuts list, a popover, menu or dialog, or the focused field's own action.
 - With nothing open, Esc stops the running reply at once, like the Stop button, and what it wrote stays. On a waiting question or an open problem it asks first (Skip question, Discard problem). A turn the server started has no browser request to stop, so the lesson decides what Esc can stop.
 - The focus ring shows after Tab, or after an arrow key that moves focus, and hides on the next mouse press (`showFocusRingAfterTab`, drawn in `src/frontend/globals.css`). A hidden color picker rings its tile instead.

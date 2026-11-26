@@ -5,23 +5,6 @@ import type { ActivityFeed, FeedExtraction } from "../../src/frontend/components
 import { agoLabel, blobLabel, formatElapsed, toBlobs } from "../../src/frontend/components/teacher/activity-model.ts";
 import { BackgroundJobs } from "../../src/frontend/components/teacher/background-jobs.tsx";
 import { formatTokens, pagesLabel } from "../../src/frontend/components/usage-format.ts";
-import { parseAgentStatus, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
-
-describe("the agent's status", () => {
-	const status = (over: Partial<AgentStatus> = {}): AgentStatus => ({ connected: false, turnsRunning: 0, ...over });
-	it("reads the /api/mcp-access body", () => {
-		assert.deepEqual(parseAgentStatus({ agentConnected: true, agentName: "Claude Code", turnsRunning: 2 }), { connected: true, name: "Claude Code", turnsRunning: 2 });
-		assert.deepEqual(parseAgentStatus({ agentConnected: false, agentName: null }), status());
-		assert.equal(parseAgentStatus(null), null);
-	});
-	it("reads godspeed's terminals, and a server without them reads as none", () => {
-		const s = parseAgentStatus({ terminals: [{ id: "t1", here: true }, { id: 2 }, { id: "h1", here: false }], outsideHere: false });
-		assert.deepEqual(s?.terminals, [{ id: "t1", here: true }, { id: "h1", here: false }]);
-		assert.equal(s?.outsideHere, false);
-		const old = parseAgentStatus({ agentConnected: true });
-		assert.ok(old !== null && old.terminals === undefined && old.outsideHere === undefined);
-	});
-});
 
 // The section's pure layer: folds, formatting, and blob order — then the SSR
 // render (blobs, "–" doctrine, the abort affordance, the always-present

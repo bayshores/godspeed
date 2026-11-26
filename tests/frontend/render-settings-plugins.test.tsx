@@ -28,7 +28,6 @@ Object.assign(globalThis, {
 const { createRoot } = await import("react-dom/client");
 const { PluginsSection } = await import("../../src/frontend/components/settings/plugins-section.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
-const { AgentStatusProvider } = await import("../../src/frontend/components/agent-status.tsx");
 import type { InstalledPlugin, ListedPlugin } from "../../src/frontend/lib/plugins-api.ts";
 
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
@@ -86,7 +85,6 @@ function serve(initial: InstalledPlugin[], install?: (body: unknown) => Response
 		const body = init?.body ? JSON.parse(String(init.body)) : undefined;
 		calls.push({ method, url: String(url), body });
 		const id = String(url).split("/")[3];
-		if (String(url).startsWith("/api/mcp-access")) return Response.json({ agentConnected: true, agentName: "Claude" });
 		if (String(url) === "/api/plugin-list") return Response.json({ plugins: listed });
 		if (method === "POST") return install!(body);
 		if (method === "DELETE") {
@@ -111,9 +109,7 @@ async function mount() {
 	await act(async () =>
 		root!.render(
 			<ServerEventsProvider connect={quietEvents as never}>
-				<AgentStatusProvider>
-					<PluginsSection />
-				</AgentStatusProvider>
+				<PluginsSection />
 			</ServerEventsProvider>,
 		),
 	);

@@ -14,8 +14,8 @@ use super::ToolCall;
 
 /// Runs one space tool; None for a name that is not one.
 pub async fn space_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Option<Json> {
-	let mark = if call.asked_here { Mark::Started } else { Mark::Asked };
-	let actions = space_actions(call.app, call.caller, send_first_message(call.app), mark);
+	// The learner asked in godspeed itself, so the window opens what it starts even with Follow off.
+	let actions = space_actions(call.app, call.caller, send_first_message(call.app), Mark::Started);
 	match name {
 		"start_lesson" => Some(started(actions.start_lesson(args).await)),
 		"unlink_space_folder" => Some(unlink_space_folder(call, args)),

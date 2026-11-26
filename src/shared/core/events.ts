@@ -6,8 +6,8 @@
  * Pure types, no imports.
  */
 
-/** What an outside agent changed: every MCP tool
- *  that changes something reports one, so the window can show it. */
+/** One entry of the activity log: a change and who made it (the
+ *  teacher's tools, the app, the learner), so the window can show it. */
 export interface AgentAction {
 	id: string;
 	/** ISO time. */
@@ -37,7 +37,7 @@ const APP_SOURCE = "godspeed";
 /** The `agent` of what the learner did in the app (answers, deadlines). */
 const LEARNER_SOURCE = "you";
 
-/** An outside agent's entry: the only kind Follow and the teacher go to. */
+/** The teacher's entry: the only kind Follow and the teacher go to. */
 export function isAgentEntry(action: AgentAction): boolean {
 	return action.agent !== APP_SOURCE && action.agent !== LEARNER_SOURCE;
 }
@@ -60,24 +60,19 @@ export interface ServerEvents {
 	/** The space list or a space record changed (create, edit, close,
 	 *  delete, files). */
 	"spaces-changed": Record<string, never>;
-	/** The outside agent's status changed: it checked in, went quiet, or
-	 *  a request started or stopped waiting for it. */
-	"agent-changed": Record<string, never>;
 	/** A chat's record changed WITHOUT a turn (the silent dismissal write).
 	 *  Same notify-then-fetch contract as the turn events: open views of
 	 *  the chat refetch and adopt the durable record. */
 	"record-changed": { chatId: string };
-	/** An outside agent changed something (the payload is the action). */
+	/** The agent changed something (the payload is the action). */
 	"agent-action": AgentAction;
-	/** A teaching rule was saved, undone or edited. `saved` when an outside
-	 *  agent saved one from the terminal (the window shows a notice). */
+	/** A teaching rule was saved, undone or edited. `saved` when the
+	 *  teacher saved one from the panel's chat (the window shows a notice). */
 	"rules-changed": { saved?: { text: string; where: { area: string } | { spaceId: string }; label: string; agent: string } };
 	/** A space's linked folder brought new files (the window shows a notice). */
 	"files-added": { spaceId: string; files: { id: string; name: string; kind: "study" | "info" }[] };
 	/** Files left a space's linked folder (the window shows a notice). */
 	"files-removed": { spaceId: string; files: { id: string; name: string }[] };
-	/** A line the learner typed in the agent's terminal for the page on screen (a lesson, a cheat sheet). */
-	"terminal-line": { id: number; text: string; attachments: { name: string; mimeType: string; data: string }[] };
 	/** The vault's setting changed, or a note godspeed writes in it was written, found again or marked removed. */
 	"vault-notes-changed": Record<string, never>;
 	/** The teacher's round of work began, gained a step or ended (GET /api/teacher-work). */
@@ -88,8 +83,6 @@ export interface ServerEvents {
 	"agent-health": Record<string, never>;
 	/** The picked agent's update (POST /api/agent/update) started, printed a line, finished or failed: `{state, line, command}`, read with readAgentUpdate (contracts/agent-health.ts). */
 	"agent-update": Record<string, unknown>;
-	/** The teacher in godspeed's terminal finished answering the learner there ("done") or stopped to ask them something ("needs"). */
-	"agent-event": { kind: "done" | "needs" };
 	/** A deadline's cheat sheet or its agent request changed. */
 	"cheat-sheet-changed": { deadlineId: string };
 	/** A space's mocks or one of their agent requests changed. */
@@ -113,7 +106,6 @@ export const SERVER_EVENT_TYPES = [
 	"activity-changed",
 	"chats-changed",
 	"spaces-changed",
-	"agent-changed",
 	"record-changed",
 	"agent-action",
 	"rules-changed",
@@ -123,8 +115,6 @@ export const SERVER_EVENT_TYPES = [
 	"space-checked",
 	"files-added",
 	"files-removed",
-	"terminal-line",
-	"agent-event",
 	"vault-notes-changed",
 	"teacher-work",
 	"lesson-work",

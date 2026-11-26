@@ -14,14 +14,14 @@ import { LessonPage, lessonLoader } from "./lesson";
 import { CheatSheetRoute, DeadlineRoute, deadlineLoader, deadlinePageLoader } from "./deadline";
 import { MockRoute, mockLoader } from "./mock";
 import { PluginTab } from "./plugin-tab";
-import { TerminalWindowRoute } from "./terminal-window";
+import { ChatWindowRoute } from "./chat-window";
 
 /** Every screen. A page that needs data first (a lesson, a deadline, a
  *  mock) has a loader: a navigation keeps the old page until it is read,
  *  and one that is gone shows NotFound inside the app frame. */
 export const routes: RouteObject[] = [
-	// The teacher's terminal in a window of its own: no app frame around it.
-	{ path: "terminal-window", element: <TerminalWindowRoute /> },
+	// The teacher panel's chat in a window of its own: no app frame around it.
+	{ path: "chat-window", element: <ChatWindowRoute /> },
 	{
 		element: <Root />,
 		children: [

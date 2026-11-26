@@ -89,8 +89,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 	#[cfg(target_os = "linux")]
 	let window_menu = Submenu::with_items(app, "Window", true, &[&item("minimize", "Minimize", None)?, &item("close-window", "Close Window", None)?])?;
 
-	// Windows and Linux leave these out: their keys would be Ctrl keys, which the agent's
-	// terminal needs (Ctrl+[ is Esc).
+	// Only the Mac has a File menu.
 	#[cfg(target_os = "macos")]
 	let file = Submenu::with_items(
 		app,

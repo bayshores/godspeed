@@ -11,7 +11,6 @@ use crate::demo::{self, DemoJob, SvgJob};
 use crate::log;
 use crate::notify;
 use crate::server::Server;
-use crate::terminal::Terminals;
 
 /// A request from server `generation`; one from a server that has since died is dropped.
 struct Job {
@@ -90,10 +89,6 @@ pub fn read(app: &AppHandle, generation: u64, stdout: impl Read, ready: mpsc::Se
 			Ok(ToShell::Notify { id, title, body }) => {
 				let shown = notify::show(app, &title, &body);
 				app.state::<Server>().send(Some(generation), &ToServer::NotifyDone { id, shown });
-				continue;
-			}
-			Ok(ToShell::ClearLine { terminal, line }) => {
-				app.state::<Terminals>().clear_line(&terminal, &line);
 				continue;
 			}
 			Ok(ToShell::ShowWindow { page }) => {

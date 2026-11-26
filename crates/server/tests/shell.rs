@@ -1,6 +1,6 @@
 //! Started by the desktop shell (`LH_SHELL=1`), the server says it is ready on stdout, logs the
-//! window in with a token the shell sent, keeps hearing the shell after a typed line, and stops
-//! when its stdin closes.
+//! window in with a token the shell sent, says where the godspeed folder is, and stops when its
+//! stdin closes.
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
@@ -133,22 +133,16 @@ fn a_login_token_opens_the_api_once() {
 }
 
 #[test]
-fn still_answers_the_shell_after_enter_in_the_teachers_terminal_during_a_lesson() {
+fn says_where_the_folder_is_and_takes_the_window_s_page() {
 	let dir = temp_dir();
 	let secret = "5e".repeat(32);
 	let port = free_port();
 	let (mut child, mut out) = start(&dir, port, Some(&secret));
-	let teacher = "ab".repeat(16);
 	let stdin = child.stdin.as_mut().unwrap();
-	writeln!(stdin, "{{\"t\":\"terminals\",\"live\":[\"{teacher}\"],\"teacher\":\"{teacher}\"}}").unwrap();
-	// An answer to a later message says the server took the one before.
 	writeln!(stdin, "{{\"t\":\"agent_folder\",\"id\":1}}").unwrap();
-	assert_eq!(answer(&mut out), "{\"t\":\"agent_folder\",\"id\":1,\"folder\":null}\n");
-	assert_eq!(put(port, "/api/talk-page", &secret, "{\"page\":\"lesson\",\"path\":null,\"space\":null}"), "HTTP/1.1 200 OK");
-
-	writeln!(stdin, "{{\"t\":\"typed\",\"terminal\":\"{teacher}\"}}").unwrap();
-	writeln!(stdin, "{{\"t\":\"agent_folder\",\"id\":2}}").unwrap();
-	assert_eq!(answer(&mut out), "{\"t\":\"agent_folder\",\"id\":2,\"folder\":null}\n");
+	assert_eq!(answer(&mut out), "{\"t\":\"agent_folder\",\"id\":1,\"folder\":null}\n", "no folder before it is set up");
+	assert_eq!(put(port, "/api/window-page", &secret, "{\"path\":\"/space/files\",\"space\":null}"), "HTTP/1.1 200 OK");
+	assert_eq!(put(port, "/api/window-page", &secret, "{\"path\":\"space\",\"space\":null}"), "HTTP/1.1 400 Bad Request");
 
 	drop(child.stdin.take());
 	child.wait().unwrap();

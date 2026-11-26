@@ -118,9 +118,9 @@ export function cutOf(ink, clip) {
 
 const clips = (style) => style.overflowX !== "visible" || style.overflowY !== "visible";
 const CONTROLS = "button, input, select, textarea";
-const PICTURES = "img, svg, canvas, video, .katex, .xterm";
+const PICTURES = "img, svg, canvas, video, .katex";
 /** One picture drawn by many boxes, which are not checked against each other. */
-const ONE_PICTURE = ".katex, .xterm, [data-picture]";
+const ONE_PICTURE = ".katex, [data-picture]";
 
 /** A number per element, kept on the window, so a finding is matched by its elements across
  *  reads. */
@@ -214,8 +214,8 @@ const shown = (el) => el.checkVisibility({ opacityProperty: true, visibilityProp
 function overlaps() {
 	const items = [];
 	for (const el of document.body.querySelectorAll("*")) {
-		// Math is drawn by KaTeX, SVG by its own geometry, and the agent's screen (xterm) and a
-		// page drawn sharper where it is zoomed (data-picture) on stacked canvases: each is one picture. What the app marks aria-hidden is decoration (a
+		// Math is drawn by KaTeX, SVG by its own geometry, and a page drawn sharper where it is
+		// zoomed (data-picture) on stacked canvases: each is one picture. What the app marks aria-hidden is decoration (a
 		// backdrop, an icon in a button), not content.
 		if (
 			(el.closest(ONE_PICTURE) && !el.matches(ONE_PICTURE)) ||

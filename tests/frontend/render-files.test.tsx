@@ -54,7 +54,6 @@ const { MemoryRouter, useLocation } = await import("react-router");
 const { FilesPage } = await import("../../src/frontend/components/files/files-page.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
-const { AgentStatusProvider } = await import("../../src/frontend/components/agent-status.tsx");
 const { ProgressProvider } = await import("../../src/frontend/components/use-progress.tsx");
 const { CopyButton } = await import("../../src/frontend/components/copy-button.tsx");
 const { BarHost } = await import("../bar-host.tsx");
@@ -110,7 +109,6 @@ function fakeFetch() {
 		const method = init?.method ?? "GET";
 		if (method !== "GET") calls.push({ method, url, body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined });
 		if (url === "/api/spaces") return Response.json({ spaces: [{ id: "cls_a", name: "CSE 21" }] });
-		if (url === "/api/mcp-access") return Response.json({ agentConnected: true });
 		if (url.startsWith("/api/spaces/cls_a") && method === "GET") {
 			recordReads++;
 			return recordFails ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({ space: record, folder: { problem: folderProblem, checkedAt: null, settling: 0 } });
@@ -142,21 +140,19 @@ async function mount(initialActive: string | null = "cls_a", teacher: { canAsk: 
 			<MemoryRouter initialEntries={["/files"]}>
 				<Where />
 				<ServerEventsProvider connect={connect as never}>
-					<AgentStatusProvider>
-						<SpaceProvider initialActive={initialActive}>
-							<ProgressProvider>
-								<BarHost>
-									{teacher ? (
-										<TeacherContext.Provider value={{ name: "Ada", canAsk: teacher.canAsk, ask: (line) => void teacher.lines.push(line) } as TeacherApi}>
-											<FilesPage />
-										</TeacherContext.Provider>
-									) : (
+					<SpaceProvider initialActive={initialActive}>
+						<ProgressProvider>
+							<BarHost>
+								{teacher ? (
+									<TeacherContext.Provider value={{ name: "Ada", canAsk: teacher.canAsk, ask: (line) => void teacher.lines.push(line) } as TeacherApi}>
 										<FilesPage />
-									)}
-								</BarHost>
-							</ProgressProvider>
-						</SpaceProvider>
-					</AgentStatusProvider>
+									</TeacherContext.Provider>
+								) : (
+									<FilesPage />
+								)}
+							</BarHost>
+						</ProgressProvider>
+					</SpaceProvider>
 				</ServerEventsProvider>
 			</MemoryRouter>,
 		);

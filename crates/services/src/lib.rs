@@ -1,4 +1,4 @@
-//! The server's services: what the routes and the MCP endpoint call.
+//! The server's services: what the routes call.
 
 pub mod turns;
 pub mod jobs;
@@ -19,7 +19,7 @@ use gs_base::events::Events;
 use gs_base::locks::Locks;
 use gs_store::Stores;
 
-/// The whole server's state: every route and the MCP endpoint get an `Arc<App>`. Each service
+/// The whole server's state: every route gets an `Arc<App>`. Each service
 /// area owns its own field's type.
 pub struct App {
 	pub paths: Paths,
@@ -28,8 +28,8 @@ pub struct App {
 	pub stores: Stores,
 	pub pdf: gs_pdf::worker::Pdf,
 	pub search: gs_search::index::Search,
-	/// The agents in godspeed's terminals and outside it, for the terminal's free talk.
-	pub terminals: app::terminal_state::TerminalState,
+	/// The teacher's round of work, for Follow's slip.
+	pub teacher_round: app::teacher_round::TeacherRound,
 	/// The learner's agent program, which runs the lessons.
 	pub agents: app::agents::AgentsState,
 	pub turns: turns::TurnsState,
@@ -51,7 +51,7 @@ impl App {
 		let locks = Locks::new();
 		let stores = Stores::new(&paths, &events, &locks);
 		let app = Arc::new(App {
-			terminals: app::terminal_state::TerminalState::new(&events),
+			teacher_round: app::teacher_round::TeacherRound::new(&events),
 			stores,
 			pdf: gs_pdf::worker::Pdf::from_env(&paths.resources),
 			search: gs_search::index::Search::new(&paths),

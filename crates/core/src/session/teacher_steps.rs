@@ -83,15 +83,10 @@ pub fn round_call(tool: &str, args: &Json, names: &dyn StepNames) -> Option<Roun
 	Some(RoundCall::Step(TeacherStep { text: short_label(&words), link: None }))
 }
 
-/// The agent's own tools that show as steps, by the names Claude Code's hook gives them; its
-/// hook's matcher is these.
-pub const CLAUDE_OWN_TOOLS: [&str; 9] = ["WebSearch", "WebFetch", "Read", "Grep", "Glob", "Bash", "Edit", "Write", "NotebookEdit"];
-/// Codex's hook reports only its commands and its patches.
-pub const CODEX_OWN_TOOLS: [&str; 2] = ["Bash", "apply_patch"];
-
-/// One of the agent's own tools, with the subject its hook kept (a file's or a site's name, the
-/// web search's words, a search's plain words). None for a tool not listed above.
-pub fn own_tool_step(tool: &str, subject: Option<&str>) -> Option<TeacherStep> {
+/// One of the agent's own tools, by Claude Code's name for it (Codex's commands and patches come
+/// as Bash and apply_patch), with the subject kept (a file's or a site's name, the web search's
+/// words, a search's plain words). None for a tool with no words here.
+fn own_tool_step(tool: &str, subject: Option<&str>) -> Option<TeacherStep> {
 	let subject = subject.map(text::trim).filter(|s| !s.is_empty());
 	let words = match (tool, subject) {
 		("WebSearch", Some(query)) => format!("Searching the web for {}", quoted(query)),
@@ -109,7 +104,7 @@ pub fn own_tool_step(tool: &str, subject: Option<&str>) -> Option<TeacherStep> {
 	Some(TeacherStep { text: short_label(&words), link: None })
 }
 
-/// A subject is cut to this many characters, as the folder's hook cuts it.
+/// A subject is cut to this many characters.
 const SUBJECT_MAX: usize = 80;
 
 /// One of the agent's own tools as its session names it: Claude Code's tool and input, or Codex's
@@ -320,7 +315,7 @@ mod tests {
 		for tool in ["Edit", "Write", "NotebookEdit", "apply_patch"] {
 			assert_eq!(words(tool, Some("notes.md")).as_deref(), Some("Changing files"), "{tool}");
 		}
-		for tool in CLAUDE_OWN_TOOLS.iter().chain(&CODEX_OWN_TOOLS) {
+		for tool in ["WebSearch", "WebFetch", "Read", "Grep", "Glob", "Bash", "Edit", "Write", "NotebookEdit", "apply_patch"] {
 			assert_eq!(own(tool, Some("x")).map(|(_, link)| link), Some(None), "{tool}: a step, with nothing to open");
 		}
 		for tool in ["Agent", "TodoWrite", "mcp__godspeed__read_space", "read_space", "webSearch"] {

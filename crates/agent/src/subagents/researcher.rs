@@ -1,6 +1,6 @@
 //! The research job's agent, separate from the teacher, with web_fetch and the PDF tools, so
 //! fetch churn never reaches the teacher's context. With the person's Tavily key it also gets
-//! web_search; without one it may use the outside agent's own search, or addresses it knows.
+//! web_search; without one it may use the agent's own search, or addresses it knows.
 
 use std::path::Path;
 use std::sync::Arc;

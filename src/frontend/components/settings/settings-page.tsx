@@ -20,17 +20,15 @@ import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/frontend/components/menu-sh
 import { useSettings } from "@/frontend/components/settings-context";
 import { PluginsSection } from "./plugins-section.tsx";
 import { AppearanceSection } from "./appearance-section.tsx";
-import { ConnectionSection, CONNECTION_HINT } from "./connection-section.tsx";
 import { TeacherSection } from "./teacher-section.tsx";
 
-/** The tabs. A section's hint is the quiet line under it. */
+/** The tabs. */
 const SECTIONS = [
 	{ id: "general", label: "General" },
 	{ id: "appearance", label: "Appearance" },
 	{ id: "teaching", label: "Teaching" },
 	{ id: "plugins", label: "Plugins" },
 	{ id: "teacher", label: "Teacher" },
-	{ id: "connection", label: "Connection", hint: CONNECTION_HINT },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
 const DEFAULT_SECTION: SectionId = "general";
@@ -159,11 +157,6 @@ export function SettingsPage({ section }: { section?: string }) {
 									<TeacherSection record={record} onGeneralChange={(fields) => void shown(patchGeneral(fields))} />
 								</SettingsSection>
 							)}
-							{active === "connection" && (
-								<SettingsSection title="Connection" testid="section-connection">
-									<ConnectionSection />
-								</SettingsSection>
-							)}
 							{active === "teaching" && (
 								<SettingsSection title="Teaching" testid="section-teaching">
 									<TeachingSection
@@ -193,11 +186,6 @@ export function SettingsPage({ section }: { section?: string }) {
 										onGeneralChange={(fields) => void shown(patchGeneral(fields))}
 									/>
 								</SettingsSection>
-							)}
-							{"hint" in current && (
-								<p data-testid="settings-hint" className="max-w-(--lh-measure) pt-(--lh-gap) text-sm text-ink-2">
-									{current.hint}
-								</p>
 							)}
 						</Travel>
 					)}

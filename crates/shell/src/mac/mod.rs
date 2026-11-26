@@ -2,7 +2,6 @@
 #![allow(unsafe_code)]
 
 pub mod app_icon;
-pub mod clipboard;
 pub mod demo;
 pub mod fonts;
 pub mod print;

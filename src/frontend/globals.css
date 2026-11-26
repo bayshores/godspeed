@@ -799,20 +799,6 @@ body {
 	}
 }
 
-/* A space file name or passage id in the agent's screen: a dotted
-   highlighter line while in view, solid while the pointer is on it. */
-.lh-screen-link {
-	border-bottom: 1px dotted var(--lh-highlight);
-	pointer-events: none;
-}
-/* xterm keeps its scrollbar's height from the last font size: never let it scroll the card. */
-.lh-screen .xterm {
-	overflow: hidden;
-}
-.lh-screen .xterm-rows span[style*="underline"] {
-	text-decoration-color: var(--lh-highlight) !important;
-}
-
 /* The small raised number after a sentence the teacher backed with a source. */
 .lh-cite {
 	display: inline-block;
@@ -1276,7 +1262,7 @@ body {
 
 /* No phase colors: phases only advance (every session ends in Teaching),
    so phase-as-signal is decoration. "A turn is in flight" is carried by
-   MOTION alone: the terminal braille spinner
+   MOTION alone: the braille spinner
    (src/frontend/components/braille-spinner.tsx), monochrome, existing only while
    true. */
 
@@ -2221,7 +2207,7 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 		animation: none !important;
 		transition: none !important;
 	}
-	/* The dot also shows outside onboarding (Settings, Connection). */
+	/* The pulse also shows outside onboarding (the strip, the setup card, the teacher panel). */
 	.ob-pulse {
 		animation: none;
 	}

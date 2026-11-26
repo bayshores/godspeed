@@ -2,9 +2,7 @@
  * The strip down the window's right edge: what it marks at rest, the rows
  * its peek lists, and what a click on it does. Pure.
  */
-import type { AgentStatus } from "@/frontend/components/agent-status";
 import { DAY, dueAtMs } from "@/frontend/components/countdown-model";
-import type { TeacherTerminalState } from "@/frontend/components/terminal/terminal-model";
 import { plural } from "@/frontend/lib/plural";
 import type { WorkProgress } from "@/frontend/components/work/work-model";
 
@@ -60,9 +58,8 @@ type PeekRow =
 	/** Background work under way, as plain words. */
 	| { kind: "work"; work: WorkProgress };
 
-/** The strip's square: it breathes while the teacher works, and is hollow before the agent's
- *  state is read. */
-export type Square = "working" | "still" | "off";
+/** The strip's square: it breathes while the teacher works. */
+export type Square = "working" | "still";
 
 /** The words on the strip's highlighter. */
 type Flag = "needs you" | "your turn";
@@ -84,8 +81,6 @@ interface StripView {
  * the teacher needs, so the strip leaves it out and a click closes the panel.
  */
 export function stripView(i: {
-	agent: AgentStatus | null;
-	terminal: TeacherTerminalState | null;
 	/** A card in the teacher panel's chat waits to be allowed. */
 	talkWaits: boolean;
 	/** The teacher works. */
@@ -96,16 +91,14 @@ export function stripView(i: {
 	asking: readonly string[];
 	panelOpen: boolean;
 }): StripView {
-	const teacherNeeds = i.terminal === "needsYou" || i.talkWaits;
 	const ask = i.asking[0] ?? null;
-	const need = !i.panelOpen && teacherNeeds;
-	const here = i.terminal !== null || i.agent !== null;
+	const need = !i.panelOpen && i.talkWaits;
 	const rows: PeekRow[] = [
 		...i.ready.map((lesson) => ({ kind: "ready", lesson }) as const),
 		...(i.work ? [{ kind: "work", work: i.work } as const] : []),
 	];
 	return {
-		square: !here ? "off" : i.working && !!i.agent && !teacherNeeds && !ask ? "working" : "still",
+		square: i.working && !i.talkWaits && !ask ? "working" : "still",
 		need,
 		ask,
 		flag: need || ask ? "needs you" : i.ready.length > 0 ? "your turn" : null,

@@ -1,6 +1,6 @@
 /**
  * The page's idea of window.lh (desktop-env.tsx) and the shell's shim.js
- * must name the same members, in window.lh, window.lh.terminals and window.lh.terminalWindow.
+ * must name the same members, in window.lh and window.lh.chatWindow.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -35,14 +35,8 @@ test("window.lh has the same members in desktop-env.tsx and in shim.js", () => {
 	same(names(typed, 3), [...names(shimmed, 2), ...macOnly].sort(), "window.lh members");
 });
 
-test("window.lh.terminals has the same members in desktop-env.tsx and in shim.js", () => {
-	const typed = block(declared, "terminals?: {\n", "\n\t\t\t};");
-	const shimmed = block(shim, "terminals: {\n", "\n\t\t},");
-	same(names(typed, 4), names(shimmed, 3), "window.lh.terminals members");
-});
-
-test("window.lh.terminalWindow has the same members in desktop-env.tsx and in shim.js", () => {
-	const typed = block(declared, "terminalWindow?: {\n", "\n\t\t\t};");
-	const shimmed = block(shim, "terminalWindow: {\n", "\n\t\t},");
-	same(names(typed, 4), names(shimmed, 3), "window.lh.terminalWindow members");
+test("window.lh.chatWindow has the same members in desktop-env.tsx and in shim.js", () => {
+	const typed = block(declared, "chatWindow?: {\n", "\n\t\t\t};");
+	const shimmed = block(shim, "chatWindow: {\n", "\n\t\t},");
+	same(names(typed, 4), names(shimmed, 3), "window.lh.chatWindow members");
 });

@@ -73,7 +73,7 @@ export function Strip() {
 	const { view, status, name } = strip;
 	const host = rows.mounted ? document.getElementById(PEEK_ROWS_ID) : null;
 	const flag = view.flag;
-	const said = strip.slipLine ?? (status && (status.working || status.lit) ? status.status : null);
+	const said = strip.slipLine ?? (status?.working ? status.status : null);
 	return (
 		<>
 			<div
@@ -88,7 +88,7 @@ export function Strip() {
 					ref={button}
 					type="button"
 					data-testid="strip"
-					aria-label={[name, status?.status, flag].filter(Boolean).join(". ")}
+					aria-label={[name, status?.status !== name && status?.status, flag].filter(Boolean).join(". ")}
 					aria-expanded={panelOpen}
 					onClick={() => {
 						stripPressed();
@@ -136,10 +136,9 @@ export function Strip() {
 	);
 }
 
-/** The teacher's square: it breathes while the teacher works, and is hollow before the agent's
- *  state is read. */
+/** The teacher's square: it breathes while the teacher works. */
 function SquareMark({ square }: { square: Square }) {
-	return <span aria-hidden data-square={square} className={cn("size-2 shrink-0", square === "off" ? "border-2 border-current" : "bg-current", square === "working" && "ob-pulse")} />;
+	return <span aria-hidden data-square={square} className={cn("size-2 shrink-0 bg-current", square === "working" && "ob-pulse")} />;
 }
 
 /** The peek's rows, one per live thing: first the teacher's status, then what waits for the learner, then what works. */
@@ -148,7 +147,7 @@ function PeekRows({ strip }: { strip: StripState }) {
 	return (
 		<>
 			{status?.status && (
-				<button type="button" data-testid="peek-status" onClick={strip.click} className={cn(ROW, "lh-press gap-2.5", status.lit ? LIT : "hover:bg-accent")}>
+				<button type="button" data-testid="peek-status" onClick={strip.click} className={cn(ROW, "lh-press gap-2.5 hover:bg-accent")}>
 					<SquareMark square={view.square} />
 					<span className="min-w-0 flex-1">{status.status}</span>
 				</button>

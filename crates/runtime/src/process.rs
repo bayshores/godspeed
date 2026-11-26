@@ -18,7 +18,7 @@ use tokio::sync::OnceCell;
 const API_KEYS: [&str; 3] = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "CODEX_API_KEY"];
 
 /// The agent's environment: the app's own, less the app's variables, godspeed's own
-/// (`GODSPEED_`, which belong to the terminal and the outside connector), and any API key.
+/// (`GODSPEED_`), and any API key.
 fn agent_vars(base: impl IntoIterator<Item = (OsString, OsString)>, os: &str) -> Vec<(OsString, OsString)> {
 	let dropped = |key: &str| {
 		let upper = key.to_ascii_uppercase();

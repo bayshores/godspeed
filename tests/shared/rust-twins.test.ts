@@ -224,31 +224,6 @@ describe("page picture widths", () => {
 	});
 });
 
-describe("start script exit codes", () => {
-	it("are the ones the terminal screen reads", () => {
-		const scripts = rust("spaces/agent_folder");
-		const screen = read("src/frontend/components/terminal/terminal-model.ts");
-		for (const name of ["EXIT_NOT_INSTALLED", "EXIT_NO_NODE", "EXIT_OLD_AGENT"]) assert.equal(number(screen, name), number(scripts, name), name);
-	});
-});
-
-describe("the folder's agent event hook", () => {
-	const script = read("crates/services/folder-files/agent-event.mjs");
-	it("sends only events the server reads", () => {
-		const server = read("crates/server/src/mcp/mod.rs");
-		const line = /const event = (.*);/.exec(script)?.[1] ?? "";
-		const events = [...line.matchAll(/[?:] "(\w+)"/g)].map((m) => m[1]!);
-		assert.deepEqual(events, ["session", "stop", "tool", "needs"]);
-		for (const event of events) assert.ok(server.includes(`(Some("${event}")`), event);
-	});
-	it("cuts a subject only for tools that have words", () => {
-		const tools = strings(rust("session/teacher_steps"), "CLAUDE_OWN_TOOLS");
-		const cut = [...script.matchAll(/tool === "(\w+)"/g)].map((m) => m[1]!);
-		assert.ok(cut.length > 0);
-		for (const tool of cut) assert.ok(tools.includes(tool), tool);
-	});
-});
-
 describe("the Claude helper's tool server", () => {
 	it("is the name godspeed's tools are told apart by", () => {
 		const helper = read("crates/runtime/src/claude/claude-helper.mjs");

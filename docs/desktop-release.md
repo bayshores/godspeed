@@ -242,7 +242,7 @@ Add these under the repository's **Settings → Secrets and variables → Action
 ## Release runbook
 
 1. If the change touches `crates/shell`, the bundle config, the updater or the workflows, run the manual Desktop release workflow first.
-2. Install the Windows and Linux artifacts by hand and open them. Check window buttons and dragging, the top bar at narrow widths, zoom, onboarding and the agent connection, a lesson and resume, and a demo.
+2. Install the Windows and Linux artifacts by hand and open them. Check window buttons and dragging, the top bar at narrow widths, zoom, onboarding and the teacher's setup card, a lesson and resume, and a demo.
 3. Read the `none:` rows of `docs/features.md`, then open the Home control of each row added or changed since the last release in the real app.
 4. Bump `package.json` and the lockfile to the release version.
 5. Add its notes to `src/shared/changelog.json`.

@@ -25,7 +25,7 @@ describe("the lines for a page", () => {
 	it("anywhere else the plain ones, and with no space yet the ones that start one", () => {
 		assert.deepEqual(on("/"), ["What should I study?", "Teach me a new topic", "Add a deadline", "Find something in my files"]);
 		assert.deepEqual(on("/settings"), on("/"));
-		assert.deepEqual(on("/terminal-window"), on("/"), "the terminal window is on no page");
+		assert.deepEqual(on("/chat-window"), on("/"), "the chat window is on no page");
 		assert.deepEqual(on("/space", { space: null }), ["What should I study?", "Teach me a new topic", "Add a deadline"], "no space picked");
 		assert.deepEqual(on("/", { space: null, spaces: 0, deadlines: [] }), ["Set up a space from my files", "Teach me a new topic", "Build me a path to a goal"]);
 	});

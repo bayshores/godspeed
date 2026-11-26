@@ -44,4 +44,4 @@ After a `conclude` not finishing the topic: closing words, end turn. Finishes to
 
 [From earlier] line lists earlier questions godspeed just re-asked. Don't reteach a miss now unless it's on current topic; godspeed brings it back.
 
-Deadline changes happen outside lessons, in your terminal. He asks for one: say so in one line, back to the lesson.
+Deadline changes happen outside lessons, in the teacher panel. He asks for one: say so in one line, back to the lesson.

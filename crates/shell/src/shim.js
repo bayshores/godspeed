@@ -108,7 +108,7 @@
 			lastWheel = e.timeStamp;
 			if (!held || !zooming || ownZoom(e)) return;
 			e.preventDefault();
-			// The terminal would scroll, or hand the wheel to its program.
+			// The zoom is the shell's: no listener on the page acts on this wheel too.
 			e.stopPropagation();
 			// A pinch counted from its gesture events is not counted again.
 			if (pinch) return;
@@ -227,29 +227,13 @@
 		showInFolder: (path) => invoke("show_in_folder", { path }),
 		openPath: (path) => invoke("open_path", { path }),
 		openInObsidian: (path) => invoke("open_in_obsidian", { path }),
-		// The agents' terminals: the page names a role and an agent, never a program or a folder.
-		terminals: {
-			start: (agent, resume) => invoke("terminal_start", { agent, resume: resume ?? null }),
-			attach: (id) => invoke("terminal_attach", { id }),
-			detach: (id) => invoke("terminal_detach", { id }),
-			resize: (id, cols, rows) => invoke("terminal_resize", { id, cols, rows }),
-			write: (id, data) => invoke("terminal_write", { id, data }),
-			answer: (id, kind) => invoke("terminal_answer", { id, kind }),
-			paste: (id) => invoke("terminal_paste", { id }),
-			send: (id, line) => invoke("terminal_send", { id, line }),
-			addFile: (id, name, data) => invoke("terminal_add_file", { id, name, data }),
-			stop: (id) => invoke("terminal_stop", { id }),
-			list: () => invoke("terminal_list"),
-			onOutput: (cb) => subscribe("terminal-output", cb),
-			onState: (cb) => subscribe("terminal-state", cb),
-		},
-		// The teacher's terminal in a window of its own. Only the main window may open it; either
+		// The teacher panel's chat in a window of its own. Only the main window may open it; either
 		// window may close it or bring it forward. `onChange` is for the main page.
-		terminalWindow: {
-			open: (title) => invoke("terminal_window_open", { title }),
-			close: () => invoke("terminal_window_close"),
-			focus: () => invoke("terminal_window_focus"),
-			onChange: (cb) => subscribe("terminal-window", cb),
+		chatWindow: {
+			open: (title) => invoke("chat_window_open", { title }),
+			close: () => invoke("chat_window_close"),
+			focus: () => invoke("chat_window_focus"),
+			onChange: (cb) => subscribe("chat-window", cb),
 		},
 		openLink: (url) => invoke("open_link", { url }),
 		pathForFile,

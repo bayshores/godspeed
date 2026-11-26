@@ -1,7 +1,6 @@
 //! GET /api/boot: what the window reads on each page load before its first paint. Asking also
-//! does what a page load does: it decides onboarding and makes the MCP token, records the version
-//! for "What's new", refreshes the godspeed folder (once per start) and uses up this server's
-//! welcome screen.
+//! does what a page load does: it decides onboarding, records the version for "What's new",
+//! refreshes the godspeed folder (once per start) and uses up this server's welcome screen.
 
 use std::sync::Arc;
 
@@ -15,7 +14,7 @@ use super::whats_new::whats_new_since;
 use crate::App;
 
 pub fn boot_info(app: &Arc<App>) -> Json {
-	// An unwritable data folder shows the app; /api/mcp retries the token.
+	// An unwritable data folder shows the app.
 	let onboarding = onboarding_needed(app).unwrap_or(false);
 	// Decided after onboarding, which marks existing users. Unwritable: skip the notes this launch.
 	let whats_new = whats_new_since(app, VERSION).unwrap_or(None);

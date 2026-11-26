@@ -1,9 +1,8 @@
 /**
- * The settings dialog in a DOM: requested sections land where they live
- * (unknown ids open General), General holds the graph rows, and the
- * Connection section reads as the design's rows (Access: Connection,
- * Access token; Setup: Claude Code, Codex, Other MCP apps; Remembered) with
- * its helpers.
+ * The settings page in a DOM: requested sections land where they live
+ * (unknown ids open General), General holds the update rows, the teacher's
+ * name and start command, Web search and Remembered, and the corner notice
+ * for an old setup left on the computer.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -38,16 +37,13 @@ Object.assign(globalThis, {
 
 const { createRoot } = await import("react-dom/client");
 const { SettingsPage, sectionFor } = await import("../../src/frontend/components/settings/settings-page.tsx");
-const { ConnectionSection } = await import("../../src/frontend/components/settings/connection-section.tsx");
 const { WebSearch } = await import("../../src/frontend/components/settings/web-search.tsx");
 const { RememberedNotes } = await import("../../src/frontend/components/settings/remembered-notes.tsx");
-const { maskToken } = await import("../../src/frontend/components/mcp-access.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { SettingsProvider } = await import("../../src/frontend/components/settings-context.tsx");
 const { UpdateStateProvider } = await import("../../src/frontend/components/settings/update-settings.tsx");
 const { AgentFolderProvider } = await import("../../src/frontend/components/agent-folder/agent-folder-context.tsx");
-const { AgentStatusProvider } = await import("../../src/frontend/components/agent-status.tsx");
-const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
+const { OldSetupNotice } = await import("../../src/frontend/components/agent-folder/old-setup.tsx");
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 /** The page with the window's settings it reads. */
 const Settings = ({ section }: { section: string }) => (
@@ -56,14 +52,6 @@ const Settings = ({ section }: { section: string }) => (
 			<SettingsPage section={section} />
 		</UpdateStateProvider>
 	</SettingsProvider>
-);
-/** The section with the live agent status and the folder it reads. */
-const Connection = () => (
-	<AgentStatusProvider>
-		<AgentFolderProvider>
-			<ConnectionSection />
-		</AgentFolderProvider>
-	</AgentStatusProvider>
 );
 
 const originalFetch = globalThis.fetch;
@@ -85,7 +73,6 @@ const FOLDER = {
 	folder: "/Users/me/godspeed",
 	short: "~/godspeed",
 	exists: false,
-	commands: { claude: 'cd ~/godspeed && claude --settings .godspeed/claude-settings.json', codex: "cd ~/godspeed && codex" },
 	startCommands: {},
 	oldSetup: { plugin: false, codex: false },
 	agent: "claude",
@@ -94,15 +81,12 @@ const FOLDER = {
 
 const NO_KEY = { keyEnd: null, used: null, limit: null, error: null };
 
-/** The Connection section's reads: the access view, the saved notes, the godspeed folder and the search key. */
-function connectionFetch(access: object, { notes = [], search = NO_KEY }: { notes?: object[]; search?: object } = {}) {
-	// The agent the server keeps, as a pick (PATCH) changes it.
-	let folder = FOLDER;
-	return (async (url: string, init?: RequestInit) => {
+/** The reads: the saved notes, the godspeed folder and the search key. */
+function settingsFetch({ notes = [], search = NO_KEY }: { notes?: object[]; search?: object } = {}) {
+	return (async (url: string) => {
 		const path = String(url);
 		if (path.startsWith("/api/web-search")) return Response.json(search);
-		if (path.startsWith("/api/agent-folder") && init?.method === "PATCH") folder = { ...folder, agent: JSON.parse(String(init.body)).agent };
-		return Response.json(path.startsWith("/api/agent-notes") ? { notes } : path.startsWith("/api/agent-folder") ? folder : access);
+		return Response.json(path.startsWith("/api/agent-notes") ? { notes } : path.startsWith("/api/agent-folder") ? FOLDER : {});
 	}) as unknown as typeof fetch;
 }
 
@@ -151,52 +135,9 @@ describe("settings restyle", () => {
 		assert.deepEqual(saves, [], "the dropped edit is not saved");
 	});
 
-	it("Connection: the teacher, the command and the token masked (web search is in Teaching)", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:47613/api/mcp", agentConnected: true });
-		const el = await mount(<Connection />);
-		const text = el.textContent!;
-		for (const label of ["Teacher", "Access token", "Copy the command"]) {
-			assert.ok(text.includes(label), label);
-		}
-		assert.ok(q("web-search") === null);
-		assert.equal(q("agent-token")!.textContent, "••••••••••••a91f");
-		assert.ok(!text.includes("tok_secret_a91f"), "the token is never shown whole");
-		assert.equal(q("agent-status")!.textContent, "Your agent is Claude Code", "the tiles' chips say what runs");
-		assert.equal(q("agent-window-teacher-chip")!.textContent, "Running", "teaching with nothing to do");
-		assert.ok(q("agent-window-teacher-open") === null);
-		assert.ok(!/Background work|helper/.test(text), "no second agent");
-		assert.ok(q("agent-folder-path") === null && q("open-agent-menu") === null, "the folder and the pick are in Teacher");
-		assert.ok(!text.includes("/plugin"), "no plugin to install");
-		assert.ok(q("old-setup-warning") === null, "nothing old left: no warning");
-	});
-
-	it("beside the teacher's open panel, the teacher's tile leaves its status to the panel's head", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_p", url: "http://127.0.0.1:1/api/mcp", agentConnected: true });
-		const panel = { name: "Teacher", panelOpen: true, doing: null, showTerminal: () => {} } as unknown as React.ContextType<typeof TeacherContext>;
-		await mount(
-			<TeacherContext.Provider value={panel}>
-				<Connection />
-			</TeacherContext.Provider>,
-		);
-		assert.ok(q("agent-window-teacher") !== null);
-		assert.ok(q("agent-window-teacher-chip") === null && q("agent-window-teacher-line") === null);
-	});
-
-	it("the teacher's tile carries the teacher's own name", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_n", url: "http://127.0.0.1:1/api/mcp", agentConnected: true });
-		const panel = { name: "Quigley", panelOpen: false, doing: null, showTerminal: () => {} } as unknown as React.ContextType<typeof TeacherContext>;
-		await mount(
-			<TeacherContext.Provider value={panel}>
-				<Connection />
-			</TeacherContext.Provider>,
-		);
-		assert.equal(q("agent-window-teacher")!.querySelector("h3")!.textContent, "Quigley");
-	});
-
-	it("warns about the old plugin left on the computer, and Remove says to restart open chats", async () => {
+	it("a corner notice warns about the old plugin left on the computer, and Remove says to restart open chats", async () => {
 		const posted: unknown[] = [];
 		const left = { ...FOLDER, exists: true, oldSetup: { plugin: true, codex: false } };
-		const access = { token: "tok_secret_c33d", url: "http://127.0.0.1:1/api/mcp", agentConnected: true };
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
 			const path = String(url);
 			if (path.startsWith("/api/agent-folder")) {
@@ -206,45 +147,25 @@ describe("settings restyle", () => {
 				}
 				return Response.json(left);
 			}
-			return Response.json(path.startsWith("/api/agent-notes") ? { notes: [] } : access);
+			return Response.json({});
 		}) as unknown as typeof fetch;
-		await mount(<Connection />);
-		const warning = q("old-setup-warning")!;
-		assert.match(warning.textContent!, /Old godspeed plugin found\./);
-		await act(async () => warning.querySelector("button")!.click());
+		await mount(
+			<AgentFolderProvider>
+				<OldSetupNotice />
+			</AgentFolderProvider>,
+		);
+		assert.equal(q("old-setup-notice")!.textContent, "The old godspeed plugin is still on this computer.It lets Claude Code chats outside ~/godspeed use godspeed.LaterRemove", "the first sentence is its title");
+		await act(async () => q("old-setup-remove")!.click());
 		assert.deepEqual(posted, [{ action: "remove-old-setup" }]);
-		assert.ok(q("old-setup-warning") === null);
-		assert.ok(document.body.textContent!.includes("Removed. Restart any open Claude Code chats to finish."));
-	});
-
-	it("access is always on: no on/off switch, and the teacher's tile carries no button", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_secret_b22c", url: "http://127.0.0.1:1/api/mcp", agentConnected: false });
-		const el = await mount(<Connection />);
-		assert.ok(!el.textContent!.includes("Let outside agents connect"));
-		assert.ok(el.querySelector('[role="switch"]') === null);
-		assert.ok(q("agent-window-teacher-open") === null, "the teacher starts from its own window");
-	});
-
-	it("a connected agent is named by the program", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_d", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, agentName: "Codex" });
-		const el = await mount(<Connection />);
-		assert.ok(el.textContent!.includes("Your agent is Codex"));
-	});
-
-	it("Other app's setup shows the address and a masked token", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_secret_e77e", url: "http://127.0.0.1:1/api/mcp", agentConnected: false });
-		const el = await mount(<Connection />);
-		assert.ok(el.textContent!.includes("Add a Streamable HTTP MCP server"));
-		assert.ok(el.textContent!.includes("http://127.0.0.1:1/api/mcp"));
-		assert.ok(el.textContent!.includes("Bearer ••••••••••••e77e"));
+		assert.ok(q("old-setup-remove") === null);
+		assert.ok(q("old-setup-notice")!.textContent!.includes("Removed. Restart any open Claude Code chats to finish."));
 	});
 
 	it("Web search: the teacher's own search until a key is saved, then Tavily with its count", async () => {
 		const calls: string[] = [];
-		const access = { token: "tok_s", agentConnected: false };
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
 			const path = String(url);
-			if (!path.startsWith("/api/web-search")) return Response.json(path.startsWith("/api/agent-folder") ? FOLDER : access);
+			if (!path.startsWith("/api/web-search")) return Response.json(path.startsWith("/api/agent-folder") ? FOLDER : {});
 			calls.push(`${init?.method ?? "GET"} ${path} ${init?.body ?? ""}`.trim());
 			if (init?.method === "PUT") return Response.json({ keyEnd: "4f2a", used: 412, limit: 1000, error: null });
 			return Response.json(NO_KEY);
@@ -278,7 +199,7 @@ describe("settings restyle", () => {
 	it("Web search: a key Tavily refuses is not saved, and a saved key that stopped working says so", async () => {
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
 			const path = String(url);
-			if (!path.startsWith("/api/web-search")) return Response.json(path.startsWith("/api/agent-folder") ? FOLDER : { token: "tok_s" });
+			if (!path.startsWith("/api/web-search")) return Response.json(path.startsWith("/api/agent-folder") ? FOLDER : {});
 			return init?.method === "PUT" ? Response.json({ error: "Tavily did not accept that key." }, { status: 400 }) : Response.json(NO_KEY);
 		}) as unknown as typeof fetch;
 		await mount(<WebSearch />);
@@ -296,7 +217,7 @@ describe("settings restyle", () => {
 		await act(async () => root?.unmount());
 		host?.remove();
 
-		globalThis.fetch = connectionFetch({ token: "tok_s" }, { search: { keyEnd: "4f2a", used: null, limit: null, error: "This key is out of searches for now." } });
+		globalThis.fetch = settingsFetch({ search: { keyEnd: "4f2a", used: null, limit: null, error: "This key is out of searches for now." } });
 		await mount(<WebSearch />);
 		assert.equal(q("web-search-error")!.textContent, "This key is out of searches for now. Teacher's own search is used until it works again.");
 		assert.ok(q("web-search-agent")!.hasAttribute("data-picked"), "the teacher's own search is the one in use");
@@ -304,10 +225,9 @@ describe("settings restyle", () => {
 
 	it("Teacher: Change opens a box for the picked agent's own start command, and Save keeps it", async () => {
 		const posted: unknown[] = [];
-		const access = { token: "tok_f", url: "http://127.0.0.1:1/api/mcp", agentConnected: false };
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
 			const path = String(url);
-			if (!path.startsWith("/api/agent-folder")) return Response.json(path.startsWith("/api/agent-notes") ? { notes: [] } : access);
+			if (!path.startsWith("/api/agent-folder")) return Response.json(path.startsWith("/api/agent-notes") ? { notes: [] } : {});
 			if (init?.method !== "POST") return Response.json(FOLDER);
 			const body = JSON.parse(String(init.body)) as { command: string };
 			posted.push(body);
@@ -339,60 +259,8 @@ describe("settings restyle", () => {
 		assert.equal(el.querySelector<HTMLInputElement>("#agent-start-command-input")!.value, "standardcompute launch claude --", "the saved command is there to edit");
 	});
 
-	it("New token asks first, then says to copy the new config", async () => {
-		const calls: string[] = [];
-		globalThis.fetch = (async (url: string, init?: RequestInit) => {
-			if (String(url).startsWith("/api/agent-notes")) return Response.json({ notes: [] });
-			if (String(url).startsWith("/api/agent-folder")) return Response.json(FOLDER);
-			calls.push(init?.method ?? "GET");
-			return Response.json({ token: init?.method === "POST" ? "tok_new_2222" : "tok_old_1111", url: "http://127.0.0.1:1/api/mcp", agentConnected: false });
-		}) as unknown as typeof fetch;
-		await mount(<Connection />);
-		await act(async () => q("agent-new-token")!.click());
-		assert.ok(q("agent-new-token-confirm")!.textContent!.includes("Other MCP apps will need the new token. Continue?"));
-		assert.ok(!calls.includes("POST"), "nothing changes until Continue");
-		await act(async () => {
-			q("agent-new-token-continue")!.click();
-			await new Promise((r) => setTimeout(r, 10));
-		});
-		assert.ok(calls.includes("POST"));
-		assert.ok(q("agent-new-token-confirm") === null);
-		assert.ok(q("agent-new-token-note")!.textContent!.includes("Claude Code and Codex pick it up by themselves"));
-		assert.equal(q("agent-token")!.textContent, "••••••••••••2222");
-	});
-
-	it("Copy puts the whole token on the clipboard and says Copied", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:1/api/mcp", agentConnected: false });
-		const el = await mount(<Connection />);
-		const copied: string[] = [];
-		Object.defineProperty(globalThis, "navigator", { configurable: true, value: { clipboard: { writeText: async (t: string) => void copied.push(t) } } });
-		const button = el.querySelector<HTMLButtonElement>('[aria-label="Copy access token"]')!;
-		await act(async () => button.click());
-		assert.deepEqual(copied, ["tok_secret_a91f"]);
-		assert.equal(button.textContent, "Copied");
-	});
-
-	it("Continue is off while the new token is being made, so a double click makes one token", async () => {
-		let posts = 0;
-		globalThis.fetch = (async (url: string, init?: RequestInit) => {
-			if (String(url).startsWith("/api/agent-notes")) return Response.json({ notes: [] });
-			if (String(url).startsWith("/api/agent-folder")) return Response.json(FOLDER);
-			if (init?.method === "POST") {
-				posts += 1;
-				return new Promise<Response>(() => {});
-			}
-			return Response.json({ token: "tok_old_1111", url: "http://127.0.0.1:1/api/mcp", agentConnected: false });
-		}) as unknown as typeof fetch;
-		await mount(<Connection />);
-		await act(async () => q("agent-new-token")!.click());
-		await act(async () => q("agent-new-token-continue")!.click());
-		assert.equal((q("agent-new-token-continue") as HTMLButtonElement).disabled, true);
-		await act(async () => q("agent-new-token-continue")!.click());
-		assert.equal(posts, 1);
-	});
-
 	it("Remembered lists the agent's notes with a Delete button", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true }, {
+		globalThis.fetch = settingsFetch({
 			notes: [{ id: "note_1", text: "CSE 29 exam is done.", spaceName: "CSE 29", createdAt: "2026-10-30T02:00:00Z" }],
 		});
 		const el = await mount(<RememberedNotes />);
@@ -407,7 +275,7 @@ describe("settings restyle", () => {
 			{ id: "note_1", text: "Likes proofs.", spaceName: null, createdAt: "2026-10-30T02:00:00Z" },
 			{ id: "note_2", text: "Prefers mornings.", spaceName: null, createdAt: "2026-10-30T02:00:00Z" },
 		];
-		const read = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true }, { notes });
+		const read = settingsFetch({ notes });
 		let deletes = 0;
 		let finish: () => void = () => {};
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
@@ -437,13 +305,8 @@ describe("settings restyle", () => {
 	});
 
 	it("Remembered says there are no notes yet", async () => {
-		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true });
+		globalThis.fetch = settingsFetch();
 		await mount(<RememberedNotes />);
 		assert.ok(q("remembered-notes")!.textContent!.includes("Nothing yet."));
-	});
-
-	it("masks the token", () => {
-		assert.equal(maskToken("abcdef123456"), "••••••••••••3456");
-		assert.equal(maskToken("abc"), "abc");
 	});
 });

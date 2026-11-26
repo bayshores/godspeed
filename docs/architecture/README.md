@@ -1,6 +1,6 @@
 # Architecture
 
-godspeed is a desktop learning app: Tauri shell, Rust server, React window. An outside agent (Claude Code, Codex or another MCP app) does every model call. Where doc and code disagree, the code is right and the doc gets fixed.
+godspeed is a desktop learning app: Tauri shell, Rust server, React window. The learner's agent (Claude Code or Codex), run by godspeed itself, does every model call. Where doc and code disagree, the code is right and the doc gets fixed.
 
 Read only the files your task touches. A "§N" in any doc is the file that starts with that number. See [development.md](../development.md) for commands, file layout and testing, [rust-server.md](../rust-server.md) for crates and server process, [tauri-shell/README.md](../tauri-shell/README.md) for the shell.
 
@@ -28,14 +28,14 @@ Read only the files your task touches. A "§N" in any doc is the file that start
 | [07.2-lessons-on-files-and-homework.md](07.2-lessons-on-files-and-homework.md) | You change a lesson on files, the Document panel or homework sessions. |
 | [07.3-plots.md](07.3-plots.md) | You change the plot the teacher draws in a multiple-choice lesson. |
 | [08-process-boundaries.md](08-process-boundaries.md) | You need the shell and server split before reading 8.1 to 8.2. |
-| [08.1-the-outside-agent-boundary.md](08.1-the-outside-agent-boundary.md) | You change agent access, or when an agent counts as connected. |
+| [08.1-the-outside-agent-boundary.md](08.1-the-outside-agent-boundary.md) | You change how godspeed runs the agent, the agent's status, or its setup card. |
 | [08.1.1-the-godspeed-folder.md](08.1.1-the-godspeed-folder.md) | You change the godspeed folder, the spaces folder or the agent start script. |
-| [08.1.2-the-teachers-round-and-the-strip.md](08.1.2-the-teachers-round-and-the-strip.md) | You change what opens when the teacher in the terminal starts or opens something, the teacher's round of work, or the strip down the window's right edge. |
+| [08.1.2-the-teachers-round-and-the-strip.md](08.1.2-the-teachers-round-and-the-strip.md) | You change what opens when the teacher starts or opens something, the teacher's round of work, or the strip down the window's right edge. |
 | [08.1.3-agent-tools-and-notes.md](08.1.3-agent-tools-and-notes.md) | You change the other agent tools, agent notes, saved rules or web search. |
-| [08.1.4-claude-codes-start.md](08.1.4-claude-codes-start.md) | You change the arguments, settings or flags every Claude Code start passes. |
+| [08.1.4-how-the-agent-starts.md](08.1.4-how-the-agent-starts.md) | You change what every session of the agent is started with, or the learner's own start command. |
 | [08.1.6-vault-notes.md](08.1.6-vault-notes.md) | You change the notes folder, Obsidian notes, `write_vault_note`, `search_vault` or the pass that sends them. |
 | [08.1.7-follows-slip.md](08.1.7-follows-slip.md) | You change Follow's slip at the page's foot, the teacher's timeline, or the marks on what it changed. |
-| [08.1.8-the-teacher-panels-chat.md](08.1.8-the-teacher-panels-chat.md) | You change the teacher panel's chat: talk chat records, their tools and prompt, the Chats list, the model key, pop out, or the old terminal chats carried over. |
+| [08.1.8-the-teacher-panels-chat.md](08.1.8-the-teacher-panels-chat.md) | You change the teacher panel's chat: talk chat records, their tools and prompt, the Chats list, the model key, pop out, or the older build's terminal chats carried over. |
 | [08.2-plugins.md](08.2-plugins.md) | You change how the app hosts a plugin. Writing one is in [plugins/README.md](../plugins/README.md). |
 | [09-invariants.md](09-invariants.md) | You want the rules that always hold and what the build enforces. |
 | [10-events-and-observability.md](10-events-and-observability.md) | You change logging, the events channel or what still polls. Also holds §10.1 to §10.5. |

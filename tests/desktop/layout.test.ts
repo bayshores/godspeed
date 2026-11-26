@@ -7,7 +7,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent, widthParts } from "../../scripts/layout.mjs";
 import { boxMoved, carried, cross, cutOf, emptyBand, hollow, inkOf, lineBox, linesOf, meet, movedSince, offGap, offInset, outside, probes, roomUnder, scrollerClip, sticksOut, tightPad, tooWide } from "../../scripts/layout-page.mjs";
-import { PLAN_ORDER_SENT_BACK, WAITING_TOPIC, WRITTEN_TOPIC } from "../../scripts/layout-lessons.mjs";
+import { PLAN_ORDER_SENT_BACK, SEED_CALL, WAITING_TOPIC, WRITTEN_TOPIC } from "../../scripts/layout-lessons.mjs";
 import { SPRING_EXAM } from "../../scripts/layout-jobs.mjs";
 import { SCREENS, widthsOf } from "../../scripts/layout-screens.mjs";
 
@@ -279,6 +279,34 @@ describe("the screens", () => {
 		assert.ok(opened.includes("/"), "no screen opens Home");
 		assert.ok(opened.some((url) => url !== "/" && !pages.some((page) => shape(page).test(url))), "no screen opens an address that is no page");
 	});
+	it("calls the tool a seed message in a panel chat names, and replies with the tool's answer word for word", async () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "layout-helper-"));
+		const helper = spawn(process.execPath, [path.join(import.meta.dirname, "../../scripts/layout-helper.mjs")], { env: { ...process.env, LAYOUT_HELPER_DIR: dir }, stdio: ["pipe", "pipe", "inherit"] });
+		const lines = createInterface({ input: helper.stdout })[Symbol.asyncIterator]();
+		const say = (message: object) => helper.stdin.write(`${JSON.stringify(message)}\n`);
+		type Out = { type: string; id?: string; name?: string; args?: unknown; message?: { type: string; subtype?: string; message?: { content: { type: string; text?: string }[] } } };
+		const next = async () => JSON.parse((await lines.next()).value as string) as Out;
+		const past = async (match: (message: Out) => boolean) => {
+			let message = await next();
+			while (!match(message)) message = await next();
+			return message;
+		};
+		try {
+			say({ type: "open", session: "s1", systemPrompt: "You are the teacher in godspeed's teacher panel." });
+			assert.equal((await next()).type, "opened");
+			say({ type: "send", session: "s1", content: [{ type: "text", text: `${SEED_CALL}${JSON.stringify({ name: "read_space", arguments: { space_id: "spc_1" } })}` }] });
+			const call = await past((message) => message.type === "tool_call");
+			assert.deepEqual([call.name, call.args], ["read_space", { space_id: "spc_1" }]);
+			say({ type: "tool_result", id: call.id, content: [{ type: "text", text: '{"name":"Lab \\(x\\)"}' }], isError: false });
+			const reply = await past((message) => message.message?.type === "assistant");
+			const text = reply.message?.message?.content[0]?.text ?? "";
+			assert.deepEqual(JSON.parse(Buffer.from(text, "base64url").toString("utf8")), { isError: false, texts: ['{"name":"Lab \\(x\\)"}'] });
+			assert.equal((await past((message) => message.message?.type === "result")).message?.subtype, "success");
+		} finally {
+			helper.kill();
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
 });
 
 describe("the stand-in agent", () => {
@@ -380,6 +408,34 @@ describe("the stand-in helper", () => {
 			fs.rmSync(dir, { recursive: true, force: true });
 		}
 	});
+	it("calls the tool a seed message in a panel chat names, and replies with the tool's answer word for word", async () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "layout-helper-"));
+		const helper = spawn(process.execPath, [path.join(import.meta.dirname, "../../scripts/layout-helper.mjs")], { env: { ...process.env, LAYOUT_HELPER_DIR: dir }, stdio: ["pipe", "pipe", "inherit"] });
+		const lines = createInterface({ input: helper.stdout })[Symbol.asyncIterator]();
+		const say = (message: object) => helper.stdin.write(`${JSON.stringify(message)}\n`);
+		type Out = { type: string; id?: string; name?: string; args?: unknown; message?: { type: string; subtype?: string; message?: { content: { type: string; text?: string }[] } } };
+		const next = async () => JSON.parse((await lines.next()).value as string) as Out;
+		const past = async (match: (message: Out) => boolean) => {
+			let message = await next();
+			while (!match(message)) message = await next();
+			return message;
+		};
+		try {
+			say({ type: "open", session: "s1", systemPrompt: "You are the teacher in godspeed's teacher panel." });
+			assert.equal((await next()).type, "opened");
+			say({ type: "send", session: "s1", content: [{ type: "text", text: `${SEED_CALL}${JSON.stringify({ name: "read_space", arguments: { space_id: "spc_1" } })}` }] });
+			const call = await past((message) => message.type === "tool_call");
+			assert.deepEqual([call.name, call.args], ["read_space", { space_id: "spc_1" }]);
+			say({ type: "tool_result", id: call.id, content: [{ type: "text", text: '{"name":"Lab \\(x\\)"}' }], isError: false });
+			const reply = await past((message) => message.message?.type === "assistant");
+			const text = reply.message?.message?.content[0]?.text ?? "";
+			assert.deepEqual(JSON.parse(Buffer.from(text, "base64url").toString("utf8")), { isError: false, texts: ['{"name":"Lab \\(x\\)"}'] });
+			assert.equal((await past((message) => message.message?.type === "result")).message?.subtype, "success");
+		} finally {
+			helper.kill();
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
 });
 
 describe("the stand-in agent", () => {
@@ -389,10 +445,10 @@ describe("the stand-in agent", () => {
 			standInAgent(home);
 			for (const name of ["claude", "codex"]) {
 				const shim = path.join(home, "bin", name);
-				assert.match(fs.readFileSync(shim, "utf8"), /layout-agent\.mjs/);
 				assert.ok((fs.statSync(shim).mode & 0o111) !== 0, `${name} runs`);
-				// The start script's version check must end, and must not start an agent.
 				assert.match(execFileSync(shim, ["--version"], { encoding: "utf8", timeout: 5000 }), /^99\.0\.0 /);
+				// Anything but the setup card's checks fails: no agent starts.
+				assert.throws(() => execFileSync(shim, ["app-server"], { stdio: "pipe", timeout: 5000 }));
 			}
 			assert.equal(fs.readFileSync(path.join(home, ".zshrc"), "utf8"), `export PATH=${JSON.stringify(path.join(home, "bin"))}:$PATH\n`);
 		} finally {

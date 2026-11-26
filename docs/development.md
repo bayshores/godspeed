@@ -4,7 +4,7 @@ How to set up, run and check godspeed, and where its files live. Read first if y
 
 ## What godspeed is
 
-A desktop learning app. Its screens are a React app built with Vite (`src/frontend`), served by a Rust server (`crates/`) inside a Tauri desktop shell. The only model is an outside agent (Claude Code, Codex or any MCP app) connected over MCP: the server parks every model request as a work item and the agent answers it. Lessons belong to **spaces**; each space has its own files, deadlines and knowledge graph.
+A desktop learning app. Its screens are a React app built with Vite (`src/frontend`), served by a Rust server (`crates/`) inside a Tauri desktop shell. The only model is the learner's agent (Claude Code or Codex), which godspeed runs itself: each lesson, job and teacher panel chat is a session of its own. Lessons belong to **spaces**; each space has its own files, deadlines and knowledge graph.
 
 ## Other docs
 
@@ -62,18 +62,17 @@ To check a new screen or state with `npm run layout`:
 1. Add one entry to `scripts/layout-screens.mjs`: a name, its `url`, and a `ready` selector for something drawn from the screen's data (not its frame, which shows before the data).
 2. For a state the URL does not reach, add `setup` (a page script that clicks) and `shows` (the selector it waits for), or `before` (a page script that changes the data first).
 3. Every menu and pop-up gets its own entry that opens it, with `[data-state=open]` in `shows`: a `MenuShell` menu carries it once it is placed. At each width the walk brings the key that opened a menu or pop-up back into the window, so a row a narrower window pushed down is not reported as a menu outside the window.
-4. If the state needs data that is not there, have the stand-in agent in `scripts/layout-seed.mjs` write it through MCP. A lesson's made-up replies go in `scripts/layout-lessons.mjs`, and a job's fixed answer in `scripts/layout-jobs.mjs`.
+4. If the state needs data that is not there, have the stand-in agent in `scripts/layout-seed.mjs` write it with godspeed's tools (each call is a message in a teacher panel chat that `scripts/layout-helper.mjs` plays). A lesson's made-up replies go in `scripts/layout-lessons.mjs`, and a job's fixed answer in `scripts/layout-jobs.mjs`.
 
 Release builds run on the target OS, not as cross-builds from macOS. See [desktop-release.md](desktop-release.md) for Windows and Linux packages and the release flow.
 
-To import notes while testing, use the app: a space's linked folder or Files page, the Graph's Add files (No space only), or the `import_notes` MCP tool. All extraction runs on the connected agent.
+To import notes while testing, use the app: a space's linked folder or Files page, the Graph's Add files (No space only), or the teacher panel chat's `import_notes` tool. All extraction runs on the picked agent.
 
 ## Environment
 
-- No model settings, model keys or sign-ins. The outside agent picks its own model and effort in its own harness. Settings → Connection connects it.
+- No model keys. The agent runs on the learner's own plan; Settings → Teacher picks the agent and the model new lessons start on, and its setup card signs it in.
 - The one optional key is the learner's own Tavily key, entered in Settings → Teaching → Facts and research and kept in `data/search-key` (mode 0600, never in `settings.json`). With it the research job gets a `web_search` tool; without it the agent may use its own web search.
 - Extraction batch size is fixed at 4096 tokens (`graph.extractionChunkTokens` in `factory_settings`). It is not a setting; a value in an old `settings.json` is ignored.
-- The server makes the access token `data/mcp-token` on the first page load, and again whenever the file is missing.
 - The server's environment variables are in [rust-server.md](rust-server.md).
 
 ## Layout
@@ -127,8 +126,8 @@ Component folders:
 |---|---|
 | `top-bar/`, `home-page/`, `study-page/` | Top bar, Home, the Study page. |
 | `space-page/`, `overview/`, `lessons/`, `files/`, `graph/`, `deadline/`, `cheat-sheet/`, `mock/` | Space pages, deadlines, cheat sheets, mocks. |
-| `lesson/`, `work/`, `teacher/`, `terminal/` | Lesson screen, work frame, teacher panel, the agent's terminal screen. |
-| `settings/`, `agent-folder/`, `agent-setup/`, `onboarding/`, `welcome/`, `plugins/` | Settings, the godspeed folder and its start keys, the agent's setup card, onboarding, welcome screen, a plugin's sandboxed frame. |
+| `lesson/`, `work/`, `teacher/` | Lesson screen, work frame, teacher panel. |
+| `settings/`, `agent-folder/`, `agent-setup/`, `onboarding/`, `welcome/`, `plugins/` | Settings, the godspeed folder and the agent's start command, the agent's setup card, onboarding, welcome screen, a plugin's sandboxed frame. |
 | `citations/`, `artifacts/` | Source marks; renderers for job results (registry in `artifacts/`). |
 | `ai-elements/`, `ui/` | Shared message and UI pieces. |
 
@@ -174,7 +173,7 @@ Shared helpers sit in `tests/` itself.
 | `release-assets.mjs` | Gives the bundler's outputs their download names. |
 | `release-feeds.mjs` | Writes the update feeds a release publishes. |
 | `verify-release.ts` | The last check in the release workflow. |
-| `layout.mjs`, `layout-page.mjs`, `layout-screens.mjs`, `layout-seed.mjs`, `layout-lessons.mjs`, `layout-jobs.mjs`, `layout-helper.mjs`, `layout-agent.mjs` | `npm run layout`: the walk, the in-page check, the screen list, the stand-in agent that writes the made-up data, the made-up lessons, the fixed answers to godspeed's jobs, the stand-in Claude helper that plays those lessons and jobs through godspeed's tools (a debug build starts it when `LH_CLAUDE_HELPER` names it), and the stand-in `claude` and `codex` a Start runs in the check. |
+| `layout.mjs`, `layout-page.mjs`, `layout-screens.mjs`, `layout-seed.mjs`, `layout-lessons.mjs`, `layout-jobs.mjs`, `layout-helper.mjs` | `npm run layout`: the walk (with the stand-in `claude` and `codex` that answer the setup card's checks), the in-page check, the screen list, the stand-in agent that writes the made-up data, the made-up lessons, the fixed answers to godspeed's jobs, and the stand-in Claude helper that plays those lessons, chats and jobs through godspeed's tools (a debug build starts it when `LH_CLAUDE_HELPER` names it). |
 
 ## Where to read about what
 
@@ -182,7 +181,7 @@ Each is described in [architecture/README.md](architecture/README.md), in the se
 
 | Topic | Section |
 |---|---|
-| The outside agent, godspeed's terminal, when an agent counts as connected | 8.1 |
+| How godspeed runs the agent, its status and its setup card | 8.1 |
 | Question tools, side questions, attachments, the plan tree | 5 |
 | Background jobs and the wake pipeline | 5.4 and 5.1 |
 | Compaction | 5, details in [compaction-accounting.md](compaction-accounting.md) |
@@ -203,11 +202,11 @@ All tests are deterministic: no LLM, no network. Lessons and jobs run on a stand
 
 - Golden cases: `crates/<crate>/tests/golden/*.json` hold recorded outputs of the original TypeScript functions; a Rust test beside each replays them (see `crates/base/tests/golden.rs`).
 - Fixtures: an on-disk format change updates `tests/fixtures/golden-data/` in the same commit. Its README says how.
-- Contract scenarios replay recorded HTTP and MCP traffic against a release `godspeed-server`. The lab lives outside this repository (see [rust-server.md](rust-server.md)).
+- Contract scenarios replay recorded HTTP traffic against a release `godspeed-server`. The lab lives outside this repository (see [rust-server.md](rust-server.md)).
 
 ## Data
 
-Everything under `data/` is plain JSON or JSONL, never tracked by git. Read these files freely; `mcp-token` is a secret, so don't share it. The desktop app moves the whole folder with `LH_DATA_DIR`.
+Everything under `data/` is plain JSON or JSONL, never tracked by git. Read these files freely; `search-key` is a secret, so don't share it. The desktop app moves the whole folder with `LH_DATA_DIR`.
 
 | Path | Holds |
 |---|---|
@@ -219,9 +218,7 @@ Everything under `data/` is plain JSON or JSONL, never tracked by git. Read thes
 | `prompts/` | System prompts the learner edited. |
 | `models/` | The downloaded speech model. |
 | `settings.json` | The settings record. |
-| `mcp-token` | MCP access token (mode 0600). |
 | `search-key` | Optional Tavily key (mode 0600). |
-| `mcp-endpoint.json` | Where the MCP server listens. Desktop only, written by the shell. |
 | `agent-notes.json` | Notes agents saved with `remember`. |
 | `agent-rules.json` | Which teaching rules an agent saved. |
 | `agent-actions.json` | The activity log. |

@@ -19,8 +19,8 @@ use gs_services::app::menu_bar_countdown::start_menu_bar_countdown;
 use gs_shell_rpc::{ShellLink, ToShell};
 use tower::Layer;
 
-/// After SIGTERM open requests get this long to finish (an agent's long-poll would hold the
-/// close up for most of a minute).
+/// After SIGTERM open requests get this long to finish (a chat's stream would hold the close up
+/// until its turn ends).
 const FORCE_EXIT_MS: u64 = 2000;
 
 #[tokio::main]
@@ -62,7 +62,6 @@ async fn main() -> ExitCode {
 		gs_services::plugins::read_list_from(&app, file.into());
 	}
 	if let Some(shell) = &shell {
-		listen_for_terminals(&app, shell);
 		// Weak: the app holds the link, so the link must not hold the app.
 		let app = Arc::downgrade(&app);
 		shell.on_agent_folder(move || app.upgrade().and_then(|app| gs_services::app::agent_folder::set_up_folder(&app)));
@@ -87,18 +86,6 @@ async fn main() -> ExitCode {
 	ExitCode::from(143)
 }
 
-/// The shell's live terminal ids and the teacher's among them: those at the start (a restarted
-/// server knows them at once), then each change; and each Enter the learner typed to an agent there.
-fn listen_for_terminals(app: &App, shell: &ShellLink) {
-	let at_start = std::env::var("LH_TERMINALS").ok().and_then(|text| gs_json::parse(&text).ok()).unwrap_or_default();
-	let ids = at_start["live"].items().iter().filter_map(|id| id.as_str().map(str::to_owned)).collect();
-	app.terminals.set_live_terminals(ids, at_start["teacher"].as_str().map(str::to_owned));
-	let terminals = app.terminals.clone();
-	shell.on_terminals(move |live, teacher| terminals.set_live_terminals(live, teacher));
-	let terminals = app.terminals.clone();
-	shell.on_typed(move |terminal| terminals.typed(&terminal, clock::now_ms()));
-}
-
 /// SIGTERM or SIGINT (Ctrl-C on Windows) stops the server, and so does the end of stdin: the
 /// shell's stdin pipe when it started us (its quit, crash or force-quit ends us too, on every
 /// OS), else stdin when it is a pipe. After the stop, open requests get FORCE_EXIT_MS, then the
@@ -109,7 +96,7 @@ fn watch_for_stop(shell: Option<ShellLink>) {
 		// What the shell's messages set off starts its tasks on the stored runtime (gs_base::tasks).
 		std::thread::spawn(move || {
 			// A panic while handling a message stops the server too: one that no longer hears the
-			// shell cannot start a terminal, and the shell starts a stopped server again.
+			// shell cannot log the window in, and the shell starts a stopped server again.
 			let _stop = StopWhenDone;
 			shell.listen(std::io::stdin().lock());
 		});

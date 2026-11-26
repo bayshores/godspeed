@@ -107,29 +107,3 @@ async fn the_shell_asks_where_the_godspeed_folder_is() {
 	assert_eq!(sent(&mut rx).await, ToShell::AgentFolder { id: 1, folder: None }, "no folder before the server knows it");
 	assert_eq!(sent(&mut rx).await, ToShell::AgentFolder { id: 2, folder: Some("/Users/sam/godspeed".to_owned()) });
 }
-
-#[test]
-fn the_live_terminal_ids_reach_their_listener() {
-	let (link, _rx) = link();
-	link.receive(ToServer::Terminals { live: vec!["a".into()], teacher: None });
-	let heard = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
-	link.on_terminals({
-		let heard = heard.clone();
-		move |live, teacher| heard.lock().unwrap().push((live, teacher))
-	});
-	link.listen(&b"{\"t\":\"terminals\",\"live\":[\"b\",\"c\"],\"teacher\":\"b\"}\n{\"t\":\"terminals\",\"live\":[],\"teacher\":null}\n"[..]);
-	assert_eq!(*heard.lock().unwrap(), vec![(vec!["b".to_owned(), "c".to_owned()], Some("b".to_owned())), (vec![], None)]);
-}
-
-#[test]
-fn a_typed_message_reaches_its_listener() {
-	let (link, _rx) = link();
-	link.receive(ToServer::Typed { terminal: "a".into() });
-	let heard = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
-	link.on_typed({
-		let heard = heard.clone();
-		move |terminal| heard.lock().unwrap().push(terminal)
-	});
-	link.listen(&b"{\"t\":\"typed\",\"terminal\":\"b\"}\n"[..]);
-	assert_eq!(*heard.lock().unwrap(), vec!["b".to_owned()]);
-}

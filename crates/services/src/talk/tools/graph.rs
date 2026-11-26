@@ -82,7 +82,7 @@ mod tests {
 		let app = App::new(gs_base::config::Paths::new(root.join("data"), root.join("home"), root.join("tmp"), root.join("res")), None);
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Botany" })).unwrap()["id"].as_str().unwrap().to_owned();
 		let own = add_copied_file(&app, &space_id, "notes.md", b"My own notes.").unwrap();
-		let call = ToolCall { app: &app, caller: None, asked_here: false };
+		let call = ToolCall { app: &app, caller: None };
 		let import = |name: &str, text: &str| import_notes(&call, &json!({ "space_id": space_id, "name": name, "text": text }));
 
 		let refused = import("notes", "The agent's notes.");

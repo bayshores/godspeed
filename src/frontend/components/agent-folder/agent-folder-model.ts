@@ -12,7 +12,6 @@ export interface FolderView {
 	folder: string;
 	short: string;
 	exists: boolean;
-	commands: Record<FolderAgent, string>;
 	startCommands: StartCommands;
 	oldSetup: OldSetup;
 	/** The agent the learner picked to run the lessons; null until they pick one (lessons run on Claude Code then). */
@@ -21,16 +20,11 @@ export interface FolderView {
 	model: Partial<Record<FolderAgent, string>>;
 }
 
-/** What is left of the old setup, one entry each: `short` for Settings,
- *  `full` for the notice. Empty when nothing is left. */
-export function oldSetupLines(old: OldSetup, short: string): { short: string; full: string }[] {
+/** What is left of the old setup, one sentence each for the notice. Empty when nothing is left. */
+export function oldSetupLines(old: OldSetup, short: string): string[] {
 	return [
-		...(old.plugin
-			? [{ short: "Old godspeed plugin found.", full: `The old godspeed plugin is still on this computer. It lets Claude Code chats outside ${short} use godspeed.` }]
-			: []),
-		...(old.codex
-			? [{ short: "Old godspeed entry found in Codex's settings.", full: `An old godspeed entry is still in Codex's settings. It lets Codex chats outside ${short} use godspeed.` }]
-			: []),
+		...(old.plugin ? [`The old godspeed plugin is still on this computer. It lets Claude Code chats outside ${short} use godspeed.`] : []),
+		...(old.codex ? [`An old godspeed entry is still in Codex's settings. It lets Codex chats outside ${short} use godspeed.`] : []),
 	];
 }
 

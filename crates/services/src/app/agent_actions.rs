@@ -1,6 +1,6 @@
-//! The activity log: what changed lately, and who did it. Every MCP tool that changes something
-//! records one action here, as do the app (a linked folder's new files) and the learner (answers,
-//! deadlines saved in the app). The newest `ACTIONS_MAX` are saved to disk and served by
+//! The activity log: what changed lately, and who did it. Every teacher panel tool that changes
+//! something records one action here, as do the app (a linked folder's new files) and the learner
+//! (answers, deadlines saved in the app). The newest `ACTIONS_MAX` are saved to disk and served by
 //! GET /api/agent-actions; each new one goes out as the "agent-action" event so Follow can open
 //! the page an agent changed.
 
@@ -110,7 +110,7 @@ fn extend_newest(app: &App, label: &str, now: i64) {
 	app.events.emit(EventKind::AgentAction, action);
 }
 
-/// Record what an outside agent changed, for the teacher's panel.
+/// Record what the agent changed, for the teacher's panel.
 pub fn note_agent_action(app: &App, caller: Option<&str>, change: &Json) {
 	record_agent_action(app, caller, change, clock::now_ms());
 }

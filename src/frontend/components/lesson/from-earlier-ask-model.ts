@@ -3,7 +3,7 @@
  * earlier (the page's loader asks once before the lesson shows): while it
  * waits on its teacher or its agent, with nothing open, nothing shown and
  * no answer or skip on its way. The key changes when a turn starts or ends, so each one asks again:
- * with no agent connected the lesson waits the whole time, and Keep going
+ * while the agent can't run the lesson waits the whole time, and Keep going
  * at a stop opens the server's window only once its go-ahead starts a
  * turn. Null: no ask. Pure.
  */

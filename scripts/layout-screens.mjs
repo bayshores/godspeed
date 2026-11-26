@@ -277,7 +277,7 @@ export const SCREENS = [
 	{ name: "Study", url: "/new", ready: "[data-testid=home-deadlines] [data-testid=home-study-deadline]", shows: "[data-testid=home-suggestions]" },
 	{ name: "Files", url: "/space/files", ready: "[data-testid=files-list] > *" },
 	{ name: "Files, Find open", url: "/space/files", ready: "[data-testid=files-find]", setup: findWord("files-find", "files-search", "notes"), shows: "[data-testid=files-search]" },
-	// The app's own terminal runs here, so the page can hand the teacher a line: the key shows beside the sentence.
+	// The page can hand the teacher a line: the key shows beside the sentence.
 	{ name: "Files, nothing found", url: "/space/files", ready: "[data-testid=files-find]", setup: findWord("files-find", "files-search", "zzzqx"), shows: "[data-testid=files-ask-inside]" },
 	{ name: "Files, a file's menu", url: "/space/files", ready: "[data-testid=files-list] button[aria-label^='More for']", setup: `document.querySelector("[data-testid=files-list] button[aria-label^='More for']").click()`, shows: "[data-testid^=space-file-menu-body-][data-state=open]" },
 	// The worksheet and its .tex are one row; its menu and Remove act on both.
@@ -526,7 +526,6 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	},
 	{ name: "Teacher's panel while the agent is too old", agent: "old", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=panel-setup][data-state=open] [data-testid=agent-compact] [data-testid=agent-key]" },
 	{ name: "Home, the strip's peek while the agent isn't logged in", agent: "signed-out", url: "/", ready: deadlineCard, setup: peekOut, shows: peekShown },
-	{ name: "Settings, Connection", url: "/settings?section=connection", ready: "[data-testid=agent-status]" },
 	{ name: "Settings, Teaching", url: "/settings?section=teaching", ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)" },
 	{ name: "Settings, Plugins", url: "/settings?section=plugins", ready: "[data-testid=plugins-list]" },
 	{ name: "Settings, Plugins, Add", url: "/settings?section=plugins", ready: "[data-testid=plugins-add][data-opens=sheet]", setup: `document.querySelector("[data-testid=plugins-add]").click()`, shows: "[data-testid=plugins-add-sheet] [data-testid=plugins-listed-meme-cards]" },
@@ -719,7 +718,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	// The chat's own window, and the main window's column while the shell says the window is open.
 	{
 		name: "The chat's own window",
-		url: "/terminal-window",
+		url: "/chat-window",
 		ready: "[data-testid=chat-window] [data-testid=teacher-panel-put-back]",
 		shows: "[data-testid=chat-window] [data-testid=talk-chat]",
 	},
@@ -727,7 +726,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		name: "Teacher's column while the chat is in its window",
 		url: "/",
 		ready: deadlineCard,
-		setup: `window.__lhPush("terminal-window", { open: true }); ${pause}; ${openTeacher}`,
+		setup: `window.__lhPush("chat-window", { open: true }); ${pause}; ${openTeacher}`,
 		shows: "[data-testid=teacher-panel] [data-testid=teacher-panel-put-back]",
 	},
 	// A panel chat asks the stand-in teacher to update Lab Algebra: its round reads the space and searches the web, and Follow's slip says what it
@@ -753,8 +752,8 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	// Its steps end with the web search, one of the agent's own tools.
 	{
 		name: "Follow's slip, its steps open",
-		url: "/settings?section=connection",
-		ready: "[data-testid=agent-status]",
+		url: "/settings?section=teacher",
+		ready: "[data-testid=group-teacher] [data-testid=agent-folder-path]",
 		setup: `${whenThere("[data-testid=follow-slip-line]:not(:disabled)")}; document.querySelector("[data-testid=follow-slip-line]").click()`,
 		shows: "[data-testid=follow-slip-list]",
 	},

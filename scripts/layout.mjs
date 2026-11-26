@@ -4,9 +4,9 @@
  *
  * Chromium and WebKit lay some CSS out differently, and the Mac app draws with WebKit. This
  * builds the debug shell with its `screens` control channel (crates/shell/src/screens.rs), starts
- * it on a throwaway home and data folder, and has a stand-in agent write made-up data
- * (layout-seed.mjs). Lessons and jobs play on a stand-in for the Claude helper (layout-helper.mjs, named
- * by LH_CLAUDE_HELPER), so no agent runs. It then starts the app again with no agent connected and walks the screens
+ * it on a throwaway home and data folder, and has a stand-in agent write made-up data in a teacher
+ * panel chat (layout-seed.mjs). Lessons, chats and jobs play on a stand-in for the Claude helper
+ * (layout-helper.mjs, named by LH_CLAUDE_HELPER), so no agent runs. It then starts the app again and walks the screens
  * in layout-screens.mjs, two passes for each. The widths are dealt into parts (widthParts) that
  * run side by side, each this script again with its own app, home and data in
  * target/layout/part-N, walking every screen in the same order at its own widths:
@@ -208,11 +208,10 @@ function freePort() {
 /** The folder the stand-in helper keeps its state in, and takes a screen's request from (layout-helper.mjs). */
 const HELPER_DIR = path.join(RUN, "helper");
 
-/** A Start in the check runs layout-agent.mjs, never a real agent: its `claude` and `codex` are
- *  first on the throwaway home's PATH. The start script asks for the version first: that is
- *  answered and done, or a second stand-in would run in the terminal, outside the helper's mark,
- *  and take the lines meant for the teacher. It throws when it can't write them, so the run stops
- *  before the window starts. */
+/** The check never runs a real agent: the stand-in `claude` and `codex` are first on the throwaway
+ *  home's PATH and answer only the setup card's checks; the lessons and chats run on the stand-in
+ *  helper (layout-helper.mjs). It throws when it can't write them, so the run stops before the
+ *  window starts. */
 export function standInAgent(home) {
 	const bin = path.join(home, "bin");
 	fs.mkdirSync(bin);
@@ -230,7 +229,8 @@ case "$1 $2" in
 	read code; [ "$code" = ok ] || exit 1; echo ready > ${state}; exit 0 ;;
 "update ") echo "Checking for updates"; sleep 1; echo "Updated to 99.0.0"; echo ready > ${state}; exit 0 ;;
 esac
-exec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}
+echo "The stand-in agent only answers the setup card's checks." >&2
+exit 1
 `;
 	for (const name of ["claude", "codex"]) fs.writeFileSync(path.join(bin, name), run, { mode: 0o755 });
 	fs.writeFileSync(path.join(home, ".zshrc"), `export PATH=${JSON.stringify(bin)}:$PATH\n`);
@@ -519,8 +519,8 @@ async function walkPart(mine) {
 	const watched = [];
 	const result = (error) => fs.writeFileSync(path.join(RUN, "result.json"), JSON.stringify({ failures, warnings, watched, ...(error ? { error } : {}) }));
 	try {
-		// The first launch: the stand-in agent writes the data, then the app quits, so the second
-		// launch starts with no agent connected.
+		// The first launch: the stand-in agent writes the data and the learner is marked onboarded,
+		// then the app quits, so the second launch opens on the app itself.
 		let app = await startApp(port, "seed");
 		let ids;
 		try {
@@ -534,7 +534,7 @@ async function walkPart(mine) {
 					log(`page got ${status} for ${url}`);
 					return status;
 				},
-				json: async (url) => JSON.parse(await app.run(`return fetch(${JSON.stringify(url)})${HTTP_OK}.then((r) => r.text())`)),
+				json: async (url, init = {}) => JSON.parse(await app.run(`return fetch(${JSON.stringify(url)}, ${JSON.stringify(init)})${HTTP_OK}.then((r) => r.text())`)),
 			};
 			ids = await seed(DATA, HELPER_DIR, page, log).catch((err) => {
 				throw new Error(`${err.message}; steps: ${seedLog}`);
@@ -546,6 +546,8 @@ async function walkPart(mine) {
 		} finally {
 			await app.quit();
 		}
+		// The seed's own chat goes while the app is shut; the server has no way to delete a panel chat.
+		fs.rmSync(path.join(DATA, "chats", `${ids.seedChat}.json`));
 
 		const states = process.env.LAYOUT_STATES;
 		// The window's size as a screen is loaded and set up: what the screen before left, in every part alike.
@@ -573,8 +575,8 @@ async function walkPart(mine) {
 					}
 					if (screen.before) await app.run(fill(screen.before, ids));
 					const url = fill(screen.url, ids);
-					// The terminal's page opens only in a window of its own, by a full load.
-					if (!opened.has(url) && url !== "/terminal-window") {
+					// The chat's page opens only in a window of its own, by a full load.
+					if (!opened.has(url) && url !== "/chat-window") {
 						opened.add(url);
 						// The opening pass leaves the window at the screen's narrowest width.
 						left = `${Math.min(...all)} ${screen.height ?? HEIGHT}`;
