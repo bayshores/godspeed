@@ -2,7 +2,9 @@
 //! panel's chat (GET /api/chats/{id}/work): why the turn runs, whether the agent took it, its plan, its steps and
 //! the permission questions waiting for the learner. A step comes from a godspeed tool call, one
 //! of the agent's own tools, or the PDF reader's progress. Made when the turn begins and dropped
-//! when it ends, so a restart loses it with the turn. Every change goes out as "lesson-work".
+//! when it ends, so a restart loses it with the turn. Every change goes out as "lesson-work". A
+//! teacher panel chat's turn is also the teacher's round of work, which Follow's slip shows, so its
+//! beginning, steps and end go to the round too.
 
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -21,6 +23,7 @@ use super::desk_files::{desk_files, path_reading, step_reading};
 use super::step_names::AppStepNames;
 use crate::App;
 use crate::app::settings_record::teacher_name;
+use crate::app::teacher_round::{chat_step, chat_turn_began, chat_turn_ended};
 use crate::jobs::asks::{AskedOn, asks_on};
 
 pub(super) struct TurnWork {
@@ -52,24 +55,35 @@ fn update(app: &App, chat_id: &str, change: impl FnOnce(&mut TurnWork) -> bool) 
 pub(super) fn begin(app: &App, chat_id: &str, cause: TurnCause) {
 	app.turns.work.lock().insert(chat_id.to_owned(), TurnWork { cause, plan: None, steps: VecDeque::new(), approvals: Vec::new() });
 	lesson_work_changed(app, chat_id);
+	if cause == TurnCause::Talk {
+		chat_turn_began(app, chat_id, clock::now_ms());
+	}
 }
 
 /// The turn ended, however it ended.
 pub(super) fn end(app: &App, chat_id: &str) {
-	if app.turns.work.lock().remove(chat_id).is_some() {
-		lesson_work_changed(app, chat_id);
+	let Some(work) = app.turns.work.lock().remove(chat_id) else { return };
+	lesson_work_changed(app, chat_id);
+	if work.cause == TurnCause::Talk {
+		chat_turn_ended(app, chat_id);
 	}
 }
 
 /// One step: its words, the reply's tool call it stands for, the file and place it reads.
 pub fn note_step(app: &App, chat_id: &str, step: TeacherStep, call: Option<&str>, reads: Option<Json>) {
-	let mut out = step_head(step.text, clock::now_ms());
+	let now = clock::now_ms();
+	let mut out = step_head(step.text.clone(), now);
 	out.insert("call", call);
 	out.insert("reads", reads);
+	let mut talk = false;
 	update(app, chat_id, |work| {
 		keep_step(&mut work.steps, Json::Obj(out));
+		talk = work.cause == TurnCause::Talk;
 		true
 	});
+	if talk {
+		chat_step(app, chat_id, step, now);
+	}
 }
 
 /// What a tool call is for the desk: `lesson_call` in a lesson, `talk_call` in a talk chat.

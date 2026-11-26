@@ -126,7 +126,7 @@ export function TeacherPanel({
 			<PanelHead
 				name={name}
 				working={!!doing?.working || !!chat.row?.running}
-				elsewhere={!!doing?.working}
+				elsewhere={!!teacher?.elsewhere}
 				list={popped ? null : { open: list, onOpen: onList }}
 				popOut={!popped && popOut ? () => void popOut().then(setPopError) : null}
 				putBack={popped ? putBack : null}

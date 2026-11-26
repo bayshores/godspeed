@@ -306,6 +306,7 @@ describe("the Chats list", () => {
 		asking: null,
 		recent: [],
 		doing: null,
+		elsewhere: false,
 		setLesson() {},
 		go() {},
 		slip: null,

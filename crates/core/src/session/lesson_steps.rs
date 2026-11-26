@@ -95,11 +95,12 @@ pub fn lesson_call(tool: &str, args: &Json, space_id: Option<&str>, names: &dyn 
 	}
 }
 
-/// What one data-tool call in a talk chat is for its desk: a read is a step in Follow's words; a
-/// change is quiet, since the activity log names it. None for a tool not decided here.
+/// What one data-tool call in a talk chat is for its desk and the teacher's round: a read is a
+/// step in Follow's words, with the file link Follow's slip opens; a change is quiet, since the
+/// activity log names it. None for a tool not decided here.
 pub fn talk_call(tool: &str, args: &Json, _space_id: Option<&str>, names: &dyn StepNames) -> Option<LessonCall> {
 	Some(match round_call(tool, args, names)? {
-		RoundCall::Step(step) => LessonCall::Step(TeacherStep { link: None, ..step }),
+		RoundCall::Step(step) => LessonCall::Step(step),
 		RoundCall::Logged => LessonCall::Quiet,
 	})
 }

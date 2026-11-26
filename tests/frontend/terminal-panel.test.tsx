@@ -98,6 +98,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 		asking: line === null ? null : { line, clear: () => setLine(null) },
 		recent: [],
 		doing: null,
+		elsewhere: false,
 		setLesson: () => {},
 		go: () => {},
 		slip: null,

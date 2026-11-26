@@ -1,6 +1,7 @@
 //! The teacher's own calls, as steps of its round of work (Follow's slip). A call counts when it
-//! comes from godspeed's teacher terminal or from an agent outside godspeed. Lessons and jobs run
-//! on their own agent sessions, so nothing here is theirs. The agent's own tools (web search, file
+//! comes from godspeed's teacher terminal or from an agent outside godspeed. Lessons, jobs and the
+//! teacher panel's chats run on their own agent sessions, so nothing here is theirs (a chat's turn
+//! makes its own round, turns/turn_work.rs). The agent's own tools (web search, file
 //! reads, commands) are told by the folder's hook, which only runs in godspeed's terminals, so only
 //! those terminals count for them.
 

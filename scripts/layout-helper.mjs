@@ -18,15 +18,17 @@
  * answer layout-jobs.mjs gives for the job's tools and request.
  *
  * A session opened with the teacher panel's prompt is one of the panel's chats: a message that
- * asks for the slope checker holds its turn like a holding lesson (the desk's screens), and any
- * other is answered at once with TALK_REPLY.
+ * asks for the slope checker holds its turn like a holding lesson (the desk's screens); one that
+ * asks to update Lab Algebra is the teacher's round of work that Follow's slip shows (it reads the
+ * space, searches the web and holds, and the desk file's `change` adds a homework in that round,
+ * `done` takes it away and ends the turn); any other is answered at once with TALK_REPLY.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
 import { jobAnswer } from "./layout-jobs.mjs";
-import { LESSONS, PLAN_ORDER_SENT_BACK, TALK_HOLDS } from "./layout-lessons.mjs";
+import { LESSONS, PLAN_ORDER_SENT_BACK, TALK_HOLDS, TALK_ROUND } from "./layout-lessons.mjs";
 
 const DIR = process.env.LAYOUT_HELPER_DIR;
 const STATE = DIR && path.join(DIR, "state.json");
@@ -156,12 +158,33 @@ async function writeThenRead(session) {
 	ownTool(session, "Read", { file_path: "notes.md" });
 }
 
-/** The requests a screen can make of a held turn, by the word it writes to the desk file. */
-const DESK_REQUESTS = { read: readFiles, approve: askApproval, stream: writeThenRead };
+/** The space the round reads, the homework it adds, and its last words. */
+const ROUND_SPACE = "Lab Algebra";
+const ROUND_HOMEWORK = "Homework 7: slopes";
+const ROUND_REPLY = "Lab Algebra is up to date.";
+const inDays = (days) => new Date(Date.now() + days * 86_400_000).toLocaleDateString("sv");
+const answerOf = (answer) => (answer.stopped ? {} : JSON.parse(textOf(answer) || "{}"));
 
-/** Holds the turn until it is stopped, doing what the desk file asks while it waits. */
+/** Adds a homework to the space in the round, and reads the space for its id. */
+async function addHomework(session) {
+	await callTool(session, newCall("add_space_deadline", { space_id: session.space, deadlines: [{ kind: "homework", name: ROUND_HOMEWORK, date: inDays(6) }] }));
+	const read = await callTool(session, newCall("read_space", { space_id: session.space }));
+	session.homework = answerOf(read).deadlines?.find((deadline) => deadline.name === ROUND_HOMEWORK)?.id ?? "";
+}
+
+/** Takes the homework away again, and lets the round's turn end. */
+async function endRound(session) {
+	if (session.homework) await callTool(session, newCall("remove_space_deadline", { space_id: session.space, deadline_id: session.homework }));
+	session.homework = "";
+	session.finished = true;
+}
+
+/** The requests a screen can make of a held turn, by the word it writes to the desk file. */
+const DESK_REQUESTS = { read: readFiles, approve: askApproval, stream: writeThenRead, change: addHomework, done: endRound };
+
+/** Holds the turn until it is stopped or a request ends it, doing what the desk file asks while it waits. */
 async function hold(session) {
-	while (!session.stopped) {
+	while (!session.stopped && !session.finished) {
 		if (DESK && fs.existsSync(DESK)) {
 			await DESK_REQUESTS[fs.readFileSync(DESK, "utf8").trim()]?.(session);
 			fs.rmSync(DESK, { force: true });
@@ -203,12 +226,30 @@ async function playJob(session, texts) {
 	return finish(session, how === "stopped");
 }
 
-/** A panel chat's turn: held while the learner asks for the slope checker, else one fixed reply. */
+/** The teacher's round in a panel chat: it reads the space as an agent would (four steps) and
+ *  searches the web, then holds until a screen's `done`. */
+async function playRound(session) {
+	const spaces = await callTool(session, newCall("list_spaces", {}));
+	session.space = answerOf(spaces).spaces?.find((space) => space.name === ROUND_SPACE)?.id ?? "";
+	await callTool(session, newCall("read_space", { space_id: session.space }));
+	const found = await callTool(session, newCall("search_space_files", { space_id: session.space, query: "graphing" }));
+	const passage = found.stopped ? null : PASSAGE.exec(textOf(found))?.[0];
+	if (passage) await callTool(session, newCall("read_passage", { space_id: session.space, passage_id: passage }));
+	ownTool(session, "WebSearch", { query: "lab algebra homework 7" });
+	await hold(session);
+	if (session.stopped) return finish(session, true);
+	assistant(session, ROUND_REPLY, []);
+	return finish(session, false);
+}
+
+/** A panel chat's turn: held while the learner asks for the slope checker, the teacher's round when
+ *  they ask to update Lab Algebra, else one fixed reply. */
 async function playTalk(session, texts) {
 	if (texts.some((text) => text.includes(TALK_HOLDS))) {
 		await hold(session);
 		return finish(session, true);
 	}
+	if (texts.some((text) => text.includes(TALK_ROUND))) return playRound(session);
 	assistant(session, TALK_REPLY, []);
 	return finish(session, false);
 }
@@ -216,6 +257,7 @@ async function playTalk(session, texts) {
 /** The turn a message starts: the lesson's next replies. */
 async function playTurn(session, texts) {
 	session.stopped = false;
+	session.finished = false;
 	sdk(session.key, { type: "system", subtype: "init" });
 	if (session.job) return playJob(session, texts);
 	if (session.talk) return playTalk(session, texts);

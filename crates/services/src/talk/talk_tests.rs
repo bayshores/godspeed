@@ -135,6 +135,22 @@ async fn an_allowed_card_in_a_talk_chat_lets_the_turn_go_on_on_the_talk_desk() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn a_talk_turn_is_the_teacher_s_round_for_follow_with_the_desk_s_steps_until_it_ends() {
+	let web = FakeStep::OwnTool { name: "WebSearch".to_owned(), input: json!({ "query": "slope" }) };
+	let fx = talk("talk-round", vec![vec![tool("list_spaces", json!({})), web, bash(), text("Both spaces are up to date.")]]);
+	fx.say("Update my spaces").await;
+	let id = fx.approval().await;
+	let round = fx.app.terminals.teacher_work(clock::now_ms());
+	assert_eq!((&round["live"], &round["chatId"]), (&json!(true), &json!(fx.chat_id)));
+	let words = |steps: &Json| steps.items().iter().map(|s| s["text"].str_or_empty().to_owned()).collect::<Vec<_>>();
+	assert_eq!(words(&round["steps"]), ["Looking at your spaces", "Searching the web for \u{201c}slope\u{201d}"]);
+	assert_eq!(words(&round["steps"]), words(&lesson_work(&fx.app, &fx.chat_id).unwrap()["steps"]), "the slip lists the desk's steps");
+	assert!(answer_approval(&fx.app, &fx.chat_id, &id, true));
+	fx.settled().await;
+	assert_eq!(fx.app.terminals.teacher_work(clock::now_ms())["live"], json!(false), "the round ends with the turn");
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn stop_ends_a_talk_turn_and_denies_its_card() {
 	let fx = talk("talk-stop", vec![vec![text("Let me look."), bash()]]);
 	fx.say("What is in my folder?").await;

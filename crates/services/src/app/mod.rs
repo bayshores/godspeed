@@ -33,6 +33,7 @@ pub mod reading_pages;
 pub mod settings_body;
 mod settings_put;
 pub(crate) mod settings_record;
+pub(crate) mod teacher_round;
 pub mod terminal_state;
 pub mod terminal_lines;
 pub mod vault_settings;

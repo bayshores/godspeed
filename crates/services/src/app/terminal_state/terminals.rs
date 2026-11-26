@@ -10,7 +10,7 @@ use gs_base::events::EventKind;
 use gs_base::tasks::detach;
 
 use super::checkin::recent;
-use super::steps::{begin_round, end_round_of};
+use super::steps::{RoundOf, begin_round, end_round_of};
 use super::{State, TerminalState};
 
 /// The page the window shows and its space (None: no space).
@@ -118,14 +118,14 @@ impl TerminalState {
 			return;
 		}
 		s.chatting.insert(terminal.to_owned());
-		begin_round(&mut s, Some(terminal), now);
+		begin_round(&mut s, RoundOf::Terminal(terminal.to_owned()), now);
 		drop(s);
 		self.round_began();
 	}
 
 	/// The agent in this terminal stopped (its Stop hook), which ends its round of work.
 	pub fn agent_stopped(&self, terminal: &str) {
-		if end_round_of(&mut self.0.state.lock(), Some(terminal)) {
+		if end_round_of(&mut self.0.state.lock(), &RoundOf::Terminal(terminal.to_owned())) {
 			self.emit(EventKind::TeacherWork);
 		}
 	}

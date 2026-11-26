@@ -171,9 +171,6 @@ function freePort() {
 	});
 }
 
-/** Where a screen hands the stand-in teacher a line, as if typed in its terminal (layout-agent.mjs). */
-const typedFile = (home) => path.join(home, "typed");
-
 /** The folder the stand-in helper keeps its state in, and takes a screen's request from (layout-helper.mjs). */
 const HELPER_DIR = path.join(RUN, "helper");
 
@@ -185,18 +182,9 @@ const HELPER_DIR = path.join(RUN, "helper");
 export function standInAgent(home) {
 	const bin = path.join(home, "bin");
 	fs.mkdirSync(bin);
-	const run = `#!/bin/sh\n[ "$1" = --version ] && { echo "99.0.0 (stand-in)"; exit 0; }\nLAYOUT_TYPED=${JSON.stringify(typedFile(home))} exec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}\n`;
+	const run = `#!/bin/sh\n[ "$1" = --version ] && { echo "99.0.0 (stand-in)"; exit 0; }\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}\n`;
 	for (const name of ["claude", "codex"]) fs.writeFileSync(path.join(bin, name), run, { mode: 0o755 });
 	fs.writeFileSync(path.join(home, ".zshrc"), `export PATH=${JSON.stringify(bin)}:$PATH\n`);
-}
-
-/** Hands the stand-in teacher a screen's `teacher` line and waits until it has done it. */
-async function tellTeacher(line) {
-	const file = typedFile(path.join(RUN, "home"));
-	fs.writeFileSync(file, line);
-	for (const end = Date.now() + READY_MS; fs.existsSync(file); await sleep(100)) {
-		if (Date.now() > end) throw new Error(`the stand-in teacher never did "${line}"`);
-	}
 }
 
 /** Asks the stand-in helper, holding a lesson's reply, for one of its requests (`read`, `approve`
@@ -448,7 +436,6 @@ async function main() {
 				await app.value(`nav ${app.origin}${url}`);
 				await app.ready(fill(screen.ready, ids));
 				if (screen.setup) await app.run(fill(screen.setup, ids));
-				if (screen.teacher) await tellTeacher(fill(screen.teacher, ids));
 				if (screen.helper) await tellHelper(screen.helper);
 				if (screen.shows) await app.ready(fill(screen.shows, ids));
 			} catch (err) {

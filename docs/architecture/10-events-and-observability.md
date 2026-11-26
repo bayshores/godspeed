@@ -38,7 +38,7 @@ List: `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/e
 | `deadline-request-changed` | `{spaceId, deadlineId}` | a deadline request started or ended (`services::spaces::deadline_requests`) |
 | `space-checked` | `{run, spaceId, agent, lines, said}` | a space check changed something: `lines` for the learner, `said` the agent's last line or null (`services::spaces::space_checks`) |
 | `vault-notes-changed` | `{}` | the notes folder setting changed, or a note godspeed writes there was written, found again, marked removed or began waiting (`services::vault`) |
-| `teacher-work` | `{}` | the teacher's round of work began, gained a step or ended (`services::app::terminal_state`); the window reads it at `GET /api/teacher-work` |
+| `teacher-work` | `{}` | the teacher's round of work (a teacher panel chat's turn, or the agent in its terminal) began, gained a step or ended (`services::app::terminal_state`); the window reads it at `GET /api/teacher-work` |
 | `lesson-work` | `{chatId}` | a lesson's running turn began, gained a step or a plan, or ended (`services::turns::turn_work`); the lesson's desk reads it at `GET /api/chats/{id}/work` |
 | `agent-health` | `{}` | a check of the picked agent began or ended, or its sign-in started, ended or failed (`services::app::agent_health`, `agent_login`); the setup card reads it at `GET /api/agent/health` |
 | `agent-update` | `{state, line, command}` | the picked agent's update started, printed a line (`running`), finished (`done`) or failed (`failed`, with its last line); `command` is what it runs (`services::app::agent_update`), which the setup card offers to copy |
