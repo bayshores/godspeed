@@ -119,7 +119,7 @@ It then fetches the model and pdfium, compiles the icon, runs `stage-app.mjs --a
 
 - `quality` (Ubuntu 24.04): fetches the model and ONNX Runtime, runs `npm run check` (typecheck, tests, lint, knip, then cargo test, clippy and cargo machete) and the skill's Python tests.
 - `desktop` (macOS 15, Windows, Ubuntu 22.04 container): build pipeline steps 1 to 4, then `stage-app.mjs` and `smoke-server.mjs`, and on Windows and Linux `cargo test -p gs-shell` and the self-test. It does not compile the Mac icon.
-- `window` (macOS 15): `cargo test -p gs-shell`, the self-test and `npm run layout` (the screens in the real app window, see [development.md](development.md)), beside the Mac desktop job.
+- `window` (macOS 15, four runners): each runs one of the four parts of `npm run layout` (the screens in the real app window, see [development.md](development.md)), beside the Mac desktop job. The fourth also runs `cargo test -p gs-shell` and the self-test.
 - `release-cache`: on a push to main, starts a release rehearsal on main when the release caches are stale or missing (see [Build caches](#build-caches)).
 
 The Ubuntu job keeps the downloaded Linux packages in the cache, because the runner's package mirror is sometimes very slow. Pull requests restore caches but save none.
