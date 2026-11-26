@@ -1,8 +1,13 @@
-//! What a program godspeed starts runs under: the app's own variables it must not inherit, and
-//! the login shell that reads the learner's profile. The agent runtime uses them.
+//! What a program godspeed starts runs under: the app's own variables it must not inherit, the
+//! login shell that reads the learner's profile, and the start itself. The agent runtime and
+//! the transcriber use them.
 
 use std::ffi::OsStr;
+use std::io::ErrorKind;
 use std::path::Path;
+use std::time::Duration;
+
+use tokio::process::{Child, Command};
 
 /// What an AppImage sets for itself; a program started from it must not inherit them.
 const APPIMAGE_VARIABLES: [&str; 12] = ["APPDIR", "APPIMAGE", "ARGV0", "OWD", "LD_LIBRARY_PATH", "LD_PRELOAD", "GDK_PIXBUF_MODULE_FILE", "GIO_EXTRA_MODULES", "GSETTINGS_SCHEMA_DIR", "GTK_PATH", "GTK_EXE_PREFIX", "GTK_DATA_PREFIX"];
@@ -26,6 +31,22 @@ pub fn login_shell(shell: &str, os: &str) -> String {
 		"/bin/zsh".to_owned()
 	} else {
 		"/bin/bash".to_owned()
+	}
+}
+
+/// Starts the program. Linux refuses to run a file that any process still holds open for
+/// writing, which a just-written program is for a moment whenever another thread forks, so that
+/// one refusal is tried again for up to 200 ms.
+pub fn start(command: &mut Command) -> std::io::Result<Child> {
+	let mut tries = 0;
+	loop {
+		match command.spawn() {
+			Err(err) if err.kind() == ErrorKind::ExecutableFileBusy && tries < 20 => {
+				tries += 1;
+				std::thread::sleep(Duration::from_millis(10));
+			}
+			started => return started,
+		}
 	}
 }
 

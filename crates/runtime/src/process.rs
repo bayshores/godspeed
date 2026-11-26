@@ -7,7 +7,7 @@ use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
-use gs_base::child_env::{app_variable, login_shell};
+use gs_base::child_env::{self, app_variable, login_shell};
 use gs_base::{clock, tasks};
 use gs_transcribe::programs::{HOMEBREW_BIN_DIRS, find_in};
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -175,7 +175,7 @@ impl AgentProcess {
 		#[cfg(unix)]
 		command.process_group(0);
 		hide_window(&mut command);
-		let mut child = command.spawn().map_err(|err| format!("cannot start {}: {err}", launch.program.display()))?;
+		let mut child = child_env::start(&mut command).map_err(|err| format!("cannot start {}: {err}", launch.program.display()))?;
 		#[cfg(windows)]
 		let job = hold(&child)?;
 		let (stdin, Some(stdout), Some(stderr)) = (child.stdin.take(), child.stdout.take(), child.stderr.take()) else {

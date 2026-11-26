@@ -1,13 +1,12 @@
 //! Running one program like `execFile` with a 16 MB buffer per stream (`run` in transcribe.ts).
 
 use std::ffi::OsString;
-use std::io::ErrorKind;
 use std::path::Path;
 use std::process::Stdio;
 
-use gs_base::{clock, fsx, text};
+use gs_base::{child_env, fsx, text};
 use tokio::io::{AsyncRead, AsyncReadExt};
-use tokio::process::{Child, Command};
+use tokio::process::Command;
 use tokio::sync::Notify;
 
 const MAX_BUFFER: usize = 16 * 1024 * 1024;
@@ -19,7 +18,7 @@ pub(crate) async fn run_program(program: &Path, args: &[OsString]) -> Result<(),
 	let failed = |detail: String| format!("{name} failed: {detail}");
 	let mut command = Command::new(program);
 	command.args(args).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true);
-	let mut child = spawn(&mut command).await.map_err(|err| failed(spawn_message(program, &err)))?;
+	let mut child = child_env::start(&mut command).map_err(|err| failed(spawn_message(program, &err)))?;
 	let (stdout, stderr) = (child.stdout.take(), child.stderr.take());
 	let overflow = Notify::new();
 	let drained = async { tokio::join!(capture(stdout, "stdout", &overflow), capture(stderr, "stderr", &overflow)) };
@@ -40,22 +39,6 @@ pub(crate) async fn run_program(program: &Path, args: &[OsString]) -> Result<(),
 	let lines: Vec<&str> = text::trim(&stderr_text).split('\n').collect();
 	let tail = lines[lines.len().saturating_sub(3)..].join(" ");
 	Err(failed(if tail.is_empty() { problem } else { tail }))
-}
-
-/// Starts the program. Linux refuses to run a file that any process still holds open for
-/// writing, which a just-written tool is for a moment whenever another thread forks, so that
-/// one refusal is tried again for up to 200 ms.
-async fn spawn(command: &mut Command) -> std::io::Result<Child> {
-	let mut tries = 0;
-	loop {
-		match command.spawn() {
-			Err(err) if err.kind() == ErrorKind::ExecutableFileBusy && tries < 20 => {
-				tries += 1;
-				clock::sleep(10).await;
-			}
-			started => return started,
-		}
-	}
 }
 
 /// Node's `err.message` for a program that did not start.
