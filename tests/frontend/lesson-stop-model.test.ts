@@ -1,9 +1,20 @@
-/** What Keep going owes, and the card that lights on return. */
+/** What Keep going owes, whether the turn at a stop can be stopped, and the card that lights on return. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { keepGoingOwesNext, stopLightSelector } from "../../src/frontend/components/lesson/lesson-stop-model.ts";
+import { keepGoingOwesNext, readsAhead, stopLightSelector } from "../../src/frontend/components/lesson/lesson-stop-model.ts";
 import { lessonStop } from "../../src/shared/core/index.ts";
 import { call, CONCLUDE_SOLVED, keepGoing, marker, problemStop, regularizationEnds, result, text, topicStop, TREE, userText } from "../stop-fixtures.ts";
+
+describe("readsAhead", () => {
+	const [p, pr, c, cr] = regularizationEnds();
+	const concluded = [p!, pr!, c!, cr!];
+
+	it("is the turn that wrote the stop, until he sends something after it", () => {
+		assert.equal(readsAhead([...concluded, text("a", "Cross-validation needs the split.", 51)], "c1"), true, "the teacher reads ahead");
+		const asked = [...concluded, text("a", "That was the last topic.", 51), userText("u", "Explain the complement rule.", 60)];
+		assert.equal(readsAhead(asked, "c1"), false, "his question after the stop runs a turn he can stop");
+	});
+});
 
 describe("keepGoingOwesNext", () => {
 	const [p, pr, c, cr] = regularizationEnds();
