@@ -16,10 +16,11 @@ import { deskPaper, deskRows, type DeskRow } from "./wait-model";
  * a tile where the pencil writes, and under them a card for each thing it waits for the learner to
  * allow; beside them, one sheet of paper with the page of the file it reads. The desk takes the
  * page's blank room, so the sheet is whole where the window lets it. `foot` rests under it: the
- * lines typed to the teacher that wait for it. The teacher panel's desk has no paper (`paper`
- * false): the panel is too narrow for it, and the lesson keeps the files.
+ * lines typed to the teacher that wait for it. With `paper` false the desk lays no paper: in the
+ * teacher panel, too narrow for it, and in a lesson whose page shows the open problem's own sheet,
+ * which is the page the learner reads.
  */
-export function AgentAtWork({ chatId, head, work, arrive, foot, paper: withPaper = true }: { chatId: string; head: string | null; work: LessonWork; arrive: Arrive; foot: ReactNode; paper?: boolean }) {
+export function AgentAtWork({ chatId, head, work, arrive, foot, paper: withPaper }: { chatId: string; head: string | null; work: LessonWork; arrive: Arrive; foot: ReactNode; paper: boolean }) {
 	// Each desk's own arrival slots, so the next turn's desk steps in again.
 	const slot = useId();
 	const paper = withPaper ? deskPaper(work) : null;

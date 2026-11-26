@@ -20,16 +20,14 @@ const DOCUMENT_W = 520;
  * THE DOCUMENT BESIDE A LESSON built on files, in the panel beside its page (DockPanel): the
  * shown file's pages one under another, fit to the panel's width and drawn in the theme's ink as
  * the problem's own piece is. The open problem is boxed on its page, and the view goes to it when
- * the panel opens, when the problem changes and when "Your turn"'s page key asks (`seq`). The
- * header holds the picker when the lesson has several files, the page in view and Close. A box
- * in a panel that was open as the lesson showed (`there`) is just there; one that comes later
- * closes in on the problem.
+ * the panel opens and when the problem changes. The header holds the picker when the lesson has
+ * several files, the page in view and Close. A box in a panel that was open as the lesson showed
+ * (`there`) is just there; one that comes later closes in on the problem.
  */
 export function DocumentPanel({
 	choices,
 	shown,
 	place,
-	seq,
 	there,
 	onPick,
 	onRetry,
@@ -41,8 +39,6 @@ export function DocumentPanel({
 	shown: LessonDocument;
 	/** Where the open problem is printed, in any of the lesson's files. */
 	place: ProblemPlace | null;
-	/** Goes up each time the open problem is asked for again. */
-	seq: number;
 	/** The panel was open when the lesson showed. */
 	there: boolean;
 	onPick: (fileId: string) => void;
@@ -91,13 +87,13 @@ export function DocumentPanel({
 			{pages === undefined || shown.aspect === undefined ? (
 				<LoadFailed message="Couldn't open this document." onRetry={onRetry} className="px-5 py-4" />
 			) : (
-				<DocumentPages key={shown.id} fileId={shown.id} pages={pages} aspect={shown.aspect} place={place?.fileId === shown.id ? place : null} seq={seq} late={late} onInView={setInView} />
+				<DocumentPages key={shown.id} fileId={shown.id} pages={pages} aspect={shown.aspect} place={place?.fileId === shown.id ? place : null} late={late} onInView={setInView} />
 			)}
 		</DockPanel>
 	);
 }
 
-function DocumentPages({ fileId, pages, aspect, place, seq, late, onInView }: { fileId: string; pages: number; aspect: number; place: ProblemPlace | null; seq: number; late: boolean; onInView: (page: number) => void }) {
+function DocumentPages({ fileId, pages, aspect, place, late, onInView }: { fileId: string; pages: number; aspect: number; place: ProblemPlace | null; late: boolean; onInView: (page: number) => void }) {
 	const { bodyInk } = useAppearance();
 	const scrollerRef = useRef<HTMLDivElement>(null);
 	const [width, stackRef] = useElementWidth<HTMLDivElement>(0);
@@ -122,7 +118,7 @@ function DocumentPages({ fileId, pages, aspect, place, seq, late, onInView }: { 
 	// The view stays on the problem while the learner has not scrolled away, through a panel
 	// that is resized too. It glides to a new problem and jumps when the panel opens or resizes.
 	const held = useRef(true);
-	const focusKey = `${place ? JSON.stringify(place) : ""}|${seq}`;
+	const focusKey = place ? JSON.stringify(place) : "";
 	const scrolledFor = useRef<string | null>(null);
 	useLayoutEffect(() => {
 		held.current = true;

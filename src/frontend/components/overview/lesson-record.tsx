@@ -48,7 +48,7 @@ export const LessonRecord = memo(function LessonRecord({
 				</ul>
 			)}
 			{showAll !== null && (
-				<button type="button" data-testid="lesson-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet self-start">
+				<button type="button" data-testid="lesson-show-all" onClick={() => setShownAll(true)} className="lh-btn lh-btn-quiet lh-btn-flush self-start">
 					Show all {showAll}
 				</button>
 			)}

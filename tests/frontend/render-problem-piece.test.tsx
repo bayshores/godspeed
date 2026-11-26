@@ -4,7 +4,8 @@ import "../page-piece-dom.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createRoot } from "react-dom/client";
-import { OpenProblemPane } from "../../src/frontend/components/lesson/open-problem-pane.tsx";
+import { OpenProblemPane, type ProblemPicks } from "../../src/frontend/components/lesson/open-problem-pane.tsx";
+import { TurnPlaceContext, type TurnPlace } from "../../src/frontend/components/lesson/turn-place.ts";
 import { ProblemCard } from "../../src/frontend/components/practice-cards.tsx";
 import { problemPieceOf, projectView, type ArtifactPartProps, type LhMessage } from "../../src/shared/core/index.ts";
 import { PIECE_DETAILS, PIECE_TEXT } from "../piece-fixtures.ts";
@@ -38,14 +39,31 @@ describe("the open problem, printed in its file", () => {
 	it("draws the pictures on the white page, with no ink, when asked as printed", async () => {
 		await mounted(<OpenProblemPane statement={PIECE_TEXT} piece={piece} printed part="b" picks={null} />, (host) => {
 			assert.ok([...host.querySelectorAll("img")].every((i) => !i.getAttribute("src")!.includes("ink=")));
-			assert.match(host.querySelector("img")!.parentElement!.className, /bg-white/);
+			assert.match(host.querySelector('[data-testid="page-piece"]')!.className, /lh-printed/);
 			// A veil in the sheet's color would be a dark block on the white page.
 			assert.ok([...host.querySelectorAll('[data-testid="piece-veil"]')].every((veil) => /bg-white/.test(veil.className)));
 		});
 	});
 
 	it("veils the parts that are not the one the learner is on", async () => {
-		await mounted(<OpenProblemPane statement={PIECE_TEXT} piece={piece} part="b" picks={null} />, (host) => assert.equal(veils(host), 3));
+		await mounted(<OpenProblemPane statement={PIECE_TEXT} piece={piece} part="b" picks={null} />, (host) => assert.equal(veils(host), 4, "and the lines around the problem"));
+	});
+
+	it("beside the text its sheet is the whole page, top to foot; elsewhere, and with choices under it, the problem with a line around it", async () => {
+		const crops = async (place: TurnPlace, picks: ProblemPicks | null) => {
+			let found: (string | undefined)[] = [];
+			await mounted(
+				<TurnPlaceContext.Provider value={place}>
+					<OpenProblemPane statement={PIECE_TEXT} piece={piece} part={null} picks={picks} />
+				</TurnPlaceContext.Provider>,
+				(host) => void (found = [...host.querySelectorAll('[data-testid="page-piece"] img')].map((img) => /crop=([\d.,]+)/.exec(img.getAttribute("src") ?? "")?.[1])),
+			);
+			return found;
+		};
+		const short = ["0.1,0.57,0.9,0.95", "0.1,0.05,0.9,0.53"];
+		assert.deepEqual(await crops("left", null), ["0.1,0,0.9,0.95", "0.1,0.05,0.9,1"]);
+		assert.deepEqual(await crops("pinned", null), short);
+		assert.deepEqual(await crops("left", { choices: { labels: ["Yes", "No"], multiSelect: false }, picked: { selected: new Set<number>() }, onPick: () => {}, onLeaveRows: () => {}, onEnter: null }), short);
 	});
 
 	it("opens resting on the part the learner is on, and glides to the part he moves on to", async () => {

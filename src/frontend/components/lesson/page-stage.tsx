@@ -73,8 +73,8 @@ export function PageStage({ reading, still, arrives }: { reading: DeskReading; s
 	return (
 		// The file is not lesson text, and Find could never scroll into this stage.
 		<div ref={stageRef} data-testid="desk-paper" data-open={still ? undefined : ""} data-session-find-exclude="" className="lh-sheet lh-paper min-h-0 overflow-hidden" style={{ aspectRatio: LETTER }}>
-			{/* A picture of the file, so screen readers skip it. A band of the paper's edge parts two pages. */}
-			<div ref={scrollerRef} aria-hidden className="flex flex-col will-change-transform [&>*+*]:border-t-4 [&>*+*]:border-(--lh-paper-lip)">
+			{/* A picture of the file, so screen readers skip it. Between two pages the paper's edge shows as a band. */}
+			<div ref={scrollerRef} aria-hidden className="flex flex-col gap-1 bg-(--lh-paper-lip) will-change-transform">
 				{doc?.kind === "text" && <TextPages text={doc.text} from={from} to={to} />}
 				{doc?.kind === "pdf" && reading.kind === "pdf" && <PdfPages path={reading.path} doc={doc} page={reading.page} />}
 			</div>
@@ -115,7 +115,7 @@ function TextPage({ start, lines, from, to }: { start: number; lines: string[]; 
 const TextPages = memo(function TextPages({ text, from, to }: { text: string; from: number | null; to: number | null }) {
 	const pages = useMemo(() => textPages(text), [text]);
 	return pages.map((page) => (
-		<div key={page.start} className="px-6 py-5" style={{ aspectRatio: LETTER }}>
+		<div key={page.start} className="bg-(--lh-paper) px-6 py-5" style={{ aspectRatio: LETTER }}>
 			<TextPage start={page.start} lines={page.lines} from={from} to={to} />
 		</div>
 	));
@@ -123,9 +123,10 @@ const TextPages = memo(function TextPages({ text, from, to }: { text: string; fr
 
 function PdfPages({ path, doc, page }: { path: string; doc: Extract<ReadingDoc, { kind: "pdf" }>; page: number | null }) {
 	return Array.from({ length: Math.min(doc.pageCount, MAX_PDF_PAGES) }, (_, i) => i + 1).map((n) => (
-		// The page's white takes the paper's color: the picture is multiplied onto it.
-		<div key={n} data-reading-here={n === page ? "" : undefined} className="bg-(--lh-paper)" style={{ aspectRatio: doc.aspect }}>
-			<img src={pdfPageUrl(path, n)} alt={`Page ${n}`} loading={page !== null && Math.abs(n - page) <= 1 ? "eager" : "lazy"} className="size-full object-contain mix-blend-multiply" />
+		// The page's white takes the paper's color: the picture is multiplied onto it. The picture
+		// is laid into the page's box, so a picture that is late or missing never changes that box.
+		<div key={n} data-reading-here={n === page ? "" : undefined} className="relative bg-(--lh-paper)" style={{ aspectRatio: doc.aspect }}>
+			<img src={pdfPageUrl(path, n)} alt={`Page ${n}`} loading={page !== null && Math.abs(n - page) <= 1 ? "eager" : "lazy"} className="absolute inset-0 size-full object-contain mix-blend-multiply" />
 		</div>
 	));
 }

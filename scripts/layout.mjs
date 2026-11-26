@@ -291,6 +291,8 @@ async function startApp(port, name) {
 			// Lessons and jobs play on a stand-in for the Claude helper, a debug build only.
 			LH_CLAUDE_HELPER: path.join(import.meta.dirname, "layout-helper.mjs"),
 			LAYOUT_HELPER_DIR: HELPER_DIR,
+			// A lesson's turn on the stand-in helper fails while the stand-in agent is signed out.
+			LAYOUT_AGENT_STATE: agentStateFile(path.join(RUN, "home")),
 			LH_SCREENS_CTL: ctl,
 			LH_SCREENS_OUT: out,
 			// godspeed's plugin list, made up, so the run never reads GitHub's.

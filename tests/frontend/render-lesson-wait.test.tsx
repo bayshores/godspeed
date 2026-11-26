@@ -61,6 +61,7 @@ const props = (over: Partial<Props> = {}): Props => ({
 	busy: true,
 	stoppedEmpty: false,
 	work: NO_LESSON_WORK,
+	problemSheet: false,
 	queuedSteers: [],
 	arrivalsLive: false,
 	pageMarks: new Map(),
@@ -126,6 +127,14 @@ describe("the desk", () => {
 		const reads = { ...pdf("c.pdf"), from: null, to: null, page: 2 };
 		const reading = pane({ work: work({ files, steps: [step("1", "Reading c.pdf, page 2", { reads })] }) });
 		assert.match(reading, /data-testid="desk-paper" data-open=""/);
+	});
+
+	it("lays no paper while the page shows the open problem's own sheet, and takes no blank room", () => {
+		const out = pane({ problemSheet: true, work: work({ files: [pdf("a.pdf")] }) });
+		assert.match(out, /data-testid="desk-plan"/);
+		assert.doesNotMatch(out, /data-testid="desk-paper"/);
+		assert.doesNotMatch(out, /lh-text-sheets[^"]*flex-1/);
+		assert.match(pane({ work: work({ files: [pdf("a.pdf")] }) }), /lh-text-sheets[^"]*flex-1/);
 	});
 
 	it("shows no paper for a file it cannot draw", () => {

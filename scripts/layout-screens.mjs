@@ -1,4 +1,4 @@
-import { TALK_HOLDS, WAITING_TOPIC } from "./layout-lessons.mjs";
+import { PRINTED_HOLDS, TALK_HOLDS, WAITING_TOPIC } from "./layout-lessons.mjs";
 
 /**
  * layout-screens.mjs — the screens `npm run layout` checks, in order.
@@ -146,6 +146,10 @@ const waitingLesson = `/chat/{pending}?prompt=${encodeURIComponent(WAITING_TOPIC
 const turnRuns = "[data-testid=stop-turn]";
 /** The desk in that lesson's text while the teacher works on its reply. */
 const deskUp = "[data-testid=agent-at-work]";
+/** A line the learner sends in the printed homework, whose turn the stand-in helper holds. */
+const printedLine = `await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: "{homeworkPrinted}", input: { type: "text", text: ${JSON.stringify(PRINTED_HOLDS)} } }) })${HTTP_OK};`;
+/** That turn stopped, so no teacher holds it for the screens after it. */
+const dropPrintedLine = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{homeworkPrinted}" }) });`;
 /** That lesson's reply stopped (a screen before may have stopped it already) and the lesson deleted, so the screens after it are as before. A
  *  lesson can't be deleted while its turn runs, so the delete is tried until the stop has ended it. */
 const dropWaitingLesson = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{pending}" }) });
@@ -384,7 +388,7 @@ Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(bo
 box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`,
 		shows: "[data-testid=session-find-count]:not(:empty)",
 	},
-	{ name: "Homework lesson with a three-part problem on part (b)", url: "/chat/{homeworkOpen}", ready: "[data-part-current] ~ [data-part-head=c][aria-expanded=false]", shows: "[data-testid=lesson-assignment]" },
+	{ name: "Homework lesson with a three-part problem on part (b)", url: "/chat/{homeworkOpen}", ready: "[data-part-current] ~ [data-part-head=c][aria-expanded=false]", shows: "[data-testid=turn-sheet][data-plate] [data-part-current]" },
 	{
 		name: "Homework lesson with a folded part opened",
 		url: "/chat/{homeworkOpen}",
@@ -613,10 +617,46 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		helper: "stream",
 		shows: "[data-turn-wrote] [data-testid=agent-at-work]",
 	},
-	// The waiting lesson's held reply ends first, so the panel chat's held reply below is the only one the stand-in's desk requests reach.
+	// A line sent beside the problem's page while the agent isn't logged in: the turn fails, and the writing row says why with the key that fixes it.
+	{
+		name: "Homework lesson with a problem's page while the agent isn't logged in",
+		agent: "signed-out",
+		before: printedLine,
+		url: "/chat/{homeworkPrinted}",
+		ready: "[data-testid=page-piece] img",
+		shows: "[data-testid=turn-row] [data-testid=agent-compact] [data-testid=agent-key]",
+	},
+	// The waiting lesson's held reply ends first, so the printed homework's held reply below is the only one the stand-in's desk requests reach.
+	// A line sent beside the problem's page: the desk lists the steps on the writing row's side and lays no paper of its own.
+	{
+		name: "Homework lesson with a problem's page while the teacher works",
+		before: `${dropWaitingLesson}\n${printedLine}`,
+		url: "/chat/{homeworkPrinted}",
+		ready: "[data-testid=page-piece] img",
+		helper: "read",
+		shows: `${deskUp} [data-testid=desk-plan] li`,
+	},
+	// It asks to run a command: its card waits under the desk's steps for Deny or Allow.
+	{
+		name: "Homework lesson with a problem's page, a card waiting",
+		url: "/chat/{homeworkPrinted}",
+		ready: "[data-testid=page-piece] img",
+		helper: "approve",
+		shows: "[data-testid=desk-approvals] [data-testid=approval-subject]",
+	},
+	// Allow is pressed; it writes the reply's first sentence and reads a file, so the desk comes back under the live words.
+	{
+		name: "Homework lesson with a problem's page, a reply being written",
+		url: "/chat/{homeworkPrinted}",
+		ready: "[data-testid=page-piece] img",
+		setup: `${whenThere("[data-testid=approval-allow]")}; document.querySelector("[data-testid=approval-allow]")?.click(); for (let n = 0; n < 100 && document.querySelector("[data-testid=approval-card]"); n++) ${pause}`,
+		helper: "stream",
+		shows: `[data-turn-wrote] ${deskUp}`,
+	},
+	// The printed homework's held reply ends first, so the panel chat's held reply below is the only one the stand-in's desk requests reach.
 	{
 		name: "Teacher chat, all ideas",
-		before: dropWaitingLesson,
+		before: dropPrintedLine,
 		url: "/",
 		ready: deadlineCard,
 		setup: `${openTeacher}; ${whenThere("[data-testid=talk-all-ideas]")}; document.querySelector("[data-testid=talk-all-ideas]").click()`,

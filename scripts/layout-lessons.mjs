@@ -7,7 +7,8 @@
  * call godspeed's lesson tools (`tool_calls`). A turn goes on to the next reply until a tool ends
  * it (a question for the learner), a reply calls no tool, or the list runs out. `{passage}` stands
  * for the id of a passage of the space's file, which the seed names. A lesson that `holds` never
- * answers: its turn waits to be stopped.
+ * answers: its turn waits to be stopped. One whose `holds` is words holds only a turn the
+ * learner's line with those words starts.
  *
  * The lessons stand at every state the screens show: a plan and a sourced reply that ends in a
  * quiz; homework ones with their problems posted; one on files; studied ones and open ones; one
@@ -20,6 +21,8 @@ const WEB_SOURCE = "[[https://example.com/lab-algebra/linear-equations]]";
 
 /** A teacher panel chat's message with these words holds its turn in the stand-in helper. */
 export const TALK_HOLDS = "run my slope checker";
+/** The line the learner sends beside the printed homework's page, whose turn the helper holds. */
+export const PRINTED_HOLDS = "The loop ends because i grows each time.";
 
 export const FIRST_TOPIC = "Solving linear equations by graphing";
 /** The lesson whose reply the helper holds; its address sends the first message (layout-screens.mjs). */
@@ -236,6 +239,7 @@ export const LESSONS = [
 	// learner says which part they start, marks part (b).
 	{
 		is: homework(HOMEWORK_PRINTED),
+		holds: PRINTED_HOLDS,
 		replies: [{ tool_calls: [call("post_problems", { problems: PRINTED_PROBLEMS }), call("problem", { number: "2" })] }, asking("", "part", { part: "b" }), say("Part (b) it is. What does the loop change each time around?")],
 	},
 	// Posts its problems and opens the first; after the learner's answer, closes it solved.

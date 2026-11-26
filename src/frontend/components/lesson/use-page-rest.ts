@@ -85,7 +85,7 @@ export function usePageRest({
 	turnRef: RefObject<HTMLElement | null>;
 	footRef: RefObject<HTMLElement | null>;
 	busy: boolean;
-	/** The open problem is pinned over the text's window, not in the page. */
+	/** The open problem stands out of the page, over the text's window or beside it. */
 	pinned: boolean;
 	restKey: string;
 	/** The book lies open in a room wide enough for both pages. */

@@ -78,7 +78,7 @@ function ApprovalCard({ approval, leaving, live, answer: send }: { approval: Wor
 						<button type="button" data-testid="approval-deny" disabled={answer.busy} onClick={() => reply(false)} className="lh-btn lh-btn-small lh-btn-quiet">
 							Deny
 						</button>
-						<button type="button" data-testid="approval-allow" disabled={answer.busy} onClick={() => reply(true)} className="lh-btn lh-btn-small">
+						<button type="button" data-testid="approval-allow" disabled={answer.busy} onClick={() => reply(true)} className="lh-btn lh-btn-main lh-btn-small">
 							Allow
 						</button>
 					</div>

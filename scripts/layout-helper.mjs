@@ -14,6 +14,9 @@
  * to run a command (`approve`), or write a reply's first sentence and go back to reading under it
  * (`stream`).
  *
+ * While the stand-in agent is signed out (the state file LAYOUT_AGENT_STATE names, layout.mjs), a
+ * lesson's turn fails at once, as Claude Code's does when it isn't logged in.
+ *
  * A session that is not kept is one of godspeed's background jobs: its one turn plays the fixed
  * answer layout-jobs.mjs gives for the job's tools and request.
  *
@@ -31,6 +34,7 @@ import { LESSONS, PLAN_ORDER_SENT_BACK, TALK_HOLDS } from "./layout-lessons.mjs"
 const DIR = process.env.LAYOUT_HELPER_DIR;
 const STATE = DIR && path.join(DIR, "state.json");
 const DESK = DIR && path.join(DIR, "desk");
+const AGENT_STATE = process.env.LAYOUT_AGENT_STATE;
 const PASSAGE = /f_[0-9a-f]{12}:\d+/;
 /** The passage the seed found, which lessons cite. */
 const CITED = DIR && path.join(DIR, "passage");
@@ -219,6 +223,9 @@ async function playTurn(session, texts) {
 	sdk(session.key, { type: "system", subtype: "init" });
 	if (session.job) return playJob(session, texts);
 	if (session.talk) return playTalk(session, texts);
+	if (AGENT_STATE && fs.existsSync(AGENT_STATE) && fs.readFileSync(AGENT_STATE, "utf8").trim() === "signed-out") {
+		return sdk(session.key, { type: "result", subtype: "success", is_error: true, result: "Not logged in · Please run /login" });
+	}
 	session.passage = CITED && fs.existsSync(CITED) ? fs.readFileSync(CITED, "utf8").trim() : null;
 	if (!session.lesson) {
 		const at = LESSONS.findIndex((lesson) => lesson.is(texts));
@@ -226,7 +233,7 @@ async function playTurn(session, texts) {
 		else session.lesson = { at, next: 0 };
 	}
 	const lesson = session.lesson && LESSONS[session.lesson.at];
-	if (lesson?.holds) {
+	if (lesson?.holds === true || (lesson?.holds && texts.some((text) => text.includes(lesson.holds)))) {
 		await hold(session);
 		return finish(session, true);
 	}

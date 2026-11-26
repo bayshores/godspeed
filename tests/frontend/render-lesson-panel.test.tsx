@@ -18,7 +18,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { YourTurn } from "../../src/frontend/components/lesson/your-turn.tsx";
 import { TurnSheet } from "../../src/frontend/components/lesson/turn-sheet.tsx";
-import { TurnPlaceContext, type TurnPlace } from "../../src/frontend/components/lesson/turn-place.ts";
+import { TurnPlaceContext, TurnSlotsContext, type TurnPlace } from "../../src/frontend/components/lesson/turn-place.ts";
 import type { NextAction, TurnNext, TurnNotes } from "../../src/frontend/components/lesson/turn-next-model.ts";
 import { LessonScroll } from "../../src/frontend/components/lesson/lesson-scroll.tsx";
 import type { QuestionHandle } from "../../src/frontend/components/question-dock.tsx";
@@ -65,7 +65,7 @@ const quizOptions = normalizeOptions(quizInput.options);
 const quizQD: QuestionData = { kind: "quiz", question: quizInput.question, mode: "single-select", options: quizOptions, correctIndices: resolveCorrect(quizInput.correctAnswer, quizOptions).indices };
 const written = { tool: "ask_user_question", toolCallId: "a1", input: { question: "Why does it converge?" } };
 const choice = { tool: "ask_user_question", toolCallId: "a2", input: { question: "How do you want to start?", options: [{ label: "From an example" }, { label: "From the definition" }] } };
-const problem = { toolCallId: "p1", statement: "Find E[N].", piece: null, choices: null, line: "Practice, problem 2", part: null, file: null, sent: false };
+const problem = { toolCallId: "p1", statement: "Find E[N].", piece: null, choices: null, line: "Practice, problem 2", part: null, sent: false };
 const NO_NEXT = { kind: "next", next: { line: null, key: null }, dim: false } as const;
 const atStop: TurnNext = { line: "Cross-validation is next.", key: { label: "Continue", action: "keep-going" } };
 const between: TurnNext = { line: null, key: { label: "Next problem", action: "next" } };
@@ -515,46 +515,26 @@ describe("Your turn in each state", () => {
 		assert.match(out, /Find E\[N\]\./);
 	});
 
-	it("a homework problem lies on a plate with its page key in the corner, beside the text and pinned over it, and the key shows that page in the Document panel", async () => {
-		let shown = 0;
-		const pdf = { id: "f_hw", name: "HW6", path: "/tmp/HW6.pdf", pdf: true, pages: 4, aspect: 0.77 };
-		const file = { document: pdf, page: 2, first: true, onShow: () => void shown++ };
-		const homework = { ...problem, line: null, part: "b", file };
+	it("a homework problem lies on a plate beside the text and pinned over it, with no key of its own for its page", () => {
+		const homework = { ...problem, line: null, part: "b" };
 		assert.doesNotMatch(html({ problem: homework }), /<h2/, "a homework problem has no tag");
-		for (const place of ["beside", "pinned"] as const) {
+		for (const place of ["beside", "pinned", "left"] as const) {
 			const plated = html({ problem: homework }, (n) => <TurnPlaceContext.Provider value={place}>{n}</TurnPlaceContext.Provider>);
 			assert.match(plated, /data-testid="turn-sheet"[^>]*data-plate="true"/, place);
-			assert.match(plated, /<div class="lh-turn-body lh-turn-cornered">[\s\S]*<\/div><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="lesson-assignment"[^>]*title="Page 2"/, "in the corner beside the problem");
-			assert.doesNotMatch(plated, /gap-x-4 gap-y-2"><div data-testid="turn-keys"/, "not in a head row");
+			assert.doesNotMatch(plated, /data-testid="turn-keys"|lesson-assignment/, "the top bar's Document opens its file");
 		}
-		const under = html({ problem: homework }, (n) => <TurnPlaceContext.Provider value="under">{n}</TurnPlaceContext.Provider>);
-		assert.match(under, /data-testid="turn-swap"[^>]*><div[^>]*><div data-testid="turn-keys"[^>]*><button[^>]*data-testid="lesson-assignment"[^>]*title="Page 2"/, "in the page's own text the key leads its own row");
-		assert.doesNotMatch(under, /data-plate/);
-		assert.doesNotMatch(html({ pending: quiz, problem: { ...problem, file } }), /lesson-assignment/, "not over a question asked while it is open");
-		assert.match(html({ problem: { ...problem, file: { ...file, document: { ...pdf, name: "HW6 key" }, first: false } } }), /title="HW6 key, page 2"/, "another file is named");
-		assert.doesNotMatch(html({ problem: { ...problem, file: { ...file, page: undefined } } }), /lesson-assignment/, "no page, no key");
-		await mounted(turn({ problem: { ...problem, file } }), async (host) => {
-			assert.equal(host.querySelector('[data-testid="lesson-assignment"]')!.textContent, "Page 2");
-			await click(host, "lesson-assignment");
-		});
-		assert.equal(shown, 1);
+		assert.doesNotMatch(html({ problem: homework }, (n) => <TurnPlaceContext.Provider value="under">{n}</TurnPlaceContext.Provider>), /data-plate/);
 	});
 
-	it("a homework problem in a file that is not a PDF names it, and the desktop shows it in its folder", async () => {
-		const notes = { id: "f_hw", name: "HW6 notes", path: "/tmp/HW6 notes.docx", pdf: false };
-		const file = { document: notes, page: 2, first: true, onShow: () => assert.fail("no panel for it") };
-		assert.doesNotMatch(html({ problem: { ...problem, file } }), /lesson-assignment/, "nothing on the web");
-		const opened: string[] = [];
-		(window as unknown as { lh: unknown }).lh = { showInFolder: async (path: string) => void opened.push(path) };
-		try {
-			await mounted(turn({ problem: { ...problem, file } }), async (host) => {
-				assert.equal(host.querySelector('[data-testid="lesson-assignment"]')!.textContent, "HW6 notes");
-				await click(host, "lesson-assignment");
-			});
-			assert.deepEqual(opened, ["/tmp/HW6 notes.docx"]);
-		} finally {
-			delete (window as unknown as { lh?: unknown }).lh;
-		}
+	it("an arriving problem steps in, except beside the text, where it glides in with its sheet", () => {
+		const arriving = (place: TurnPlace) =>
+			html({ problem }, (n) => (
+				<TurnSlotsContext.Provider value={{ closing: false, stepIn: true }}>
+					<TurnPlaceContext.Provider value={place}>{n}</TurnPlaceContext.Provider>
+				</TurnSlotsContext.Provider>
+			));
+		assert.match(arriving("pinned"), /data-testid="turn-sheet"[^>]*class="[^"]*lh-block-in/);
+		assert.doesNotMatch(arriving("left"), /lh-block-in/);
 	});
 
 	it("a homework problem folds the parts the learner is not on to their first line, and a click opens and folds one", async () => {
@@ -1020,8 +1000,8 @@ describe("the turn sheet", () => {
 });
 
 describe("the lesson page's pair", () => {
-	const page = (turn: React.ReactNode | null, reading: React.ReactNode | null = <div data-testid="lesson-reading" />, open = true, place: TurnPlace = "beside") =>
-		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={reading} turn={turn} open={open} shutting={false} onShut={() => {}} onRest={() => {}} pin={false} place={place} onPlace={() => {}} />);
+	const page = (turn: React.ReactNode | null, reading: React.ReactNode | null = <div data-testid="lesson-reading" />, open = true, place: TurnPlace = "beside", pin = false) =>
+		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={reading} turn={turn} open={open} shutting={false} onShut={() => {}} onRest={() => {}} pin={pin} place={place} onPlace={() => {}} />);
 
 	it("draws Your turn alone, in the middle at its width in the pair, while the lesson text draws nothing", () => {
 		const alone = page(<aside data-testid="turn-sheet" />, null);
@@ -1037,6 +1017,15 @@ describe("the lesson page's pair", () => {
 		assert.match(started, /class="lh-turn-fit min-w-0[^"]*"[^>]*><aside data-testid="turn-sheet"/, "drawn in the page when there is no window to move its parts in");
 		assert.match(started, /class="lh-turn-top[^"]*"[\s\S]*class="lh-lesson-window[\s\S]*class="lh-turn-fit[\s\S]*class="lh-turn-foot/, "a top pin, the page and a pinned foot");
 		assert.doesNotMatch(started, /room:hidden|lh-lesson-closed/, "never hidden: the box is always there");
+	});
+
+	it("with an open problem, no book: a left part for the problem beside the text and its writing row, with or without text", () => {
+		for (const reading of [<div data-testid="lesson-reading" />, null]) {
+			const split = page(<aside data-testid="turn-sheet" />, reading, true, "left", true);
+			assert.match(split, /class="relative flex min-h-0 min-w-0 flex-1 flex-col lh-lesson-split"><div hidden="" class="lh-turn-left"><\/div>/, "the left part comes first, hidden until the page lays it out");
+			assert.doesNotMatch(split, /room:grid|lh-lesson-pair|lh-lesson-alone|lh-lesson-closed/);
+		}
+		assert.doesNotMatch(page(<aside data-testid="turn-sheet" />), /lh-lesson-split/);
 	});
 
 	it("shut, the text is one page as wide as the open book's left page, from before the lesson starts", () => {
@@ -1063,6 +1052,7 @@ describe("the reading pane", () => {
 		busy: true,
 		stoppedEmpty: false,
 		work: NO_LESSON_WORK,
+		problemSheet: false,
 		queuedSteers: [],
 		arrivalsLive: false,
 		pageMarks: new Map(),
@@ -1198,21 +1188,30 @@ describe("reuseUnchangedMessages", () => {
 
 describe("Your turn with a problem printed in a file", () => {
 	const printedProblem = { ...problem, piece: problemPieceOf(PIECE_DETAILS)! };
-	const pageBox = (host: HTMLElement) => host.querySelector('[data-testid="page-piece"] > div')!;
+	const sheet = (host: HTMLElement) => host.querySelector('[data-testid="page-piece"]')!;
 
-	it("keeps the As printed key on the title line, where a long piece cannot scroll it away", async () => {
+	it("drawn to text, keeps the As printed key on the title line; pressed, it is a plate held down and the page one white sheet", async () => {
 		await mounted(turn({ problem: printedProblem }), async (host) => {
 			const key = host.querySelector<HTMLElement>('[data-testid="piece-printed"]')!;
 			assert.equal(key.textContent, "As printed");
 			assert.equal(key.parentElement!.parentElement, host.querySelector("h2")!.parentElement);
 			assert.equal(key.getAttribute("aria-pressed"), "false");
-			assert.doesNotMatch(pageBox(host).className, /bg-white/);
+			assert.equal(key.className, "lh-btn lh-btn-small");
+			assert.doesNotMatch(sheet(host).className, /lh-printed/);
 			await click(host, "piece-printed");
 			assert.equal(key.getAttribute("aria-pressed"), "true");
-			assert.match(pageBox(host).className, /bg-white/);
+			assert.match(key.className, /\[--lh-key:var\(--lh-key-hover\)\]/);
+			assert.doesNotMatch(key.className, /lh-btn-main/, "never the heavy tile");
+			assert.match(sheet(host).className, /lh-printed/);
 			await click(host, "piece-printed");
-			assert.doesNotMatch(pageBox(host).className, /bg-white/);
+			assert.doesNotMatch(sheet(host).className, /lh-printed/);
 		});
+	});
+
+	it("on a plate, the page is the plate's sheet, edge to edge", () => {
+		const out = html({ problem: printedProblem }, (n) => <TurnPlaceContext.Provider value="pinned">{n}</TurnPlaceContext.Provider>);
+		assert.match(out, /data-testid="turn-sheet"[^>]*data-plate="true" data-sheet="true"/);
+		assert.doesNotMatch(html({ problem }, (n) => <TurnPlaceContext.Provider value="pinned">{n}</TurnPlaceContext.Provider>), /data-sheet/, "a problem in words keeps the plate's inset");
 	});
 
 	it("has no As printed key for a typed problem", () => {

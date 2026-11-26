@@ -94,7 +94,8 @@ export function useBookMove({
 		const turn = turnRef.current;
 		const text = column?.querySelector(TEXT);
 		const view = column?.closest(".lh-lesson-window");
-		if (!room || !column || !turn || !text || !view) return null;
+		// With an open problem out of the page, the turn has no page here: that move is the left sheet's (useLeftSlide).
+		if (!room || !column || !turn || !text || !view || turn.getClientRects().length === 0) return null;
 		return {
 			room: `${room.clientWidth} ${room.clientHeight}`,
 			beside: getComputedStyle(column).display === "grid",
