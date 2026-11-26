@@ -485,7 +485,7 @@ describe("The strip", () => {
 		listeners.clear();
 	});
 
-	async function mountStrip(teacher: TeacherApi | null, { agent = true, notices = false }: { agent?: boolean; notices?: boolean } = {}) {
+	async function mountStrip(teacher: TeacherApi | null, { agent = true, notices = false, at = "/" }: { agent?: boolean; notices?: boolean; at?: string } = {}) {
 		globalThis.fetch = (async () => Response.json({ chats: [{ id: "c1", title: "Counting" }] })) as typeof fetch;
 		const page = (
 			<ServerEventsProvider connect={connect as never}>
@@ -497,7 +497,7 @@ describe("The strip", () => {
 				</AgentStatusContext.Provider>
 			</ServerEventsProvider>
 		);
-		router = createMemoryRouter([{ path: "*", element: page }], { initialEntries: ["/"] });
+		router = createMemoryRouter([{ path: "*", element: page }], { initialEntries: [at] });
 		const host = document.createElement("div");
 		document.body.append(host);
 		root = createRoot(host);
@@ -582,5 +582,14 @@ describe("The strip", () => {
 		} finally {
 			mock.timers.reset();
 		}
+	});
+
+	it("on a lesson page a new notice waits in the count until it is asked for", async () => {
+		await mountStrip(api(), { notices: true, at: "/chat/c1" });
+		assert.deepEqual(shownIds(), [], "it would lie over the step line's keys");
+		assert.equal(q("strip-waiting")!.textContent, "1");
+		await act(async () => peekKeyboard(true));
+		await act(async () => q("peek-notices")!.click());
+		assert.deepEqual(shownIds(), ["a"]);
 	});
 });

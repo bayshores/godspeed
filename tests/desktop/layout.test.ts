@@ -5,7 +5,7 @@ import { createInterface } from "node:readline";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent } from "../../scripts/layout.mjs";
+import { evalLine, fill, findingLine, misfit, readAnswer, sameFindings, scrolledWords, SCROLL_TO, snapName, standInAgent, widthParts } from "../../scripts/layout.mjs";
 import { boxMoved, carried, cross, cutOf, emptyBand, hollow, inkOf, lineBox, linesOf, meet, movedSince, offGap, offInset, outside, probes, roomUnder, scrollerClip, sticksOut, tightPad, tooWide } from "../../scripts/layout-page.mjs";
 import { PLAN_ORDER_SENT_BACK, WAITING_TOPIC, WRITTEN_TOPIC } from "../../scripts/layout-lessons.mjs";
 import { SPRING_EXAM } from "../../scripts/layout-jobs.mjs";
@@ -240,6 +240,15 @@ describe("the walk", () => {
 		assert.deepEqual(SCROLL_TO, [0, 80, "end"]);
 		assert.equal(scrolledWords(80), "scrolled 80 px");
 		assert.equal(scrolledWords("end"), "scrolled to the end");
+		assert.equal(scrolledWords("top"), "scrolled to the top");
+	});
+
+	it("deals the widths into parts of about the same work, each width in one part, widest first", () => {
+		const lesson = [1440, 1320, 1100, 800, 640];
+		const page = [1440, 1100, 640];
+		assert.deepEqual(widthParts([lesson, page, page, [800, 640]], 3), [[640], [1440, 800], [1320, 1100]]);
+		assert.deepEqual(widthParts([lesson, page], 1), [lesson]);
+		assert.deepEqual(widthParts([[640]], 3), [[640]], "never more parts than widths");
 	});
 
 	it("checks every screen down to 640, the narrowest window, lessons at 1320 and 800 too, and a screen with widths of its own only at those", () => {
