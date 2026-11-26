@@ -103,10 +103,10 @@ export function deskCalls(work: Pick<LessonWork, "steps">): ReadonlySet<string> 
 	return new Set(work.steps.flatMap((step) => (step.call ? [step.call] : [])));
 }
 
-/** Where a desk that is leaving held the lesson: its message count, the newest message's part
- *  count and, when that message ends in text, how long the text was (an answered question's reply
- *  grows the same message, and its text can start as an empty part). */
-export type DeskMark = { count: number; parts: number; text: number | null };
+/** Where the lesson stood when a turn began: its message count, the newest message's part count
+ *  and, when that message ends in text, how long the text was (an answered question's reply grows
+ *  the same message, and its text can start as an empty part). */
+type DeskMark = { count: number; parts: number; text: number | null };
 
 /** The lesson's mark as it stands. */
 export function deskMark(messages: readonly LhViewMessage[]): DeskMark {
@@ -114,36 +114,20 @@ export function deskMark(messages: readonly LhViewMessage[]): DeskMark {
 	return { count: messages.length, parts: messages.at(-1)?.parts.length ?? 0, text: last?.type === "text" ? (last.text ?? "").length : null };
 }
 
-/** How much the teacher has written since `mark` (the lesson as it stood when the turn began),
- *  in letters: its words, and its thinking, which counts even while empty. 0 while it has written
- *  nothing. It grows as the reply is written, also when the reply grows the message an answered
- *  question is in. */
-export function wordsSince(messages: readonly LhViewMessage[], mark: DeskMark): number {
-	let letters = 0;
-	messages.forEach((m, i) => {
-		if (m.role !== "assistant" || i < mark.count - 1) return;
-		m.parts.forEach((part, pi) => {
+/** Whether the teacher has written since `mark` (the lesson as it stood when the turn began): its
+ *  words, or its thinking, which counts even while empty. Also when the reply grows the message an
+ *  answered question is in. */
+export function wroteSince(messages: readonly LhViewMessage[], mark: DeskMark): boolean {
+	return messages.some((m, i) => {
+		if (m.role !== "assistant" || i < mark.count - 1) return false;
+		return m.parts.some((part, pi) => {
 			const old = i === mark.count - 1 && pi < mark.parts;
-			if (old && !(pi === mark.parts - 1 && mark.text !== null)) return;
+			if (old && !(pi === mark.parts - 1 && mark.text !== null)) return false;
 			const text = part.text ?? "";
-			if (part.type === "reasoning") letters += 1 + text.length;
-			else if (part.type === "text" && text.trim() !== "") letters += old ? Math.max(0, text.length - (mark.text ?? 0)) : text.length;
+			if (part.type === "reasoning") return true;
+			return part.type === "text" && text.trim() !== "" && (!old || text.length > (mark.text ?? 0));
 		});
 	});
-	return letters;
-}
-
-/** The messages as they stood at `mark`, so a reply that just landed stays out of the page while
- *  the desk leaves, and the two never stack. */
-export function heldBack(messages: readonly LhViewMessage[], mark: DeskMark): readonly LhViewMessage[] {
-	const kept = messages.slice(0, mark.count);
-	const last = kept.at(-1);
-	if (!last) return kept;
-	const parts = last.parts.slice(0, mark.parts);
-	const end = parts.at(-1);
-	if (mark.text !== null && end?.type === "text" && (end.text ?? "").length > mark.text) parts[parts.length - 1] = { ...end, text: (end.text ?? "").slice(0, mark.text) };
-	else if (parts.length === last.parts.length) return kept;
-	return [...kept.slice(0, -1), { ...last, parts }];
 }
 
 /** The learner has written and the teacher wrote nothing back: no words, no question and no

@@ -12,8 +12,8 @@
  * sessions. A lesson that holds never ends its turn until it is stopped, and so does a turn the
  * printed homework's line (PRINTED_HOLDS) starts; the word a screen writes
  * to the `desk` file in that folder makes it read files as an agent at work would (`read`), ask
- * to run a command (`approve`), or write a reply's first sentence and go back to reading under it
- * (`stream`).
+ * to run a command (`approve`), write a reply's first sentence and go back to reading under it
+ * (`stream`), or write its last sentence and end the turn (`finish`).
  *
  * While the stand-in agent is signed out (the state file LAYOUT_AGENT_STATE names, layout.mjs), a
  * lesson's turn fails at once, as Claude Code's does when it isn't logged in.
@@ -152,17 +152,31 @@ function askApproval(session) {
 
 const FIRST_SENTENCE = "To solve an equation, undo what was done to x in the opposite order.";
 
-/** Writes a reply's first sentence word by word, once, then reads a file of its own: a step after
- *  the words, so the page shows a reply half written with the desk back under it. */
-async function writeThenRead(session) {
-	if (session.wrote) return;
-	session.wrote = true;
-	for (const word of FIRST_SENTENCE.split(/(?<= )/)) {
+const LAST_SENTENCE = "In 2x + 3 = 11, take 3 from both sides, then halve both, so x = 4.";
+
+/** Writes `text` word by word, as the agent streams its words. */
+async function writeWords(session, text) {
+	for (const word of text.split(/(?<= )/)) {
 		sdk(session.key, { type: "stream_event", event: { type: "content_block_delta", delta: { type: "text_delta", text: word } } });
 		await new Promise((done) => setTimeout(done, 60));
 	}
-	sdk(session.key, { type: "assistant", message: { content: [{ type: "text", text: FIRST_SENTENCE }] } });
+	sdk(session.key, { type: "assistant", message: { content: [{ type: "text", text }] } });
+}
+
+/** Writes a reply's first sentence word by word, once, then reads a file of its own: a step after
+ *  the words, so the page shows a reply half written with the desk's steps still there. */
+async function writeThenRead(session) {
+	if (session.wrote) return;
+	session.wrote = true;
+	await writeWords(session, FIRST_SENTENCE);
 	ownTool(session, "Read", { file_path: "notes.md" });
+}
+
+/** Writes the reply's last sentence, once, and ends the turn with it: the reply is finished. */
+async function finishReply(session) {
+	if (session.finished) return;
+	await writeWords(session, LAST_SENTENCE);
+	session.finished = true;
 }
 
 /** The space the round reads, the homework it adds, and its last words. */
@@ -187,7 +201,7 @@ async function endRound(session) {
 }
 
 /** The requests a screen can make of a held turn, by the word it writes to the desk file. */
-const DESK_REQUESTS = { read: readFiles, approve: askApproval, stream: writeThenRead, change: addHomework, done: endRound };
+const DESK_REQUESTS = { read: readFiles, approve: askApproval, stream: writeThenRead, finish: finishReply, change: addHomework, done: endRound };
 
 /** Holds the turn until it is stopped or a request ends it, doing what the desk file asks while it waits. */
 async function hold(session) {
@@ -288,7 +302,7 @@ async function playTurn(session, texts) {
 	// The printed homework's line holds its turn by its words, whichever session it comes in.
 	if (texts.some((text) => text.includes(PRINTED_HOLDS))) {
 		await hold(session);
-		return finish(session, true);
+		return finish(session, !session.finished);
 	}
 	session.passage = CITED && fs.existsSync(CITED) ? fs.readFileSync(CITED, "utf8").trim() : null;
 	if (!session.lesson) {
@@ -299,7 +313,7 @@ async function playTurn(session, texts) {
 	const lesson = session.lesson && LESSONS[session.lesson.at];
 	if (lesson?.holds) {
 		await hold(session);
-		return finish(session, true);
+		return finish(session, !session.finished);
 	}
 	for (;;) {
 		const reply = lesson?.replies[session.lesson.next];

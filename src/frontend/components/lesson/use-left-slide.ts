@@ -20,12 +20,13 @@ interface Shot {
 const shown = (el: Element | null | undefined): el is HTMLElement => el instanceof HTMLElement && el.getClientRects().length > 0;
 
 /**
- * THE LEFT SHEET'S MOVE, in a room wide enough for an open problem beside the text (LessonScroll's
- * "left" place). When a problem opens, its sheet glides in from the room's left edge while the text
- * and the writing row slide to the right part; when it closes, a still copy of the sheet glides out
- * that way while they slide back and the book's right page shows. A page that opens with a problem
- * open is just there; with reduced motion, in one column, or when the room changed width, the page
- * is laid out and that is all.
+ * THE LEFT PART'S MOVE, in a room wide enough for a page beside the text (LessonScroll). When a
+ * problem opens, its sheet glides in from the room's left edge while the text and the writing row
+ * slide to the right part; when it closes, a still copy of the sheet glides out that way while they
+ * slide back and the book's right page shows. When the desk's room opens, the text slides to the
+ * left part and the writing row to the right, and back when it shuts. Each change of `layout` is
+ * one such move. A page that opens laid out is just there; with reduced motion, in one column, or
+ * when the room changed width, the page is laid out and that is all.
  */
 export function useLeftSlide({
 	underRef,
@@ -33,7 +34,8 @@ export function useLeftSlide({
 	columnRef,
 	footRef,
 	turnRef,
-	split,
+	layout,
+	desk,
 }: {
 	/** The room under the step line, which the sheet travels in. */
 	underRef: RefObject<HTMLElement | null>;
@@ -44,15 +46,17 @@ export function useLeftSlide({
 	footRef: RefObject<HTMLElement | null>;
 	/** The book's right page. */
 	turnRef: RefObject<HTMLElement | null>;
-	/** An open problem stands out of the page. */
-	split: boolean;
+	/** How the room is laid out: an open problem out of the page ("split"), the desk's room ("room"), or neither. */
+	layout: "split" | "room" | null;
+	/** The desk's part that rests on the writing row in the desk's room, which travels with it. */
+	desk: HTMLElement | null;
 }) {
 	const moving = useRef<{ parts: Animation[]; done: () => void } | null>(null);
 	const shoot = (): Shot | null => {
 		const under = underRef.current;
 		if (!under) return null;
 		const text = columnRef.current?.querySelector(TEXT);
-		const row = footRef.current?.firstElementChild;
+		const row = footRef.current;
 		const slot = slotRef.current;
 		return {
 			width: under.clientWidth,
@@ -63,10 +67,10 @@ export function useLeftSlide({
 	};
 
 	// Where the pieces stand is read while the page is still laid out the old way.
-	const laid = useRef(split);
+	const laid = useRef(layout);
 	const before = useRef<Shot | null>(null);
-	if (laid.current !== split) {
-		laid.current = split;
+	if (laid.current !== layout) {
+		laid.current = layout;
 		before.current = shoot();
 	}
 	useLayoutEffect(() => {
@@ -106,11 +110,14 @@ export function useLeftSlide({
 			const dx = was.text - text.getBoundingClientRect().left;
 			if (dx !== 0) parts.push(text.animate([{ transform: `translateX(${dx}px)` }, { transform: "none" }], { duration: SLIDE_MS, easing: OUT }));
 		}
-		const row = footRef.current?.firstElementChild;
+		const row = footRef.current;
 		if (was.row && shown(row)) {
 			const at = row.getBoundingClientRect();
-			if (at.left !== was.row.left || at.width !== was.row.width)
-				parts.push(row.animate([{ transform: `translateX(${was.row.left - at.left}px)`, width: `${was.row.width}px` }, { transform: "none", width: `${at.width}px` }], { duration: SLIDE_MS, easing: OUT }));
+			if (at.left !== was.row.left || at.width !== was.row.width) {
+				const from = `translateX(${was.row.left - at.left}px)`;
+				parts.push(row.animate([{ transform: from, width: `${was.row.width}px` }, { transform: "none", width: `${at.width}px` }], { duration: SLIDE_MS, easing: OUT }));
+				if (shown(desk)) parts.push(desk.animate([{ transform: from }, { transform: "none" }], { duration: SLIDE_MS, easing: OUT }));
+			}
 		}
 		if (parts.length === 0) return;
 		// What travels is drawn only inside the room.
@@ -128,6 +135,6 @@ export function useLeftSlide({
 		moving.current = move;
 		Promise.all(parts.map((part) => part.finished)).then(move.done, move.done);
 		// The refs hold for the page's life; the move is read only when the page changes its layout.
-	}, [split]);
+	}, [layout, desk]);
 	useLayoutEffect(() => () => moving.current?.done(), []);
 }

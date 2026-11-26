@@ -1008,6 +1008,41 @@ body {
 		justify-content: flex-end;
 	}
 }
+/* The desk's room (LessonScroll, only with room for the book): the text and the page the teacher
+   reads stay one page wide at the pair's left, as the open book's left page; the desk's steps and
+   cards rest on the writing row at its right, as wide as the book's right page. The row lies over
+   the room's foot, so the page under the text reaches down level with it. */
+.lh-desk-room .lh-lesson-closed :is(.lh-text-sheets, .lh-turn-fit) {
+	margin-left: 0;
+}
+/* A task with nothing shown keeps no room under the text, so the paper reaches the row's foot. */
+.lh-desk-room .lh-lesson-column > .lh-turn-fit:not(:has(> * > :not(.hidden))) {
+	display: none;
+}
+.lh-desk-room .lh-turn-foot {
+	position: absolute;
+	inset-inline: 0;
+	bottom: 0;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	max-height: 100%;
+	pointer-events: none;
+}
+.lh-desk-room .lh-turn-foot > * {
+	width: var(--lh-turn);
+	max-width: none;
+	margin-right: 0;
+	pointer-events: auto;
+}
+/* A desk taller than the room scrolls in its own box, which leaves room at its left for the tile
+   that hangs out past the steps' marks. */
+.lh-desk-room .lh-turn-foot > .lh-desk-slot {
+	width: calc(var(--lh-turn) + 12px);
+	min-height: 0;
+	padding-left: 12px;
+	overflow-y: auto;
+}
 /* Each box down to the problem is as tall as what it holds and may shrink: a box that grew to fill
    (flex: 1) would size the pin by the whole problem, though the problem is cut to its folded height. */
 :is(.lh-turn-top, .lh-turn-left) :is(.lh-turn-task, [data-testid="your-turn"], [data-testid="turn-swap"], .lh-turn-body, .lh-turn-scroll) {

@@ -517,8 +517,13 @@ export function Chat({
 		[held, problems, practice],
 	);
 	const opens = bookOpen({ question: pending ? (pending.appPosed?.kind === "review" ? "review" : "teacher") : null, problem: problem !== null, held: held !== null });
-	// The desk in the lesson text, also while it leaves: the book waits for it.
+	// The desk in the lesson text, also while it leaves: the book waits for it. Whether it lays the page it reads there.
 	const [deskUp, setDeskUp] = useState(false);
+	const [deskPage, setDeskPage] = useState(false);
+	const onDesk = useCallback((up: boolean, page: boolean) => {
+		setDeskUp(up);
+		setDeskPage(page);
+	}, []);
 	useEffect(() => {
 		if (deskUp || error !== null) setOpened(true);
 	}, [deskUp, error]);
@@ -602,6 +607,7 @@ export function Chat({
 									onShut={book.shut}
 									onRest={book.rest}
 									pin={problemShown}
+									room={deskPage}
 									place={turnPlace}
 									onPlace={setTurnPlace}
 									reading={
@@ -622,7 +628,7 @@ export function Chat({
 											arrivalsLive={arrivalsLive}
 											pageMarks={pageMarks}
 											arrive={arrive}
-											onDesk={setDeskUp}
+											onDesk={onDesk}
 											sheetRef={sheetGlide}
 										/>
 										)

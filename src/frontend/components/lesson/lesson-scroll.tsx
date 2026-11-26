@@ -5,7 +5,7 @@ import { prefersReducedMotion } from "@/frontend/components/presence";
 import { SessionMessageNavigation } from "@/frontend/components/session-navigation";
 import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { cn } from "@/frontend/lib/utils";
-import { TurnPlaceContext, TurnSlotsContext, type TurnPlace } from "./turn-place";
+import { DeskRoomContext, TurnPlaceContext, TurnSlotsContext, type TurnPlace } from "./turn-place";
 import { FilingContext } from "@/frontend/components/filed-card";
 import { AskShownContext } from "./approval-card";
 import { useLeftSlide } from "./use-left-slide";
@@ -74,7 +74,9 @@ function turnBox(): HTMLElement {
  * a question stands in the page under the text, and an open problem is pinned over the text
  * (`pin`), where it folds to leave the text its room. With room for both, an open problem is the
  * page's left part, and the text and the writing row are its right part, the text resting on the
- * row. With room for both (the book) and anything else to work on (`open`), the text and the turn
+ * row. While the desk lays the page it reads in the shut book's text (`room`) with room for both, the
+ * text and that page are the left part, and the desk's steps rest on the writing row at the right
+ * (DeskRoomContext); the text slides there and back. With room for both (the book) and anything else to work on (`open`), the text and the turn
  * sit side by side: the turn holds still while the text scrolls, the task over the writing row. While the lesson text draws nothing (a lesson that opens
  * with a problem), the turn sits alone in the middle; when the text arrives, it slides over to its
  * side. The parts are drawn into boxes of their own, which this page moves between those places:
@@ -95,6 +97,7 @@ export function LessonScroll({
 	onShut,
 	onRest,
 	pin,
+	room,
 	place,
 	onPlace,
 }: {
@@ -117,6 +120,8 @@ export function LessonScroll({
 	onRest: () => void;
 	/** The task is an open problem: the page's left part where there is room, else pinned over the text. */
 	pin: boolean;
+	/** The desk lays the page it reads in the text (ReadingPane). */
+	room: boolean;
 	/** Where the task stands, as this page last laid it out, and the way to say so. */
 	place: TurnPlace;
 	onPlace: (place: TurnPlace) => void;
@@ -135,6 +140,10 @@ export function LessonScroll({
 	const alone = hasTurn && reading === null && !split;
 	const beside = pair && open && !split;
 	const shut = reading !== null && !beside && !split;
+	// Set where the room is wide enough for the book (lay, below).
+	const [wide, setWide] = useState(false);
+	const deskRoom = wide && room && shut;
+	const [deskSlot, setDeskSlot] = useState<HTMLElement | null>(null);
 	// The task stands out of the page, over the text or beside it, with the writing row pinned under the text's window.
 	const pinned = place === "pinned" || place === "left";
 
@@ -157,6 +166,7 @@ export function LessonScroll({
 		if (!room || !under || !page || !hasTurn || !boxes) return;
 		const lay = () => {
 			const wide = wideRoom(columnRef.current);
+			setWide(wide);
 			// Side by side, or alone in a wide room, the right page holds the task over the writing row.
 			const together = wide && (beside || alone);
 			// An open problem is the page's left part in a wide room, and pinned over the text in one column.
@@ -200,7 +210,7 @@ export function LessonScroll({
 		if (left !== from) el.animate([{ transform: `translateX(${from - left}px)` }, { transform: "none" }], MAKE_ROOM);
 	});
 
-	useLeftSlide({ underRef, slotRef: leftSlot, columnRef, footRef: footSlot, turnRef, split });
+	useLeftSlide({ underRef, slotRef: leftSlot, columnRef, footRef: footSlot, turnRef, layout: split ? "split" : deskRoom ? "room" : null, desk: deskSlot });
 	const rest = usePageRest({ contextRef, roomRef, columnRef, turnRef, footRef, busy, pinned, restKey, beside, open, shutting, onShut, onRest });
 	// A step line the lesson opened with is just there; one that arrives later steps in.
 	const stepsRef = useRef<HTMLDivElement>(null);
@@ -222,7 +232,7 @@ export function LessonScroll({
 					<div ref={setLine} className="flex shrink-0 empty:hidden" />
 				</div>
 			</div>
-			<div ref={underRef} className={cn("relative flex min-h-0 min-w-0 flex-1 flex-col", split && "lh-lesson-split")}>
+			<div ref={underRef} className={cn("relative flex min-h-0 min-w-0 flex-1 flex-col", split && "lh-lesson-split", deskRoom && "lh-desk-room")}>
 				{/* An open problem beside the text, the page's left part (its place: .lh-turn-left). */}
 				<div ref={leftSlot} hidden className="lh-turn-left" />
 				{/* An open problem, pinned over the text in one column (its height: .lh-turn-top). */}
@@ -235,7 +245,9 @@ export function LessonScroll({
 						<div className="lh-page py-6">
 							<div ref={columnRef} data-testid="lesson-column" className={cn("lh-lesson-column @container/column flex flex-col gap-8", READING_MEASURE, WIDE_MARK, reading !== null && PAIR, beside && PAIR_GRID, alone && ALONE)}>
 								<FilingContext.Provider value={rest.onFile}>
-									<AskShownContext.Provider value={rest.onAsk}>{reading}</AskShownContext.Provider>
+									<AskShownContext.Provider value={rest.onAsk}>
+										<DeskRoomContext.Provider value={deskRoom ? deskSlot : null}>{reading}</DeskRoomContext.Provider>
+									</AskShownContext.Provider>
 								</FilingContext.Provider>
 								{hasTurn && (
 									<TurnPlaceContext.Provider value={place}>
@@ -247,10 +259,11 @@ export function LessonScroll({
 							</div>
 						</div>
 					</ConversationContent>
-					<ConversationScrollButton className={cn(KEY, shut && SHUT_KEY, (beside || alone) && PAIR_KEY, split && SPLIT_KEY)} />
+					<ConversationScrollButton className={cn(KEY, shut && SHUT_KEY, (beside || alone || deskRoom) && PAIR_KEY, split && SPLIT_KEY)} />
 				</Conversation>
-				{/* The writing row, pinned for the whole lesson. */}
+				{/* The writing row, pinned for the whole lesson, and over it the desk's steps in the desk's room. */}
 				<div ref={footRef} hidden className="lh-turn-foot lh-page shrink-0 pt-1 pb-5">
+					<div ref={setDeskSlot} className={cn("lh-desk-slot empty:hidden", READING_MEASURE)} />
 					<div ref={footSlot} className={cn("@container/foot", READING_MEASURE, SHUT_FOOT)} />
 				</div>
 			</div>
