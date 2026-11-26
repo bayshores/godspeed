@@ -17,6 +17,10 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
 /** The MCP server godspeed's tools live on; Claude Code names them `mcp__godspeed__<tool>`. */
 const TOOL_SERVER = "godspeed";
 
+/** Claude Code's own memory stays off: godspeed's remember and forget notes are the teacher's only
+ *  memory, and no session leaves a memory folder in the learner's ~/.claude/projects. */
+const SETTINGS = { autoMemoryEnabled: false };
+
 /**
  * One session's input: the SDK reads the learner's messages from it as they come. Each session
  * has its own, made before its query starts; one shared between queries hung a resumed session.
@@ -120,6 +124,7 @@ export function serve({ input, output, query = sdkQuery }) {
 					systemPrompt: { type: "preset", preset: "claude_code", append: systemPrompt },
 					// None of the learner's own settings, hooks, skills, subagents or MCP servers.
 					settingSources: [],
+					settings: SETTINGS,
 					strictMcpConfig: true,
 					disallowedTools: ["Agent", "Skill"],
 					mcpServers: { [TOOL_SERVER]: toolServer(session, tools) },
@@ -163,6 +168,7 @@ export function serve({ input, output, query = sdkQuery }) {
 					cwd: tmpdir(),
 					persistSession: false,
 					settingSources: [],
+					settings: SETTINGS,
 					strictMcpConfig: true,
 					stderr: (data) => process.stderr.write(`[claude models] ${data}`),
 					...(command ? { spawnClaudeCodeProcess: launcher(command) } : { pathToClaudeCodeExecutable: claudePath }),

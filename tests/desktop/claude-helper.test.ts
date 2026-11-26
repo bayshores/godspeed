@@ -125,6 +125,7 @@ test("two sessions open at once, one new and one resumed, each with its own opti
 	assert.equal(resumed!.sessionId, undefined);
 	for (const options of [fresh!, resumed!]) {
 		assert.deepEqual(options.settingSources, []);
+		assert.deepEqual(options.settings, { autoMemoryEnabled: false }, "Claude Code's own memory is off in a lesson");
 		assert.equal(options.strictMcpConfig, true);
 		assert.deepEqual(options.disallowedTools, ["Agent", "Skill"]);
 		assert.equal(options.allowedTools, undefined, "an allowed tool would never reach canUseTool");
@@ -219,6 +220,8 @@ test("a job in a folder that holds a CLAUDE.md and an AGENTS.md starts Claude Co
 		}
 		const seen = JSON.parse(fs.readFileSync(seenFile, "utf8")) as { args: string[]; sent: string };
 		assert.ok(seen.args.includes("--setting-sources="), `no setting sources, so no CLAUDE.md is read: ${seen.args.join(" ")}`);
+		const settings = seen.args[seen.args.indexOf("--settings") + 1];
+		assert.deepEqual(JSON.parse(settings ?? "null"), { autoMemoryEnabled: false }, "the job's Claude Code keeps no memory folder");
 		assert.ok(seen.sent.includes("Make the sheet."), "the job's request was sent");
 		assert.ok(!JSON.stringify(seen).includes(RULE), "nothing of the folder's files is sent");
 	} finally {
@@ -233,6 +236,7 @@ test("a models question starts Claude Code with no input or settings of the lear
 	assert.deepEqual(await next(), { type: "models", id: "m1", models: [{ value: "default", resolvedModel: "claude-opus-5-5", displayName: "Default (recommended)", description: "Opus 5.5 · Best for everyday, complex tasks" }] });
 	const [options] = seen.options;
 	assert.deepEqual(options!.settingSources, []);
+	assert.deepEqual(options!.settings, { autoMemoryEnabled: false });
 	assert.equal(options!.persistSession, false);
 	assert.equal(options!.strictMcpConfig, true);
 	assert.equal(options!.pathToClaudeCodeExecutable, "/bin/claude");
