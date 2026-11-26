@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { ChatInput, LhMessage, TalkChat } from "@/shared/core";
+import type { AgentModels, ChatInput, LhMessage, TalkChat } from "@/shared/core";
 import { useAgentFolderView } from "@/frontend/components/agent-folder/agent-folder-context";
 import { useAgentModels } from "@/frontend/components/agent-folder/use-agent-models";
 import { LoadFailed } from "@/frontend/components/load-failed";
@@ -59,26 +59,26 @@ export function TalkChatView({ chatId, chat, onChat, name, page, ask, focus }: {
 	const box = useBox();
 	// The first message of a chat made here, which the chat sends once it is shown.
 	const [first, setFirst] = useState<{ chatId: string; input: TextInput } | null>(null);
-	// A model picked here before the list says so; a new chat's pick goes with the message that makes it.
-	const [picked, setPicked] = useState<{ chatId: string | null; model: string } | null>(null);
-	const model = picked?.chatId === chatId ? picked.model : (chat?.model ?? null);
-	const pick = (id: string) => {
-		setPicked({ chatId, model: id });
-		if (chatId) void setModel(chatId, id);
-	};
-	const room = { name, page, box, ask, model, onModel: pick, focus };
+	// A model picked for a chat before the list says so.
+	const [picked, setPicked] = useState<{ chatId: string; model: string } | null>(null);
+	const room = { name, page, box, ask, focus };
 	if (chatId === null)
 		return (
 			<NewChat
 				{...room}
-				onMade={(id, input) => {
+				onMade={(id, input, model) => {
 					if (model) setPicked({ chatId: id, model });
 					setFirst({ chatId: id, input });
 					onChat(id);
 				}}
 			/>
 		);
-	return <ChatRoom key={chatId} chatId={chatId} first={first?.chatId === chatId ? first.input : null} {...room} />;
+	const pick = (id: string) => {
+		setPicked({ chatId, model: id });
+		void setModel(chatId, id);
+	};
+	const model = picked?.chatId === chatId ? picked.model : (chat?.model ?? null);
+	return <ChatRoom key={chatId} chatId={chatId} first={first?.chatId === chatId ? first.input : null} model={model} onModel={pick} {...room} />;
 }
 
 /** A failed pick only means the chat goes on with its model; the next pick tries again. */
@@ -92,14 +92,24 @@ interface RoomProps {
 	page: BoxPage | null;
 	box: Box;
 	ask: Asking;
+	focus: boolean;
+}
+
+/** A chat's model, and the pick that changes it. */
+interface ModelProps {
 	model: string | null;
 	onModel: (id: string) => void;
-	focus: boolean;
 }
 
 const sendInput = (text: string, files: AttachmentDraft["files"]): TextInput => ({ type: "text", text, ...(files.length > 0 ? { attachments: files.map((f) => f.attachment) } : {}) });
 
-function NewChat({ name, page, box, ask, model, onModel, focus, onMade }: RoomProps & { onMade: (id: string, input: TextInput) => void }) {
+function NewChat({ name, page, box, ask, focus, onMade }: RoomProps & { onMade: (id: string, input: TextInput, model: string | null) => void }) {
+	// A pick for the chat this box makes is kept with the box, across a reload, and goes with its first message.
+	const models = useAgentModels();
+	const model = box.nextModel(models.agent);
+	const pick = (id: string) => {
+		if (models.agent) box.pickNext({ agent: models.agent, model: id });
+	};
 	const facts = useIdeaFacts();
 	const starters = startersFor(facts);
 	const groups = useMemo(() => everything(facts), [facts]);
@@ -118,7 +128,8 @@ function NewChat({ name, page, box, ask, model, onModel, focus, onMade }: RoomPr
 			restore();
 			return;
 		}
-		onMade(id, input);
+		box.pickNext(null);
+		onMade(id, input, model);
 	};
 	const sendBox = () => {
 		const typed = box.text.trim();
@@ -141,7 +152,7 @@ function NewChat({ name, page, box, ask, model, onModel, focus, onMade }: RoomPr
 		<Room
 			body={<TryAsking starters={starters} groups={groups} off={off} onSend={sendLine} />}
 			foot={
-				<WritingRow name={name} page={page} box={box} focus={focus} busy={false} error={failed ? { text: failed, onRetry: null } : null} ideas={null} made={false} model={<ModelKeyFor model={model} onModel={onModel} />} onSend={sendBox} onLine={sendLine} onStop={null} />
+				<WritingRow name={name} page={page} box={box} focus={focus} busy={false} error={failed ? { text: failed, onRetry: null } : null} ideas={null} made={false} model={<ModelKeyFor models={models} model={model} onModel={pick} />} onSend={sendBox} onLine={sendLine} onStop={null} />
 			}
 		/>
 	);
@@ -149,8 +160,7 @@ function NewChat({ name, page, box, ask, model, onModel, focus, onMade }: RoomPr
 
 /** The model key with the agent's list. A chat with no model of its own starts on the one the
  *  learner picked for the agent in Settings, else the agent's own default. */
-function ModelKeyFor({ model, onModel }: { model: string | null; onModel: (id: string) => void }) {
-	const { agent, models } = useAgentModels();
+function ModelKeyFor({ models: { agent, models }, model, onModel }: ModelProps & { models: AgentModels }) {
 	const view = useAgentFolderView().view;
 	const start = agent && view ? view.model[agent] : undefined;
 	return <ModelKey models={models} current={model ?? start ?? null} onPick={onModel} />;
@@ -162,7 +172,7 @@ type Read = Pick<ChatRead, "messages" | "turnInFlight"> & Partial<Pick<ChatRead,
 /** A chat just made here has nothing to read yet. */
 const MADE: Read = { messages: [], turnInFlight: false };
 
-function ChatRoom({ chatId, first, ...room }: RoomProps & { chatId: string; first: TextInput | null }) {
+function ChatRoom({ chatId, first, ...room }: RoomProps & ModelProps & { chatId: string; first: TextInput | null }) {
 	const [read, setRead] = useState<Read | null>(first ? MADE : null);
 	const [failed, setFailed] = useState(false);
 	const load = useCallback(() => {
@@ -181,7 +191,8 @@ function ChatRoom({ chatId, first, ...room }: RoomProps & { chatId: string; firs
 	return <Live chatId={chatId} read={read} first={first} {...room} />;
 }
 
-function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus }: RoomProps & { chatId: string; read: Read; first: TextInput | null }) {
+function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus }: RoomProps & ModelProps & { chatId: string; read: Read; first: TextInput | null }) {
+	const models = useAgentModels();
 	const session = useChatSession({ chatId, initialMessages: read.messages, initialError: read.turnError, initiallyInFlight: read.turnInFlight });
 	const { turnInFlight, localStreamRef } = useLessonServer({ chatId, session, initiallyInFlight: read.turnInFlight, initialStats: read, initialJobs: [] });
 	const work = useLessonWork(chatId, undefined);
@@ -263,7 +274,7 @@ function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus
 				scroller={scroller}
 				body={<TeacherThread lines={lines} arrive={arrive} exchange={exchange} live={<>{deskBlock}{!desk && waiting}</>} />}
 				over={cardAway && <CardAway text={cardAway.text} onClick={() => glide(cardAway.card)} />}
-				foot={<WritingRow name={name} page={page} box={box} focus={focus} busy={busy} error={error} ideas={used ? groups : null} made={first !== null} model={<ModelKeyFor model={model} onModel={onModel} />} onSend={sendBox} onLine={(line) => void go({ type: "text", text: line })} onStop={stopTurn} />}
+				foot={<WritingRow name={name} page={page} box={box} focus={focus} busy={busy} error={error} ideas={used ? groups : null} made={first !== null} model={<ModelKeyFor models={models} model={model} onModel={onModel} />} onSend={sendBox} onLine={(line) => void go({ type: "text", text: line })} onStop={stopTurn} />}
 			/>
 		</AskShownContext.Provider>
 	);

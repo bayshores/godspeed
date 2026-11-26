@@ -198,6 +198,28 @@ describe("a new chat", () => {
 		assert.deepEqual(sent.filter((r) => r.method !== "GET").map((r) => [r.url, r.body]), [["/api/chats", { kind: "talk", text: "Set up a space from my files", model: "opus" }]]);
 	});
 
+	it("keeps a model picked before the chat is made across a reload, and sends it with the first message", async () => {
+		await show(chat());
+		await click(q("talk-model"));
+		await click(all("talk-model-choice").find((row) => row.textContent === "Opus") ?? null);
+		await act(async () => root!.unmount());
+		root = null;
+		host?.remove();
+		await show(chat());
+		assert.equal(q("talk-model")?.textContent, "Opus", "the pick is back after the reload");
+		await click(all("talk-starter")[0]!);
+		assert.deepEqual(sent.filter((r) => r.method === "POST").map((r) => r.body), [{ kind: "talk", text: "Set up a space from my files", model: "opus" }]);
+		assert.equal(store.get("teacher-panel-next-model"), undefined, "the chat took the pick");
+	});
+
+	it("does not send a model kept for the other agent", async () => {
+		store.set("teacher-panel-next-model", JSON.stringify({ agent: "codex", model: "gpt-5.5" }));
+		await show(chat());
+		assert.notEqual(q("talk-model")?.textContent, "gpt-5.5");
+		await click(all("talk-starter")[0]!);
+		assert.deepEqual(sent.filter((r) => r.method === "POST").map((r) => r.body), [{ kind: "talk", text: "Set up a space from my files" }]);
+	});
+
 	it("starts a chat with the box's words and clears the box; when it fails the words come back with a line saying so", async () => {
 		const shown: string[] = [];
 		await show(chat({ onChat: (id) => shown.push(id) }));
