@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ChatInput, LhMessage, TalkChat } from "@/shared/core";
 import { useAgentFolderView } from "@/frontend/components/agent-folder/agent-folder-context";
 import { useAgentModels } from "@/frontend/components/agent-folder/use-agent-models";
@@ -25,7 +25,7 @@ import { TeacherThread, type ThreadLine } from "./teacher-thread";
 import { TryAsking } from "./try-asking";
 import { useIdeaFacts } from "./use-idea-facts";
 import { useBox, type Box } from "./use-talk-box";
-import { useCardAway, useThreadScroll } from "./use-thread-scroll";
+import { AFTER_GLIDE_MS, useCardAway, useThreadScroll } from "./use-thread-scroll";
 import { WritingRow } from "./writing-row";
 
 type TextInput = Extract<ChatInput, { type: "text" }>;
@@ -138,7 +138,7 @@ function NewChat({ name, page, box, ask, model, onModel, focus, onMade }: RoomPr
 		<Room
 			body={<TryAsking starters={starters} groups={groups} onSend={sendLine} />}
 			foot={
-				<WritingRow name={name} page={page} box={box} focus={focus} busy={false} error={failed ? { text: failed, onRetry: null } : null} ideas={null} model={<ModelKeyFor model={model} onModel={onModel} />} onSend={sendBox} onLine={sendLine} onStop={null} />
+				<WritingRow name={name} page={page} box={box} focus={focus} busy={false} error={failed ? { text: failed, onRetry: null } : null} ideas={null} made={false} model={<ModelKeyFor model={model} onModel={onModel} />} onSend={sendBox} onLine={sendLine} onStop={null} />
 			}
 		/>
 	);
@@ -187,15 +187,19 @@ function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus
 	const earlier = useMemo(() => readEarlier(read.earlier), [read.earlier]);
 	const talk = talkLines(shown, earlier, session.status === "streaming");
 	const arrive = useArrivals();
+	// What the chat's first drawing holds stays at rest; a desk that opens later rises in.
+	const [drawn, setDrawn] = useState(false);
+	useEffect(() => setDrawn(true), []);
 	const lines = talk.map((line): ThreadLine => ({ key: line.key, who: line.who, text: line.text, writing: line.writing, under: line.files.length > 0 ? <MessageAttachments parts={line.files} /> : undefined }));
 	const steers = visibleQueuedSteers(session.steerQueue, session.nativeMessages);
 	const waiting = (busy || closing) && steers.length > 0 ? <QueuedSteersBody steers={steers} /> : null;
 
 	const { send: sendInputNow, steer, stop, clearError, resumeStream } = session;
 	const go = useCallback((input: TextInput): Promise<boolean> => (busy ? steer(input.text) : sendInputNow(input)), [busy, steer, sendInputNow]);
-	// The first message of a chat made here goes once the chat is shown.
+	// The first message of a chat made here goes before the chat is first painted, so its plate
+	// takes the room "Try asking" held with no blank frame between.
 	const sentFirst = useRef(false);
-	useEffect(() => {
+	useLayoutEffect(() => {
 		if (!first || sentFirst.current) return;
 		sentFirst.current = true;
 		void sendInputNow(first);
@@ -242,9 +246,11 @@ function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus
 	const glide = useCallback((card: HTMLElement) => card.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "instant" : "smooth" }), []);
 
 	const deskBlock = desk && (
-		<div data-state={closing ? "closed" : "open"} inert={closing} className={cn("flex flex-col", closing && "lh-fade")}>
-			<AgentAtWork chatId={chatId} head={desk.head} work={desk.work} arrive={arrive} foot={waiting} paper={false} />
-		</div>
+		<DeskIn live={drawn} afterSend={talk.at(-1)?.who === "you"}>
+			<div data-state={closing ? "closed" : "open"} inert={closing} className={cn("flex flex-col", closing && "lh-fade")}>
+				<AgentAtWork chatId={chatId} head={desk.head} work={desk.work} arrive={arrive} foot={waiting} paper={false} />
+			</div>
+		</DeskIn>
 	);
 	const used = talk.length > 0;
 	const groups = useIdeaGroups();
@@ -254,7 +260,7 @@ function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus
 				scroller={scroller}
 				body={<TeacherThread lines={lines} arrive={arrive} exchange={exchange} live={<>{deskBlock}{!desk && waiting}</>} />}
 				over={cardAway && <CardAway text={cardAway.text} onClick={() => glide(cardAway.card)} />}
-				foot={<WritingRow name={name} page={page} box={box} focus={focus} busy={busy} error={error} ideas={used ? groups : null} model={<ModelKeyFor model={model} onModel={onModel} />} onSend={sendBox} onLine={(line) => void go({ type: "text", text: line })} onStop={stopTurn} />}
+				foot={<WritingRow name={name} page={page} box={box} focus={focus} busy={busy} error={error} ideas={used ? groups : null} made={first !== null} model={<ModelKeyFor model={model} onModel={onModel} />} onSend={sendBox} onLine={(line) => void go({ type: "text", text: line })} onStop={stopTurn} />}
 			/>
 		</AskShownContext.Provider>
 	);
@@ -263,6 +269,17 @@ function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus
 function useIdeaGroups(): IdeaGroup[] {
 	const facts = useIdeaFacts();
 	return useMemo(() => everything(facts), [facts]);
+}
+
+/** The desk rises in when it opens while the chat is shown; under a line just sent, once the view
+ *  has glided there. */
+function DeskIn({ live, afterSend, children }: { live: boolean; afterSend: boolean; children: ReactNode }) {
+	const [delay] = useState(live ? `${afterSend ? AFTER_GLIDE_MS : 0}ms` : null);
+	return (
+		<div className={cn("flex flex-col", delay && "lh-rise")} style={delay ? { animationDelay: delay } : undefined}>
+			{children}
+		</div>
+	);
 }
 
 /** One row pinned over the writing row while a card waits out of view: the card's own sentence; a

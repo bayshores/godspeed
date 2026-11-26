@@ -7,6 +7,7 @@ import { cn } from "@/frontend/lib/utils";
 import { IdeaList } from "./idea-list";
 import type { BoxPage, IdeaGroup } from "./starter-model";
 import type { Box } from "./use-talk-box";
+import { AFTER_GLIDE_MS } from "./use-thread-scroll";
 
 /** The box's look in the panel: its keys stand on their own line under it, drawn by the row. */
 const PANEL_BOX = (canSend: boolean, busy: boolean): BoxView => ({ placeholder: "Ask anything", keys: [], enter: canSend ? "send" : null, attach: !busy, help: null });
@@ -17,9 +18,9 @@ const PANEL_BOX = (canSend: boolean, busy: boolean): BoxView => ({ placeholder: 
  * the model key, Stop while a reply runs, and Send, the bright key only while the box holds
  * something to send. A line sent while the teacher works steers it, and a steer carries no files.
  * On a page with its own box the row is one quiet line instead, with Stop while a reply runs; the
- * two fade into each other's place as the learner moves between pages.
+ * two fade into each other's place as the learner moves between pages, and stand still otherwise.
  */
-export function WritingRow({ name, page, box, focus, busy, error, ideas, model, onSend, onLine, onStop }: {
+export function WritingRow({ name, page, box, focus, busy, error, ideas, made, model, onSend, onLine, onStop }: {
 	name: string;
 	page: BoxPage | null;
 	box: Box;
@@ -27,6 +28,8 @@ export function WritingRow({ name, page, box, focus, busy, error, ideas, model, 
 	busy: boolean;
 	error: { text: string; detail?: string; onRetry: (() => void) | null } | null;
 	ideas: readonly IdeaGroup[] | null;
+	/** The chat was made by the line just sent, so Ideas comes now. */
+	made: boolean;
 	model: ReactNode;
 	onSend: () => void;
 	/** Sends a line from the Ideas list as if typed. */
@@ -40,7 +43,14 @@ export function WritingRow({ name, page, box, focus, busy, error, ideas, model, 
 	const hasText = box.text.trim().length > 0;
 	const hasFiles = box.files.files.length > 0;
 	const canSend = (hasText || hasFiles) && !(busy && hasFiles);
-	const stop = usePresence(busy && !!onStop);
+	// Stop comes once the desk has opened, and never for a reply that lands before.
+	const stop = usePresence(useHeld(busy && !!onStop, AFTER_GLIDE_MS));
+	// Ideas fades in when it comes; in a chat opened with it, it is there at rest.
+	const [ideasAtRest] = useState(!!ideas && !made);
+	// The row fades only when it swaps with the quiet line, never as it is first drawn.
+	const [shown, setShown] = useState({ page, swapped: false });
+	if (shown.page !== page) setShown({ page, swapped: true });
+	const swap = shown.swapped && "lh-fade";
 	const [list, setList] = useState(false);
 	const row = useRef<HTMLDivElement>(null);
 	useMenuDismiss(list, useCallback(() => setList(false), []), row);
@@ -64,7 +74,7 @@ export function WritingRow({ name, page, box, focus, busy, error, ideas, model, 
 	);
 	if (page)
 		return (
-			<div data-testid="talk-gives-way" className="lh-fade flex shrink-0 flex-col gap-2.5 px-[18px] pt-2.5 pb-[18px]">
+			<div key="gives-way" data-testid="talk-gives-way" className={cn("flex shrink-0 flex-col gap-2.5 px-[18px] pt-2.5 pb-[18px]", swap)}>
 				{errorRow}
 				<div className="flex min-h-10 items-center justify-between gap-3">
 					<p className="text-[15px] text-ink-2">{page === "lesson" ? "Type in the lesson's box." : "Type in the cheat sheet's box."}</p>
@@ -73,7 +83,7 @@ export function WritingRow({ name, page, box, focus, busy, error, ideas, model, 
 			</div>
 		);
 	return (
-		<div ref={row} data-testid="talk-writing" className="lh-fade relative flex shrink-0 flex-col gap-2.5 px-[18px] pt-2.5 pb-[18px]">
+		<div key="writing" ref={row} data-testid="talk-writing" className={cn("relative flex shrink-0 flex-col gap-2.5 px-[18px] pt-2.5 pb-[18px]", swap)}>
 			{ideas && (
 				<IdeaList
 					groups={list ? ideas : null}
@@ -88,7 +98,7 @@ export function WritingRow({ name, page, box, focus, busy, error, ideas, model, 
 			<LessonBox view={PANEL_BOX(canSend, busy)} value={box.text} onChange={box.setText} onAct={onSend} attachments={box.files} boxRef={boxRef} />
 			<div className="flex min-h-10 flex-wrap items-center justify-end gap-x-3 gap-y-2">
 				{ideas && (
-					<button type="button" data-testid="talk-ideas" aria-expanded={list} onClick={() => setList((v) => !v)} className="lh-btn shrink-0">
+					<button type="button" data-testid="talk-ideas" aria-expanded={list} onClick={() => setList((v) => !v)} className={cn("lh-btn shrink-0", !ideasAtRest && "lh-fade")}>
 						Ideas
 					</button>
 				)}
@@ -100,4 +110,16 @@ export function WritingRow({ name, page, box, focus, busy, error, ideas, model, 
 			</div>
 		</div>
 	);
+}
+
+/** True once `on` has held for `ms`; false as soon as it ends. */
+function useHeld(on: boolean, ms: number): boolean {
+	const [held, setHeld] = useState(false);
+	if (!on && held) setHeld(false);
+	useEffect(() => {
+		if (!on) return;
+		const timer = setTimeout(() => setHeld(true), ms);
+		return () => clearTimeout(timer);
+	}, [on, ms]);
+	return on && held;
 }

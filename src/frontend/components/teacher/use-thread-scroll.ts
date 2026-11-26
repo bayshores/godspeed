@@ -1,6 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 
+/** About as long as the glide to a line just sent: what opens under that line waits for it. */
+export const AFTER_GLIDE_MS = 320;
+
 /**
  * The thread's scrolling: at rest at its end when shown; when the learner sends a line, it glides
  * once so that line sits at the top, and then holds still while the reply grows under it. The room

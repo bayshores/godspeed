@@ -26,7 +26,7 @@ const THREAD_TYPE = { "--lh-prose-size": "16px", "--lh-prose-leading": "1.5" } a
  * right (LearnerPlate), the teacher's lying open in the reading type. `live` lies under the newest
  * line: the desk, the cards waiting to be allowed, the lines typed while the teacher works, an
  * error row. The teacher panel's chat and the cheat sheet's chat both draw this, so the two never
- * look or act differently. A line that comes while the thread is shown steps in (`arrive`).
+ * look or act differently. A learner's line that comes while the thread is shown steps in (`arrive`).
  *
  * `exchange`: the newest exchange (the learner's newest line and all under it) gets a section of
  * its own, as tall as the scrolling room around it says (--lh-thread-room), so a new line can glide
@@ -36,7 +36,7 @@ export function TeacherThread({ lines, live, arrive, exchange }: { lines: readon
 	const lastYou = exchange ? lines.findLastIndex((line) => line.who === "you") : -1;
 	const before = lastYou === -1 ? lines : lines.slice(0, lastYou);
 	const newest = lastYou === -1 ? [] : lines.slice(lastYou);
-	const draw = (line: ThreadLine, i: number) => <ThreadRow key={line.key} line={line} rise={arrive(`${i}:${line.who}`)} />;
+	const draw = (line: ThreadLine, i: number) => <ThreadRow key={line.key} line={line} arrived={!!arrive(`${i}:${line.who}`)} />;
 	return (
 		<div data-testid="teacher-thread" className="flex min-w-0 flex-col gap-3.5" style={THREAD_TYPE}>
 			{before.map(draw)}
@@ -52,10 +52,10 @@ export function TeacherThread({ lines, live, arrive, exchange }: { lines: readon
 	);
 }
 
-function ThreadRow({ line, rise }: { line: ThreadLine; rise: string | undefined }) {
+function ThreadRow({ line, arrived }: { line: ThreadLine; arrived: boolean }) {
 	if (line.who === "you")
 		return (
-			<LearnerPlate text={line.text} over={line.over} className={cn("my-0", rise)}>
+			<LearnerPlate text={line.text} over={line.over} className={cn("my-0", arrived && "lh-block-in")}>
 				{line.under}
 			</LearnerPlate>
 		);

@@ -190,9 +190,30 @@ describe("a new chat", () => {
 		assert.equal(box.state.doc.toString(), "", "sent: the box is empty");
 		assert.deepEqual(shown, ["chat_new"]);
 	});
+
+	it("the chat its first line makes keeps the writing row at rest, and Ideas fades in", async () => {
+		function Panel() {
+			const [id, setId] = React.useState<string | null>(null);
+			return chat({ chatId: id, onChat: setId });
+		}
+		await show(<Panel />);
+		await click(all("talk-starter")[0]!);
+		assert.ok(q("teacher-thread"), "the chat is shown");
+		assert.doesNotMatch(q("talk-writing")!.className, /lh-fade/, "the row does not fade out and in");
+		assert.match(q("talk-ideas")!.className, /lh-fade/);
+	});
 });
 
 describe("on a page with its own box", () => {
+	it("the writing row is drawn at rest, and fades only as it swaps with the line", async () => {
+		await show(chat());
+		assert.doesNotMatch(q("talk-writing")!.className, /lh-fade/);
+		await show(chat({ page: "lesson" }), "/chat/ses_1");
+		assert.match(q("talk-gives-way")!.className, /lh-fade/);
+		await show(chat());
+		assert.match(q("talk-writing")!.className, /lh-fade/);
+	});
+
 	it("the lesson's page: the writing row is one line saying so, with no box and no Send", async () => {
 		await show(chat({ page: "lesson" }), "/chat/ses_1");
 		assert.equal(q("talk-gives-way")?.textContent, "Type in the lesson's box.");
@@ -234,6 +255,15 @@ describe("a chat that was used", () => {
 		assert.equal(q("talk-ideas")?.textContent, "Ideas");
 		assert.equal((q("talk-send") as HTMLButtonElement).disabled, true);
 		assert.equal(q("talk-stop"), null, "no reply is running");
+	});
+
+	it("shows Stop once a running reply has held as long as the glide, so a reply that lands at once never shows it", async () => {
+		const realFetch = globalThis.fetch;
+		globalThis.fetch = (async (url: string, init?: RequestInit) => (url === "/api/chats/chat_1" ? Response.json({ ...readChat, turnInFlight: true }) : realFetch(url, init))) as typeof fetch;
+		await show(chat({ chatId: "chat_1" }));
+		assert.equal(q("talk-stop"), null, "not yet");
+		await act(() => new Promise((r) => setTimeout(r, 340)));
+		assert.ok(q("talk-stop"));
 	});
 
 	it("says a chat that can't be read, with a key that reads it again", async () => {
