@@ -152,6 +152,8 @@ const turnRuns = "[data-testid=stop-turn]";
 const deskUp = "[data-testid=agent-at-work]";
 /** A line the learner sends in the printed homework, whose turn the stand-in helper holds. */
 const printedLine = `await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: "{homeworkPrinted}", input: { type: "text", text: ${JSON.stringify(PRINTED_HOLDS)} } }) })${HTTP_OK};`;
+/** The learner's next line in that lesson, in other words than the one before it, as a learner writes it. */
+const nextPrintedLine = `await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: "{homeworkPrinted}", input: { type: "text", text: "So it stops once i passes n?" } }) })${HTTP_OK};`;
 /** That turn stopped, so no teacher holds it for the screens after it. */
 const dropPrintedLine = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{homeworkPrinted}" }) });`;
 /** Waits, up to 10 s, until that turn has ended, so a line sent after it starts a turn of its own. */
@@ -669,7 +671,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{
 		name: "Homework lesson with a problem's page while the agent isn't logged in",
 		agent: "signed-out",
-		before: `${dropPrintedLine}\n${printedTurnEnded}\n${printedLine}`,
+		before: `${dropPrintedLine}\n${printedTurnEnded}\n${nextPrintedLine}`,
 		url: "/chat/{homeworkPrinted}",
 		ready: "[data-testid=page-piece] img",
 		shows: "[data-testid=turn-row] [data-testid=agent-compact] [data-testid=agent-key]",

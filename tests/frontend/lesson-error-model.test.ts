@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { lastLearnerText, lessonError, retryAction } from "../../src/frontend/components/lesson/lesson-error-model.ts";
+import { lessonError, retryAction } from "../../src/frontend/components/lesson/lesson-error-model.ts";
 import { STREAM_DROPPED } from "../../src/frontend/components/session-core.ts";
-import { pdfNote, type LhMessage } from "../../src/shared/core/index.ts";
 
 describe("lessonError", () => {
 	it("turns known failures into plain sentences", () => {
@@ -22,37 +21,16 @@ describe("lessonError", () => {
 	});
 });
 
-describe("lastLearnerText", () => {
-	const user = (content: unknown) => ({ id: "u", role: "user", content }) as unknown as LhMessage;
-	const failed = { id: "a", role: "assistant", stopReason: "error", content: [] } as unknown as LhMessage;
-	it("finds the learner's text the failed reply was answering", () => {
-		assert.equal(lastLearnerText([user("why?"), failed]), "why?");
-		assert.equal(lastLearnerText([user([{ type: "text", text: "with a picture" }, { type: "image" }]), failed]), "with a picture");
-	});
-	it("leaves a PDF note out of the resend", () => {
-		assert.equal(lastLearnerText([user([{ type: "text", text: "explain this" }, pdfNote("notes.pdf", "/p/x.pdf")]), failed]), "explain this");
-		assert.equal(lastLearnerText([user([pdfNote("notes.pdf", "/p/x.pdf")]), failed]), null, "a PDF-only message runs the reply again");
-	});
-	it("is null when the reply answered something else", () => {
-		const result = { id: "r", role: "toolResult", toolCallId: "q1", content: [] } as unknown as LhMessage;
-		assert.equal(lastLearnerText([user("hi"), result, failed]), null);
-		assert.equal(lastLearnerText([]), null);
-	});
-});
-
 describe("retryAction", () => {
 	it("sends the box again when the learner's text is back in it", () => {
-		assert.deepEqual(retryAction("send", { boxHasText: true, lastText: null }), { type: "send-box" });
-		assert.deepEqual(retryAction("reply", { boxHasText: true, lastText: "why?" }), { type: "send-box" });
+		assert.deepEqual(retryAction("send", { boxHasText: true }), { type: "send-box" });
+		assert.deepEqual(retryAction("reply", { boxHasText: true }), { type: "send-box" });
 	});
-	it("resends the learner's last message after a failed reply", () => {
-		assert.deepEqual(retryAction("reply", { boxHasText: false, lastText: "why?" }), { type: "resend", text: "why?" });
-	});
-	it("runs a failed reply to an answer again", () => {
-		assert.deepEqual(retryAction("reply", { boxHasText: false, lastText: null }), { type: "continue" });
+	it("runs a failed reply again from the record, so the learner's line is not sent a second time", () => {
+		assert.deepEqual(retryAction("reply", { boxHasText: false }), { type: "continue" });
 	});
 	it("otherwise reads the lesson again", () => {
-		assert.deepEqual(retryAction("sync", { boxHasText: true, lastText: "why?" }), { type: "resync" });
-		assert.deepEqual(retryAction("send", { boxHasText: false, lastText: "why?" }), { type: "resync" });
+		assert.deepEqual(retryAction("sync", { boxHasText: true }), { type: "resync" });
+		assert.deepEqual(retryAction("send", { boxHasText: false }), { type: "resync" });
 	});
 });

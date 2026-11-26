@@ -1903,7 +1903,7 @@ describe("Keep going and the opener", () => {
 		const m = model({ initialMessages: regularizationEnds(), fetch });
 		await m.keepGoing("c1");
 		assert.equal(m.getState().error?.message, "Keep going failed: status 400");
-		assert.deepEqual(retryAction(lessonError(m.getState().error!.message).kind, { boxHasText: true, lastText: null }), { type: "resync" }, "Try again never sends his draft");
+		assert.deepEqual(retryAction(lessonError(m.getState().error!.message).kind, { boxHasText: true }), { type: "resync" }, "Try again never sends his draft");
 	});
 
 	it("a refused opener answer shows the plain send failure", async () => {
@@ -1989,7 +1989,7 @@ describe("Drop this analogy and the phrase", () => {
 			assert.equal(card(m)?.analogyDropped, false);
 			assert.equal(m.getState().error?.message, message);
 			assert.deepEqual(lessonError(message), { text: "That change didn't save.", kind: "sync" });
-			assert.deepEqual(retryAction("sync", { boxHasText: true, lastText: null }), { type: "resync" }, "Try again never sends his draft");
+			assert.deepEqual(retryAction("sync", { boxHasText: true }), { type: "resync" }, "Try again never sends his draft");
 		}
 	});
 });

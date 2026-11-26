@@ -4,6 +4,7 @@
 use std::sync::Arc;
 
 use gs_base::clock;
+use gs_core::messages::input_events::{ChatInput, TurnInput};
 use gs_core::messages::native_messages::new_user_steer;
 use gs_core::messages::role::Role;
 use gs_core::spaces::agent_folder::FolderAgent;
@@ -16,6 +17,7 @@ use gs_runtime::Runtime;
 use gs_runtime::fake::{FakeAgent, FakeStep};
 use parking_lot::Mutex;
 
+use super::chat_handler::handle_chat_input;
 use super::stand_in::{Lesson, bash, lesson, lesson_in, lesson_on, text, tool};
 use super::turn_liveness::is_turn_running;
 use super::turn_runs::{abort_turn, answer_approval, running_turn};
@@ -408,5 +410,33 @@ async fn a_new_lesson_session_starts_on_the_picked_model() {
 		fx.settled().await;
 		let opened = if agent == FolderAgent::Claude { fx.sent("open")[0]["model"].clone() } else { fx.requests("thread/start")[0]["params"]["model"].clone() };
 		assert_eq!(opened.as_str(), Some("a-picked-model"), "{}", agent.name());
+	}
+}
+
+/// Try again after a failed reply runs on from the record on a new session: the agent hears the
+/// learner's line once and answers it once, and the record holds the line once.
+#[tokio::test(flavor = "multi_thread")]
+async fn try_again_after_a_failed_reply_answers_the_line_once() {
+	const LINE: &str = "Why are sets unordered?";
+	for runtime in [FakeAgent::runtime as fn(&FakeAgent) -> Runtime, FakeAgent::codex_runtime] {
+		let fx = lesson_on("session-try-again", None, vec![vec![FakeStep::Fail("overloaded".to_owned())], vec![text("Order is not part of a set.")]], runtime);
+		let agent = folder_agent(&fx.app);
+		fx.say(LINE).await;
+		fx.settled().await;
+		let retry = handle_chat_input(&fx.app, &fx.chat_id, TurnInput::Chat(ChatInput::Continue)).await;
+		assert!(retry.ok(), "{}", retry.text());
+		fx.settled().await;
+		let (opens, inputs): (usize, Vec<String>) = if agent == FolderAgent::Claude {
+			(fx.sent("open").len(), fx.sends())
+		} else {
+			let words = |t: &Json| t["params"]["input"].items().iter().filter_map(|p| p["text"].as_str()).collect::<Vec<_>>().join("\n");
+			(fx.requests("thread/start").len(), fx.requests("turn/start").iter().map(words).collect())
+		};
+		assert_eq!(opens, 2, "{}: Try again opens a new session", agent.name());
+		assert_eq!(inputs.len(), 2, "{}", agent.name());
+		assert_eq!(inputs[1].matches(LINE).count(), 1, "{}: the new session hears the line once", agent.name());
+		assert_eq!(fx.replies(), ["Order is not part of a set."], "{}", agent.name());
+		let users = fx.messages().iter().filter(|m| Role::User.is(m) && m["content"].as_str() == Some(LINE)).count();
+		assert_eq!(users, 1, "{}: the record holds the line once", agent.name());
 	}
 }

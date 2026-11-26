@@ -38,7 +38,7 @@ import {
 import { problemMessage } from "@/frontend/components/lesson/problem-choices-model";
 import { goAheadLabel, initialPromptOwed, problemPosed, restoreUnsent, sendBlockedReason } from "@/frontend/components/lesson/chat-helpers";
 import { holdsDraft } from "@/frontend/components/lesson/lesson-drafts-model";
-import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
+import { lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { useSheetGlide } from "@/frontend/components/use-sheet-glide";
@@ -419,9 +419,8 @@ export function Chat({
 	// failed reply again, or read the lesson again (and attach to a running reply).
 	const retry = () => {
 		if (!error) return;
-		const action = retryAction(lessonError(error.message).kind, { boxHasText: textRef.current.trim().length > 0, lastText: lastLearnerText(nativeMessages) });
+		const action = retryAction(lessonError(error.message).kind, { boxHasText: textRef.current.trim().length > 0 });
 		if (action.type === "send-box") sendBox();
-		else if (action.type === "resend") void send({ type: sideOpen ? "side" : "text", text: action.text });
 		else if (action.type === "continue") void send({ type: "continue" });
 		else {
 			clearError();
