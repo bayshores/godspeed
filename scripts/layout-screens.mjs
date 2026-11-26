@@ -479,6 +479,8 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	{ name: "Home, the strip's peek", url: "/", ready: deadlineCard, setup: peekOut, shows: peekShown },
 	// No chat yet: the panel opens on a new one, with what the teacher can be asked here.
 	{ name: "Teacher chat, a new chat", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=talk-try] [data-testid=talk-starter]" },
+	// A Lab Algebra lesson: the panel's box gives way to the lesson's. Opening it also makes Lab Algebra the active space again for the Progress screens below.
+	{ name: "Teacher's panel beside a lesson", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=talk-gives-way]" },
 	{ name: "Teacher's Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`, shows: "[data-testid=teacher-panel-list] [data-testid=activity-list] > *" },
 	{ name: "Settings, Connection", url: "/settings?section=connection", ready: "[data-testid=agent-status]" },
 	{ name: "Settings, Teaching", url: "/settings?section=teaching", ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)" },
@@ -624,8 +626,8 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	},
 	// The held reply asks to run a command: its card waits under the desk's steps for Deny or Allow.
 	{ name: "Teacher chat, a card waiting", url: "/", ready: deadlineCard, setup: openTeacher, helper: "approve", shows: "[data-testid=talk-thread] [data-testid=approval-card]" },
-	// On a lesson the panel's box gives way to the lesson's, with Stop while the held reply runs.
-	{ name: "Teacher's panel beside a lesson", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=talk-gives-way] [data-testid=talk-stop]" },
+	// The line that gives way on a lesson has Stop while the chat's held reply runs.
+	{ name: "Teacher's panel beside a lesson, Stop while the chat's reply runs", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=talk-gives-way] [data-testid=talk-stop]" },
 	// The held reply is stopped: the chats, the one shown "open now".
 	{
 		name: "Teacher's chats under the Chats key",
