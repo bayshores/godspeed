@@ -35,7 +35,6 @@ export function GapCard({ gap, onUpdate }: { gap: SpaceGap; onUpdate: () => void
 	return (
 		<NoticeCard
 			data-testid="gap-notice"
-			role="status"
 			kind="quiet"
 			title={gap.title}
 			actions={

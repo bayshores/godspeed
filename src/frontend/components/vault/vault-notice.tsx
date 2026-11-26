@@ -27,7 +27,7 @@ export function VaultNotice() {
 		<InNoticeStack>
 			<NoticeCard
 				data-testid="vault-notice"
-				role="status"
+				kind="error"
 				title={title}
 				close={{ onClick: () => setClosed(key), testId: "vault-notice-close" }}
 				actions={

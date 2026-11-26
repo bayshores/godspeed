@@ -34,7 +34,6 @@ export default function UpdateBanner() {
 		<NoticeCard
 			data-testid="update-banner"
 			kind="first"
-			role="status"
 			title={ready ? `${name} is ready` : `${name} is downloading`}
 			actions={
 				ready && (

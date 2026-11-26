@@ -31,7 +31,7 @@ export function ReadNotice() {
 	};
 	return (
 		<InNoticeStack>
-			<NoticeCard data-testid="read-notice" role="status" title={title} close={{ onClick: close, testId: "read-notice-close" }} />
+			<NoticeCard data-testid="read-notice" title={title} close={{ onClick: close, testId: "read-notice-close" }} />
 		</InNoticeStack>
 	);
 }

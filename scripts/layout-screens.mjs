@@ -38,6 +38,10 @@ const openTeacher = `document.querySelector("[data-testid=strip]").click()`;
 /** The pointer comes to rest on the strip, so its peek slides out. */
 const peekOut = `document.querySelector("[data-strip]").dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }))`;
 const peekShown = "[data-testid=peek][data-state=open] [data-testid=peek-status]";
+/** The peek's count of notices is asked for, so they show. */
+const noticesOut = `${peekOut};\n${whenThere("[data-testid=peek-notices]")};\ndocument.querySelector("[data-testid=peek-notices]").click()`;
+/** One quiet card shows at a time: a late deadline's question is answered "Not yet", so the gap card after it shows. */
+const gapCardOut = `${noticesOut};\n${whenThere("[data-testid=overdue-notice]:not([hidden]), [data-testid=gap-notice]:not([hidden])")};\ndocument.querySelector("[data-testid=overdue-notice]:not([hidden]) [data-testid=overdue-notice-not-yet]")?.click()`;
 const deadlineCard = "[data-teacher-target='deadline:{deadline}']";
 /** Home's every part at once, from both spaces so the blocks' colors differ: five deadlines on one
  *  day (so it folds to three and "+2 more"), one late, one ticked done today, more across the week,
@@ -701,7 +705,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{ name: "Home with no deadline", before: `${roundEnded}\n${dropDeadlines}`, url: "/", ready: "[data-testid=today-empty]" },
 	{ name: "Home on a busy day", before: busyDay, url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", shows: "[data-testid=week-later]" },
 	{ name: "Home, the week unfolded", url: "/", ready: "[data-testid=week-columns] [data-testid=week-more]", setup: `document.querySelector("[data-testid=week-more]").click()`, shows: "[data-testid=week-rest][data-state=open]" },
-	{ name: "Deadlines while the top bar asks about a late one", before: lateHomework, url: "/space/deadlines", ready: "[data-testid=overdue-notice] [data-testid=overdue-notice-done]" },
+	{ name: "Deadlines while the top bar asks about a late one", before: lateHomework, url: "/space/deadlines", ready: "[data-testid=overdue-notice] [data-testid=overdue-notice-done]", setup: noticesOut, shows: "[data-testid=overdue-notice]:not([hidden])" },
 	{
 		name: "Progress with a path, all shown",
 		before: `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, activeSpace: "{pathSpace}" }) })${HTTP_OK}`,
@@ -747,7 +751,7 @@ document.querySelector("[data-testid=teacher-panel-chats]").click()`,
 	{ name: "Progress, a new space", before: newSpace, url: "/space", ready: "[data-testid=space-start] [data-testid=space-start-path]" },
 	// With a lesson the new space is no longer empty: the deadline's place holds the two ways it still lacks.
 	{ name: "Progress, a lesson but no deadline", before: lessonInNewSpace, url: "/space", ready: "[data-testid=next-deadline-none] [data-testid=space-start-path]" },
-	{ name: "Files while the top bar asks about a missing deadline", before: gapSpace, url: "/space/files", ready: "[data-testid=gap-notice] [data-testid=gap-notice-update]" },
+	{ name: "Files while the top bar asks about a missing deadline", before: gapSpace, url: "/space/files", ready: "[data-testid=gap-notice] [data-testid=gap-notice-update]", setup: gapCardOut, shows: "[data-testid=gap-notice]:not([hidden])" },
 	{
 		name: "Onboarding",
 		before: `${dropGapSpace}; ${dropLateHomework}; const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, onboarded: false }) })${HTTP_OK}`,

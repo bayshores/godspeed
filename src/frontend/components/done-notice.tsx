@@ -14,7 +14,7 @@ export function DoneNotice({ text, onExpire }: { text: string; onExpire: () => v
 	const handlers = useHeld(NOTICE_MS, onExpire, text);
 	return (
 		<InNoticeStack>
-			<NoticeCard data-testid="done-notice" {...handlers} role="alert" timed title={text} />
+			<NoticeCard data-testid="done-notice" {...handlers} kind="error" timed title={text} />
 		</InNoticeStack>
 	);
 }

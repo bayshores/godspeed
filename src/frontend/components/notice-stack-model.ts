@@ -3,12 +3,19 @@
 /** At most this many notices show at once; the rest wait their turn. */
 const MAX_SHOWN = 3;
 
-/** A notice shows by itself this long, then folds into the strip. */
+/** A notice that shows by itself does so this long, then folds into the strip. */
 export const PRESENT_MS = 12_000;
 
-/** "first": update and restart, ahead of the rest. "quiet": a quiet
- *  space, one at a time. */
-export type NoticeKind = "first" | "quiet";
+/** "error": something failed or broke, ahead of all and the only kind that
+ *  shows by itself beside the strip. "first": an update, ahead of the rest.
+ *  "quiet": a quiet space, one at a time. */
+export type NoticeKind = "error" | "first" | "quiet";
+
+/** Which notices show by themselves: all where no strip is to wait on (the
+ *  first steps), errors beside the strip, none under the teacher's open panel. */
+export type Alone = "all" | "errors" | "none";
+
+const rank = (n: Notice) => (n.kind === "error" ? 0 : n.kind === "first" ? 1 : 2);
 
 export interface Notice {
 	id: string;
@@ -25,14 +32,14 @@ interface NoticeView {
 }
 
 /**
- * The notices in the stack's order, to what shows: "first" ones before the
- * rest, which keep their order, one "quiet" notice at a time, 3 at most.
- * One shows by itself until it folds; `open` (the folded ones were asked
- * for) shows those too. `covered` (the teacher's panel or a lesson is open
- * where the cards would show): none shows by itself, all wait folded.
+ * The notices in the stack's order, to what shows: errors, then "first"
+ * ones, then the rest, which keep their order, one "quiet" notice at a
+ * time, 3 at most. Those `alone` lets show by themselves do so until they
+ * fold; the others wait folded, so no page has a card laid over it unasked.
+ * `open` (the folded ones were asked for) shows them all.
  */
-export function noticeView(notices: readonly Notice[], now: number, open: boolean, covered: boolean): NoticeView {
-	const ranked = [...notices].sort((a, b) => Number(b.kind === "first") - Number(a.kind === "first"));
+export function noticeView(notices: readonly Notice[], now: number, open: boolean, alone: Alone): NoticeView {
+	const ranked = [...notices].sort((a, b) => rank(a) - rank(b));
 	let quiet = false;
 	const taking = ranked.filter((n) => {
 		if (n.kind !== "quiet") return true;
@@ -40,7 +47,7 @@ export function noticeView(notices: readonly Notice[], now: number, open: boolea
 		quiet = true;
 		return true;
 	});
-	const fresh = covered ? [] : taking.filter((n) => n.foldAt > now);
+	const fresh = taking.filter((n) => n.foldAt > now && (alone === "all" || (alone === "errors" && n.kind === "error")));
 	const shown = (open ? taking : fresh).slice(0, MAX_SHOWN);
 	return {
 		shown: shown.map((n) => n.id),

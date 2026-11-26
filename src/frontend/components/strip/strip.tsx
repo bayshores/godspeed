@@ -118,7 +118,8 @@ export function Strip() {
 							</span>
 						)}
 						{strip.waiting > 0 && (
-							<span data-testid="strip-waiting" title={noticeCount(strip.waiting)} className="font-count flex h-5 min-w-5 items-center justify-center bg-bar-ink/20 px-1 text-[13px] leading-none">
+							// A new count is a new box, so it lights once as a notice arrives.
+							<span key={strip.waiting} data-testid="strip-waiting" title={noticeCount(strip.waiting)} className="lh-strip-count font-count flex h-5 min-w-5 items-center justify-center bg-bar-ink/20 px-1 text-[13px] leading-none">
 								{strip.waiting}
 							</span>
 						)}

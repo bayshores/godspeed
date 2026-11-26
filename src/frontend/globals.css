@@ -1568,6 +1568,21 @@ body:has(.lh-own-bar) .lh-app-bar {
 	.lh-strip:hover:not([data-open]) .lh-strip-arrow {
 		animation: lh-strip-step 0.72s steps(1, end) infinite;
 	}
+	/* A notice arrived: its count is lit like the flag for a moment, twice. */
+	.lh-strip-count {
+		animation: lh-strip-count 1.2s steps(1, end);
+	}
+}
+@keyframes lh-strip-count {
+	0%,
+	50% {
+		background-color: var(--color-highlight);
+		color: var(--color-ink);
+	}
+	25%,
+	75% {
+		background-color: transparent;
+	}
 }
 @keyframes lh-strip-beckon {
 	82% {

@@ -12,8 +12,7 @@ export function RestartNotice() {
 	return (
 		<NoticeCard
 			data-testid="restart-notice"
-			kind="first"
-			role="status"
+			kind="error"
 			title="godspeed restarted after a problem"
 			actions={
 				<button type="button" onClick={() => setOpen(false)} className="lh-btn">

@@ -42,7 +42,7 @@ const { PeekSheet, PEEK_ROWS_ID } = await import("../../src/frontend/components/
 const { Strip } = await import("../../src/frontend/components/strip/strip.tsx");
 const { peekKeyboard, stripPointer, tuckPeek } = await import("../../src/frontend/components/strip/peek-store.ts");
 const { NoticeCard } = await import("../../src/frontend/components/notice-card.tsx");
-const { coverNotices, setNoticesOpen, useNotices } = await import("../../src/frontend/components/notice-store.ts");
+const { noticesAlone, setNoticesOpen, useNotices } = await import("../../src/frontend/components/notice-store.ts");
 const { PRESENT_MS } = await import("../../src/frontend/components/notice-stack-model.ts");
 const { GapCard } = await import("../../src/frontend/components/gap-card.tsx");
 const { DoneNotice } = await import("../../src/frontend/components/done-notice.tsx");
@@ -55,7 +55,7 @@ afterEach(async () => {
 	await act(async () => root?.unmount());
 	await act(async () => {
 		setNoticesOpen(false);
-		coverNotices(false);
+		noticesAlone("all");
 		peekKeyboard(false);
 		stripPointer(false);
 		tuckPeek();
@@ -83,13 +83,13 @@ function useStack() {
 const shownIds = () => cards("*").filter((c) => !c.hasAttribute("hidden")).map((c) => c.getAttribute("data-testid"));
 
 /** A notice with a button that closes it. */
-function Notices({ ids, timed }: { ids: string[]; timed?: boolean }) {
+function Notices({ ids, timed, kind }: { ids: string[]; timed?: boolean; kind?: "error" }) {
 	const [open, setOpen] = useState(ids);
 	return open.map((id) => (
 		<NoticeCard
 			key={id}
 			data-testid={id}
-			role="status"
+			kind={kind}
 			title={`Notice ${id}`}
 			timed={timed}
 			actions={
@@ -157,7 +157,7 @@ describe("The notices in the peek", () => {
 				return (
 					<>
 						<PeekSheet>
-							<Notices ids={["a", "b", "c"]} />
+							<Notices ids={["a", "b", "c"]} kind="error" />
 						</PeekSheet>
 						{stack && <DoneNotice text="Ticking that deadline done didn't save." onExpire={onExpire} />}
 					</>
@@ -254,10 +254,10 @@ describe("The notices in the peek", () => {
 			</>,
 		);
 		assert.deepEqual(shownIds(), ["a"]);
-		await act(async () => coverNotices(true));
+		await act(async () => noticesAlone("none"));
 		assert.deepEqual(shownIds(), []);
 		assert.equal(waiting, 1);
-		await act(async () => coverNotices(false));
+		await act(async () => noticesAlone("all"));
 		assert.deepEqual(shownIds(), ["a"], "the panel closed: it shows again");
 	});
 
@@ -301,7 +301,7 @@ describe("A notice's own card", () => {
 	it("a notice that is only a title shows that title, and its time still runs", async () => {
 		await mount(
 			<PeekSheet>
-				<NoticeCard data-testid="bare" role="alert" timed title="Couldn't mark it done. Try again." />
+				<NoticeCard data-testid="bare" kind="error" timed title="Couldn't mark it done. Try again." />
 			</PeekSheet>,
 		);
 		assert.equal(card("bare").textContent, "Couldn't mark it done. Try again.");
@@ -431,7 +431,7 @@ describe("A notice's close key", () => {
 		const clicks: string[] = [];
 		await mount(
 			<PeekSheet>
-				<NoticeCard data-testid="a" role="status" title="Notice a" close={{ onClick: () => clicks.push("close"), testId: "a-close" }} onClick={() => clicks.push("card")}>
+				<NoticeCard data-testid="a" title="Notice a" close={{ onClick: () => clicks.push("close"), testId: "a-close" }} onClick={() => clicks.push("card")}>
 					<p>What changed</p>
 				</NoticeCard>
 			</PeekSheet>,
@@ -483,7 +483,7 @@ describe("The strip", () => {
 		listeners.clear();
 	});
 
-	async function mountStrip(teacher: TeacherApi | null, { agent = true, notices = false, at = "/" }: { agent?: boolean; notices?: boolean; at?: string } = {}) {
+	async function mountStrip(teacher: TeacherApi | null, { agent = true, notices = false }: { agent?: boolean; notices?: boolean } = {}) {
 		globalThis.fetch = (async () => Response.json({ chats: [{ id: "c1", title: "Counting" }] })) as typeof fetch;
 		const page = (
 			<ServerEventsProvider connect={connect as never}>
@@ -495,7 +495,7 @@ describe("The strip", () => {
 				</AgentStatusContext.Provider>
 			</ServerEventsProvider>
 		);
-		router = createMemoryRouter([{ path: "*", element: page }], { initialEntries: [at] });
+		router = createMemoryRouter([{ path: "*", element: page }], { initialEntries: ["/"] });
 		const host = document.createElement("div");
 		document.body.append(host);
 		root = createRoot(host);
@@ -582,9 +582,9 @@ describe("The strip", () => {
 		}
 	});
 
-	it("on a lesson page a new notice waits in the count until it is asked for", async () => {
-		await mountStrip(api(), { notices: true, at: "/chat/c1" });
-		assert.deepEqual(shownIds(), [], "it would lie over the step line's keys");
+	it("beside the strip a new notice waits in the count until it is asked for", async () => {
+		await mountStrip(api(), { notices: true });
+		assert.deepEqual(shownIds(), [], "it would lie over the page's top right corner");
 		assert.equal(q("strip-waiting")!.textContent, "1");
 		await act(async () => peekKeyboard(true));
 		await act(async () => q("peek-notices")!.click());
