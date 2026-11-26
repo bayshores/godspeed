@@ -18,6 +18,8 @@ struct Step {
 	shown: bool,
 	/// A result came in: the message is whole, and new words or calls start the next step.
 	closed: bool,
+	/// Its `turn_end` went out, once every call in it had its result.
+	ended: bool,
 	results: Vec<Json>,
 	/// The last text block still grows with deltas; its whole, checked text comes at its end.
 	open_text: bool,
@@ -116,7 +118,7 @@ impl TranscriptBuilder {
 				emit(AgentEvent::MessageEnd(marker.clone()));
 				self.messages.push(marker);
 			}
-			self.step = Some(Step { message: self.new_message(), shown: false, closed: false, results: Vec::new(), open_text: false, from: self.messages.len() });
+			self.step = Some(Step { message: self.new_message(), shown: false, closed: false, ended: false, results: Vec::new(), open_text: false, from: self.messages.len() });
 		}
 		self.step.as_mut().expect("just made")
 	}
@@ -198,6 +200,7 @@ impl TranscriptBuilder {
 			self.aside.push(block);
 			self.show_open(emit);
 		}
+		self.end_when_whole(emit);
 	}
 
 	/// Puts a call set aside back into the reply being written, right before its call `before`,
@@ -271,6 +274,17 @@ impl TranscriptBuilder {
 			step.results.push(result.clone());
 		}
 		self.messages.push(result);
+		self.end_when_whole(emit);
+	}
+
+	/// The step's `turn_end` goes out as soon as every call in it has its result, not when the
+	/// agent next writes: the window takes the results from it, and the agent may think a while.
+	fn end_when_whole(&mut self, emit: &mut dyn FnMut(AgentEvent)) {
+		let Some(step) = self.step.as_mut().filter(|step| step.closed && !step.ended) else { return };
+		if tool_calls(&step.message).iter().all(|call| step.results.iter().any(|r| r["toolCallId"] == call["id"])) {
+			step.ended = true;
+			emit(AgentEvent::TurnEnd { message: shown(&self.undecided, &step.message), tool_results: step.results.clone() });
+		}
 	}
 
 	/// One of the agent's own turns ended and another follows (a steer sent after it): the reply
@@ -285,7 +299,9 @@ impl TranscriptBuilder {
 	}
 
 	fn end_step(&mut self, emit: &mut dyn FnMut(AgentEvent)) {
-		if let Some(step) = self.step.take() {
+		if let Some(step) = self.step.take()
+			&& !step.ended
+		{
 			emit(AgentEvent::TurnEnd { message: shown(&self.undecided, &step.message), tool_results: step.results });
 		}
 	}
@@ -355,6 +371,28 @@ mod tests {
 		assert_eq!((messages[0]["stopReason"].as_str(), messages[0]["usage"]["input"].as_f64(), messages[0]["usage"]["cacheRead"].as_f64()), (Some("toolUse"), Some(40.0), Some(60.0)));
 		assert_eq!((messages[2]["stopReason"].as_str(), messages[2]["content"][0]["text"].as_str()), (Some("stop"), Some("More.")));
 		assert!(messages[2].get("usage").is_none(), "missing usage stays missing");
+	}
+
+	#[test]
+	fn a_step_ends_once_its_calls_all_have_results_not_when_the_agent_writes_on() {
+		// The window reads a step's results from its turn_end: a conclusion that waited there for
+		// the agent's next words left the problem open beside its own conclusion.
+		let events = std::cell::RefCell::new(Vec::<Json>::new());
+		let mut emit = |event: AgentEvent| events.borrow_mut().push(event.to_json());
+		let turn_ends = || events.borrow().iter().filter(|e| e["type"].as_str() == Some("turn_end")).cloned().collect::<Vec<_>>();
+		let mut b = TranscriptBuilder::new(json!({}));
+		b.start(&mut emit);
+		b.tool_call("c1", "conclude", &json!({}), false, &mut emit);
+		b.tool_call("c2", "set_space_note", &json!({}), false, &mut emit);
+		b.tool_result(json!({ "role": "toolResult", "toolCallId": "c1" }), &mut emit);
+		assert!(turn_ends().is_empty(), "c2 still runs");
+		b.tool_result(json!({ "role": "toolResult", "toolCallId": "c2" }), &mut emit);
+		let ended = turn_ends();
+		assert_eq!(ended.len(), 1, "both results are in");
+		assert_eq!(ended[0]["toolResults"].items().iter().map(|r| r["toolCallId"].str_or_empty()).collect::<Vec<_>>(), ["c1", "c2"]);
+		b.text_done("Done.".to_owned(), &mut emit);
+		b.finish(&End::Completed, &mut emit);
+		assert_eq!(turn_ends().len(), 2, "one per step");
 	}
 
 	#[test]

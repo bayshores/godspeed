@@ -10,6 +10,7 @@ import { MAX_LINKED_FILES, SIGNATURE_MAX, SPACE_ICONS, SUPPORTED_SPACE_FILE_EXTE
 import { isQuestionTool } from "../../src/shared/core/pending.ts";
 import { subscriptionLabel } from "../../src/shared/core/prices.ts";
 import { RAMP_COLORS, rampColor, tally, topicStatus } from "../../src/shared/core/progress.ts";
+import { DONT_KNOW } from "../../src/shared/core/question-grading.ts";
 import { FACTORY_SETTINGS } from "../../src/shared/core/settings.ts";
 import { TOOL_SWITCH_LABELS } from "../../src/shared/core/tool-switches.ts";
 import { APP_ICONS } from "../../src/frontend/components/settings/appearance-model.ts";
@@ -18,6 +19,7 @@ import { PIECE_WIDTHS } from "../../src/frontend/components/citations/page-piece
 import { MAX_LESSON_FILES } from "../../src/frontend/components/files/files-pick-model.ts";
 import { VAULT_WORDS } from "../../src/frontend/components/vault/vault-model.ts";
 import { TITLE_CUT } from "../../src/frontend/components/lesson/wait-model.ts";
+import { HELP_LINES } from "../../src/frontend/components/lesson/lesson-box-model.ts";
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf-8");
 const ts = (name: string) => read(`src/shared/core/${name}.ts`);
@@ -48,6 +50,16 @@ describe("question tools", () => {
 describe("why a lesson's turn runs", () => {
 	it("is the same causes in the same order", () => {
 		assert.deepEqual(strings(ts("contracts/lesson-work"), "TURN_CAUSES"), strings(rust("session/turn_cause"), "TURN_CAUSES"));
+	});
+});
+
+describe("the Stuck? keys' lines", () => {
+	it("are the lines the server reads as asks, not work on the problem", () => {
+		assert.deepEqual(Object.values(HELP_LINES), strings(rust("session/turn_cause"), "HELP_LINES"));
+	});
+
+	it("include the I don't know line, which the server reads as a go-ahead", () => {
+		assert.deepEqual([DONT_KNOW], strings(rust("session/turn_cause"), "DONT_KNOW"));
 	});
 });
 

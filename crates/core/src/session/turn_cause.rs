@@ -10,17 +10,25 @@ use crate::messages::role::Role;
 /// The causes by name, in `TurnCause` order (the window's `TURN_CAUSES`).
 pub const TURN_CAUSES: [&str; 9] = ["first", "answer", "problem", "ask", "next", "retry", "open_problem", "job", "talk"];
 
+/// The lines the hint and simpler keys send under an open problem (the window's `HELP_LINES`):
+/// asks, never work on it.
+pub const HELP_LINES: [&str; 2] = ["Give me a hint", "Explain it simpler"];
+
+/// The line the "I don't know" key sends under an open problem (the window's `DONT_KNOW`): the
+/// teacher writes the next step.
+pub const DONT_KNOW: &str = "I don't know";
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TurnCause {
 	/// The teacher has written nothing in the lesson yet.
 	First,
 	/// An answer to a question.
 	Answer,
-	/// His message while a problem is open: his work on it.
+	/// His message while a problem is open: his work on it, unless a help key sent it.
 	Problem,
 	/// A message, a side question or a steer he typed.
 	Ask,
-	/// The go-ahead between problems.
+	/// The go-ahead between problems, or "I don't know" under one.
 	Next,
 	/// Try again.
 	Retry,
@@ -46,7 +54,11 @@ pub fn turn_cause(input: &TurnInput, messages: &[Json]) -> TurnCause {
 		_ if !taught => TurnCause::First,
 		TurnInput::Steers(steers) if steers.iter().any(|s| Role::User.is(s)) => TurnCause::Ask,
 		TurnInput::Steers(_) => TurnCause::Job,
-		TurnInput::Chat(ChatInput::Text { about: None, .. }) if active_problem_of(messages).is_some() => TurnCause::Problem,
+		TurnInput::Chat(ChatInput::Text { text, about: None, .. }) if active_problem_of(messages).is_some() => match text.as_str() {
+			DONT_KNOW => TurnCause::Next,
+			line if HELP_LINES.contains(&line) => TurnCause::Ask,
+			_ => TurnCause::Problem,
+		},
 		TurnInput::Chat(ChatInput::Text { .. } | ChatInput::Side { .. }) => TurnCause::Ask,
 		TurnInput::Chat(ChatInput::Answer { .. } | ChatInput::OpenerAnswer { .. }) => TurnCause::Answer,
 		TurnInput::Chat(ChatInput::Next) => TurnCause::Next,
@@ -97,6 +109,11 @@ mod tests {
 		posed.push(json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": { "statement": "Sum 1 to n." } }], "timestamp": 3 }));
 		posed.push(json!({ "role": "toolResult", "toolCallId": "p1", "toolName": "problem", "content": [], "isError": false, "timestamp": 3 }));
 		assert_eq!(turn_cause(&text("n(n+1)/2"), &posed), TurnCause::Problem);
+		for line in HELP_LINES {
+			assert_eq!(turn_cause(&text(line), &posed), TurnCause::Ask, "{line} asks for help");
+		}
+		assert_eq!(turn_cause(&text(DONT_KNOW), &posed), TurnCause::Next, "the teacher writes the next step");
+		assert_eq!(turn_cause(&text(DONT_KNOW), &taught()), TurnCause::Ask, "with no problem open it is a message");
 		posed.push(json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "c1", "name": "conclude", "arguments": { "outcome": "solved" } }], "timestamp": 4 }));
 		posed.push(json!({ "role": "toolResult", "toolCallId": "c1", "toolName": "conclude", "content": [], "isError": false, "timestamp": 4 }));
 		assert_eq!(turn_cause(&text("Next?"), &posed), TurnCause::Ask, "concluded");
