@@ -174,17 +174,26 @@ function teachSeam(messages: readonly LhViewMessage[], phases: readonly Phase3[]
 const STEP_TAB = "grid h-7 min-w-9 shrink-0 place-items-center px-2 font-count text-[18px] leading-none text-on-space";
 
 /**
- * The desk under a reply that starts a sheet of its own glides down to its new place: the sheet glide (useSheetGlide) glides a sheet
+ * The desk under the newest sheet glides to its new place when that sheet is a new one: a reply that starts a sheet of its own,
+ * or the reply's sheet drawn anew under the id the server gives it at the turn's end. The sheet glide (useSheetGlide) glides a sheet
  * that grows, and the desk under it with it, but places a sheet it had not seen at once.
  */
 function useDeskGlide(desk: RefObject<HTMLElement | null>, newest: string) {
-	const was = useRef<{ newest: string; top: number } | null>(null);
+	const last = useRef(newest);
+	const from = useRef<number | null>(null);
+	const glide = useRef<Animation | null>(null);
+	// Where the desk is seen, read while the page is still laid out the old way.
+	if (last.current !== newest) {
+		last.current = newest;
+		from.current = desk.current?.getBoundingClientRect().top ?? null;
+	}
 	useLayoutEffect(() => {
 		const el = desk.current;
-		const before = was.current;
-		was.current = el ? { newest, top: el.offsetTop } : null;
-		if (!el || !before || before.newest === newest || prefersReducedMotion() || typeof el.animate !== "function") return;
-		const moved = el.offsetTop - before.top;
-		if (moved) el.animate([{ transform: `translateY(${-moved}px)` }, { transform: "none" }], { duration: travelGlideMs(moved), easing: EASE_OUT });
-	});
+		const was = from.current;
+		from.current = null;
+		if (!el || was === null || prefersReducedMotion() || typeof el.animate !== "function") return;
+		glide.current?.cancel();
+		const moved = el.getBoundingClientRect().top - was;
+		if (moved) glide.current = el.animate([{ transform: `translateY(${-moved}px)` }, { transform: "none" }], { duration: travelGlideMs(moved), easing: EASE_OUT });
+	}, [desk, newest]);
 }
