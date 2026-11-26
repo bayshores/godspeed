@@ -134,10 +134,9 @@ for (const d of deadlines.filter((d) => /^Project \\d$/.test(d.name))) await fet
 
 /** A folder that is always there and always empty, linked to the second space. */
 const linkedFolder = `await fetch("/api/spaces/{pathSpace}/folder", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: "/private/var/empty" }) })${HTTP_OK};`;
-/** The first space is the open one again: a lesson in the second space made that one open. */
-const firstSpaceOpen = `await fetch("/api/settings/general", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ activeSpace: "{space}" }) })${HTTP_OK};`;
 /** The second space closed, so the plus list has a closed space; the first is the open one again. */
-const closedSpace = `${firstSpaceOpen}
+const closedSpace = `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json());
+await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, activeSpace: "{space}" }) })${HTTP_OK};
 await fetch("/api/spaces/{pathSpace}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ closed: true }) })${HTTP_OK};`;
 
 /** The lesson made and never sent: opened at this address, the window sends its first message once,
@@ -491,6 +490,8 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	{ name: "Home, the strip's peek", url: "/", ready: deadlineCard, setup: peekOut, shows: peekShown },
 	// No chat yet: the panel opens on a new one, with what the teacher can be asked here.
 	{ name: "Teacher chat, a new chat", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=talk-try] [data-testid=talk-starter]" },
+	// A Lab Algebra lesson: the panel's box gives way to the lesson's. Opening it also makes Lab Algebra the active space again for the Progress screens below.
+	{ name: "Teacher's panel beside a lesson", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=talk-gives-way]" },
 	{ name: "Teacher's Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`, shows: "[data-testid=teacher-panel-list] [data-testid=activity-list] > *" },
 	{
 		name: "Settings, Teacher",
@@ -547,7 +548,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		ready: "[data-testid=group-vault] [data-testid=vault-folder][data-state=ok]",
 		shows: "[data-testid=vault-unlink]",
 	},
-	{ name: "Progress with notes in Obsidian", before: firstSpaceOpen, url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: spaceNotes(pagesOf(5, { extra: true })), shows: "[data-testid=notes-card] [data-testid=note-page]" },
+	{ name: "Progress with notes in Obsidian", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: spaceNotes(pagesOf(5, { extra: true })), shows: "[data-testid=notes-card] [data-testid=note-page]" },
 	{ name: "Progress with notes, all shown", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: `${spaceNotes(pagesOf(5, { extra: true }))};\n${whenThere("[data-testid=notes-all]")}; document.querySelector("[data-testid=notes-all]").click()`, shows: "[data-testid=notes-card][data-all] [data-testid=note-page]:nth-child(7)" },
 	{ name: "Graph, a topic with a note", url: "/graph", ready: "[data-testid=graph-topic]", setup: `${spaceNotes(pagesOf(5))}; ${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}`, shows: "[data-testid=topic-pane] [data-testid=topic-note-open]" },
 	{ name: "Lesson end, the notes being saved", height: TALL, url: "/chat/{lastTopic}", ready: "[data-testid=your-turn]", setup: lessonNotes(pagesOf(3, { waiting: [2] })), shows: "[data-testid=end-notes] [data-saving]" },
@@ -700,8 +701,8 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	},
 	// The held reply asks to run a command: its card waits under the desk's steps for Deny or Allow.
 	{ name: "Teacher chat, a card waiting", url: "/", ready: deadlineCard, setup: openTeacher, helper: "approve", shows: "[data-testid=talk-thread] [data-testid=approval-card]" },
-	// On a lesson the panel's box gives way to the lesson's, with Stop while the held reply runs.
-	{ name: "Teacher's panel beside a lesson", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=talk-gives-way] [data-testid=talk-stop]" },
+	// The line that gives way on a lesson has Stop while the chat's held reply runs.
+	{ name: "Teacher's panel beside a lesson, Stop while the chat's reply runs", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=talk-gives-way] [data-testid=talk-stop]" },
 	// The held reply is stopped: the chats, the one shown "open now".
 	{
 		name: "Teacher's chats under the Chats key",
