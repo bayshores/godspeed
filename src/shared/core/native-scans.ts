@@ -142,18 +142,6 @@ export function answeredCallIds(messages: readonly LhMessage[]): Set<string> {
 
 // ─── the continuation fold ───────────────────────────────────────────────────
 
-/** Whether the turn holding the assistant message at `at` had written words by the end of it. A
- *  turn starts after the learner's message, a marker or the learner's answer to a question. */
-function turnWroteBy(messages: readonly LhMessage[], at: number): boolean {
-	for (let j = at; j >= 0; j--) {
-		const m = messages[j] as { role?: string; content?: unknown; toolName?: string; isError?: boolean };
-		if (m.role === "toolResult" && !(isQuestionTool(m.toolName ?? "") && !m.isError)) continue;
-		if (m.role !== "assistant") return false;
-		if (Array.isArray(m.content) && m.content.some((b: { type?: string; text?: unknown }) => b?.type === "text" && typeof b.text === "string" && b.text.length > 0)) return true;
-	}
-	return false;
-}
-
 /**
  * Does the record END on un-consumed tool results — a turn that stopped
  * after its tools ran (a job dispatch's ack, an aborted answer turn),
@@ -198,9 +186,8 @@ export function needsContinuation(record: readonly LhMessage[]): boolean {
 	// terminate:true ended that turn DELIBERATELY (the learner's next input
 	// is the next turn), and unlike a question's placeholder the result
 	// PERSISTS. Without this fold a reload would wake a phantom turn.
-	// A figure that was drawn ended its turn on purpose too, when it is all the batch held and the
-	// turn had words before it: one drawn before any words lets the turn go on to write them.
-	if (results.every((m) => m.toolName === VISUAL_TOOL && !m.isError && typeof (m.details as { svg?: unknown } | null)?.svg === "string") && turnWroteBy(messages, ownerAt)) return false;
+	// A drawn figure that is all the batch held owes nothing either: the agent ended its turn after it.
+	if (results.every((m) => m.toolName === VISUAL_TOOL && !m.isError && typeof (m.details as { svg?: unknown } | null)?.svg === "string")) return false;
 	const endedTurn = results.some(
 		(m) => !m.isError && ((m.toolName === PRACTICE_PROBLEM_TOOL && (m.details == null || problemPieceOf(m.details) !== null)) || m.toolName === TOPIC_DONE_TOOL),
 	);

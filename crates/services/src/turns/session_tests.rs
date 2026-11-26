@@ -24,7 +24,7 @@ use super::turn_liveness::is_turn_running;
 use super::turn_runs::{abort_turn, answer_approval, running_turn};
 use super::turn_work::lesson_work;
 use crate::App;
-use crate::app::agent_folder::{agent_folder, folder_agent, set_agent_models};
+use crate::app::agent_folder::{agent_folder, folder_agent, set_agent_models, set_folder_agent};
 use crate::app::test_support::scratch_dir;
 use crate::jobs::steer_live_chat;
 use crate::spaces::{add_file_from_path, write_agent_file};
@@ -54,22 +54,23 @@ async fn a_question_ends_the_turn_and_the_next_turn_goes_on_with_what_is_new() {
 	assert_eq!(fx.replies(), ["One check first.", "Unions, then."]);
 }
 
-/// A figure the teacher draws is stored with its svg, which the lesson shows, its render goes back
-/// to the lesson's session as an image in the tool's result, and it ends the turn.
+/// A figure the teacher draws is stored with its svg, which the lesson shows, and its render goes
+/// back to the lesson's session as an image in the tool's result. It does not end the turn: the
+/// teacher goes on and ends the turn itself.
 #[tokio::test(flavor = "multi_thread")]
-async fn a_drawn_figure_is_stored_with_its_svg_its_render_goes_back_as_an_image_and_it_ends_the_turn() {
-	let svg = r#"<svg viewBox="0 0 100 40"><line x1="10" y1="20" x2="90" y2="20" stroke="var(--ink)" stroke-width="2"/></svg>"#;
-	let fx = lesson("session-figure", Some("study"), vec![vec![text("Here it is."), tool("visual", json!({ "svg": svg })), text("never played")]]);
+async fn a_drawn_figure_is_stored_with_its_svg_and_its_render_goes_back_as_an_image() {
+	let fx = lesson("session-figure", Some("study"), vec![vec![text("Here it is."), tool("visual", json!({ "svg": FIGURE })), text("Look at the tick marks.")]]);
 	fx.say("Draw the number line").await;
 	fx.settled().await;
-	assert_eq!(fx.replies(), ["Here it is."], "the figure ended the turn");
+	assert_eq!(fx.replies(), ["Here it is.", "Look at the tick marks."], "the turn went on after the figure");
 	let result = fx.messages().into_iter().find(|m| Role::ToolResult.is(m) && m["toolName"].as_str() == Some("visual")).expect("the figure's result is stored");
 	assert_eq!(result["isError"], json!(false), "{result:?}");
 	assert!(result["details"]["svg"].str_or_empty().starts_with("<svg"), "{result:?}");
 	let reply = fx.sent("tool_result").pop().expect("the figure's result went back to the agent");
 	let image = &reply["content"][1];
-	assert_eq!((image["type"].as_str(), image["mimeType"].as_str(), reply["endTurn"].as_bool()), (Some("image"), Some("image/png"), Some(true)), "{reply:?}");
+	assert_eq!((image["type"].as_str(), image["mimeType"].as_str(), reply["endTurn"].as_bool()), (Some("image"), Some("image/png"), Some(false)), "{reply:?}");
 	assert!(!image["data"].str_or_empty().is_empty());
+	assert_eq!(last_stop(&fx).as_deref(), Some("stop"), "the turn ended by itself");
 }
 
 const FIGURE: &str = r#"<svg viewBox="0 0 100 40"><line x1="10" y1="20" x2="90" y2="20" stroke="var(--ink)" stroke-width="2"/></svg>"#;
@@ -79,39 +80,33 @@ fn last_stop(fx: &Lesson) -> Option<String> {
 	fx.messages().iter().rev().find(|m| Role::Assistant.is(m)).and_then(|m| m["stopReason"].as_str().map(str::to_owned))
 }
 
-/// A figure drawn before the reply has any words does not end the turn: the teacher gets its
-/// render back at once and goes on to write the words, and the turn ends by itself.
+/// No figure ends the turn, drawn before the words or after them: the teacher writes on and ends
+/// the turn itself.
 #[tokio::test(flavor = "multi_thread")]
-async fn a_figure_drawn_before_any_words_lets_the_turn_go_on_to_write_them() {
-	let fx = lesson("session-figure-first", Some("study"), vec![vec![tool("visual", json!({ "svg": FIGURE })), text("Look at the line.")]]);
+async fn no_figure_ends_the_turn_before_or_after_the_words() {
+	let draw = || tool("visual", json!({ "svg": FIGURE }));
+	let fx = lesson("session-figure-twice", Some("study"), vec![vec![draw(), text("Here is the line."), draw(), text("And the same line, shifted.")]]);
 	fx.say("Draw the number line").await;
 	fx.settled().await;
-	assert_eq!(fx.replies(), ["Look at the line."], "the words came after the figure");
-	let reply = fx.sent("tool_result").pop().expect("the figure's result went back to the agent");
-	assert_eq!(reply["endTurn"].as_bool(), Some(false), "{reply:?}");
+	assert_eq!(fx.replies(), ["Here is the line.", "And the same line, shifted."]);
+	let ends: Vec<Option<bool>> = fx.sent("tool_result").iter().map(|r| r["endTurn"].as_bool()).collect();
+	assert_eq!(ends, [Some(false), Some(false)]);
 	assert_eq!(last_stop(&fx).as_deref(), Some("stop"), "the turn ended by itself");
 }
 
-/// Once the turn has words, a second figure ends it, as one drawn after the words always does.
+/// Over Codex too a figure never ends the turn: one drawn first is followed by the words, and a
+/// turn that ends on a figure was ended by Codex itself, never by godspeed's interrupt.
 #[tokio::test(flavor = "multi_thread")]
-async fn a_figure_drawn_after_the_words_ends_the_turn_even_when_one_came_before_them() {
-	let draw = || tool("visual", json!({ "svg": FIGURE }));
-	let fx = lesson("session-figure-twice", Some("study"), vec![vec![draw(), text("Here is the line."), draw(), text("never played")]]);
-	fx.say("Draw the number line").await;
-	fx.settled().await;
-	assert_eq!(fx.replies(), ["Here is the line."], "the second figure ended the turn");
-	let ends: Vec<Option<bool>> = fx.sent("tool_result").iter().map(|r| r["endTurn"].as_bool()).collect();
-	assert_eq!(ends, [Some(false), Some(true)]);
-}
-
-/// Over Codex too, a figure drawn before any words lets the turn go on to write them.
-#[tokio::test(flavor = "multi_thread")]
-async fn over_codex_a_figure_drawn_before_any_words_lets_the_turn_go_on() {
-	let fx = lesson_on("session-figure-codex", Some("study"), vec![vec![tool("visual", json!({ "svg": FIGURE })), text("Look at the line.")]], FakeAgent::codex_runtime);
+async fn over_codex_no_figure_ends_the_turn() {
+	let fx = lesson_on("session-figure-codex", Some("study"), vec![vec![tool("visual", json!({ "svg": FIGURE })), text("Look at the line.")], vec![text("I'll sketch it."), tool("visual", json!({ "svg": FIGURE }))]], FakeAgent::codex_runtime);
 	fx.say("Draw the number line").await;
 	fx.settled().await;
 	assert_eq!(fx.replies(), ["Look at the line."]);
-	assert_eq!(last_stop(&fx).as_deref(), Some("stop"), "the turn ended by itself, not by an interrupt");
+	assert_eq!(last_stop(&fx).as_deref(), Some("stop"), "the turn ended by itself");
+	fx.say("Draw it again").await;
+	fx.settled().await;
+	assert_eq!(fx.replies(), ["Look at the line.", "I'll sketch it."]);
+	assert!(fx.requests("turn/interrupt").is_empty(), "godspeed never cut a turn short");
 }
 
 /// A homework lesson's turns end with the time now and the time due on the day it is due, after
@@ -479,4 +474,46 @@ async fn an_attached_pdf_is_read_without_asking_and_keeps_its_name_in_a_space() 
 	let space_id = fx.app.stores.spaces.create_space(&json!({ "name": "Graphs" })).unwrap()["id"].str_or_empty().to_owned();
 	let file = add_file_from_path(&fx.app, &space_id, &path, FileKind::Study).unwrap();
 	assert_eq!(file["name"].as_str(), Some("graph notes.pdf"));
+}
+
+/// Picking Claude Code closes the Codex chats' idle sessions and lets go of Codex's runtime, so
+/// `codex app-server` stops at once instead of when godspeed quits.
+#[tokio::test(flavor = "multi_thread")]
+async fn picking_the_other_agent_stops_the_first_one_s_idle_sessions() {
+	let fx = lesson_on("session-switch", None, vec![vec![text("Sets, then.")]], FakeAgent::codex_runtime);
+	fx.say("Teach me sets").await;
+	fx.settled().await;
+	let codex = Arc::downgrade(&crate::app::agents::runtime(&fx.app));
+	assert!(fx.app.turns.sessions.lock().contains_key(&fx.chat_id), "the idle session is kept for the next turn");
+	set_folder_agent(&fx.app, FolderAgent::Claude).unwrap();
+	assert!(!fx.app.turns.sessions.lock().contains_key(&fx.chat_id), "closed");
+	let_go(&codex).await;
+}
+
+/// A turn still running when the learner picks the other agent keeps its session to the end, and
+/// it closes when the turn settles.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_turn_running_through_the_pick_closes_its_session_when_it_settles() {
+	let fx = lesson_on("session-switch-running", None, vec![vec![bash(), text("Listed.")]], FakeAgent::codex_runtime);
+	fx.say("Look at my folder").await;
+	let id = fx.approval().await;
+	let codex = Arc::downgrade(&crate::app::agents::runtime(&fx.app));
+	set_folder_agent(&fx.app, FolderAgent::Claude).unwrap();
+	assert!(fx.app.turns.sessions.lock().contains_key(&fx.chat_id), "the running turn keeps its session");
+	assert!(answer_approval(&fx.app, &fx.chat_id, &id, true));
+	fx.settled().await;
+	assert_eq!(fx.replies(), ["Listed."]);
+	assert!(!fx.app.turns.sessions.lock().contains_key(&fx.chat_id), "closed once the turn settled");
+	let_go(&codex).await;
+}
+
+/// Waits until nothing holds `runtime`; the health check the pick starts makes the new agent's.
+async fn let_go(runtime: &std::sync::Weak<Runtime>) {
+	for _ in 0..500 {
+		if runtime.upgrade().is_none() {
+			return;
+		}
+		clock::sleep(10).await;
+	}
+	panic!("something still holds the first agent's runtime");
 }

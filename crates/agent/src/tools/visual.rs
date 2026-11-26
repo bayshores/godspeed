@@ -1,9 +1,8 @@
 //! visual, the teacher's figure: the teacher writes the finished SVG, the server checks it, cuts
 //! its view box to the drawing, draws it once and hands the render back, and the lesson shows it
 //! under the reply. Every rule is checked before the drawing, so a refused call lists all its
-//! problems at once. A figure drawn after the reply's words ends the turn: the teacher sees its
-//! render with the learner's next message. One drawn before any words lets the turn go on, so the
-//! teacher sees it now and writes the words (the teacher's host names it, `ending_after_words`).
+//! problems at once. A figure never ends the turn: the teacher sees its render at once and ends
+//! the turn itself.
 
 use std::sync::Arc;
 
@@ -231,7 +230,6 @@ async fn draw(headless: &dyn HeadlessApi, args: &Json) -> Json {
 		Ok(png) => json!({
 			"content": [text_block(SHOWN_TEXT), { "type": "image", "data": base64::encode(&png), "mimeType": "image/png" }],
 			"details": { "svg": svg },
-			"terminate": true,
 		}),
 		Err(error) => invalid_input_result(VISUAL_TOOL, &[format!("The figure cannot be drawn: {error}")]),
 	}
@@ -265,9 +263,9 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn a_figure_is_stored_with_its_size_and_defaults_and_ends_the_turn() {
+	async fn a_figure_is_stored_with_its_size_and_defaults_and_leaves_the_turn_going() {
 		let result = call(r#"<svg viewBox="0 0 640 400"><title>Grid</title><rect x="100" y="50" width="80" height="40" fill="none" stroke="var(--ink)" stroke-width="2"/></svg>"#).await;
-		assert_eq!(result["terminate"], json!(true));
+		assert!(result.get("terminate").is_none(), "the teacher ends the turn itself");
 		assert_eq!(result["content"][1], json!({ "type": "image", "data": base64::encode(FAKE_PNG), "mimeType": "image/png" }));
 		let stored = result["details"]["svg"].str_or_empty();
 		// The view box is cut to the rectangle, its stroke and the margin.

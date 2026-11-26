@@ -142,14 +142,11 @@ pub struct ToolHost {
 	refused: Vec<(String, String)>,
 	/// Tools whose calls may be held (`held: true`), so they are not shown before their result.
 	holding: HashSet<String>,
-	/// Tools whose clean result ends the turn only once the turn has written words: before any,
-	/// the agent goes on to write them.
-	after_words: HashSet<String>,
 }
 
 impl ToolHost {
 	pub fn new(tools: Vec<Arc<dyn Tool>>, before_tool_call: Option<BeforeToolCallFn>, stops: HashSet<String>) -> ToolHost {
-		ToolHost { tools, before_tool_call, stops, refused: Vec::new(), holding: HashSet::new(), after_words: HashSet::new() }
+		ToolHost { tools, before_tool_call, stops, refused: Vec::new(), holding: HashSet::new() }
 	}
 
 	/// These tools stay in the list, so the session's tools do not change, but their calls are
@@ -167,17 +164,6 @@ impl ToolHost {
 
 	pub fn may_hold(&self, name: &str) -> bool {
 		self.holding.contains(name)
-	}
-
-	/// These tools end the turn only once it has written words.
-	pub fn ending_after_words(mut self, names: impl IntoIterator<Item = String>) -> ToolHost {
-		self.after_words.extend(names);
-		self
-	}
-
-	/// Whether a call of `name` that ends the turn may end it before the turn has any words.
-	pub fn ends_without_words(&self, name: &str) -> bool {
-		!self.after_words.contains(name)
 	}
 
 	pub fn tool_names(&self) -> impl Iterator<Item = &str> {

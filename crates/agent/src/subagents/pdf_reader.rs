@@ -19,6 +19,7 @@ use gs_base::fsx::node_error_message;
 use gs_base::num::to_fixed;
 use gs_base::re::Re;
 use gs_base::text::{len16, slice16, trim};
+use gs_core::messages::citations::page_marks;
 use gs_core::session::schema::{boolean, no_arguments, object, string};
 use gs_core::spaces::kept_pages::with_kept_pages;
 use gs_engine::turn::messages::text_block;
@@ -95,8 +96,10 @@ const UNREAD_FINISH_MESSAGE: &str = "You finished without consulting any page of
 /// Keeps one page's Markdown.
 pub type KeepPage = Box<dyn Fn(u32, &str) -> Result<(), String> + Send + Sync>;
 
-/// A space PDF's kept pages and the way to keep one more. With it the reader offers save_page.
+/// A space PDF's kept pages and the way to keep one more. With it the reader offers save_page,
+/// and the brief cites the file's pages as their marks.
 pub struct Keeper {
+	pub file_id: String,
 	pub pages: BTreeMap<u32, String>,
 	pub keep: KeepPage,
 }
@@ -226,7 +229,7 @@ pub async fn run_pdf_reader_agent(path: &str, question: &str, pdf: &Pdf, keeper:
 	let pdf_path = resolve_source_path(Some(path));
 	let shown = pdf_path.to_string_lossy().into_owned();
 	let keeping = keeper.is_some();
-	let (kept, keep) = keeper.map_or((None, None), |k| (Some(k.pages), Some(k.keep)));
+	let (file_id, kept, keep) = keeper.map_or((None, None, None), |k| (Some(k.file_id), Some(k.pages), Some(k.keep)));
 	let reader = Arc::new(Reader {
 		pdf: pdf.clone(),
 		path: pdf_path.clone(),
@@ -269,7 +272,7 @@ pub async fn run_pdf_reader_agent(path: &str, question: &str, pdf: &Pdf, keeper:
 		Ok(finished) if finished.capped => format!("PDF failed: iteration limit ({MAX_ITERATIONS}) reached without a brief."),
 		Ok(finished) => match trim(&finished.text) {
 			"" => "(no brief text)".to_owned(),
-			brief => brief.to_owned(),
+			brief => file_id.map_or_else(|| brief.to_owned(), |file_id| page_marks(brief, &file_id, &name)),
 		},
 		Err(e) => format!("PDF failed: the reader crashed: {e}"),
 	};

@@ -12,7 +12,7 @@ pub mod dismissal_park;
 pub mod files_lesson;
 pub mod homework;
 mod job_host;
-mod lesson_session;
+pub(crate) mod lesson_session;
 mod lesson_setup;
 pub mod lesson_events;
 pub mod lesson_problems;

@@ -171,6 +171,7 @@ fn arguments_read_like_javascript() {
 fn keeper(saved: &Arc<Mutex<Vec<(u32, String)>>>) -> Keeper {
 	let saved = saved.clone();
 	Keeper {
+		file_id: "f_1a2b3c4d5e6f".to_owned(),
 		pages: BTreeMap::from([(1, "Kept one: $x^2$".to_owned())]),
 		keep: Box::new(move |page, markdown| {
 			saved.lock().push((page, markdown.to_owned()));
@@ -197,7 +198,7 @@ async fn a_rendered_page_is_kept_and_served_from_then_on() {
 	let saved = Arc::default();
 	let (opts, agent, lines) = job_agent_options(vec![turn], FakeHeadless::new(no_demo()));
 	let result = run_pdf_reader_agent(&lines_pdf(), "", &pdf, Some(keeper(&saved)), &opts).await;
-	assert_eq!(result["brief"], Json::from("Two (p. 2)."));
+	assert_eq!(result["brief"], Json::from("Two [[f_1a2b3c4d5e6f/p. 2/lines.pdf]]."), "a space file's pages are cited as their marks");
 	let open = &agent.sent()[0];
 	assert!(open["systemPrompt"].str_or_empty().ends_with(KEEP_INSTRUCTIONS));
 	let tools: Vec<&str> = open["tools"].items().iter().filter_map(|t| t["name"].as_str()).collect();
@@ -281,7 +282,7 @@ async fn save_page_is_offered_only_with_a_keeper() {
 async fn a_failed_keep_is_an_error_and_nothing_counts() {
 	let Some(pdf) = shared_pdf() else { return };
 	let turn = vec![call(), tool("pdf_render", json!({ "pages": "2" })), call(), calls(&[("save_page", json!({ "page": 2, "markdown": "Two." })), ("pdf_extract", json!({ "pages": "2" }))]), call(), says("Two (p. 2).")];
-	let failing = Keeper { pages: BTreeMap::new(), keep: Box::new(|_, _| Err("the file changed".to_owned())) };
+	let failing = Keeper { file_id: "f_1a2b3c4d5e6f".to_owned(), pages: BTreeMap::new(), keep: Box::new(|_, _| Err("the file changed".to_owned())) };
 	let (opts, agent, _) = job_agent_options(vec![turn], FakeHeadless::new(no_demo()));
 	run_pdf_reader_agent(&lines_pdf(), "", &pdf, Some(failing), &opts).await;
 	let texts = result_texts(&agent);

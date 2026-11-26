@@ -51,6 +51,13 @@ pub fn file_cite_mark(file_id: &str, range: &str, name: &str, quote: Option<&str
 	format!("[[{file_id}/{range}/{}{quote}]]", UNSAFE.replace(name, " "))
 }
 
+/// A PDF reader's brief on the space file `file_id` with each page it cites as `(p. N)` turned into
+/// that page's mark, which the teacher copies into its reply and the lesson draws.
+pub fn page_marks(brief: &str, file_id: &str, name: &str) -> String {
+	static PAGE: LazyLock<Re> = LazyLock::new(|| Re::new(r"\(p\. (\d+)\)", "g"));
+	PAGE.replace_with(brief, |caps| file_cite_mark(file_id, &format!("p. {}", caps.get(1).unwrap_or_default()), name, None))
+}
+
 /// The text with each source mark swapped for what `swap` returns. Code and math are left alone,
 /// and so is anything in brackets that isn't a mark.
 pub fn replace_cite_marks(text: &str, mut swap: impl FnMut(CiteMark) -> String) -> String {
@@ -169,6 +176,7 @@ mod tests {
 	#[test]
 	fn the_stored_form_reads_back() {
 		assert_eq!(file_cite_mark("f_1a2b3c4d5e6f", "p. 12", "Week 6 slides.pdf", None), FILE);
+		assert_eq!(page_marks("Degrees add to 12 (p. 12). See (pp. 3–4) and p. 5.", "f_1a2b3c4d5e6f", "Week 6 slides.pdf"), format!("Degrees add to 12 {FILE}. See (pp. 3–4) and p. 5."));
 		assert_eq!(marks(&file_cite_mark("f_1a2b3c4d5e6f", "p. 2", "Notes [draft] [[v2]].pdf", None)), [file("p. 2", "Notes  draft    v2  .pdf")]);
 		for name in ["HW$2 notes.pdf", "week`3.pdf"] {
 			let text = format!("It frees memory. {} Then $x+1$ and `free`.", file_cite_mark("f_1a2b3c4d5e6f", "p. 3", name, None));

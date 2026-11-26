@@ -195,10 +195,10 @@ impl Runtime {
 		match &self.start {
 			Start::Codex { env, home, own_command } => {
 				let launch = match own_command {
-					Some(command) => Launch::shell(&format!("{command} app-server")),
+					Some(command) => Launch::shell(&format!("{command} {}", APP_SERVER.join(" "))),
 					None => {
 						let mut launch = env.launch(env.find("codex").await.ok_or(NO_CODEX)?).await?;
-						launch.args.push("app-server".into());
+						launch.args.extend(APP_SERVER.map(Into::into));
 						launch
 					}
 				};
@@ -245,6 +245,10 @@ pub(crate) fn debug_helper() -> Option<OsString> {
 pub(crate) fn helper_to_run(bundled: &Path, named: Option<OsString>) -> PathBuf {
 	named.filter(|file| !file.is_empty()).map_or_else(|| bundled.to_path_buf(), PathBuf::from)
 }
+
+/// How Codex is started: its app server, with Codex's own memories off, so godspeed's remember and
+/// forget notes are the teacher's only memory and no chat becomes material for Codex's.
+const APP_SERVER: [&str; 7] = ["app-server", "--disable", "memories", "-c", "memories.generate_memories=false", "-c", "memories.use_memories=false"];
 
 pub(crate) const NO_CODEX: &str = "godspeed couldn't find Codex on this computer.";
 pub(crate) const NO_CLAUDE: &str = "godspeed couldn't find Claude Code on this computer.";

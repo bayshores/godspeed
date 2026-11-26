@@ -350,7 +350,7 @@ impl JobRunner {
 		self.update(job_id, json!({ "activity": "reading pdf" }));
 		let keeper = self.host.kept_pages(&resolve_source_path(Some(path))).await.map(|mut file| {
 			let host = self.host.clone();
-			Keeper { pages: std::mem::take(&mut file.pages), keep: Box::new(move |page, markdown| host.keep_page(&file, page, markdown)) }
+			Keeper { file_id: file.file_id.clone(), pages: std::mem::take(&mut file.pages), keep: Box::new(move |page, markdown| host.keep_page(&file, page, markdown)) }
 		});
 		let result = run_pdf_reader_agent(path, question, self.host.pdf(), keeper, &self.job_agent_options(&job, ctx)).await;
 		static FAILED: std::sync::LazyLock<Re> = std::sync::LazyLock::new(|| Re::new(r"^PDF failed:\s*", "i"));

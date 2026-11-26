@@ -18131,7 +18131,7 @@
 						"id": "steer_job_1",
 						"role": "custom",
 						"customType": "subagent-steer",
-						"content": "PDF reading complete — the reader's brief on \"a.pdf\" follows, with page citations. Weave it into the lesson and cite pages when you use it:\n\nChapter one.",
+						"content": "PDF reading complete — the reader's brief on \"a.pdf\" follows. Weave it into the lesson, and copy its page citations exactly as they are written when you use it:\n\nChapter one.",
 						"display": true,
 						"details": {
 							"jobId": "job_1",
@@ -18177,7 +18177,7 @@
 						"id": "steer_job_2",
 						"role": "custom",
 						"customType": "subagent-steer",
-						"content": "PDF reading complete — the reader's brief on \"a.pdf\" follows, with page citations. Weave it into the lesson and cite pages when you use it:\n\nChapter one.",
+						"content": "PDF reading complete — the reader's brief on \"a.pdf\" follows. Weave it into the lesson, and copy its page citations exactly as they are written when you use it:\n\nChapter one.",
 						"display": true,
 						"details": {
 							"jobId": "job_2",
@@ -18222,7 +18222,7 @@
 						"id": "steer_j😀",
 						"role": "custom",
 						"customType": "subagent-steer",
-						"content": "PDF reading complete — the reader's brief on \"a.pdf\" follows, with page citations. Weave it into the lesson and cite pages when you use it:\n\nChapter one.",
+						"content": "PDF reading complete — the reader's brief on \"a.pdf\" follows. Weave it into the lesson, and copy its page citations exactly as they are written when you use it:\n\nChapter one.",
 						"display": true,
 						"details": {
 							"jobId": "j😀",
@@ -18267,7 +18267,7 @@
 						"id": "steer_job_4",
 						"role": "custom",
 						"customType": "subagent-steer",
-						"content": "PDF reading complete — the reader's brief on \"a.pdf\" follows, with page citations. Weave it into the lesson and cite pages when you use it:\n\nChapter one.",
+						"content": "PDF reading complete — the reader's brief on \"a.pdf\" follows. Weave it into the lesson, and copy its page citations exactly as they are written when you use it:\n\nChapter one.",
 						"display": true,
 						"details": {
 							"jobId": "job_4",
@@ -18312,7 +18312,7 @@
 						"id": "steer_undefined",
 						"role": "custom",
 						"customType": "subagent-steer",
-						"content": "PDF reading complete — the reader's brief on \"a.pdf\" follows, with page citations. Weave it into the lesson and cite pages when you use it:\n\nChapter one.",
+						"content": "PDF reading complete — the reader's brief on \"a.pdf\" follows. Weave it into the lesson, and copy its page citations exactly as they are written when you use it:\n\nChapter one.",
 						"display": true,
 						"details": {
 							"kind": "pdf",

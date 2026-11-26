@@ -9747,8 +9747,7 @@
 						],
 						"details": {
 							"svg": "<svg width=\"114\" height=\"115\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"var(--ink)\" color=\"var(--ink)\" font-family=\"system-ui, sans-serif\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"-7 -8 114 115\"><title>Triangle</title><path d=\"M10 90 L50 10 L90 90 Z\" fill=\"none\" stroke=\"var(--ink)\"/></svg>"
-						},
-						"terminate": true
+						}
 					}
 				},
 				{

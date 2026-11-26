@@ -10,7 +10,7 @@ use gs_base::text::trim;
 use gs_core::contracts::chat::TOPIC_DONE_TOOL;
 use gs_core::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
 use gs_core::messages::pending::is_question_tool;
-use gs_core::session::tool_switches::{TOGGLEABLE_TOOLS, VISUAL_TOOL, switched_off_tools_note};
+use gs_core::session::tool_switches::{TOGGLEABLE_TOOLS, switched_off_tools_note};
 use gs_engine::turn::tool_host::BeforeToolCallFn;
 use gs_engine::turn::tool::Tool;
 use gs_engine::turn::tool_host::ToolHost;
@@ -111,11 +111,7 @@ fn build_setup(kind: AgentKind, opts: AgentBuildOptions, tools: Vec<FnTool>, les
 	let stops = stop_tools(kind, &tools);
 	let refused = if opts.side_turn { side_turn_refused(&tools) } else { Vec::new() };
 	let holds = lesson_parts.iter().flat_map(|_| HOLDS.map(str::to_owned));
-	// A figure drawn before the reply's words lets the teacher go on to write them; the lesson shows it under them.
-	let host = ToolHost::new(tools.into_iter().map(FnTool::into_arc).collect(), both_checks(lesson_parts.as_ref().map(LessonParts::hook), opts.call_check), stops)
-		.refuse(refused, SIDE_TURN_REFUSAL)
-		.holding(holds)
-		.ending_after_words([VISUAL_TOOL.to_owned()]);
+	let host = ToolHost::new(tools.into_iter().map(FnTool::into_arc).collect(), both_checks(lesson_parts.as_ref().map(LessonParts::hook), opts.call_check), stops).refuse(refused, SIDE_TURN_REFUSAL).holding(holds);
 	LessonSetup { prompt, host, parts: lesson_parts }
 }
 

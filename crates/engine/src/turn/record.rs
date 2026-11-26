@@ -335,12 +335,7 @@ impl TranscriptBuilder {
 
 /// Whether the turn wrote anything: words or a call.
 pub fn wrote_anything(messages: &[Json]) -> bool {
-	messages.iter().any(|m| has_words(m) || (Role::Assistant.is(m) && !tool_calls(m).is_empty()))
-}
-
-/// Whether this is an assistant message holding some of the agent's words.
-pub fn has_words(message: &Json) -> bool {
-	Role::Assistant.is(message) && message["content"].items().iter().any(|b| !b["text"].str_or_empty().is_empty())
+	messages.iter().filter(|m| Role::Assistant.is(m)).any(|m| !tool_calls(m).is_empty() || m["content"].items().iter().any(|b| !b["text"].str_or_empty().is_empty()))
 }
 
 #[cfg(test)]

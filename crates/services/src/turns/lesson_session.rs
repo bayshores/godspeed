@@ -14,17 +14,20 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use gs_base::hash::sha256_text;
 use gs_base::{clock, tasks};
 use gs_core::messages::compaction_marks::active_compaction_of;
+use gs_core::spaces::agent_folder::FolderAgent;
 use gs_engine::turn::session_turn::{OpenFn, Opened, Opening, input_of};
 use gs_json::{Json, json, stringify};
 use gs_runtime::{Part, Runtime, Session, SessionSpec, ToolSpec};
 
 use crate::App;
+use crate::app::agent_folder::folder_agent;
 
 const IDLE_CLOSE_MS: i64 = 10 * 60_000;
 
-/// A chat's open session, the model it runs on, and the number of its last use.
+/// A chat's open session, the agent and model it runs on, and the number of its last use.
 pub(super) struct Kept {
 	session: Arc<Session>,
+	agent: FolderAgent,
 	model: Option<String>,
 	used: u64,
 }
@@ -134,9 +137,17 @@ fn kept(app: &App, chat_id: &str, id: &str, model: Option<&str>) -> Option<Arc<S
 	Some(kept.session.clone())
 }
 
-fn keep(app: &App, chat_id: &str, session: &Arc<Session>, model: Option<&str>) {
+fn keep(app: &App, plan: &SessionPlan, session: &Arc<Session>) {
 	let used = USES.fetch_add(1, Ordering::SeqCst);
-	app.turns.sessions.lock().insert(chat_id.to_owned(), Kept { session: session.clone(), model: model.map(str::to_owned), used });
+	let kept = Kept { session: session.clone(), agent: plan.runtime.agent(), model: plan.model.clone(), used };
+	app.turns.sessions.lock().insert(plan.chat_id.clone(), kept);
+}
+
+/// Closes the chats' sessions on agents other than `agent` that no turn is using, so those agents'
+/// programs stop once nothing else holds them. One in a turn closes when the turn settles.
+pub(crate) fn close_other_agents_sessions(app: &App, agent: FolderAgent) {
+	let running = app.turns.in_flight.lock().clone();
+	app.turns.sessions.lock().retain(|chat_id, kept| kept.agent == agent || running.contains(chat_id));
 }
 
 /// How a chat's turn opens its session.
@@ -161,7 +172,7 @@ async fn open(app: &App, plan: &SessionPlan, opening: Opening) -> Result<Opened,
 		};
 		match session {
 			Ok(session) => {
-				keep(app, chat_id, &session, model);
+				keep(app, plan, &session);
 				// A terminal chat resumed here hears where the learner is now, like a new session.
 				return Ok(Opened { session, input: plan.input(seen, resumed && seen.is_none()), knew: true });
 			}
@@ -169,13 +180,14 @@ async fn open(app: &App, plan: &SessionPlan, opening: Opening) -> Result<Opened,
 		}
 	}
 	let session = Arc::new(plan.runtime.open(plan.spec(None)).await?);
-	keep(app, chat_id, &session, model);
+	keep(app, plan, &session);
 	Ok(Opened { session, input: plan.input(None, true), knew: false })
 }
 
 /// After a turn: the session that ran it is saved on the record with the last message it saw (a
 /// turn that wrote nothing keeps the record as it was, and one whose agent compacted its own
-/// history forgets it, so the next turn rolls over), and it closes after 10 idle minutes.
+/// history forgets it, so the next turn rolls over), and it closes after 10 idle minutes, or at
+/// once when the learner picked another agent meanwhile.
 pub(super) fn settle_session(app: &Arc<App>, chat_id: &str, facts: &SessionPlanFacts, native_id: Option<String>, seen: Option<&str>, compacted: bool) {
 	if let Some(id) = native_id.filter(|_| seen.is_some() || compacted) {
 		let stored = if compacted { Json::Null } else { json!({ "agent": facts.agent, "id": id, "promptHash": facts.hash, "seen": seen }) };
@@ -183,7 +195,11 @@ pub(super) fn settle_session(app: &Arc<App>, chat_id: &str, facts: &SessionPlanF
 			eprintln!("[chat {chat_id}] saving the chat's agent session failed: {err}");
 		}
 	}
-	close_when_idle(app, chat_id);
+	if facts.agent == folder_agent(app).name() {
+		close_when_idle(app, chat_id);
+	} else {
+		app.turns.sessions.lock().remove(chat_id);
+	}
 }
 
 fn close_when_idle(app: &Arc<App>, chat_id: &str) {

@@ -219,7 +219,8 @@ async fn app_server_runs_through_the_learners_own_command_in_godspeeds_codex_fol
 	let runtime = Runtime::codex(env, home.clone(), Some(format!("sh '{}' launch codex --", launcher.display())));
 	let session = runtime.open(spec(None)).await.unwrap();
 	assert_eq!(session.native_id(), "thr_9");
-	assert_eq!(std::fs::read_to_string(&seen).unwrap(), format!("launch\ncodex\n--\napp-server\n{}\n", home.display()));
+	let memories_off = "--disable\nmemories\n-c\nmemories.generate_memories=false\n-c\nmemories.use_memories=false";
+	assert_eq!(std::fs::read_to_string(&seen).unwrap(), format!("launch\ncodex\n--\napp-server\n{memories_off}\n{}\n", home.display()), "Codex's own memories are off");
 	assert!(home.is_dir(), "godspeed's Codex folder is made before Codex starts");
 	std::fs::remove_dir_all(&dir).unwrap();
 }

@@ -8,6 +8,7 @@ use gs_json::{Json, Obj, json};
 
 use gs_json::js_text::{field_text, js_string};
 use crate::messages::role::Role;
+use crate::session::lesson_steps::base_name;
 
 fn number(v: &Json, key: &str) -> Option<f64> {
 	v.get(key).and_then(Json::as_f64)
@@ -140,7 +141,7 @@ fn steer_text(kind: &str, result: &Json) -> String {
 	}
 	match kind {
 		"research" => format!("Research complete \u{2014} the researcher's full brief follows. Weave it into the lesson and cite its sources when you use its findings:\n\n{brief}"),
-		"pdf" => format!("PDF reading complete \u{2014} the reader's brief on \"{}\" follows, with page citations. Weave it into the lesson and cite pages when you use it:\n\n{brief}", field_text(result, "path")),
+		"pdf" => format!("PDF reading complete \u{2014} the reader's brief on \"{}\" follows. Weave it into the lesson, and copy its page citations exactly as they are written when you use it:\n\n{brief}", base_name(&field_text(result, "path"))),
 		_ => format!("The demo \"{}\" is built, headlessly tested, and rendered in the lesson. Builder notes: {}.\nTeach with it \u{2014} reference its controls by name and point the learner at what to try.", field_text(result, "title"), notes_text(result, "(none)")),
 	}
 }

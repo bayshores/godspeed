@@ -23,6 +23,7 @@ use super::old_setup::{OldSetup, old_setup, remove_old_setup};
 use super::old_talk::export_talk;
 use crate::App;
 use crate::spaces::space_shortcuts::{sync_shortcuts_safely, watch_shortcuts};
+use crate::turns::lesson_session::close_other_agents_sessions;
 
 const STATE: LockKey<'static> = LockKey::AppFile("agent-folder.json");
 
@@ -114,7 +115,7 @@ pub fn folder_agent(app: &App) -> FolderAgent {
 }
 
 /// The learner picked the agent that runs the lessons and jobs, which is checked at once; the
-/// folder as it is now.
+/// folder as it is now. The other agent's program stops once no turn uses it.
 pub fn set_folder_agent(app: &Arc<App>, agent: FolderAgent) -> Result<Json, String> {
 	{
 		let _held = app.locks.lock(STATE);
@@ -122,6 +123,7 @@ pub fn set_folder_agent(app: &Arc<App>, agent: FolderAgent) -> Result<Json, Stri
 		state.insert("agent", agent.name());
 		write_state(app, state)?;
 	}
+	close_other_agents_sessions(app, agent);
 	check_health(app);
 	Ok(agent_folder_view(app))
 }
