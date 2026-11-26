@@ -28,8 +28,8 @@ interface NoticeView {
  * The notices in the stack's order, to what shows: "first" ones before the
  * rest, which keep their order, one "quiet" notice at a time, 3 at most.
  * One shows by itself until it folds; `open` (the folded ones were asked
- * for) shows those too. `covered` (the teacher's panel is open where the
- * cards would show): none shows by itself, all wait folded.
+ * for) shows those too. `covered` (the teacher's panel or a lesson is open
+ * where the cards would show): none shows by itself, all wait folded.
  */
 export function noticeView(notices: readonly Notice[], now: number, open: boolean, covered: boolean): NoticeView {
 	const ranked = [...notices].sort((a, b) => Number(b.kind === "first") - Number(a.kind === "first"));

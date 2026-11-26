@@ -6,33 +6,40 @@
  * builds the debug shell with its `screens` control channel (crates/shell/src/screens.rs), starts
  * it on a throwaway home and data folder, and has a stand-in agent write made-up data
  * (layout-seed.mjs). Lessons and jobs play on a stand-in for the Claude helper (layout-helper.mjs, named
- * by LH_CLAUDE_HELPER), so no agent runs. It then starts the app again with no agent in its
- * terminal and walks the screens
- * in layout-screens.mjs, two passes for each:
+ * by LH_CLAUDE_HELPER), so no agent runs. It then starts the app again with no agent connected and walks the screens
+ * in layout-screens.mjs, two passes for each. The widths are dealt into parts (widthParts) that
+ * run side by side, each this script again with its own app, home and data in
+ * target/layout/part-N, walking every screen in the same order at its own widths:
  *
  * | Pass | When | What |
  * |---|---|---|
  * | Opening | The first screen at each address, at its widest and narrowest width | With motion on, the page is opened from Home (Home itself from Progress) as a link opens it, not by a full load, and watched for 1.5 s from its first paint (watchOpening in layout-page.mjs) |
- * | Still | Every screen, at every width (widthsOf) | A full load, motion off, checked as it opens, scrolled a little and scrolled to the end (checkPage) |
+ * | Still | Every screen, at every width (widthsOf) | A full load, motion off, checked as it opens, scrolled a little, scrolled to the end and, where it opened scrolled, at its top (checkPage) |
  *
  * A finding prints the screen (", opening" for the first pass), the width, the check and the
- * elements, and saves a picture beside the report in target/layout/. With `LAYOUT_STATES` set to
+ * elements, and saves a picture in its part's folder; the report is target/layout/report.txt and
+ * each part's own output target/layout/part-N.log. With `LAYOUT_STATES` set to
  * a folder, every lesson screen is also photographed there as it opens, at each width. With
  * `LAYOUT_ONLY` set to words, only the screens whose name holds them are walked (several, split by
  * commas): for a second look at a fix, never in place of the whole run. An opening is still watched
  * only on the first screen of the whole list at its address, as in the whole run; what a skipped
- * screen's `before` or `setup` leaves behind is missing. Mac only:
+ * screen's `before` or `setup` leaves behind is missing. With `LAYOUT_SHARE` set to "2/4", only the
+ * second of four parts is walked: CI gives each part its own runner. Mac only:
  * elsewhere it passes at once. Two runs in one worktree share that folder, so run one at a time.
  */
 import { execFileSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as net from "node:net";
+import * as os from "node:os";
 import * as path from "node:path";
 import { seed } from "./layout-seed.mjs";
 import { HTTP_OK, SCREENS, widthsOf } from "./layout-screens.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const RUN = path.join(ROOT, "target", "layout");
+const TOP = path.join(ROOT, "target", "layout");
+/** Set by the run for each of its parts, with the part's widths in LAYOUT_WIDTHS. */
+const PART = process.env.LAYOUT_PART;
+const RUN = PART ? path.join(TOP, `part-${PART}`) : TOP;
 const APP = path.join(ROOT, "target", "debug", "godspeed");
 // Inside the throwaway home: the desk reads a file only from under home, and a file it cannot read leaves its paper blank.
 const DATA = path.join(RUN, "home", "data");
@@ -125,8 +132,32 @@ export const SCROLL_TO = [0, 80, "end"];
 
 /** How a report names a scroll position. */
 export function scrolledWords(at) {
-	return at === "end" ? "scrolled to the end" : `scrolled ${at} px`;
+	return at === "end" ? "scrolled to the end" : at === "top" ? "scrolled to the top" : `scrolled ${at} px`;
 }
+
+/** The run's widths dealt into at most `count` parts of about the same work: the widths walked
+ *  most often first, each to the part with the least so far. Widest first in each part. */
+export function widthParts(widthLists, count) {
+	const load = new Map();
+	for (const widths of widthLists) for (const width of widths) load.set(width, (load.get(width) ?? 0) + 1);
+	const parts = Array.from({ length: Math.min(count, load.size) }, () => ({ widths: [], load: 0 }));
+	for (const [width, walks] of [...load].sort((a, b) => b[1] - a[1] || b[0] - a[0])) {
+		const part = parts.reduce((least, next) => (next.load < least.load ? next : least));
+		part.widths.push(width);
+		part.load += walks;
+	}
+	return parts.map((part) => part.widths.sort((a, b) => b - a));
+}
+
+/** How many parts run side by side: each is an app, its server and its page. One on a small machine, as CI's. */
+const partCount = () => Math.max(1, Math.min(4, Math.floor(os.availableParallelism() / 4)));
+
+/** `LAYOUT_SHARE` "2/4": this run walks only the second of four parts, as each of CI's runners does. */
+const SHARE = process.env.LAYOUT_SHARE?.split("/").map(Number);
+
+/** `LAYOUT_ONLY`'s words, and whether a screen is walked. */
+const ONLY = (process.env.LAYOUT_ONLY ?? "").toLowerCase().split(",").map((word) => word.trim()).filter(Boolean);
+const walked = (screen) => ONLY.length === 0 || ONLY.some((word) => screen.name.toLowerCase().includes(word));
 
 /** A file name for a screen's picture. */
 export function snapName(screen, width) {
@@ -137,11 +168,14 @@ const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
 /** The app now running, so a signal can stop it. */
 let running = null;
+/** The run's parts now running, so a signal reaches them. */
+const partsRunning = new Set();
 
-/** A run stopped from outside quits the app it started, and only that one, then fails. */
+/** A run stopped from outside stops its parts and quits the app it started, and only that one, then fails. */
 function stopOnSignals() {
 	for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
 		process.on(signal, async () => {
+			for (const part of partsRunning) part.kill("SIGTERM");
 			const app = running;
 			if (app) {
 				fs.appendFileSync(app.ctl, "quit\n");
@@ -182,9 +216,64 @@ const HELPER_DIR = path.join(RUN, "helper");
 export function standInAgent(home) {
 	const bin = path.join(home, "bin");
 	fs.mkdirSync(bin);
-	const run = `#!/bin/sh\n[ "$1" = --version ] && { echo "99.0.0 (stand-in)"; exit 0; }\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}\n`;
+	const state = JSON.stringify(agentStateFile(home));
+	// The setup card's checks: the version, and Claude Code's sign-in as `auth status` prints it, by the
+	// screen's `agent` state (missing: ready). `auth login` prints its link and waits for the code, which
+	// signs it in when it is "ok"; `update` brings an old one up to date.
+	const run = `#!/bin/sh
+state=$(cat ${state} 2>/dev/null)
+case "$1 $2" in
+"--version "*) if [ "$state" = old ]; then echo "2.1.300 (Claude Code)"; else echo "99.0.0 (stand-in)"; fi; exit 0 ;;
+"auth status") if [ "$state" = signed-out ]; then echo '{"loggedIn": false, "authMethod": "none"}'; exit 1; fi
+	echo '{"loggedIn": true, "authMethod": "claude.ai", "subscriptionType": "max"}'; exit 0 ;;
+"auth login") printf 'Opening browser to sign in\\nIf the browser did not open, visit: https://claude.ai/oauth/authorize?stand-in=1\\nPaste code here if prompted > '
+	read code; [ "$code" = ok ] || exit 1; echo ready > ${state}; exit 0 ;;
+"update ") echo "Checking for updates"; sleep 1; echo "Updated to 99.0.0"; echo ready > ${state}; exit 0 ;;
+esac
+exec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}
+`;
 	for (const name of ["claude", "codex"]) fs.writeFileSync(path.join(bin, name), run, { mode: 0o755 });
 	fs.writeFileSync(path.join(home, ".zshrc"), `export PATH=${JSON.stringify(bin)}:$PATH\n`);
+}
+
+/** The state the stand-in agent answers the setup card's checks in: ready, signed-out or old. */
+const agentStateFile = (home) => path.join(home, "agent-state");
+
+/** The app's PATH without a folder that holds a real claude or codex: a check of a missing agent
+ *  must never find the learner's own (the stand-in's folder comes first from the home's .zshrc). */
+export function pathWithoutAgents(pathVar) {
+	const holdsAgent = (dir) => ["claude", "codex"].some((name) => fs.existsSync(path.join(dir, name)));
+	return pathVar
+		.split(path.delimiter)
+		.filter((dir) => dir && !holdsAgent(dir))
+		.join(path.delimiter);
+}
+
+/** The folders godspeed also looks in for an agent missing from the PATH (gs_transcribe::programs::HOMEBREW_BIN_DIRS). */
+const AGENT_FALLBACK_DIRS = ["/opt/homebrew/bin", "/usr/local/bin"];
+
+/**
+ * Puts the stand-in agent in `state` (a screen's `agent`; ready when it names none) and has the app
+ * check it again, waiting until the check has ended. "missing" moves the stand-in's claude out of
+ * its folder. A sign-in left running by the screen before is cancelled first. False when a real
+ * agent in Homebrew's folders would be found in the stand-in's place, so the screen is skipped.
+ */
+async function putAgent(app, home, state) {
+	if (state === "missing" && AGENT_FALLBACK_DIRS.some((dir) => fs.existsSync(path.join(dir, "claude")))) return false;
+	const bin = path.join(home, "bin");
+	const away = path.join(home, "claude-away");
+	if (state === "missing") fs.renameSync(path.join(bin, "claude"), away);
+	else if (fs.existsSync(away)) fs.renameSync(away, path.join(bin, "claude"));
+	fs.writeFileSync(agentStateFile(home), state === "missing" ? "ready" : state);
+	await app.run(`await fetch("/api/agent/login/cancel", { method: "POST" });
+await fetch("/api/agent/health", { method: "POST" })${HTTP_OK};
+for (let n = 0; n < 200; n++) {
+	const health = await fetch("/api/agent/health")${HTTP_OK}.then((r) => r.json());
+	if (!health.checking) return;
+	await new Promise((done) => setTimeout(done, 100));
+}
+throw new Error("the agent's check never ended");`);
+	return true;
 }
 
 /** Asks the stand-in helper, holding a lesson's reply, for one of its requests (`read`, `approve`
@@ -217,12 +306,15 @@ async function startApp(port, name) {
 			LH_PORT: String(port),
 			LH_DATA_DIR: DATA,
 			HOME: path.join(RUN, "home"),
+			PATH: pathWithoutAgents(process.env.PATH ?? ""),
 			// The agent's start script runs in zsh, which reads the home's .zshrc (standInAgent).
 			SHELL: "/bin/zsh",
 			TMPDIR: path.join(RUN, "tmp"),
 			// Lessons and jobs play on a stand-in for the Claude helper, a debug build only.
 			LH_CLAUDE_HELPER: path.join(import.meta.dirname, "layout-helper.mjs"),
 			LAYOUT_HELPER_DIR: HELPER_DIR,
+			// A lesson's turn on the stand-in helper fails while the stand-in agent is signed out.
+			LAYOUT_AGENT_STATE: agentStateFile(path.join(RUN, "home")),
 			LH_SCREENS_CTL: ctl,
 			LH_SCREENS_OUT: out,
 			// godspeed's plugin list, made up, so the run never reads GitHub's.
@@ -303,7 +395,7 @@ async function checkScreen(app, pageCheck) {
 /** The opening pass for a screen at the address `url`: at each opening width, the page is opened
  *  from its start page in the app and watched. Answers its findings as report lines, and
  *  warnings. */
-async function watchOpenings(app, screen, url, ids, pageSource) {
+async function watchOpenings(app, screen, url, ids, pageSource, widths) {
 	const lines = [];
 	const warnings = [];
 	const from = openingFrom(url);
@@ -313,7 +405,7 @@ async function watchOpenings(app, screen, url, ids, pageSource) {
 	await app.value(`nav ${app.origin}${from.url}`);
 	await app.ready(from.ready);
 	let atStart = true;
-	for (const width of openingWidths(widthsOf(screen))) {
+	for (const width of widths) {
 		const height = screen.height ?? HEIGHT;
 		await app.value(`size ${width} ${height}`);
 		await sleep(SETTLE_MS);
@@ -337,7 +429,6 @@ async function watchOpenings(app, screen, url, ids, pageSource) {
 		const name = `${screen.name}, opening`;
 		if (!read.done) {
 			warnings.push(`WARNING: ${name} at ${width} was NOT watched: ${read.painted ? "the watch never ended" : "the new page never showed a sheet or traveled in"}`);
-			console.warn(warnings.at(-1));
 			continue;
 		}
 		if (read.findings.length === 0) continue;
@@ -349,12 +440,28 @@ async function watchOpenings(app, screen, url, ids, pageSource) {
 	return { lines, warnings };
 }
 
+/** One part of the run, as this script again: answers what it found (its result.json), or why it stopped. */
+function runPart(number, widths) {
+	const log = fs.openSync(path.join(TOP, `part-${number}.log`), "w");
+	const child = spawn(process.execPath, [import.meta.filename], { cwd: ROOT, stdio: ["ignore", log, log], env: { ...process.env, LAYOUT_PART: String(number), LAYOUT_WIDTHS: widths.join(",") } });
+	partsRunning.add(child);
+	return new Promise((done) => {
+		child.on("exit", () => {
+			partsRunning.delete(child);
+			const result = path.join(TOP, `part-${number}`, "result.json");
+			const stopped = { failures: [], warnings: [], watched: [], error: `the part at ${widths.join(" and ")} points stopped with no result; see ${path.join(TOP, `part-${number}.log`)}` };
+			done(fs.existsSync(result) ? JSON.parse(fs.readFileSync(result, "utf8")) : stopped);
+		});
+	});
+}
+
 async function main() {
 	if (process.platform !== "darwin") {
 		console.log("npm run layout runs on a Mac only (it needs the app's WebKit window); skipped.");
 		return;
 	}
 	stopOnSignals();
+	if (PART) return walkPart(new Set(process.env.LAYOUT_WIDTHS.split(",").map(Number)));
 	const started = Date.now();
 	const step = (cmd, args) => execFileSync(cmd, args, { cwd: ROOT, stdio: "inherit" });
 	step("npm", ["run", "build", "--silent", "--", "--logLevel", "error"]);
@@ -362,6 +469,37 @@ async function main() {
 	step("cargo", ["build", "-p", "gs-server", "-p", "gs-shell", "--features", "gs-shell/screens"]);
 	const built = Date.now();
 
+	const screens = SCREENS.filter(walked);
+	if (screens.length === 0) throw new Error(`LAYOUT_ONLY="${process.env.LAYOUT_ONLY}" names no screen`);
+	fs.rmSync(TOP, { recursive: true, force: true });
+	fs.mkdirSync(TOP, { recursive: true });
+	if (process.env.LAYOUT_STATES) fs.mkdirSync(process.env.LAYOUT_STATES, { recursive: true });
+	const dealt = widthParts(screens.map(widthsOf), SHARE ? SHARE[1] : partCount());
+	const parts = SHARE ? dealt.slice(SHARE[0] - 1, SHARE[0]) : dealt;
+	const results = await Promise.all(parts.map((widths, index) => runPart(index + 1, widths)));
+
+	const failures = results.flatMap((result) => result.failures);
+	const warnings = results.flatMap((result) => result.warnings);
+	const errors = results.flatMap((result) => (result.error ? [result.error] : []));
+	const watched = new Set(results.flatMap((result) => result.watched)).size;
+	const report = path.join(TOP, "report.txt");
+	const checked = `${ONLY.length > 0 ? `ONLY ${screens.length} of ${SCREENS.length}` : SCREENS.length} screens at ${SHARE ? `${parts.flat().join(" and ")} points (part ${SHARE[0]} of ${SHARE[1]})` : "1440, 1100 and 640 points (lessons at 1320 and 800 too)"}, each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")} (and at its top where it opens scrolled), and ${watched} openings watched, in ${Math.round((Date.now() - started) / 1000)} s (${Math.round((built - started) / 1000)} s to build, ${parts.length === 1 ? "one part" : `${parts.length} parts side by side`})`;
+	fs.writeFileSync(report, `${[...failures, ...errors, ...warnings, checked].join("\n")}\n`);
+	for (const warning of warnings) console.warn(warning);
+	if (errors.length > 0) {
+		console.error(`${[...failures, ...errors].join("\n")}\nlayout: the run stopped before its end; ${checked}. Report: ${report}`);
+		process.exit(1);
+	}
+	if (failures.length > 0) {
+		console.error(`${failures.join("\n")}\nlayout: broken layout found; ${checked}. Report: ${report}`);
+		process.exit(1);
+	}
+	console.log(`layout: no broken layout in ${checked}.${warnings.length > 0 ? ` ${warnings.length} WARNINGS above: some widths were not checked.` : ""}`);
+}
+
+/** One part: its own home, seeded, then every screen walked in order at the part's widths. Leaves
+ *  what it found in its result.json. */
+async function walkPart(mine) {
 	fs.rmSync(RUN, { recursive: true, force: true });
 	for (const dir of ["home/data", "tmp", "helper"]) fs.mkdirSync(path.join(RUN, dir), { recursive: true });
 	// Silent from the first page load: the run's windows are hidden, but their sounds are heard. The menu bar item stays
@@ -370,122 +508,137 @@ async function main() {
 	standInAgent(path.join(RUN, "home"));
 	const port = await freePort();
 	const pageSource = fs.readFileSync(path.join(import.meta.dirname, "layout-page.mjs"), "utf8").replace(/^export /gm, "");
-	const pageCheck = `(() => { ${pageSource}; return checkPage(); })()`;
-	const scrollTo = (at) => `(() => { ${pageSource}; return scrollMain(${JSON.stringify(at)}); })()`;
-
-	// The first launch: the stand-in agent writes the data, then the app quits, so the second
-	// launch starts with no agent connected.
-	let app = await startApp(port, "seed");
-	let ids;
-	try {
-		await app.ready();
-		const seedLog = path.join(RUN, "seed", "seed.log");
-		const log = (line) => fs.appendFileSync(seedLog, `${new Date().toISOString()} ${line}\n`);
-		const page = {
-			fetch: async (url, init = {}) => {
-				log(`page fetches ${init.method ?? "GET"} ${url}`);
-				const status = await app.run(`return fetch(${JSON.stringify(url)}, ${JSON.stringify(init)})${HTTP_OK}.then((r) => r.status)`);
-				log(`page got ${status} for ${url}`);
-				return status;
-			},
-			json: async (url) => JSON.parse(await app.run(`return fetch(${JSON.stringify(url)})${HTTP_OK}.then((r) => r.text())`)),
-		};
-		ids = await seed(DATA, HELPER_DIR, page, log).catch((err) => {
-			throw new Error(`${err.message}; steps: ${seedLog}`);
-		});
-		const { settings } = JSON.parse(await app.run(`return fetch("/api/settings")${HTTP_OK}.then((r) => r.text())`));
-		const version = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version;
-		const general = { ...settings.general, onboarded: true, lastSeenVersion: version, activeSpace: ids.space, teacherName: "Quigley" };
-		await page.fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(general) });
-	} finally {
-		await app.quit();
-	}
+	const inPage = (call) => `(() => { ${pageSource}; return ${call}; })()`;
+	const pageCheck = inPage("checkPage()");
+	const scrollTo = (at) => inPage(`scrollMain(${JSON.stringify(at)})`);
 
 	const failures = [];
 	const warnings = [];
-	/** The addresses whose first screen is behind the walk, and how many of their openings were watched. */
+	/** The addresses whose first screen is behind the walk, and the screens whose opening this part watched. */
 	const opened = new Set();
-	let watched = 0;
-	const states = process.env.LAYOUT_STATES;
-	if (states) fs.mkdirSync(states, { recursive: true });
-	const only = (process.env.LAYOUT_ONLY ?? "").toLowerCase().split(",").map((word) => word.trim()).filter(Boolean);
-	const walked = (screen) => only.length === 0 || only.some((word) => screen.name.toLowerCase().includes(word));
-	const count = SCREENS.filter(walked).length;
-	if (count === 0) throw new Error(`LAYOUT_ONLY="${process.env.LAYOUT_ONLY}" names no screen`);
-	app = await startApp(port, "walk");
+	const watched = [];
+	const result = (error) => fs.writeFileSync(path.join(RUN, "result.json"), JSON.stringify({ failures, warnings, watched, ...(error ? { error } : {}) }));
 	try {
-		await app.ready();
-		for (const screen of SCREENS) {
-			if (!walked(screen)) {
-				opened.add(fill(screen.url, ids));
-				continue;
-			}
-			const widths = widthsOf(screen);
-			try {
-				if (screen.before) await app.run(fill(screen.before, ids));
-				const url = fill(screen.url, ids);
-				// The terminal's page opens only in a window of its own, by a full load.
-				if (!opened.has(url) && url !== "/terminal-window") {
-					opened.add(url);
-					watched += 1;
-					const opening = await watchOpenings(app, screen, url, ids, pageSource);
-					failures.push(...opening.lines);
-					warnings.push(...opening.warnings);
-				}
-				await app.value("eval window.__layoutLeft = true");
-				await app.value(`nav ${app.origin}${url}`);
-				await app.ready(fill(screen.ready, ids));
-				if (screen.setup) await app.run(fill(screen.setup, ids));
-				if (screen.helper) await tellHelper(screen.helper);
-				if (screen.shows) await app.ready(fill(screen.shows, ids));
-			} catch (err) {
-				const snap = path.join(RUN, snapName(`${screen.name} not shown`, widths[0]));
-				await app.send(`snap ${snap}`);
-				// What the screens before it found is still worth reading.
-				fs.writeFileSync(path.join(RUN, "report.txt"), `${[...failures, ...warnings].join("\n")}\n`);
-				throw new Error(`${screen.name}: ${err.message}; picture: ${snap}; findings so far: ${path.join(RUN, "report.txt")}`);
-			}
-			for (const width of widths) {
-				const height = screen.height ?? HEIGHT;
-				await app.value(`size ${width} ${height}`);
-				await sleep(SETTLE_MS);
-				// A screen smaller than the window squeezes it, and the check would judge another size.
-				const [shownWidth, shownHeight] = await app.value("eval [innerWidth, innerHeight]");
-				const problem = misfit({ width, height }, { width: shownWidth, height: shownHeight });
-				if (problem && width === Math.min(...widths) && !screen.height) throw new Error(`${problem}: the screen is too small for the narrowest width`);
-				if (problem) {
-					warnings.push(`WARNING: ${screen.name} at ${width} was NOT checked: ${problem}; the screen is too small`);
-					console.warn(warnings.at(-1));
+		// The first launch: the stand-in agent writes the data, then the app quits, so the second
+		// launch starts with no agent connected.
+		let app = await startApp(port, "seed");
+		let ids;
+		try {
+			await app.ready();
+			const seedLog = path.join(RUN, "seed", "seed.log");
+			const log = (line) => fs.appendFileSync(seedLog, `${new Date().toISOString()} ${line}\n`);
+			const page = {
+				fetch: async (url, init = {}) => {
+					log(`page fetches ${init.method ?? "GET"} ${url}`);
+					const status = await app.run(`return fetch(${JSON.stringify(url)}, ${JSON.stringify(init)})${HTTP_OK}.then((r) => r.status)`);
+					log(`page got ${status} for ${url}`);
+					return status;
+				},
+				json: async (url) => JSON.parse(await app.run(`return fetch(${JSON.stringify(url)})${HTTP_OK}.then((r) => r.text())`)),
+			};
+			ids = await seed(DATA, HELPER_DIR, page, log).catch((err) => {
+				throw new Error(`${err.message}; steps: ${seedLog}`);
+			});
+			const { settings } = JSON.parse(await app.run(`return fetch("/api/settings")${HTTP_OK}.then((r) => r.text())`));
+			const version = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version;
+			const general = { ...settings.general, onboarded: true, lastSeenVersion: version, activeSpace: ids.space, teacherName: "Quigley" };
+			await page.fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(general) });
+		} finally {
+			await app.quit();
+		}
+
+		const states = process.env.LAYOUT_STATES;
+		// The window's size as a screen is loaded and set up: what the screen before left, in every part alike.
+		let left = null;
+		let agentState = "ready";
+		app = await startApp(port, "walk");
+		try {
+			await app.ready();
+			for (const screen of SCREENS) {
+				if (!walked(screen)) {
+					opened.add(fill(screen.url, ids));
 					continue;
 				}
-				// A menu is opened from a key in view; a narrower window may have pushed its row out of the window.
-				if (await app.value(evalLine(OPENER_IN_VIEW))) await sleep(SETTLE_MS);
-				for (const at of SCROLL_TO) {
-					if (at !== 0 && !(await app.value(evalLine(scrollTo(at))))) continue;
-					const findings = await checkScreen(app, pageCheck);
-					if (states && at === 0 && screen.url.startsWith("/chat/")) await app.value(`snap ${path.join(states, snapName(screen.name, width))}`);
-					if (findings.length === 0) continue;
-					const name = at === 0 ? screen.name : `${screen.name}, ${scrolledWords(at)}`;
-					const snap = path.join(RUN, snapName(name, width));
-					await app.value(`snap ${snap}`);
-					for (const finding of findings) failures.push(findingLine(name, width, finding));
-					failures.push(`  picture: ${snap}`);
+				const all = widthsOf(screen);
+				const widths = all.filter((width) => mine.has(width));
+				try {
+					// Each screen sees the stand-in agent in its `agent` state, the rest in ready.
+					const state = screen.agent ?? "ready";
+					if (state !== agentState) {
+						if (!(await putAgent(app, path.join(RUN, "home"), state))) {
+							warnings.push(`WARNING: ${screen.name} was NOT checked: a real claude in Homebrew's folders would be found in the stand-in's place`);
+							continue;
+						}
+						agentState = state;
+					}
+					if (screen.before) await app.run(fill(screen.before, ids));
+					const url = fill(screen.url, ids);
+					// The terminal's page opens only in a window of its own, by a full load.
+					if (!opened.has(url) && url !== "/terminal-window") {
+						opened.add(url);
+						// The opening pass leaves the window at the screen's narrowest width.
+						left = `${Math.min(...all)} ${screen.height ?? HEIGHT}`;
+						const openings = openingWidths(all).filter((width) => mine.has(width));
+						if (openings.length > 0) {
+							watched.push(screen.name);
+							const opening = await watchOpenings(app, screen, url, ids, pageSource, openings);
+							failures.push(...opening.lines);
+							warnings.push(...opening.warnings);
+						}
+					}
+					if (left) await app.value(`size ${left}`);
+					await app.value("eval window.__layoutLeft = true");
+					await app.value(`nav ${app.origin}${url}`);
+					await app.ready(fill(screen.ready, ids));
+					if (screen.setup) await app.run(fill(screen.setup, ids));
+					if (screen.helper) await tellHelper(screen.helper);
+					if (screen.shows) await app.ready(fill(screen.shows, ids));
+				} catch (err) {
+					const snap = path.join(RUN, snapName(`${screen.name} not shown`, widths[0] ?? all[0]));
+					await app.send(`snap ${snap}`);
+					throw new Error(`${screen.name}: ${err.message}; picture: ${snap}`);
 				}
-				await app.value(evalLine(scrollTo(0)));
+				for (const width of widths) {
+					const height = screen.height ?? HEIGHT;
+					await app.value(`size ${width} ${height}`);
+					await sleep(SETTLE_MS);
+					// A screen smaller than the window squeezes it, and the check would judge another size.
+					const [shownWidth, shownHeight] = await app.value("eval [innerWidth, innerHeight]");
+					const problem = misfit({ width, height }, { width: shownWidth, height: shownHeight });
+					if (problem && width === Math.min(...all) && !screen.height) throw new Error(`${problem}: the screen is too small for the narrowest width`);
+					if (problem) {
+						warnings.push(`WARNING: ${screen.name} at ${width} was NOT checked: ${problem}; the screen is too small`);
+						continue;
+					}
+					// A menu is opened from a key in view; a narrower window may have pushed its row out of the window.
+					const menuOpen = await app.value(evalLine(OPENER_IN_VIEW));
+					if (menuOpen) await sleep(SETTLE_MS);
+					// A screen that opens scrolled (a lesson, at its rest) is checked at its top too, last. Not one the
+					// walk itself scrolled to an open menu's key: at its top the menu would lie outside the window.
+					const opensScrolled = !menuOpen && (await app.value(evalLine(inPage("scrolledAt()")))) > 1;
+					for (const at of opensScrolled ? [...SCROLL_TO, "top"] : SCROLL_TO) {
+						if (at !== 0 && !(await app.value(evalLine(scrollTo(at === "top" ? 0 : at))))) continue;
+						const findings = await checkScreen(app, pageCheck);
+						if (states && at === 0 && screen.url.startsWith("/chat/")) await app.value(`snap ${path.join(states, snapName(screen.name, width))}`);
+						if (findings.length === 0) continue;
+						const name = at === 0 ? screen.name : `${screen.name}, ${scrolledWords(at)}`;
+						const snap = path.join(RUN, snapName(name, width));
+						await app.value(`snap ${snap}`);
+						for (const finding of findings) failures.push(findingLine(name, width, finding));
+						failures.push(`  picture: ${snap}`);
+					}
+					await app.value(evalLine(scrollTo(0)));
+				}
+				left = `${all.at(-1)} ${screen.height ?? HEIGHT}`;
 			}
+		} finally {
+			await app.quit();
 		}
-	} finally {
-		await app.quit();
+	} catch (err) {
+		result(err.message);
+		throw err;
 	}
-
-	const report = path.join(RUN, "report.txt");
-	const checked = `${only.length > 0 ? `ONLY ${count} of ${SCREENS.length}` : SCREENS.length} screens at 1440, 1100 and 640 points (lessons at 1320 and 800 too), each as it opens, ${SCROLL_TO.slice(1).map(scrolledWords).join(" and ")}, and ${watched} openings watched, in ${Math.round((Date.now() - built) / 1000)} s (${Math.round((built - started) / 1000)} s to build)`;
-	fs.writeFileSync(report, `${[...failures, ...warnings, checked].join("\n")}\n`);
-	if (failures.length > 0) {
-		console.error(`${failures.join("\n")}\nlayout: broken layout found; ${checked}. Report: ${report}`);
-		process.exit(1);
-	}
-	console.log(`layout: no broken layout in ${checked}.${warnings.length > 0 ? ` ${warnings.length} WARNINGS above: some widths were not checked.` : ""}`);
+	result();
 }
 
 if (import.meta.main) await main();

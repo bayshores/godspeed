@@ -22,6 +22,8 @@
  *   or bottom are not the inset, two sheets in one page
  *   column side by side or one above the other at a gap that is not the shared one, or a page
  *   title not in the shared title class.
+ * - lesson notice: a notice shows by itself on a lesson page, where it lies over the step line's
+ *   keys. There it waits in the strip's count.
  * - bar key: a key (.lh-btn) in the app's top bar or a page's own bar, where words are flat
  *   like the tabs.
  * - empty box: a sheet or well (.lh-sheet, .lh-well) at least 160 px wide and 120 px tall that
@@ -467,6 +469,11 @@ function mainScroller() {
 	return best ?? (page.scrollHeight > page.clientHeight + 1 ? page : null);
 }
 
+/** How far the screen's scroller stands from its top. */
+export function scrolledAt() {
+	return mainScroller()?.scrollTop ?? 0;
+}
+
 /** Scrolls the screen's scroller to `top` pixels, or to its end for "end"; 0 goes back. Answers
  *  whether it moved, so a screen that can't scroll that far is not checked twice. */
 export function scrollMain(top) {
@@ -550,6 +557,13 @@ function turnFoot() {
 	const box = foot.getBoundingClientRect();
 	if (box.top >= view.top - SLACK && box.bottom <= view.bottom + SLACK) return [];
 	return [finding("turn foot", [foot], `${label(foot)} spans ${Math.round(box.top)} to ${Math.round(box.bottom)} px, outside the lesson's window (${Math.round(view.top)} to ${Math.round(view.bottom)} px)`)];
+}
+
+/** Lesson notice: on a lesson page no notice comes out by itself; one the learner asked for may show. */
+function lessonNotices() {
+	const peek = document.querySelector("[data-peek][data-lh-menu=quiet]:not([inert])");
+	if (!peek || !shown(peek) || !document.querySelector("[data-testid=lesson-reading]")) return [];
+	return [finding("lesson notice", [peek], `${label(peek)} shows by itself over the lesson`)];
 }
 
 /** Bar key: a bar's words are flat like its tabs; a pop-up that hangs from the bar keeps its keys. */
@@ -999,7 +1013,7 @@ function keyChecks() {
 }
 
 export function checkPage() {
-	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...hollowBoxes(), ...emptyRooms(), ...cutStarts(), ...cutTails(), ...brokenPictures(), ...keyChecks()];
+	const all = [...overlaps(), ...covereds(), ...spills(), ...sideways(), ...hiddens(), ...cutOffs(), ...turnFoot(), ...lessonNotices(), ...spacings(), ...barKeys(), ...emptyBoxes(), ...hollowBoxes(), ...emptyRooms(), ...cutStarts(), ...cutTails(), ...brokenPictures(), ...keyChecks()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.key) && seen.add(f.key));
 }

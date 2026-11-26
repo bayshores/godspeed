@@ -9,10 +9,14 @@
  * time, each waiting for godspeed's answer. The turn ends when a tool ends it (a question for the
  * learner), when a reply calls no tool, or when the lesson has no reply left. Which reply each
  * lesson is at is kept in LAYOUT_HELPER_DIR, since the app is started twice and resumes its
- * sessions. A lesson that holds never ends its turn until it is stopped; the word a screen writes
+ * sessions. A lesson that holds never ends its turn until it is stopped, and so does a turn the
+ * printed homework's line (PRINTED_HOLDS) starts; the word a screen writes
  * to the `desk` file in that folder makes it read files as an agent at work would (`read`), ask
  * to run a command (`approve`), or write a reply's first sentence and go back to reading under it
  * (`stream`).
+ *
+ * While the stand-in agent is signed out (the state file LAYOUT_AGENT_STATE names, layout.mjs), a
+ * lesson's turn fails at once, as Claude Code's does when it isn't logged in.
  *
  * A session that is not kept is one of godspeed's background jobs: its one turn plays the fixed
  * answer layout-jobs.mjs gives for the job's tools and request.
@@ -28,11 +32,12 @@ import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
 import { jobAnswer } from "./layout-jobs.mjs";
-import { LESSONS, PLAN_ORDER_SENT_BACK, TALK_HOLDS, TALK_ROUND } from "./layout-lessons.mjs";
+import { LESSONS, PLAN_ORDER_SENT_BACK, PRINTED_HOLDS, TALK_HOLDS, TALK_ROUND } from "./layout-lessons.mjs";
 
 const DIR = process.env.LAYOUT_HELPER_DIR;
 const STATE = DIR && path.join(DIR, "state.json");
 const DESK = DIR && path.join(DIR, "desk");
+const AGENT_STATE = process.env.LAYOUT_AGENT_STATE;
 const PASSAGE = /f_[0-9a-f]{12}:\d+/;
 /** The passage the seed found, which lessons cite. */
 const CITED = DIR && path.join(DIR, "passage");
@@ -261,6 +266,14 @@ async function playTurn(session, texts) {
 	sdk(session.key, { type: "system", subtype: "init" });
 	if (session.job) return playJob(session, texts);
 	if (session.talk) return playTalk(session, texts);
+	if (AGENT_STATE && fs.existsSync(AGENT_STATE) && fs.readFileSync(AGENT_STATE, "utf8").trim() === "signed-out") {
+		return sdk(session.key, { type: "result", subtype: "success", is_error: true, result: "Not logged in · Please run /login" });
+	}
+	// The printed homework's line holds its turn by its words, whichever session it comes in.
+	if (texts.some((text) => text.includes(PRINTED_HOLDS))) {
+		await hold(session);
+		return finish(session, true);
+	}
 	session.passage = CITED && fs.existsSync(CITED) ? fs.readFileSync(CITED, "utf8").trim() : null;
 	if (!session.lesson) {
 		const at = LESSONS.findIndex((lesson) => lesson.is(texts));

@@ -1,3 +1,4 @@
+import { JobFailure } from "@/frontend/components/agent-setup/agent-card";
 import type { ReactNode } from "react";
 import { nothingMorePlannedLine, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
@@ -60,9 +61,11 @@ export function PathSheet({
 				</button>
 			)}
 			{needsGuide && guideLine && (
-				<p role="alert" data-testid="deadline-request-line" className="text-[15px] text-ink">
-					{guideLine}
-				</p>
+				<JobFailure>
+					<p role="alert" data-testid="deadline-request-line" className="text-[15px] text-ink">
+						{guideLine}
+					</p>
+				</JobFailure>
 			)}
 			{ahead && plan.length > 0 && (
 				<>

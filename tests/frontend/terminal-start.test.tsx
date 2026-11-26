@@ -1,8 +1,7 @@
 /**
- * Starting the agent: the web version keeps the copy-command path, the
- * desktop app starts the teacher's terminal and shows its screen in
- * onboarding's step, and a lesson's send starts no terminal: lessons run on
- * the picked agent in sessions of their own.
+ * Nothing starts the teacher's terminal by itself: the folder notice's
+ * "Set up my folder" only makes the folder, and a lesson's send runs on the
+ * picked agent in a session of its own.
  */
 import { dom, fakeShell } from "../terminal-dom.ts";
 import React, { act } from "react";
@@ -11,7 +10,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-const { AgentLauncher } = await import("../../src/frontend/components/agent-folder/agent-launcher.tsx");
+const { FolderNotice } = await import("../../src/frontend/components/agent-folder/folder-notice.tsx");
 const { TerminalsProvider, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
 const { useAgentStatus } = await import("../../src/frontend/components/agent-status.tsx");
 const { agentDoing } = await import("../../src/frontend/components/teacher/follow-status.ts");
@@ -88,89 +87,26 @@ async function mounted(render: (root: Root) => Promise<void>, run: () => Promise
 	}
 }
 
-describe("Start Claude Code", () => {
-	it("in the web version, makes the folder and asks the learner to run the command, as before", async () => {
+describe("the folder notice's Set up my folder", () => {
+	it("makes the folder for the old setup's agent and starts no terminal: lessons run in it by themselves", async () => {
 		serverAgent = null;
-		assert.ok(!(dom.window as { lh?: unknown }).lh, "no desktop shell");
-		await mounted(
-			(root) => act(async () => root.render(<AgentLauncher />)),
-			async () => {
-				assert.equal(q("open-agent")!.textContent, "Start Claude Code");
-				await act(async () => q("open-agent")!.click());
-				await settle();
-				const log = q("agent-launch-log")?.textContent ?? "";
-				assert.match(log, /Made ~\/godspeed/);
-				assert.match(log, /Copy the command and run it in your terminal/);
-				assert.ok(q("first-run-screen") === null, "no screen in a browser");
-				assert.ok(changes.includes('PATCH {"agent":"claude"}'), "the agent it started is the learner's pick from now on");
-			},
-		);
-	});
-
-	it("in the desktop app, starts the teacher's terminal and shows its screen in the step until it connects", async () => {
 		const shell = fakeShell();
-		const page = (status: Access) => (
-			<TerminalsProvider status={status}>
-				<AgentLauncher />
-			</TerminalsProvider>
-		);
-		let root: Root | null = null;
-		try {
-			await mounted(
-				async (r) => {
-					root = r;
-					await act(async () => r.render(page(access())));
-				},
-				async () => {
-					assert.ok(q("open-agent")!.classList.contains("lh-btn-main"), "Start Claude Code leads before any start");
-					assert.ok(!q("open-agent-menu")!.classList.contains("lh-btn-main"));
-					await act(async () => q("open-agent")!.click());
-					await settle();
-					assert.ok(shell.calls.includes("start claude"), shell.calls.join(", "));
-					assert.ok(q("open-agent") === null && q("open-agent-menu") === null, "no start buttons while the agent runs");
-					assert.ok(q("agent-launch-log") === null, "no copy-command log");
-					assert.ok(q("first-run-screen") !== null, "the screen shows in the step");
-					assert.equal(q("terminal-footer")!.textContent, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
-					await act(async () => root!.render(page(access({ connected: true, terminals: [{ id: "teacher-new", here: true }] }))));
-					await settle();
-					assert.equal(q("terminal-footer")!.textContent, "Claude Code is connected.");
-					await act(async () => shell.push({ id: "teacher-new", ended: { stopped: true, code: null }, prompt: null, url: false }));
-					await act(async () => root!.render(page(access())));
-					await settle();
-					assert.ok(q("open-agent") !== null, "the start buttons return once it ended");
-					assert.ok(!q("open-agent")!.classList.contains("lh-btn-main"), "Start again in the footer leads then");
-				},
-			);
-		} finally {
-			shell.remove();
-		}
-	});
-});
-
-describe("Start with an agent outside godspeed connected", () => {
-	it("still sets up the folder, starts nothing and says why", async () => {
-		const shell = fakeShell();
-		const posts: string[] = [];
-		globalThis.fetch = (async (_url: string, init?: RequestInit) => {
-			if (init?.method === "POST") posts.push(String(init.body));
-			return Response.json(FOLDER);
-		}) as unknown as typeof fetch;
 		try {
 			await mounted(
 				(r) =>
 					act(async () =>
 						r.render(
-							<TerminalsProvider status={access({ connected: true, outsideHere: true })}>
-								<AgentLauncher />
+							<TerminalsProvider status={access()}>
+								<FolderNotice agent="codex" afterWelcome={false} />
 							</TerminalsProvider>,
 						),
 					),
 				async () => {
-					await act(async () => q("open-agent")!.click());
+					assert.match(q("folder-notice")!.textContent!, /Codex teaches you from ~\/godspeed now\./);
+					await act(async () => q("folder-notice-setup")!.click());
 					await settle();
-					assert.ok(posts.some((b) => b.includes('"setup"')), "the folder was set up");
-					assert.ok(!shell.calls.some((c) => c.startsWith("start")), "no second teacher");
-					assert.match(document.body.textContent!, /The teacher is already running outside godspeed\. Close it there first\./);
+					assert.deepEqual(changes, ['PATCH {"agent":"codex"}', 'POST {"action":"setup"}']);
+					assert.ok(!shell.calls.some((c) => c.startsWith("start")), "no terminal");
 				},
 			);
 		} finally {

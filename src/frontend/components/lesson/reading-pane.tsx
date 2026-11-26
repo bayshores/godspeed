@@ -36,6 +36,7 @@ export function ReadingPane({
 	busy,
 	stoppedEmpty,
 	work,
+	problemSheet,
 	queuedSteers,
 	arrivalsLive,
 	pageMarks,
@@ -60,6 +61,9 @@ export function ReadingPane({
 	stoppedEmpty: boolean;
 	/** What the teacher does in the running turn (useLessonWork). */
 	work: LessonWork;
+	/** The page shows the open problem's sheet beside the text or over it: the desk lays no paper of
+	 *  its own and takes no blank room, so the text rests on the writing row. */
+	problemSheet: boolean;
 	/** Lines typed to the teacher that wait for its reply to end. */
 	queuedSteers: QueuedSteerLine[];
 	arrivalsLive: boolean;
@@ -91,12 +95,12 @@ export function ReadingPane({
 		return drawn.length > 0 ? drawn : all.slice(-1);
 	}, [shown, stepNumbers, phases, echo, inTurn]);
 	return (
-		<div data-testid="lesson-reading" data-session-find-root="" data-turn-wrote={(busy && wrote) || undefined} className={cn("lh-text-sheets flex min-w-0 flex-col gap-10", deskUp && "flex-1")}>
+		<div data-testid="lesson-reading" data-session-find-root="" data-turn-wrote={(busy && wrote) || undefined} className={cn("lh-text-sheets flex min-w-0 flex-col gap-10", deskUp && !problemSheet && "flex-1")}>
 			{sheets.map((sheet, si) => {
 				const newest = si === sheets.length - 1;
 				const first = sheet.rows[0];
 				return (
-					<section key={first ? `${shown[first.index]!.id || first.index}:${first.from}` : "empty"} ref={newest ? sheetRef : undefined} data-testid="lesson-sheet" className={cn("flex min-w-0 flex-col gap-4", newest && deskUp && "flex-1")}>
+					<section key={first ? `${shown[first.index]!.id || first.index}:${first.from}` : "empty"} ref={newest ? sheetRef : undefined} data-testid="lesson-sheet" className={cn("flex min-w-0 flex-col gap-4", newest && deskUp && !problemSheet && "flex-1")}>
 						{/* With one step on the page the step line already says which it is. */}
 						{sheet.label && sheets.length > 1 && (
 							<h3 data-testid="sheet-step" className="flex items-center gap-3 text-[18px] leading-7 text-ink-2">
@@ -129,7 +133,7 @@ export function ReadingPane({
 							{newest && shownDesk && (
 								<ArrivalRow live={arrivalsLive} className="flex flex-1 flex-col">
 									<div data-state={closing ? "closed" : "open"} data-desk-closing={closing || undefined} inert={closing} className={cn("flex flex-1 flex-col", closing && "lh-fade")}>
-										<AgentAtWork chatId={actions?.chatId ?? ""} head={shownDesk.head} work={shownDesk.work} arrive={arrive} foot={foot} />
+										<AgentAtWork chatId={actions?.chatId ?? ""} head={shownDesk.head} work={shownDesk.work} paper={!problemSheet} arrive={arrive} foot={foot} />
 									</div>
 								</ArrivalRow>
 							)}

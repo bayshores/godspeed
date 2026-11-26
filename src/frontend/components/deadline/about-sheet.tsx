@@ -1,3 +1,4 @@
+import { JobFailure } from "@/frontend/components/agent-setup/agent-card";
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { LoadingBox } from "@/frontend/components/loading";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -46,13 +47,15 @@ export function AboutSheet({
 			) : (
 				<LoadingBox className="h-24 bg-tone" />
 			)}
-			<button type="button" data-testid="deadline-about-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-quiet self-start">
+			<button type="button" data-testid="deadline-about-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-quiet lh-btn-flush self-start">
 				Ask {teacherName} to rewrite
 			</button>
 			{requestLine && (
-				<p role="alert" data-testid="deadline-request-line" className="text-[15px] text-ink">
-					{requestLine}
-				</p>
+				<JobFailure>
+					<p role="alert" data-testid="deadline-request-line" className="text-[15px] text-ink">
+						{requestLine}
+					</p>
+				</JobFailure>
 			)}
 		</Pane>
 	);

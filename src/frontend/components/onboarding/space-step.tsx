@@ -5,7 +5,6 @@ import { FIELD } from "@/frontend/components/ui/field";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { jsonInit, send, serverError } from "@/frontend/lib/api";
 import { cn } from "@/frontend/lib/utils";
-import { AgentNeed } from "./agent-need";
 import { pickedLabel, type Picked } from "./space-step-model";
 import { StepSheet } from "./step-sheet";
 import { useReturn } from "./use-return";
@@ -20,7 +19,6 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 	const [error, setError] = useState<string | null>(null);
 	// Set when the space was made but some files failed: Continue goes on.
 	const [madeId, setMadeId] = useState<string | null>(null);
-	const [screen, setScreen] = useState(false);
 	const fileInput = useRef<HTMLInputElement>(null);
 	const canSave = (name.trim() !== "" || madeId !== null) && !busy;
 
@@ -79,8 +77,7 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 
 	const summary = pickedLabel(picked);
 	return (
-		<StepSheet at={2} wide={screen} title="Add your first space" sub="Each space gets its own lessons and knowledge graph. You can add more later.">
-			<AgentNeed open={screen} onOpen={() => setScreen(true)} />
+		<StepSheet at={2} title="Add your first space" sub="Each space gets its own lessons and knowledge graph. You can add more later.">
 			<div className="flex flex-col gap-1.5">
 				<label className={LABEL_TEXT} htmlFor="onboarding-space-name">
 					Space name

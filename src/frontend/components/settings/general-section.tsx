@@ -1,11 +1,11 @@
 /**
- * Settings → General: the teacher's name, sounds, deadline reminders, the Mac menu bar
- * countdown, the notes folder and updates.
+ * Settings → General: sounds, deadline reminders, the Mac menu bar countdown, the notes folder and
+ * updates. The teacher's name is in Settings → Teacher.
  */
 
-import { DEFAULT_TEACHER_NAME, resolveSettings, type UserSettings } from "@/shared/core";
+import { resolveSettings, type UserSettings } from "@/shared/core";
 import type { GeneralPatch } from "@/frontend/components/settings-context";
-import { CommitInput, SettingsGroup, SettingsRow, Toggle } from "./controls.tsx";
+import { SettingsGroup, SettingsRow, Toggle } from "./controls.tsx";
 import { NotesFolderGroup } from "./notes-folder-group.tsx";
 import { UpdateSettings } from "./update-settings.tsx";
 
@@ -20,18 +20,10 @@ export function GeneralSection({
 	// The same resolver the server uses, so the switches show what is in effect.
 	const effective = resolveSettings(record);
 	return (
-		// Wide, the groups sit side by side instead of as long rows.
-		<div className="grid items-start gap-6 @[1000px]/page:grid-cols-2 @[1300px]/page:grid-cols-3">
-			<SettingsGroup label="Teacher and sounds" testid="group-you">
-				<SettingsRow label="Teacher name" testid="teacher-name-row">
-					<CommitInput
-						value={record.general?.teacherName ?? ""}
-						placeholder={DEFAULT_TEACHER_NAME}
-						ariaLabel="Teacher name"
-						testid="teacher-name"
-						onCommit={(next) => onGeneralChange({ teacherName: next || null })}
-					/>
-				</SettingsRow>
+		// Wide, the groups sit side by side instead of as long rows, each as tall as the tallest
+		// beside it, so the gap under every card is the same.
+		<div className="grid gap-6 @[1000px]/page:grid-cols-2 @[1300px]/page:grid-cols-3">
+			<SettingsGroup label="Sounds" testid="group-sounds">
 				<SettingsRow label="Startup sound" testid="startup-sound-row">
 					<Toggle
 						checked={effective.general.startupSound}

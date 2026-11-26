@@ -71,6 +71,7 @@ describe("the approval card", () => {
 		busy: true,
 		stoppedEmpty: false,
 		work: work([]),
+		problemSheet: false,
 		queuedSteers: [],
 		arrivalsLive: true,
 		pageMarks: new Map(),

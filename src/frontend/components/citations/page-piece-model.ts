@@ -77,6 +77,87 @@ export function veils(piece: ProblemPiece, part: string | null): { bands: Band[]
 	return { bands, current };
 }
 
+/** About one line of a printed page, as a share of its height: the sheet shows this much of the
+ *  page above the problem and under it. */
+const LINE = 0.03;
+
+/** Under this, two stretches meet. */
+const TOUCH = 1e-6;
+
+/** A fraction of a page kept to four places, so a picture's address stays short and the same. */
+const fourPlaces = (n: number) => Math.round(n * 10000) / 10000;
+
+/** The stretches joined where they meet or overlap, top to bottom. */
+function joined(bands: readonly Band[]): Band[] {
+	const out: Band[] = [];
+	for (const band of [...bands].sort((a, b) => a.top - b.top)) {
+		const last = out.at(-1);
+		if (last && band.top <= last.top + last.height + TOUCH) last.height = Math.max(last.height, band.top + band.height - last.top);
+		else out.push({ ...band });
+	}
+	return out;
+}
+
+/** What joined stretches leave of their part, top to bottom. */
+function between(bands: readonly Band[]): Band[] {
+	const out: Band[] = [];
+	let at = 0;
+	for (const band of bands) {
+		if (band.top - at > TOUCH) out.push({ top: at, height: band.top - at });
+		at = Math.max(at, band.top + band.height);
+	}
+	if (1 - at > TOUCH) out.push({ top: at, height: 1 - at });
+	return out;
+}
+
+/** The line over a part's own stretch and the line under it, as fractions of the part; null where the part reaches no further than its own. */
+function around(top: number, ownTop: number, ownBottom: number, bottom: number): [Band | null, Band | null] {
+	const span = bottom - top;
+	const over = { top: 0, height: (ownTop - top) / span };
+	const under = { top: (ownBottom - top) / span, height: (bottom - ownBottom) / span };
+	return [over.height > TOUCH ? over : null, under.height > TOUCH ? under : null];
+}
+
+/** Where the problem itself starts on its sheet: its mark on a page shown whole, else its first own line. */
+function startOf(piece: ProblemPiece, parts: readonly PiecePart[]): Place {
+	const marked = piece.mark ? parts.findIndex((p) => p.page === piece.mark!.page) : -1;
+	const index = Math.max(0, marked);
+	const [, top, , bottom] = parts[index]!.crop;
+	const y = marked >= 0 ? piece.mark!.y : piece.parts[0]!.crop[1];
+	return { part: index, at: clamp((y - top) / (bottom - top)) };
+}
+
+/**
+ * The problem as its sheet shows it, read in its place on the page. `whole`: the sheet is the
+ * page itself, from its top to its foot (the first part from its page's top, the last to its
+ * page's foot); else the first part reaches a line higher on its page and the last a line lower,
+ * as far as the page goes. Each part's stretches, as fractions of that part from its top:
+ * `veiled`, the page around the problem and the labelled parts the learner is not on (veils);
+ * `lit`, the rest, which carries the bar of the problem's own lines. A page with columns (which
+ * can't be cut) has its mark instead of a bar. `edges`: each part's line over it and line under
+ * it, which fade out toward the sheet's edge, since a line of the page may be cut through; a
+ * whole page has none. `rest`: where the sheet rests, the start of the part the learner is on,
+ * or on a whole page with no such part the problem's start.
+ */
+export function pieceSheet(piece: ProblemPiece, part: string | null, whole: boolean): { piece: ProblemPiece; veiled: Band[][]; lit: Band[][]; edges: (Band | null)[][]; rest: Place | null } {
+	const last = piece.parts.length - 1;
+	const parts = piece.parts.map((p, i): PiecePart => {
+		const [left, top, right, bottom] = p.crop;
+		const from = i !== 0 ? top : whole ? 0 : fourPlaces(Math.max(0, top - LINE));
+		const to = i !== last ? bottom : whole ? 1 : fourPlaces(Math.min(1, bottom + LINE));
+		return { ...p, crop: [left, from, right, to] };
+	});
+	const sheet = { ...piece, parts };
+	const { bands, current } = veils(sheet, part);
+	const veiled = parts.map((p, i) => {
+		const [, top, , bottom] = p.crop;
+		const [, ownTop, , ownBottom] = piece.parts[i]!.crop;
+		return joined([...bands[i]!, ...around(top, ownTop, ownBottom, bottom).filter((band) => band !== null)]);
+	});
+	const edges = parts.map((p, i): [Band | null, Band | null] => (whole ? [null, null] : around(p.crop[1], piece.parts[i]!.crop[1], piece.parts[i]!.crop[3], p.crop[3])));
+	return { piece: sheet, veiled, lit: veiled.map((bands) => (piece.mark ? [] : between(bands))), edges, rest: current ?? (whole ? startOf(piece, parts) : null) };
+}
+
 /** The mark of a piece, as fractions of the part that shows its page (a page with columns is
  *  shown whole, so these are the page's own), or null when no part shows that page. */
 export function markBox(piece: ProblemPiece, partIndex: number): { x: number; y: number; w: number; h: number } | null {

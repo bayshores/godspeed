@@ -115,8 +115,8 @@ export function UpdateSettings({
 			>
 				<span className="flex flex-wrap items-center gap-2">
 					{hasWhatsNew(version) ? (
-						<button type="button" onClick={() => openWhatsNew()} className="lh-btn lh-btn-quiet" data-testid="release-notes">Release notes</button>
-					) : releaseNotes && <a href={releaseNotes} target="_blank" rel="noopener noreferrer" className="lh-btn lh-btn-quiet" data-testid="release-notes">Release notes</a>}
+						<button type="button" onClick={() => openWhatsNew()} className="lh-btn lh-btn-quiet lh-btn-flush" data-testid="release-notes">Release notes</button>
+					) : releaseNotes && <a href={releaseNotes} target="_blank" rel="noopener noreferrer" className="lh-btn lh-btn-quiet lh-btn-flush" data-testid="release-notes">Release notes</a>}
 					{reportBug && (
 						<button type="button" className="lh-btn" data-testid="report-bug" onClick={() => reportBug()}>Report a bug</button>
 					)}

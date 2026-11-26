@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { ChatAttachment, CheatSheetView, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
+import { JobFailure } from "@/frontend/components/agent-setup/agent-card";
 import { ApprovalCards } from "@/frontend/components/lesson/approval-card";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
@@ -70,7 +71,8 @@ export function SheetChat({
 	const busy = view.running !== null;
 	const messages = view.sheet.messages;
 	const endRef = useRef<HTMLDivElement>(null);
-	useEffect(() => {
+	// Before the picture is drawn: a chat that opens long is never seen at its top first.
+	useLayoutEffect(() => {
 		endRef.current?.scrollIntoView({ block: "end" });
 	}, [messages.length, busy, view.error]);
 
@@ -177,14 +179,16 @@ export function SheetChat({
 							)}
 							{view.running && <ApprovalCards approvals={view.approvals} slot={slot} arrive={arrive} answer={answer} />}
 							{!busy && view.error && (
-								<p data-testid="sheet-failed" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
-									<span>
-										<span className="text-ans-wrong">{agentName} couldn&apos;t finish that.</span> {view.error.text}
-									</span>
-									<button type="button" data-testid="sheet-retry" onClick={() => post({ action: "retry" })} className="lh-btn">
-										Try again
-									</button>
-								</p>
+								<JobFailure>
+									<p data-testid="sheet-failed" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
+										<span>
+											<span className="text-ans-wrong">{agentName} couldn&apos;t finish that.</span> {view.error.text}
+										</span>
+										<button type="button" data-testid="sheet-retry" onClick={() => post({ action: "retry" })} className="lh-btn">
+											Try again
+										</button>
+									</p>
+								</JobFailure>
 							)}
 						</>
 					}
@@ -252,7 +256,7 @@ function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[
 	if (rules.length === 0) return null;
 	return (
 		<div data-testid="sheet-rules" className="flex shrink-0 flex-col gap-3.5">
-			<button type="button" data-testid="sheet-rules-toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lh-btn lh-btn-quiet lh-btn-small self-start">
+			<button type="button" data-testid="sheet-rules-toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="lh-btn lh-btn-quiet lh-btn-small lh-btn-flush self-start">
 				<PixelIcon name="chevron" className={cn("transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open && "rotate-90")} />
 				This sheet&apos;s rules ({rules.length})
 			</button>

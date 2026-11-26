@@ -1,6 +1,7 @@
 import { useContext, useRef, useState, type CSSProperties, type Ref, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { answeredKindLabel } from "@/frontend/components/answered-card-model";
+import { JobFailure } from "@/frontend/components/agent-setup/agent-card";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
 import { DEFAULT_TEACHER_NAME, DONT_KNOW, normalizeQuizType, questionKindLabel, type DockSelection, type findPendingToolCall, type ProblemChoices, type ProblemPieceText, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
@@ -13,7 +14,6 @@ import { EndNotes, NotesSaved } from "./end-notes";
 import { LessonBox } from "./lesson-box";
 import { HELP_LINES, lessonBox, lessonIdeas, questionTurn, type BoxAction, type BoxView } from "./lesson-box-model";
 import { OpenProblemPane, type ProblemPicks } from "./open-problem-pane";
-import { ProblemFile, type ProblemFileRef } from "./problem-file";
 import { problemFolded } from "./turn-fold-model";
 import { TurnScroll } from "./turn-scroll";
 import { TurnPlaceContext, TurnSlotsContext } from "./turn-place";
@@ -39,8 +39,8 @@ export interface YourTurnProps {
 	/** His answer to a question from earlier was refused: it was no longer due. */
 	reviewRefused: boolean;
 	/** The open problem, with its line ("Problem 2", practice only), for a listed problem the part
-	 *  the learner is on and the file it is from, and whether he has sent something since it opened. */
-	problem: { toolCallId: string; statement: string; piece: ProblemPieceText | null; choices: ProblemChoices | null; line: string | null; part: string | null; file: ProblemFileRef | null; sent: boolean } | null;
+	 *  the learner is on, and whether he has sent something since it opened. */
+	problem: { toolCallId: string; statement: string; piece: ProblemPieceText | null; choices: ProblemChoices | null; line: string | null; part: string | null; sent: boolean } | null;
 	/** What is picked among the open problem's choices. */
 	problemPicked: DockSelection;
 	onPickProblem: (picked: DockSelection) => void;
@@ -80,6 +80,8 @@ export interface YourTurnProps {
 
 const HELP_KEY = "lh-btn lh-btn-small lh-btn-quiet";
 const NO_SWITCHES: Readonly<Record<string, boolean>> = {};
+/** A plate held down while what it turns on shows. */
+const KEY_HELD = "text-ink [--lh-key:var(--lh-key-hover)]";
 
 /**
  * THE LEARNER'S TURN, there for the whole lesson once it has started
@@ -177,7 +179,6 @@ export function YourTurn({
 		? { choices: problem.choices, picked: problemPicked, onPick: onPickProblem, onLeaveRows: () => boxRef.current?.focus(), onEnter: canAct("send") ? onSend : null }
 		: null;
 
-	const fileShown = pending ? null : (problem?.file ?? null);
 	const fromEarlier = pending?.appPosed?.kind === "review";
 	const keptProblem = kept?.kind === "problem" ? kept : null;
 	const keptTag = kept?.kind === "question" ? answeredKindLabel(kept.answer) : null;
@@ -196,27 +197,29 @@ export function YourTurn({
 	const partRef = useRef<{ of: string; part: string | null } | null>(null);
 	if (problem) partRef.current = { of: problem.toolCallId, part: problem.part };
 	const shownPart = shownProblem && partRef.current?.of === shownProblem.toolCallId ? partRef.current.part : null;
-	const pieceShown = !pending && problem?.piece && pieceFailed !== problem.toolCallId;
+	const pieceShown = Boolean(!pending && problem?.piece && pieceFailed !== problem.toolCallId);
+	// The page as printed or in the theme's ink: a plate on the step line, held down while the page is white.
+	const printedKey = pieceShown && (
+		<button type="button" data-testid="piece-printed" aria-pressed={printed} onClick={() => setPrinted((on) => !on)} className={cn("lh-btn lh-btn-small", printed && KEY_HELD)}>
+			As printed
+		</button>
+	);
+	// Drawn to text, with no step line to stand on, the key stays with the problem.
+	const printedHere = pieceShown && !slots.task;
 	// A problem in words with no tag, pinned over the text, keeps its keys in its corner, so they take no line of their
 	// own. A page's piece keeps the whole width, which is what sets the size of its print.
-	const hasKeys = (folds && long) || fileShown !== null || Boolean(pieceShown);
+	const hasKeys = (folds && long) || printedHere;
 	// Outside the page's own text a problem lies on a plate, its keys in the plate's corner.
 	const plated = !pending && shownProblem !== null && place !== "under";
 	const corner = hasKeys && plated && !tag && !pieceShown;
 	const keys = (
-		// In a row with the tag the keys stay on its line while they fit: a file's name shortens before a key drops under it.
-		<div data-testid="turn-keys" className={cn("flex items-center justify-end gap-2", corner ? "flex-wrap" : cn("flex-1 basis-0", fileShown ? "min-w-[min(100%,19rem)]" : "min-w-fit"))}>
+		<div data-testid="turn-keys" className={cn("flex items-center justify-end gap-2", corner ? "flex-wrap" : "min-w-fit flex-1 basis-0")}>
 			{folds && long && (
 				<button type="button" data-testid="turn-whole" aria-expanded={!folded} onClick={() => setWholeChoice({ of: problem.toolCallId, whole: folded === true })} className="lh-btn lh-btn-small lh-btn-quiet">
 					{folded ? "Whole problem" : "Less"}
 				</button>
 			)}
-			{fileShown && <ProblemFile file={fileShown} />}
-			{pieceShown && (
-				<button type="button" data-testid="piece-printed" aria-pressed={printed} onClick={() => setPrinted((on) => !on)} className={cn("lh-btn lh-btn-small", printed ? "lh-btn-main" : "lh-btn-quiet")}>
-					As printed
-				</button>
-			)}
+			{printedHere && printedKey}
 		</div>
 	);
 	const nextLine = next?.next.line ?? null;
@@ -228,17 +231,19 @@ export function YourTurn({
 			{nextLine}
 		</p>
 	);
-	const stand = slots.closing ? "lh-fade" : slots.stepIn && "lh-block-in";
+	// Beside the text a problem glides in with its sheet (useLeftSlide) instead.
+	const stand = slots.closing ? "lh-fade" : slots.stepIn && place !== "left" && "lh-block-in";
 	const stood = { "data-state": slots.closing ? "closed" : "open", inert: slots.closing, style: { "--lh-block-delay": "240ms", "--lh-pale": pale } as CSSProperties };
 
 	const task = (
-		<aside ref={sheetRef} data-testid="turn-sheet" aria-label="Your turn" data-plate={plated || undefined} {...stood} className={cn("lh-turn-task flex min-h-0 min-w-0 flex-col", stand, empty && "hidden")}>
+		<aside ref={sheetRef} data-testid="turn-sheet" aria-label="Your turn" data-plate={plated || undefined} data-sheet={(plated && pieceShown) || undefined} {...stood} className={cn("lh-turn-task flex min-h-0 min-w-0 flex-col", stand, empty && "hidden")}>
 			<div data-testid="your-turn" data-mode={mode} className="flex min-h-0 flex-1 flex-col gap-5">
-				<TurnSwap key={place === "pinned" || place === "under" ? "column" : "page"} swapKey={empty ? "none" : swapKey}>
+				<TurnSwap key={place === "left" || place === "pinned" || place === "under" ? "column" : "page"} swapKey={empty ? "none" : swapKey}>
 					{empty ? null : (
 						<>
 							{(tag || (hasKeys && !corner)) && (
-								<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+								// On a plate that is the problem's page, edge to edge, the row keeps the plate's inset.
+								<div className={cn("flex flex-wrap items-center gap-x-4 gap-y-2", plated && pieceShown && "px-5 pt-4")}>
 									{tag && <h2 className="lh-kind">{tag}</h2>}
 									{hasKeys && !corner && keys}
 								</div>
@@ -299,14 +304,16 @@ export function YourTurn({
 	const row = (
 		<div data-testid="turn-row" {...stood} className={cn("lh-turn-row flex min-w-0 shrink-0 flex-col gap-3", stand)}>
 			{error && (
-				<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well px-4 py-3 text-base">
-					<span data-testid="lesson-error" title={error.detail} className="text-ans-wrong">
-						{error.text}
-					</span>
-					<button type="button" data-testid="lesson-error-retry" onClick={error.onRetry} className="lh-btn lh-btn-main lh-btn-small shrink-0">
-						Try again
-					</button>
-				</div>
+				<JobFailure>
+					<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well px-4 py-3 text-base">
+						<span data-testid="lesson-error" title={error.detail} className="text-ans-wrong">
+							{error.text}
+						</span>
+						<button type="button" data-testid="lesson-error-retry" onClick={error.onRetry} className="lh-btn lh-btn-main lh-btn-small shrink-0">
+							Try again
+						</button>
+					</div>
+				</JobFailure>
 			)}
 			{askError && (
 				<p role="alert" data-testid="notes-ask-error" className="text-[15px] text-ans-wrong">
@@ -367,6 +374,7 @@ export function YourTurn({
 			<>
 				{createPortal(task, slots.task)}
 				{createPortal(row, slots.row)}
+				{printedKey && slots.line && createPortal(printedKey, slots.line)}
 			</>
 		);
 	return (

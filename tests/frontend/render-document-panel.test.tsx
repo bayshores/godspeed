@@ -58,7 +58,7 @@ function mount(over: Partial<React.ComponentProps<typeof DocumentPanel>> = {}) {
 	const host = document.createElement("div");
 	document.body.appendChild(host);
 	root = createRoot(host);
-	act(() => root!.render(<DocumentPanel choices={[TEST]} shown={TEST} place={null} seq={0} there={false} onPick={() => {}} onRetry={() => {}} onClose={() => {}} {...over} />));
+	act(() => root!.render(<DocumentPanel choices={[TEST]} shown={TEST} place={null} there={false} onPick={() => {}} onRetry={() => {}} onClose={() => {}} {...over} />));
 	return host;
 }
 const q = (host: Element, id: string) => host.querySelector(`[data-testid='${id}']`);

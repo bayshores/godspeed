@@ -19,6 +19,9 @@ export const postAgentFolder = (body: object): Promise<FolderView> => changeFold
 /** The agent that runs the lessons, picked; the folder as it is then. */
 export const pickAgent = (agent: FolderAgent): Promise<FolderView> => changeFolder("PATCH", { agent });
 
+/** The model `agent`'s new lessons start on; null: the agent's own default. */
+export const pickModel = (agent: FolderAgent, model: string | null): Promise<FolderView> => changeFolder("PATCH", { model: { [agent]: model } });
+
 /** The agent an older godspeed kept in the window goes to the server once, with `pick`, and
  *  leaves the window; the server's is the only one from then on. A send that fails keeps it for
  *  the next start. */

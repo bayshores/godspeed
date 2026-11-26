@@ -51,8 +51,11 @@ async fn the_card_reads_the_checks_and_models_and_saves_a_model() {
 	let view = checked(port).await;
 	assert_eq!(
 		stringify(&view),
-		r#"{"agent":"claude","checking":false,"ownCommand":false,"checks":[{"check":"installed","state":"passed","fact":null},{"check":"node","state":"passed","fact":null},{"check":"upToDate","state":"passed","fact":null},{"check":"loggedIn","state":"passed","fact":null}],"failing":null,"login":null,"update":null}"#
+		r#"{"agent":"claude","checking":false,"ownCommand":false,"checks":[{"check":"installed","problem":null,"reason":null,"needs":null,"link":null,"state":"passed","fact":null},{"check":"node","problem":null,"reason":null,"needs":null,"link":null,"state":"passed","fact":null},{"check":"upToDate","problem":null,"reason":null,"needs":null,"link":null,"state":"passed","fact":null},{"check":"loggedIn","problem":null,"reason":null,"needs":null,"link":null,"state":"passed","fact":null}],"failing":null,"login":null,"update":null}"#
 	);
+	let (code, again) = call(port, "POST", "/api/agent/health", "").await;
+	assert_eq!((code, again["checking"].clone()), (200, Json::Bool(true)), "Check again starts a check");
+	checked(port).await;
 	let (code, models) = call(port, "GET", "/api/agent/models", "").await;
 	assert_eq!((code, stringify(&models)), (200, r#"{"agent":"claude","models":[{"id":"default","name":"Default (recommended)","default":true},{"id":"sonnet","name":"Sonnet 5.5","default":false}]}"#.to_owned()));
 

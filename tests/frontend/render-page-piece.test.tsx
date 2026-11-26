@@ -26,12 +26,12 @@ async function mounted(node: React.ReactNode, run: (host: HTMLElement, rerender:
 const images = (host: HTMLElement) => [...host.querySelectorAll("img")];
 
 describe("PagePiece", () => {
-	it("draws each part as its own picture, in the theme's ink at the snapped width, top to bottom", async () => {
+	it("draws each part as its own picture, in the theme's ink at the snapped width, top to bottom, with a line of the page above and under", async () => {
 		await mounted(<PagePiece piece={PIECE} text={PIECE_TEXT} />, (host) => {
 			const imgs = images(host);
 			assert.deepEqual(
 				imgs.map((i) => i.getAttribute("src")),
-				["/api/cited/f_123/page/2?crop=0.1,0.6,0.9,0.95&w=1440&ink=cfcfcf", "/api/cited/f_123/page/3?crop=0.1,0.05,0.9,0.5&w=1440&ink=cfcfcf"],
+				["/api/cited/f_123/page/2?crop=0.1,0.57,0.9,0.95&w=1440&ink=cfcfcf", "/api/cited/f_123/page/3?crop=0.1,0.05,0.9,0.53&w=1440&ink=cfcfcf"],
 			);
 			for (const img of imgs) {
 				assert.equal(img.getAttribute("alt"), "");
@@ -41,11 +41,21 @@ describe("PagePiece", () => {
 		});
 	});
 
-	it("keeps each part's room before its picture arrives, with no frame", async () => {
+	it("keeps each part's room before its picture arrives, with no frame and no gap: one sheet", async () => {
 		await mounted(<PagePiece piece={PIECE} text={PIECE_TEXT} />, (host) => {
 			const boxes = images(host).map((i) => i.parentElement!);
-			assert.match(boxes[0]!.getAttribute("style") ?? "", /aspect-ratio:\s*1\.7142/);
+			assert.match(boxes[0]!.getAttribute("style") ?? "", /aspect-ratio:\s*1\.5789/);
 			assert.doesNotMatch(host.innerHTML, /border|shadow|rounded/);
+			assert.doesNotMatch(host.querySelector('[data-testid="page-piece"]')!.className, /gap-/);
+		});
+	});
+
+	it("bars the problem's own lines in the margin, still, and not the lines around it", async () => {
+		await mounted(<PagePiece piece={PIECE} text="" part="b" />, (host) => {
+			const bars = [...host.querySelectorAll<HTMLElement>('[data-testid="piece-bar"]')];
+			assert.equal(bars.length, 2, "the stem on page 2, and (b) on page 3");
+			assert.ok(bars.every((bar) => /lh-read-mark lh-read-mark-still/.test(bar.className)));
+			assert.match(bars[1]!.getAttribute("style")!, /top:\s*20\.83/);
 		});
 	});
 
@@ -58,12 +68,14 @@ describe("PagePiece", () => {
 		});
 	});
 
-	it("asks for the page as printed, on white, with no ink", async () => {
+	it("asks for the page as printed, with no ink, on one sheet of white paper", async () => {
+		const sheet = (host: HTMLElement) => host.querySelector('[data-testid="page-piece"]')!.className;
 		await mounted(<PagePiece piece={PIECE} text="" printed />, (host) => {
 			assert.doesNotMatch(images(host)[0]!.getAttribute("src")!, /ink=/);
-			assert.match(images(host)[0]!.parentElement!.className, /bg-white/);
+			assert.match(sheet(host), /lh-printed/);
+			assert.doesNotMatch(host.innerHTML, /bg-white"[^>]*><img/, "no white strip of its own under a part");
 		});
-		await mounted(<PagePiece piece={PIECE} text="" />, (host) => assert.doesNotMatch(images(host)[0]!.parentElement!.className, /bg-white/));
+		await mounted(<PagePiece piece={PIECE} text="" />, (host) => assert.doesNotMatch(sheet(host), /lh-printed/));
 	});
 
 	it("draws the same picture quietly at 60 percent", async () => {
@@ -137,24 +149,39 @@ describe("PagePiece", () => {
 		});
 	});
 
+	it("as the whole page: each page from its top or to its foot, no fading edge, and it tells where the problem starts", async () => {
+		const placed: string[] = [];
+		await mounted(<PagePiece piece={PIECE} text="" whole onPlace={(start) => placed.push(start.style.top)} />, (host) => {
+			assert.deepEqual(
+				images(host).map((i) => i.getAttribute("src")),
+				["/api/cited/f_123/page/2?crop=0.1,0,0.9,0.95&w=1440&ink=cfcfcf", "/api/cited/f_123/page/3?crop=0.1,0.05,0.9,1&w=1440&ink=cfcfcf"],
+			);
+			assert.equal(host.querySelectorAll('[data-testid="piece-edge"]').length, 0);
+			assert.equal(host.querySelectorAll('[data-testid="piece-veil"]').length, 2, "the page over the problem and the page under it");
+			assert.equal(placed.length, 1);
+			assert.match(placed[0]!, /^63\.15/);
+		});
+	});
+
 	it("veils the parts the learner is not on and tells where the one they are on starts", async () => {
 		const placed: string[] = [];
 		const onPlace = (start: HTMLElement) => placed.push(start.style.top);
 		await mounted(<PagePiece piece={PIECE} text="" part="b" onPlace={onPlace} />, async (host, rerender) => {
 			const veilsOf = () => [...host.querySelectorAll<HTMLElement>('[data-testid="piece-veil"]')].map((v) => v.getAttribute("style"));
-			assert.equal(veilsOf().length, 3, "(a) over two parts and (c)");
-			assert.match(veilsOf()[0]!, /top:\s*57\.14/);
+			assert.equal(veilsOf().length, 4, "the line above, (a) over two parts, and (c) with the line under it");
+			assert.match(veilsOf()[0]!, /top:\s*0%/);
+			assert.match(veilsOf()[1]!, /top:\s*60\.52/);
 			assert.equal(placed.length, 1);
-			assert.match(placed[0]!, /^22\.2/);
+			assert.match(placed[0]!, /^20\.83/);
 			assert.equal(host.querySelectorAll("[data-part-current]").length, 1, "where the page under the lesson text rests");
 			assert.match(host.querySelector('[data-testid="piece-veil"]')!.className, /opacity-55 bg-\(--lh-sheet\)/);
 			await rerender(<PagePiece piece={structuredClone(PIECE)} text="" part="b" onPlace={onPlace} />);
 			assert.equal(placed.length, 1, "a rebuilt piece is not placed again");
 			await rerender(<PagePiece piece={PIECE} text="" part="a" onPlace={onPlace} />);
 			assert.equal(placed.length, 2);
-			assert.equal(veilsOf().length, 2, "(b) and (c)");
+			assert.equal(veilsOf().length, 2, "the line above, and (b) through (c) and the line under it as one veil");
 			await rerender(<PagePiece piece={PIECE} text="" part={null} onPlace={onPlace} />);
-			assert.equal(veilsOf().length, 0);
+			assert.equal(veilsOf().length, 2, "only the lines around the problem");
 			assert.equal(host.querySelector("[data-part-current]"), null);
 		});
 	});

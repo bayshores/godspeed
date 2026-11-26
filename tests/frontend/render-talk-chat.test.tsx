@@ -1,7 +1,8 @@
 /**
  * The teacher panel's chat: a new chat's "Try asking" and its Send, the writing row giving way on a
- * page with its own box, a chat's thread, the Chats list and the panel's head keys. The shared
- * thread is also drawn by the cheat sheet's chat (render-cheat-sheet.test.tsx).
+ * page with its own box, the setup line in the box's place while the agent can't run, a chat's
+ * thread, the Chats list and the panel's head keys. The shared thread is also drawn by the cheat
+ * sheet's chat (render-cheat-sheet.test.tsx).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -44,9 +45,29 @@ const { PanelChats } = await import("../../src/frontend/components/teacher/panel
 const { PanelHead } = await import("../../src/frontend/components/teacher/panel-head.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
+const { AgentFolderProvider } = await import("../../src/frontend/components/agent-folder/agent-folder-context.tsx");
+const { AgentSetupProvider } = await import("../../src/frontend/components/agent-setup/agent-setup-context.tsx");
 import type { TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 
 const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+/** The server's events the page listens to, and a way to fire one. */
+const listeners = new Map<string, (data: string) => void>();
+const events = () => ({ onEvent: (name: string, cb: (data: string) => void) => void listeners.set(name, cb), onOpen() {}, close() {} });
+const fire = (name: string) => act(async () => listeners.get(name)?.("{}"));
+
+const passed = (check: string, fact: string | null = null) => ({ check, state: "passed", fact, problem: null, reason: null, needs: null, link: null });
+const SIGNED_OUT = {
+	agent: "claude",
+	checking: false,
+	ownCommand: false,
+	checks: [passed("installed", "2.1.340"), passed("node", "22.1.0"), passed("upToDate"), { ...passed("loggedIn"), state: "failed", problem: "signedOut" }],
+	failing: { check: "loggedIn", problem: "signedOut", reason: null, needs: null, link: null },
+	login: null,
+	update: null,
+};
+const READY = { ...SIGNED_OUT, checks: [passed("installed", "2.1.340"), passed("node", "22.1.0"), passed("upToDate"), passed("loggedIn", "Max plan")], failing: null };
+/** What GET /api/agent/health answers. */
+let health: object = READY;
 
 type Sent = { url: string; method: string; body: Record<string, unknown> | null };
 let sent: Sent[] = [];
@@ -83,9 +104,12 @@ const realFetch = globalThis.fetch;
 beforeEach(() => {
 	sent = [];
 	makeChat = "ok";
+	health = READY;
 	globalThis.fetch = (async (url: string, init?: RequestInit) => {
 		sent.push({ url, method: init?.method ?? "GET", body: init?.body ? JSON.parse(String(init.body)) : null });
 		if (url === "/api/agent/models") return Response.json({ agent: "claude", models: MODELS });
+		if (url === "/api/agent/health") return Response.json(health);
+		if (url === "/api/agent-folder") return Response.json({ folder: "/home/ada/godspeed", short: "~/godspeed", exists: true, commands: { claude: "claude", codex: "codex" }, startCommands: {}, oldSetup: { plugin: false, codex: false }, agent: "claude", model: {} });
 		if (url === "/api/chats" && init?.method === "POST") return makeChat === "ok" ? Response.json({ id: "chat_new" }) : new Response("down", { status: 500 });
 		if (url === "/api/chats/chat_1") return Response.json(readChat);
 		return Response.json({});
@@ -112,7 +136,7 @@ const click = async (el: Element | null) => {
 };
 
 /** Shows `node` on the page at `path`; again with another node, the same tree is kept. */
-async function show(node: React.ReactNode, path = "/") {
+async function show(node: React.ReactNode, path = "/", connect: () => object = noEvents) {
 	if (!root) {
 		host = document.createElement("div");
 		document.body.appendChild(host);
@@ -121,7 +145,7 @@ async function show(node: React.ReactNode, path = "/") {
 	await act(async () =>
 		root!.render(
 			<MemoryRouter initialEntries={[path]}>
-				<ServerEventsProvider connect={noEvents as never}>{node}</ServerEventsProvider>
+				<ServerEventsProvider connect={connect as never}>{node}</ServerEventsProvider>
 			</MemoryRouter>,
 		),
 	);
@@ -201,6 +225,43 @@ describe("a new chat", () => {
 		assert.ok(q("teacher-thread"), "the chat is shown");
 		assert.doesNotMatch(q("talk-writing")!.className, /lh-fade/, "the row does not fade out and in");
 		assert.match(q("talk-ideas")!.className, /lh-fade/);
+	});
+});
+
+describe("while the agent can't run", () => {
+	const withSetup = () => (
+		<AgentFolderProvider>
+			<AgentSetupProvider>{chat()}</AgentSetupProvider>
+		</AgentFolderProvider>
+	);
+	const off = (testid: string) => q(testid)?.closest("[inert]") !== null;
+
+	it("the box's place says why, with the key that fixes it and the other agent; Try asking waits", async () => {
+		health = SIGNED_OUT;
+		await show(withSetup(), "/", events);
+		assert.match(q("panel-setup")?.textContent ?? "", /^Claude Code isn't logged in\.Log in/);
+		assert.match(q("panel-setup")!.querySelector('[data-testid="agent-key"]')!.className, /lh-btn-main/, "Log in is the one main key");
+		assert.equal(q("panel-setup-other")?.textContent, "Use Codex");
+		assert.ok(off("talk-try") && off("talk-writing"), "nothing to ask yet");
+		await click(q("panel-setup-other"));
+		assert.ok(sent.some((s) => s.method === "PATCH" && s.url === "/api/agent-folder" && s.body?.agent === "codex"), "the pick goes to the server");
+	});
+
+	it("once the agent can run, the line folds away and the box takes its place", async () => {
+		health = SIGNED_OUT;
+		await show(withSetup(), "/", events);
+		health = READY;
+		await fire("agent-health");
+		await act(() => new Promise((r) => setTimeout(r, 200)));
+		assert.equal(q("panel-setup"), null);
+		assert.ok(!off("talk-try") && !off("talk-writing"));
+	});
+
+	it("before the first check answers, neither the line nor the box shows", async () => {
+		health = { ...READY, checking: true, checks: READY.checks.map((c) => ({ ...c, state: "unchecked", fact: null })) };
+		await show(withSetup(), "/", events);
+		assert.equal(q("panel-setup"), null);
+		assert.ok(off("talk-writing"));
 	});
 });
 
@@ -397,7 +458,7 @@ describe("the panel's head keys", () => {
 	const head = (props: Partial<React.ComponentProps<typeof PanelHead>>) =>
 		renderToStaticMarkup(
 			<MemoryRouter>
-				<PanelHead name="Ada" working={false} elsewhere={false} list={null} popOut={null} putBack={null} {...props} />
+				<PanelHead name="Ada" working={false} elsewhere={false} list={null} popOut={null} putBack={null} blocked={false} {...props} />
 			</MemoryRouter>,
 		);
 

@@ -20,6 +20,8 @@ const WEB_SOURCE = "[[https://example.com/lab-algebra/linear-equations]]";
 
 /** A teacher panel chat's message with these words holds its turn in the stand-in helper. */
 export const TALK_HOLDS = "run my slope checker";
+/** A lesson line with these words holds its turn in the stand-in helper, in whichever session it comes. */
+export const PRINTED_HOLDS = "The loop ends because i grows each time.";
 /** A teacher panel chat message with these words is the teacher's round of work that Follow's slip shows (layout-helper.mjs). */
 export const TALK_ROUND = "Update Lab Algebra";
 

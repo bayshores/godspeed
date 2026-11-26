@@ -76,11 +76,12 @@ To add a row:
 | Open a cheat sheet | Deadline, a lesson | `deadline-cheat-sheet` | | learner | `space/deadline/:id/cheat-sheet` |
 | Cheat sheet beside a lesson | Lesson | `lesson-cheat-sheet` | Lesson with a quiz and the cheat sheet docked | learner | |
 | Write to the teacher in a lesson, in the writing row at the window's foot: a question, or while it writes, what to focus on, with Stop at the row's end | Lesson | `composer` | | learner | |
-| The desk: while the teacher works on a reply, in the lesson text with no box, one sentence on what it does, its steps (its own web searches and file reads too) and the page of the file it reads as a sheet of paper | Lesson | `agent-at-work` | Lesson whose first reply the teacher works on | learner | |
+| The desk: while the teacher works on a reply, in the lesson text with no box, one sentence on what it does, its steps (its own web searches and file reads too) and the page of the file it reads as a sheet of paper, with no paper of its own while the open problem's sheet is on the page | Lesson | `agent-at-work` | Lesson whose first reply the teacher works on | learner | |
 | The teacher's reply, written into the lesson as it comes | Lesson | `composer` | | learner | |
 | Allow or Deny what the teacher wants to run (a command, a file change, a web page), on a card on the desk, or under a cheat sheet's working line while the teacher works on it | Lesson; Cheat sheet | `agent-at-work` | Lesson whose first reply the teacher works on | teacher | |
 | Stuck keys, over the writing row while a question or problem waits | Lesson | `help-hint` | | learner | |
-| Whole problem: a long problem pinned over the lesson text in a narrow window folds, and one key on its plate opens it and folds it again | Lesson | `turn-whole` | Lesson with a long problem folded over the text | learner | |
+| As printed: a problem shown as its PDF page turns into the page's own white paper, at the end of the step line | Lesson | `piece-printed` | Homework lesson with a problem's page as printed | learner | |
+| Whole problem: a long problem pinned over the lesson text in a room under 1000 points wide folds, and one key on its plate opens it and folds it again | Lesson | `turn-whole` | Lesson with a long problem folded over the text | learner | |
 | A figure the teacher draws under its reply, in the theme's colors ("Draw it" asks for one) | Lesson | `lesson-idea` | Homework lesson with a figure under the method | teacher | |
 | Answer a question with the keyboard | Lesson | `question-option` | | learner | `question-focus`, `question-next-row`, `question-prev-row`, `question-pick-row`, `question-submit`, `question-pick-number` |
 | Rename a lesson | Lesson | `lesson-title` | Lesson with a 40-letter title among five open spaces | learner | `rename-session` |
@@ -93,7 +94,6 @@ To add a row:
 | Calculator | Any writing box | `menu-shortcuts` | Home, the keyboard shortcuts list | learner | `calculator-keep` |
 | A plugin's lesson word and space tab | Lesson, space tabs | `plugins-add` | Settings, Plugins, Add | learner | `space/plugin/:id` |
 | Teacher's strip | Right edge | `strip` | | learner | |
-| Start the teacher | Onboarding, the teacher step | `open-agent` | | learner | |
 | Chat with the teacher outside lessons: its reply written as it comes, its steps and Allow cards in the chat, Stop by Send | Teacher panel | `talk-try` | Teacher chat, a new chat | learner | |
 | A chat's model, by Send | Teacher panel | `talk-model` | Teacher chat, its model list | learner | |
 | On a lesson or cheat sheet page, the panel says to type in the page's box, with Stop while the teacher writes | Teacher panel | `talk-gives-way` | Teacher's panel beside a lesson | learner | |
@@ -102,14 +102,18 @@ To add a row:
 | Pop out the teacher's chat into its own window, and Put back | Teacher panel | `teacher-panel-pop-out` | | learner | `terminal-window` |
 | Try asking | Teacher panel | `talk-try` | | learner | |
 | Everything the teacher can do | Teacher panel | `talk-all-ideas` | | learner | |
-| Attach or paste into the teacher's screen | Onboarding, the first run's terminal | `terminal-attach` | | learner | |
 | Activity and graph costs | Teacher panel | `teacher-panel-activity` | Teacher's Activity | learner | |
 | Saved rules | Settings, Teaching | `area-detail` | | learner | `save_rule` |
 | Delete a remembered note | Settings, Teaching | `remembered-notes` | | learner | `forget` |
 | Notes in Obsidian or a notes folder | Settings, General; Progress; lesson end; Graph | `vault-pick` | Settings, General | teacher | `write_vault_note`, `search_vault` |
 | Add a remembered note | Settings, Teaching | none: only the teacher adds one; you can only delete | | teacher | `remember` |
 | Settings | Menu | `settings-entry` | | learner | `settings`, `open-settings` |
-| Teacher name and sounds | Settings, General | `teacher-name-row` | Settings, General | learner | |
+| Pick the teacher's agent and model, and see whether it can teach | Settings, Teacher; onboarding | `agent-card` | Settings, Teacher | learner | |
+| While the agent can't run, the panel's box place says why, with the key that fixes it and the other agent | Teacher panel | `panel-setup` | Teacher's panel while the agent isn't logged in | learner | |
+| Log in to the agent | Settings, Teacher, and the card wherever it shows | `agent-row-account` | Settings, Teacher, logged out | learner | |
+| Update the agent | Settings, Teacher, and the card wherever it shows | `agent-row-version` | Settings, Teacher, too old | learner | |
+| Teacher name | Settings, Teacher | `teacher-name-row` | Settings, Teacher | learner | |
+| Sounds | Settings, General | `group-sounds` | Settings, General | learner | |
 | Noise: soft brown noise to study to, on and off with one word, hidden while Sounds is off | Top bar | `noise-word` | Home with Sounds on, Noise in the top bar | learner | |
 | Deadline reminders | Settings, General | `deadline-reminders-row` | | learner | |
 | Menu bar countdown | Settings, General | `menu-bar-countdown-row` | | learner | |
@@ -125,7 +129,7 @@ To add a row:
 | Edit full instructions | Settings, Teaching | `area-detail` | | learner | |
 | Web search key | Settings, Teaching | `web-search` | | learner | |
 | Access token | Settings, Connection | `agent-token` | | learner | |
-| Teacher folder and start command | Settings, Connection | `agent-folder-change` | | learner | |
+| Teacher folder and start command | Settings, Teacher | `agent-folder-change` | | learner | |
 | Welcome screen | First launch | `welcome-go` | | learner | |
 | Onboarding | First launch | `onboarding-intro` | Onboarding | learner | |
 | Page magnifier | Any page | `menu-shortcuts` | Home, the keyboard shortcuts list | learner | `page-magnify` |

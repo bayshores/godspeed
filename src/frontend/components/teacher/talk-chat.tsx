@@ -19,6 +19,7 @@ import { visibleQueuedSteers } from "@/frontend/components/session-core";
 import { getJson, jsonInit, send } from "@/frontend/lib/api";
 import { cn } from "@/frontend/lib/utils";
 import { ModelKey } from "./model-key";
+import { SetupFoot, useAskable } from "./setup-foot";
 import { everything, startersFor, type BoxPage, type IdeaGroup } from "./starter-model";
 import { readEarlier, talkError, talkLines } from "./talk-model";
 import { TeacherThread, type ThreadLine } from "./teacher-thread";
@@ -40,7 +41,8 @@ type Asking = { line: string; clear: () => void } | null;
  * (TeacherThread), the desk while a reply is written, and the writing row pinned at the foot: the
  * box, then Ideas, the chat's model, Stop and Send on their own line. On a page with its own box
  * (`page`) the writing row gives way to one quiet line, with Stop beside it while a reply runs; the
- * box's words and files are kept.
+ * box's words and files are kept. While the agent can't run, the setup line stands in the writing
+ * row's place (SetupFoot) and "Try asking" waits, dim.
  */
 export function TalkChatView({ chatId, chat, onChat, name, page, ask, focus }: {
 	chatId: string | null;
@@ -101,6 +103,7 @@ function NewChat({ name, page, box, ask, model, onModel, focus, onMade }: RoomPr
 	const facts = useIdeaFacts();
 	const starters = startersFor(facts);
 	const groups = useMemo(() => everything(facts), [facts]);
+	const off = useAskable() !== true;
 	const [failed, setFailed] = useState<string | null>(null);
 	const sending = useRef(false);
 	const make = async (input: TextInput, restore: () => void) => {
@@ -136,7 +139,7 @@ function NewChat({ name, page, box, ask, model, onModel, focus, onMade }: RoomPr
 	});
 	return (
 		<Room
-			body={<TryAsking starters={starters} groups={groups} onSend={sendLine} />}
+			body={<TryAsking starters={starters} groups={groups} off={off} onSend={sendLine} />}
 			foot={
 				<WritingRow name={name} page={page} box={box} focus={focus} busy={false} error={failed ? { text: failed, onRetry: null } : null} ideas={null} made={false} model={<ModelKeyFor model={model} onModel={onModel} />} onSend={sendBox} onLine={sendLine} onStop={null} />
 			}
@@ -300,7 +303,7 @@ function Room({ body, over, foot, scroller }: { body: ReactNode; over?: ReactNod
 				{body}
 			</div>
 			{over}
-			{foot}
+			<SetupFoot>{foot}</SetupFoot>
 		</div>
 	);
 }

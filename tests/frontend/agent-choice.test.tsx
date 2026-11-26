@@ -1,6 +1,6 @@
 /**
  * The agent that runs the lessons is kept on the server: the agent an older godspeed kept in the
- * window goes there once and leaves the window, and a pick in "Use another agent" goes there too.
+ * window goes there once and leaves the window. (The setup card's pick: render-agent-card.test.tsx.)
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -13,7 +13,7 @@ const dom = parseHTML("<!doctype html><html><body></body></html>");
 Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element, HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true });
 
 const { AgentFolderProvider } = await import("../../src/frontend/components/agent-folder/agent-folder-context.tsx");
-const { useAgentChoice } = await import("../../src/frontend/components/agent-folder/use-agent-folder.ts");
+const { useAgentFolderView } = await import("../../src/frontend/components/agent-folder/agent-folder-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 
 const KEY = "lh-folder-agent";
@@ -57,11 +57,11 @@ afterEach(() => {
 
 const settle = () => act(() => new Promise((done) => setTimeout(done, 20)));
 
-/** The agent choice as "Use another agent" holds it, in the window's folder provider. */
-async function withChoice(run: (choice: () => ReturnType<typeof useAgentChoice>) => Promise<void>) {
-	let current: ReturnType<typeof useAgentChoice> | null = null;
+/** The agent the window shows as picked (Claude Code before a pick), in the window's folder provider. */
+async function withChoice(run: (picked: () => string) => Promise<void>) {
+	let current = "claude";
 	function Probe() {
-		current = useAgentChoice();
+		current = useAgentFolderView().view?.agent ?? "claude";
 		return null;
 	}
 	const host = document.createElement("div");
@@ -78,7 +78,7 @@ async function withChoice(run: (choice: () => ReturnType<typeof useAgentChoice>)
 			),
 		);
 		await settle();
-		await run(() => current!);
+		await run(() => current);
 	} finally {
 		await act(async () => root.unmount());
 		host.remove();
@@ -91,7 +91,7 @@ describe("the agent that runs the lessons", () => {
 		await withChoice(async (choice) => {
 			assert.deepEqual(picks, [{ agent: "codex" }]);
 			assert.equal(stored.has(KEY), false, "the window no longer keeps it");
-			assert.equal(choice()[0], "codex", "the server's agent is the one picked");
+			assert.equal(choice(), "codex", "the server's agent is the one picked");
 		});
 		await withChoice(async () => {
 			assert.deepEqual(picks, [{ agent: "codex" }], "a later start sends nothing");
@@ -104,7 +104,7 @@ describe("the agent that runs the lessons", () => {
 		await withChoice(async (choice) => {
 			assert.deepEqual(picks, [{ agent: "codex" }]);
 			assert.equal(stored.get(KEY), "codex");
-			assert.equal(choice()[0], "claude", "the server's agent shows");
+			assert.equal(choice(), "claude", "the server's agent shows");
 			assert.match(String(logged[0]?.[0]), /\[agent folder\]/);
 		});
 	});
@@ -114,26 +114,6 @@ describe("the agent that runs the lessons", () => {
 		await withChoice(async () => {
 			assert.deepEqual(picks, []);
 			assert.equal(stored.has(KEY), false);
-		});
-	});
-
-	it("a pick goes to the server, also of Claude Code before any pick; Other app stays in this window", async () => {
-		await withChoice(async (choice) => {
-			assert.equal(choice()[0], "claude", "Claude Code shows before a pick, as lessons run on it");
-			await act(async () => choice()[1]("claude"));
-			await settle();
-			assert.deepEqual(picks, [{ agent: "claude" }], "picked now");
-			picks.length = 0;
-			await act(async () => choice()[1]("codex"));
-			await settle();
-			assert.deepEqual(picks, [{ agent: "codex" }]);
-			assert.equal(choice()[0], "codex");
-			await act(async () => choice()[1]("other"));
-			assert.equal(choice()[0], "other");
-			await act(async () => choice()[1]("codex"));
-			await settle();
-			assert.deepEqual(picks, [{ agent: "codex" }], "the agent it already keeps is not sent again");
-			assert.equal(choice()[0], "codex");
 		});
 	});
 });

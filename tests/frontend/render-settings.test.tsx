@@ -45,7 +45,7 @@ describe("the Settings page (SSR)", () => {
 		assert.ok(!html.includes('role="dialog"'));
 		assert.ok(!html.includes("settings-close"), "nothing to close");
 		const ids = [...html.matchAll(/data-testid="settings-nav-(\w+)"/g)].map((m) => m[1]);
-		assert.deepEqual(ids, ["general", "appearance", "teaching", "plugins", "connection"], "no Keyboard tab");
+		assert.deepEqual(ids, ["general", "appearance", "teaching", "plugins", "teacher", "connection"], "no Keyboard tab");
 		assert.ok(tagOf(html, "settings-nav-general").includes('aria-current="true"'));
 		assert.ok(tagOf(html, "settings-nav-connection").includes('aria-current="false"'));
 		// Fetches don't run under SSR: the loading state is the SSR state.
@@ -159,9 +159,10 @@ describe("GeneralSection (SSR)", () => {
 			</UpdateStateProvider>,
 		);
 
-	it("teacher name and sounds, with no sliders and no graph switch", () => {
+	it("sounds, with no teacher name (it is in Teacher), no sliders and no graph switch", () => {
 		const html = render({ version: 1 });
-		assert.ok(tagOf(html, "teacher-name").includes('placeholder="Teacher"'));
+		assert.ok(html.includes('data-testid="group-sounds"'));
+		assert.ok(!html.includes('data-testid="teacher-name"'));
 		assert.doesNotMatch(html, /slider-|Summarize long lessons|Add to the graph|toggle-build-the-graph/);
 	});
 

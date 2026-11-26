@@ -1,4 +1,4 @@
-import { TALK_HOLDS, TALK_ROUND, WAITING_TOPIC } from "./layout-lessons.mjs";
+import { PRINTED_HOLDS, TALK_HOLDS, TALK_ROUND, WAITING_TOPIC } from "./layout-lessons.mjs";
 
 /**
  * layout-screens.mjs — the screens `npm run layout` checks, in order.
@@ -9,7 +9,8 @@ import { TALK_HOLDS, TALK_ROUND, WAITING_TOPIC } from "./layout-lessons.mjs";
  * teacher's round of work `change` a space and be `done` (layout-helper.mjs). `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `height` gives it a window higher than the
  * check's own. `before` runs in the page first, on the screen
- * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
+ * before it, for a change of data; it stays for the screens after it. `agent` puts the stand-in agent
+ * in a state for the setup card's checks ("signed-out", "old", or "missing"), for that screen only. `{space}`, `{lesson}`,
  * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, `{codeWrite}`, the lessons that stand at a state of "Your turn" `{explained}`, `{quizAnswered}`, `{concluded}`, `{skipped}`, `{discarded}` and `{lastTopic}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
@@ -145,6 +146,16 @@ const waitingLesson = `/chat/{pending}?prompt=${encodeURIComponent(WAITING_TOPIC
 const turnRuns = "[data-testid=stop-turn]";
 /** The desk in that lesson's text while the teacher works on its reply. */
 const deskUp = "[data-testid=agent-at-work]";
+/** A line the learner sends in the printed homework, whose turn the stand-in helper holds. */
+const printedLine = `await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: "{homeworkPrinted}", input: { type: "text", text: ${JSON.stringify(PRINTED_HOLDS)} } }) })${HTTP_OK};`;
+/** That turn stopped, so no teacher holds it for the screens after it. */
+const dropPrintedLine = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{homeworkPrinted}" }) });`;
+/** Waits, up to 10 s, until that turn has ended, so a line sent after it starts a turn of its own. */
+const printedTurnEnded = `for (let n = 0; n < 100; n++) {
+	const { turnInFlight } = await fetch("/api/chats/{homeworkPrinted}")${HTTP_OK}.then((r) => r.json());
+	if (!turnInFlight) break;
+	${pause};
+}`;
 /** That lesson's reply stopped (a screen before may have stopped it already) and the lesson deleted, so the screens after it are as before. A
  *  lesson can't be deleted while its turn runs, so the delete is tried until the stop has ended it. */
 const dropWaitingLesson = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{pending}" }) });
@@ -383,7 +394,7 @@ Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(bo
 box.dispatchEvent(new Event("input", { bubbles: true })); ${pause}`,
 		shows: "[data-testid=session-find-count]:not(:empty)",
 	},
-	{ name: "Homework lesson with a three-part problem on part (b)", url: "/chat/{homeworkOpen}", ready: "[data-part-current] ~ [data-part-head=c][aria-expanded=false]", shows: "[data-testid=lesson-assignment]" },
+	{ name: "Homework lesson with a three-part problem on part (b)", url: "/chat/{homeworkOpen}", ready: "[data-part-current] ~ [data-part-head=c][aria-expanded=false]", shows: "[data-testid=turn-sheet][data-plate] [data-part-current]" },
 	{
 		name: "Homework lesson with a folded part opened",
 		url: "/chat/{homeworkOpen}",
@@ -482,6 +493,35 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	// A Lab Algebra lesson: the panel's box gives way to the lesson's. Opening it also makes Lab Algebra the active space again for the Progress screens below.
 	{ name: "Teacher's panel beside a lesson", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=talk-gives-way]" },
 	{ name: "Teacher's Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`, shows: "[data-testid=teacher-panel-list] [data-testid=activity-list] > *" },
+	{
+		name: "Settings, Teacher",
+		url: "/settings?section=teacher",
+		ready: "[data-testid=agent-card] [data-testid=agent-model-select]",
+		shows: "[data-testid=group-teacher]:has([data-testid=teacher-name-row]) [data-testid=agent-folder-path]",
+	},
+	{ name: "Settings, Teacher, logged out", agent: "signed-out", url: "/settings?section=teacher", ready: "[data-testid=agent-row-account][data-mark=need] [data-testid=agent-key]" },
+	{
+		name: "Settings, Teacher, logging in with the code field",
+		agent: "signed-out",
+		url: "/settings?section=teacher",
+		ready: "[data-testid=agent-row-account][data-mark=need] [data-testid=agent-key]",
+		setup: `document.querySelector("[data-testid=agent-row-account] [data-testid=agent-key]").click()`,
+		shows: "[data-testid=agent-row-account][data-mark=wait] [data-testid=agent-login-code]",
+	},
+	{ name: "Settings, Teacher, too old", agent: "old", url: "/settings?section=teacher", ready: "[data-testid=agent-row-version][data-mark=need] [data-testid=agent-key]" },
+	{ name: "Settings, Teacher, not installed", agent: "missing", url: "/settings?section=teacher", ready: "[data-testid=agent-row-version][data-mark=need] [data-testid=agent-key]" },
+	// While the agent can't run, the writing row's place says why, with the key that fixes it.
+	{ name: "Teacher's panel while the agent isn't logged in", agent: "signed-out", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=panel-setup][data-state=open] [data-testid=agent-compact] [data-testid=agent-key]" },
+	{
+		name: "Teacher's panel while logging in with the code field",
+		agent: "signed-out",
+		url: "/",
+		ready: deadlineCard,
+		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=panel-setup] [data-testid=agent-key]").click()`,
+		shows: "[data-testid=panel-setup] [data-testid=agent-compact] [data-testid=agent-login-code]",
+	},
+	{ name: "Teacher's panel while the agent is too old", agent: "old", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=panel-setup][data-state=open] [data-testid=agent-compact] [data-testid=agent-key]" },
+	{ name: "Home, the strip's peek while the agent isn't logged in", agent: "signed-out", url: "/", ready: deadlineCard, setup: peekOut, shows: peekShown },
 	{ name: "Settings, Connection", url: "/settings?section=connection", ready: "[data-testid=agent-status]" },
 	{ name: "Settings, Teaching", url: "/settings?section=teaching", ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)" },
 	{ name: "Settings, Plugins", url: "/settings?section=plugins", ready: "[data-testid=plugins-list]" },
@@ -500,7 +540,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	},
 	{ name: "Settings, Appearance", url: "/settings?section=appearance", ready: "[data-testid=appearance-preview]" },
 	{ name: "Settings, Appearance, the font list", url: "/settings?section=appearance", ready: "[data-testid=font-trigger]", setup: `document.querySelector("[data-testid=font-trigger]").click()`, shows: "[data-testid=font-menu][data-state=open] [data-testid=font-option-default]" },
-	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]", shows: "[data-testid=group-vault] [data-testid=vault-pick]" },
+	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=group-sounds]", shows: "[data-testid=group-vault] [data-testid=vault-pick]" },
 	{
 		name: "Settings, General, an Obsidian vault picked",
 		before: `await fetch("/api/vault", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: "{vault}" }) })${HTTP_OK};`,
@@ -585,10 +625,45 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		helper: "stream",
 		shows: "[data-turn-wrote] [data-testid=agent-at-work]",
 	},
-	// The waiting lesson's held reply ends first, so the panel chat's held reply below is the only one the stand-in's desk requests reach.
+	// The waiting lesson's held reply ends first, so the printed homework's held reply below is the only one the stand-in's desk requests reach.
+	// A line sent beside the problem's page: the desk lists the steps on the writing row's side and lays no paper of its own.
+	{
+		name: "Homework lesson with a problem's page while the teacher works",
+		before: `${dropWaitingLesson}\n${printedLine}`,
+		url: "/chat/{homeworkPrinted}",
+		ready: "[data-testid=page-piece] img",
+		helper: "read",
+		shows: `${deskUp} [data-testid=desk-plan] li`,
+	},
+	// It asks to run a command: its card waits under the desk's steps for Deny or Allow.
+	{
+		name: "Homework lesson with a problem's page, a card waiting",
+		url: "/chat/{homeworkPrinted}",
+		ready: "[data-testid=page-piece] img",
+		helper: "approve",
+		shows: "[data-testid=desk-approvals] [data-testid=approval-subject]",
+	},
+	// Allow is pressed; it writes the reply's first sentence and reads a file, so the desk comes back under the live words.
+	{
+		name: "Homework lesson with a problem's page, a reply being written",
+		url: "/chat/{homeworkPrinted}",
+		ready: "[data-testid=page-piece] img",
+		setup: `${whenThere("[data-testid=approval-allow]")}; document.querySelector("[data-testid=approval-allow]")?.click(); for (let n = 0; n < 100 && document.querySelector("[data-testid=approval-card]"); n++) ${pause}`,
+		helper: "stream",
+		shows: `[data-turn-wrote] ${deskUp}`,
+	},
+	// That reply stopped, a line sent while the agent isn't logged in: the turn fails, and the writing row says why with the key that fixes it.
+	// The panel chat's held reply below is then the only one the stand-in's desk requests reach.
+	{
+		name: "Homework lesson with a problem's page while the agent isn't logged in",
+		agent: "signed-out",
+		before: `${dropPrintedLine}\n${printedTurnEnded}\n${printedLine}`,
+		url: "/chat/{homeworkPrinted}",
+		ready: "[data-testid=page-piece] img",
+		shows: "[data-testid=turn-row] [data-testid=agent-compact] [data-testid=agent-key]",
+	},
 	{
 		name: "Teacher chat, all ideas",
-		before: dropWaitingLesson,
 		url: "/",
 		ready: deadlineCard,
 		setup: `${openTeacher}; ${whenThere("[data-testid=talk-all-ideas]")}; document.querySelector("[data-testid=talk-all-ideas]").click()`,
@@ -731,5 +806,12 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		before: `${dropGapSpace}; ${dropLateHomework}; const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, onboarded: false }) })${HTTP_OK}`,
 		url: "/",
 		ready: "[data-testid=onboarding-intro]",
+	},
+	{
+		name: "Onboarding, Your teacher",
+		url: "/",
+		ready: "[data-testid=onboarding-start]",
+		setup: `document.querySelector("[data-testid=onboarding-start]").click()`,
+		shows: "[data-testid=agent-card] [data-testid=agent-model-select]",
 	},
 ];

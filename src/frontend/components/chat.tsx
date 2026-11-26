@@ -74,7 +74,7 @@ import { SheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
 import { useLessonDock } from "@/frontend/components/lesson/lesson-dock";
 import { openPanel, type DockPanelKind } from "@/frontend/components/lesson/lesson-dock-model";
 import { DocumentPanel } from "@/frontend/components/lesson/document-panel";
-import { documentChoices, problemDocument, problemPlace, shownDocument } from "@/frontend/components/lesson/document-model";
+import { documentChoices, problemPlace, shownDocument } from "@/frontend/components/lesson/document-model";
 import { useLessonDocuments } from "@/frontend/components/lesson/use-lesson-documents";
 import { lessonPluginContext } from "@/frontend/components/lesson/lesson-plugins-model";
 import { PluginWindow } from "@/frontend/components/lesson/plugin-window";
@@ -438,7 +438,6 @@ export function Chat({
 	const documents = docView?.documents ?? null;
 	const shownDoc = shownDocument(documents ?? [], lessonDock.state.fileId);
 	const docChoices = documentChoices(documents ?? []);
-	const [docSeq, setDocSeq] = useState(0);
 	// A remembered Document panel whose files all left the space closes.
 	const docGone = documents !== null && shownDoc === null && lessonDock.state.panel === "document";
 	const { update: updateDock } = lessonDock;
@@ -493,12 +492,6 @@ export function Chat({
 	const problemPiece = useMemo(() => (activeProblem ? problemPieceOf(activeProblem.details) : null), [activeProblem]);
 	const listFileId = docView?.listFileId ?? null;
 	const place = useStableValue(activeProblem ? problemPlace(problemPiece?.piece ?? null, openProblem?.page, listFileId) : null);
-	const placeDoc = problemDocument(documents ?? [], place, openProblem ? listFileId : null);
-	const showProblem = () => {
-		setPluginId(null);
-		updateDock({ panel: "document", ...(place ? { fileId: place.fileId } : {}) });
-		setDocSeq((n) => n + 1);
-	};
 	const problem = activeProblem && {
 		toolCallId: activeProblem.toolCallId,
 		statement: problemStatementOf(activeProblem.input, activeProblem.details),
@@ -506,7 +499,6 @@ export function Chat({
 		choices: problemChoices,
 		line: !openProblem && practice ? `Problem ${practice.blocks.length}` : null,
 		part: openProblem ? (problems?.part ?? null) : null,
-		file: placeDoc ? { document: placeDoc, page: place?.page, first: placeDoc.id === listFileId, onShow: showProblem } : null,
 		sent: activeProblem.sent,
 	};
 
@@ -539,6 +531,8 @@ export function Chat({
 	// While it is shut and the teacher works, a task that streams in waits for the reply to land.
 	const turnPending = open || pending?.appPosed?.kind === "review" ? pending : null;
 	const turnProblem = open ? problem : null;
+	// The open problem shows on the page, unless a question asked while it is open stands in its place.
+	const problemShown = turnProblem !== null && turnPending === null;
 	// Where the page last laid "Your turn" out: only beside the text or alone does it keep the finished task,
 	// and the lesson's notes take its place there when they come.
 	const [turnPlace, setTurnPlace] = useState<TurnPlace>("under");
@@ -610,7 +604,7 @@ export function Chat({
 									shutting={book.shutting}
 									onShut={book.shut}
 									onRest={book.rest}
-									pin={turnProblem !== null && turnPending === null}
+									pin={problemShown}
 									place={turnPlace}
 									onPlace={setTurnPlace}
 									reading={
@@ -626,6 +620,7 @@ export function Chat({
 											busy={busy}
 											stoppedEmpty={stoppedEmpty}
 											work={work}
+											problemSheet={problemShown}
 											queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
 											arrivalsLive={arrivalsLive}
 											pageMarks={pageMarks}
@@ -677,7 +672,6 @@ export function Chat({
 												choices={docChoices}
 												shown={shownDoc}
 												place={place}
-												seq={docSeq}
 												there={dockThere}
 												onPick={(id) => updateDock({ fileId: id })}
 												onRetry={() => void reloadDocuments()}
