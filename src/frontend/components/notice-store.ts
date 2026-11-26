@@ -34,7 +34,7 @@ const EMPTY: NoticeState = {
 
 let notices: Notice[] = [];
 let open = false;
-/** The teacher's panel is open where the cards hang. */
+/** The teacher's panel is open where the cards hang, or a lesson is, whose step line they would lie over. */
 let covered = false;
 /** Since when the peek is held; null while it is not. */
 let heldSince: number | null = null;
@@ -70,7 +70,7 @@ export function setNoticesOpen(next: boolean) {
 	update();
 }
 
-/** The teacher's panel opened where the peek shows (or closed): while it is open no card shows by itself. */
+/** The teacher's panel or a lesson opened where the peek shows (or closed): meanwhile no card shows by itself. */
 export function coverNotices(next: boolean) {
 	if (covered === next) return;
 	covered = next;

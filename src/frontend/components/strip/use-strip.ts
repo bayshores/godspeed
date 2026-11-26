@@ -56,11 +56,12 @@ export function useStrip() {
 	const status = useMemo(() => (panelOpen ? null : teacherHead({ agent, name, doing, facts: teacherFacts })), [panelOpen, agent, name, doing, teacherFacts]);
 	const due = useMemo(() => (deadlines && minute !== null ? dueSoon(deadlines, minute, pathname) : null), [deadlines, minute, pathname]);
 
-	// No card shows by itself over the open panel's head: it waits in the strip's count.
+	// No card shows by itself over the open panel's head or the lesson's step line: it waits in the strip's count.
+	const inLesson = pathname.startsWith("/chat/");
 	useEffect(() => {
-		coverNotices(panelOpen);
+		coverNotices(panelOpen || inLesson);
 		return () => coverNotices(false);
-	}, [panelOpen]);
+	}, [panelOpen, inLesson]);
 	// Another page: the peek tucks back and the notices fold. So does leaving the app frame.
 	useEffect(
 		() => () => {
@@ -140,7 +141,7 @@ export function useStrip() {
 		click,
 		showHelper,
 		openLesson,
-		inLesson: pathname.startsWith("/chat/"),
+		inLesson,
 	};
 }
 
