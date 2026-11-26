@@ -8,7 +8,7 @@
  * Status vocabulary: ready | submitted | streaming | error.
  */
 
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef } from "react";
 import { reuseUnchangedMessages, type ChatAttachment, type ChatInput, type KeptPart, type LhMessage, type QuestionAnswerData } from "@/shared/core";
 import { SessionModel, type SessionState } from "@/frontend/components/session-core";
 
@@ -44,7 +44,8 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 	// into the next animation frame. Every other change (status flips,
 	// sends, errors, settle) redraws at once and carries any pending
 	// update with it. The timer covers hidden windows, where frames pause.
-	useEffect(() => {
+	// Attached before paint, so a send made as the chat is first drawn shows in that first drawing.
+	useLayoutEffect(() => {
 		let frame = 0;
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		const flush = () => {
