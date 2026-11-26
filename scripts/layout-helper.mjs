@@ -9,7 +9,8 @@
  * time, each waiting for godspeed's answer. The turn ends when a tool ends it (a question for the
  * learner), when a reply calls no tool, or when the lesson has no reply left. Which reply each
  * lesson is at is kept in LAYOUT_HELPER_DIR, since the app is started twice and resumes its
- * sessions. A lesson that holds never ends its turn until it is stopped; the word a screen writes
+ * sessions. A lesson that holds never ends its turn until it is stopped, and so does a turn the
+ * printed homework's line (PRINTED_HOLDS) starts; the word a screen writes
  * to the `desk` file in that folder makes it read files as an agent at work would (`read`), ask
  * to run a command (`approve`), or write a reply's first sentence and go back to reading under it
  * (`stream`).
@@ -29,7 +30,7 @@ import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
 import { jobAnswer } from "./layout-jobs.mjs";
-import { LESSONS, PLAN_ORDER_SENT_BACK, TALK_HOLDS } from "./layout-lessons.mjs";
+import { LESSONS, PLAN_ORDER_SENT_BACK, PRINTED_HOLDS, TALK_HOLDS } from "./layout-lessons.mjs";
 
 const DIR = process.env.LAYOUT_HELPER_DIR;
 const STATE = DIR && path.join(DIR, "state.json");
@@ -226,6 +227,11 @@ async function playTurn(session, texts) {
 	if (AGENT_STATE && fs.existsSync(AGENT_STATE) && fs.readFileSync(AGENT_STATE, "utf8").trim() === "signed-out") {
 		return sdk(session.key, { type: "result", subtype: "success", is_error: true, result: "Not logged in · Please run /login" });
 	}
+	// The printed homework's line holds its turn by its words, whichever session it comes in.
+	if (texts.some((text) => text.includes(PRINTED_HOLDS))) {
+		await hold(session);
+		return finish(session, true);
+	}
 	session.passage = CITED && fs.existsSync(CITED) ? fs.readFileSync(CITED, "utf8").trim() : null;
 	if (!session.lesson) {
 		const at = LESSONS.findIndex((lesson) => lesson.is(texts));
@@ -233,7 +239,7 @@ async function playTurn(session, texts) {
 		else session.lesson = { at, next: 0 };
 	}
 	const lesson = session.lesson && LESSONS[session.lesson.at];
-	if (lesson?.holds === true || (lesson?.holds && texts.some((text) => text.includes(lesson.holds)))) {
+	if (lesson?.holds) {
 		await hold(session);
 		return finish(session, true);
 	}

@@ -134,9 +134,10 @@ for (const d of deadlines.filter((d) => /^Project \\d$/.test(d.name))) await fet
 
 /** A folder that is always there and always empty, linked to the second space. */
 const linkedFolder = `await fetch("/api/spaces/{pathSpace}/folder", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: "/private/var/empty" }) })${HTTP_OK};`;
+/** The first space is the open one again: a lesson in the second space made that one open. */
+const firstSpaceOpen = `await fetch("/api/settings/general", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ activeSpace: "{space}" }) })${HTTP_OK};`;
 /** The second space closed, so the plus list has a closed space; the first is the open one again. */
-const closedSpace = `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json());
-await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, activeSpace: "{space}" }) })${HTTP_OK};
+const closedSpace = `${firstSpaceOpen}
 await fetch("/api/spaces/{pathSpace}", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ closed: true }) })${HTTP_OK};`;
 
 /** The lesson made and never sent: opened at this address, the window sends its first message once,
@@ -150,6 +151,12 @@ const deskUp = "[data-testid=agent-at-work]";
 const printedLine = `await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: "{homeworkPrinted}", input: { type: "text", text: ${JSON.stringify(PRINTED_HOLDS)} } }) })${HTTP_OK};`;
 /** That turn stopped, so no teacher holds it for the screens after it. */
 const dropPrintedLine = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{homeworkPrinted}" }) });`;
+/** Waits, up to 10 s, until that turn has ended, so a line sent after it starts a turn of its own. */
+const printedTurnEnded = `for (let n = 0; n < 100; n++) {
+	const { turnInFlight } = await fetch("/api/chats/{homeworkPrinted}")${HTTP_OK}.then((r) => r.json());
+	if (!turnInFlight) break;
+	${pause};
+}`;
 /** That lesson's reply stopped (a screen before may have stopped it already) and the lesson deleted, so the screens after it are as before. A
  *  lesson can't be deleted while its turn runs, so the delete is tried until the stop has ended it. */
 const dropWaitingLesson = `await fetch("/api/activity/abort", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "turn", id: "{pending}" }) });
@@ -540,7 +547,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		ready: "[data-testid=group-vault] [data-testid=vault-folder][data-state=ok]",
 		shows: "[data-testid=vault-unlink]",
 	},
-	{ name: "Progress with notes in Obsidian", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: spaceNotes(pagesOf(5, { extra: true })), shows: "[data-testid=notes-card] [data-testid=note-page]" },
+	{ name: "Progress with notes in Obsidian", before: firstSpaceOpen, url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: spaceNotes(pagesOf(5, { extra: true })), shows: "[data-testid=notes-card] [data-testid=note-page]" },
 	{ name: "Progress with notes, all shown", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: `${spaceNotes(pagesOf(5, { extra: true }))};\n${whenThere("[data-testid=notes-all]")}; document.querySelector("[data-testid=notes-all]").click()`, shows: "[data-testid=notes-card][data-all] [data-testid=note-page]:nth-child(7)" },
 	{ name: "Graph, a topic with a note", url: "/graph", ready: "[data-testid=graph-topic]", setup: `${spaceNotes(pagesOf(5))}; ${pickTopic}; ${cameraRests(`picture().hasAttribute("data-near") && document.querySelector("[data-figure]")`)}`, shows: "[data-testid=topic-pane] [data-testid=topic-note-open]" },
 	{ name: "Lesson end, the notes being saved", height: TALL, url: "/chat/{lastTopic}", ready: "[data-testid=your-turn]", setup: lessonNotes(pagesOf(3, { waiting: [2] })), shows: "[data-testid=end-notes] [data-saving]" },
@@ -617,15 +624,6 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		helper: "stream",
 		shows: "[data-turn-wrote] [data-testid=agent-at-work]",
 	},
-	// A line sent beside the problem's page while the agent isn't logged in: the turn fails, and the writing row says why with the key that fixes it.
-	{
-		name: "Homework lesson with a problem's page while the agent isn't logged in",
-		agent: "signed-out",
-		before: printedLine,
-		url: "/chat/{homeworkPrinted}",
-		ready: "[data-testid=page-piece] img",
-		shows: "[data-testid=turn-row] [data-testid=agent-compact] [data-testid=agent-key]",
-	},
 	// The waiting lesson's held reply ends first, so the printed homework's held reply below is the only one the stand-in's desk requests reach.
 	// A line sent beside the problem's page: the desk lists the steps on the writing row's side and lays no paper of its own.
 	{
@@ -653,10 +651,18 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		helper: "stream",
 		shows: `[data-turn-wrote] ${deskUp}`,
 	},
-	// The printed homework's held reply ends first, so the panel chat's held reply below is the only one the stand-in's desk requests reach.
+	// That reply stopped, a line sent while the agent isn't logged in: the turn fails, and the writing row says why with the key that fixes it.
+	// The panel chat's held reply below is then the only one the stand-in's desk requests reach.
+	{
+		name: "Homework lesson with a problem's page while the agent isn't logged in",
+		agent: "signed-out",
+		before: `${dropPrintedLine}\n${printedTurnEnded}\n${printedLine}`,
+		url: "/chat/{homeworkPrinted}",
+		ready: "[data-testid=page-piece] img",
+		shows: "[data-testid=turn-row] [data-testid=agent-compact] [data-testid=agent-key]",
+	},
 	{
 		name: "Teacher chat, all ideas",
-		before: dropPrintedLine,
 		url: "/",
 		ready: deadlineCard,
 		setup: `${openTeacher}; ${whenThere("[data-testid=talk-all-ideas]")}; document.querySelector("[data-testid=talk-all-ideas]").click()`,
