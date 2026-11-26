@@ -1,12 +1,12 @@
-import { PRINTED_HOLDS, TALK_HOLDS, WAITING_TOPIC } from "./layout-lessons.mjs";
+import { PRINTED_HOLDS, TALK_HOLDS, TALK_ROUND, WAITING_TOPIC } from "./layout-lessons.mjs";
 
 /**
  * layout-screens.mjs — the screens `npm run layout` checks, in order.
  *
  * Every screen is checked at 1440, 1100 and 640 points wide (640 is the narrowest window), a lesson ("/chat/")
  * at 1320 and 800 too, and a screen with `widths` only at those (widthsOf). A screen opens at `url`, waits for `ready`, runs `setup` in the page (clicks), then waits for
- * `shows`; a `teacher` line is handed to the stand-in teacher before `shows`, as if typed in its terminal
- * (layout-agent.mjs), and `helper` asks the stand-in helper, holding a lesson's reply, to `read` files, `approve` a command it asks to run, or `stream` half a reply (layout-helper.mjs). `ready` and `shows` name something drawn from the screen's data, not its frame, so the
+ * `shows`; `helper` asks the stand-in helper, holding a reply, to `read` files, `approve` a command it asks to run, `stream` half a reply, or in the
+ * teacher's round of work `change` a space and be `done` (layout-helper.mjs). `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `height` gives it a window higher than the
  * check's own. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `agent` puts the stand-in agent
@@ -726,12 +726,13 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		setup: `window.__lhPush("terminal-window", { open: true }); ${pause}; ${openTeacher}`,
 		shows: "[data-testid=teacher-panel] [data-testid=teacher-panel-put-back]",
 	},
-	// The stand-in teacher is typed a line, reads Lab Algebra and searches the web: Follow's slip says what it does, at the foot of every page but a lesson's.
+	// A panel chat asks the stand-in teacher to update Lab Algebra: its round reads the space and searches the web, and Follow's slip says what it
+	// does, at the foot of every page but a lesson's.
 	{
 		name: "Follow's slip while the teacher works",
+		before: talk(TALK_ROUND),
 		url: "/space/deadlines",
 		ready: "[data-testid=deadline-open]",
-		teacher: "follow {space}",
 		shows: "[data-testid=follow-slip] [data-testid=follow-slip-count]",
 	},
 	{ name: "Graph under Follow's slip", url: "/graph", ready: "[data-testid=graph-picture] [data-testid=graph-topic]", setup: fitsWindow, shows: "[data-testid=follow-slip]" },
@@ -759,7 +760,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		url: "/space/deadline/{deadline}",
 		ready: "[data-testid=deadline-page] [data-testid=deadline-when]",
 		setup: keepTyping,
-		teacher: "change",
+		helper: "change",
 		shows: "[data-testid=follow-slip] [data-testid=follow-slip-go]",
 	},
 	// The round ends while its list is open, so "Done" stays until the list shuts. Taking the homework away is a change on Home.
@@ -768,7 +769,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		url: "/",
 		ready: deadlineCard,
 		setup: `${whenThere("[data-testid=follow-slip-line]:not(:disabled)")}; document.querySelector("[data-testid=follow-slip-line]").click()`,
-		teacher: "done",
+		helper: "done",
 		shows: "[data-testid=follow-slip][data-mark=done] [data-testid=follow-slip-list]",
 	},
 	{ name: "Home with no deadline", before: `${roundEnded}\n${dropDeadlines}`, url: "/", ready: "[data-testid=today-empty]" },

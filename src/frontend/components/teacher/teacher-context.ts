@@ -39,6 +39,8 @@ export interface TeacherApi {
 	recent: AgentAction[];
 	/** What the agent is doing now; null before the first read of the agent. */
 	doing: AgentDoing | null;
+	/** It works on something besides the chat the panel shows, whose own thread shows that chat's work. */
+	elsewhere: boolean;
 	/** A lesson screen reports itself (null when it leaves). */
 	setLesson: (p: LessonPresence | null) => void;
 	/** Go to a change (the peek's or the slip's "Go to", a row of the slip's list): its page now,

@@ -3,7 +3,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { ANNOUNCE_GAP_MS, agentDoing, announceDelay } from "../../src/frontend/components/teacher/follow-status.ts";
+import { ANNOUNCE_GAP_MS, agentDoing, announceDelay, workElsewhere } from "../../src/frontend/components/teacher/follow-status.ts";
 
 const t = Date.parse("2026-11-02T12:00:00Z");
 const teaching = { turnsRunning: 0 };
@@ -42,6 +42,19 @@ describe("agentDoing", () => {
 		assert.equal(agentDoing({ ...none, agent: teaching, extractions: [{ kind: "topics", phase: "grouping", title: "CSE 21" }] })?.text, "Grouping topics");
 		assert.equal(agentDoing({ ...none, agent: teaching, jobs: [{ kind: "demo" }] })?.text, "Building a demo");
 		assert.deepEqual(agentDoing({ ...none, agent: { ...teaching, turnsRunning: 1 } }), { text: "Working", working: true });
+	});
+});
+
+describe("workElsewhere", () => {
+	const talking = { ...none, agent: { turnsRunning: 1 }, talkTurns: 1, round: "Looking at your spaces" };
+	it("leaves out the round of the chat the panel shows, which its own thread shows", () => {
+		assert.equal(workElsewhere({ ...talking, roundChat: "chat_a", shown: "chat_a" }), false);
+	});
+	it("counts another chat's round, a terminal's round and other work", () => {
+		assert.equal(workElsewhere({ ...talking, roundChat: "chat_b", shown: "chat_a" }), true);
+		assert.equal(workElsewhere({ ...talking, roundChat: null, shown: "chat_a" }), true, "a terminal's round");
+		assert.equal(workElsewhere({ ...talking, roundChat: "chat_a", shown: "chat_a", jobs: [{ kind: "research" }] }), true, "a job besides");
+		assert.equal(workElsewhere({ ...talking, roundChat: "chat_a", shown: null }), true, "a new chat is shown");
 	});
 });
 

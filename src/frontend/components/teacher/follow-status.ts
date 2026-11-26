@@ -77,6 +77,13 @@ export function agentDoing(i: DoingInputs): AgentDoing | null {
 	return { text: "Idle", working: false };
 }
 
+/** Whether the agent works on something besides the teacher panel chat `shown`: the round of that
+ *  chat (`roundChat`) is its own work, which its thread shows. */
+export function workElsewhere(i: DoingInputs & { roundChat: string | null; shown: string | null }): boolean {
+	const own = i.roundChat !== null && i.roundChat === i.shown;
+	return !!agentDoing({ ...i, round: own ? null : i.round })?.working;
+}
+
 /** The background work under way, in words: a file or lesson read for
  *  facts, else a job. Null when none runs. */
 export function backgroundLine(extractions: readonly Extraction[], jobs: readonly { kind: JobKind }[]): Omit<AgentDoing, "working"> | null {

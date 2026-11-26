@@ -21,6 +21,7 @@ const change = (id: string, s: number, over: Partial<AgentAction> = {}): AgentAc
 const round: TeacherWork = {
 	live: true,
 	since: at(10),
+	chatId: null,
 	steps: [
 		{ id: "s1", at: at(11), text: "Looking at CSE 21" },
 		{ id: "s2", at: at(13), text: "Reading HW7_F26.pdf, page 1", link: { spaceId: "spc_1", fileId: "f_1", name: "HW7_F26.pdf", range: "p. 1" } },
@@ -56,22 +57,23 @@ describe("roundTimeline", () => {
 
 	it("no round, no rows", () => {
 		assert.deepEqual(roundTimeline(null, [change("a", 12)]), []);
-		assert.deepEqual(roundTimeline({ live: false, since: null, steps: [] }, [change("a", 12)]), []);
+		assert.deepEqual(roundTimeline({ live: false, since: null, chatId: null, steps: [] }, [change("a", 12)]), []);
 	});
 });
 
 describe("readTeacherWork", () => {
-	it("keeps a well-formed round and its links", () => {
-		const raw = { live: true, since: at(0), steps: [{ id: "s", at: at(1), text: "Reading a.pdf", link: { spaceId: "spc", fileId: "f", name: "a.pdf", passage: 3 } }] };
+	it("keeps a well-formed round, its links and the chat whose turn it is", () => {
+		const raw = { live: true, since: at(0), chatId: "chat_1", steps: [{ id: "s", at: at(1), text: "Reading a.pdf", link: { spaceId: "spc", fileId: "f", name: "a.pdf", passage: 3 } }] };
 		assert.deepEqual(readTeacherWork(raw), raw);
+		assert.equal(readTeacherWork({ ...raw, chatId: null }).chatId, null, "a terminal's round");
 	});
 	it("drops what is not a step, and a link it can't open", () => {
 		const raw = { live: true, since: at(0), steps: [{ id: "s", at: at(1), text: "Reading a.pdf", link: { spaceId: "spc", fileId: "f" } }, { id: "", at: at(1), text: "x" }, null] };
-		assert.deepEqual(readTeacherWork(raw), { live: true, since: at(0), steps: [{ id: "s", at: at(1), text: "Reading a.pdf" }] });
+		assert.deepEqual(readTeacherWork(raw), { live: true, since: at(0), chatId: null, steps: [{ id: "s", at: at(1), text: "Reading a.pdf" }] });
 	});
 	it("reads anything else as no round", () => {
 		for (const raw of [null, {}, { live: false, since: null, steps: [] }, { live: true, since: null, steps: [] }, "x"]) {
-			assert.deepEqual(readTeacherWork(raw), { live: false, since: null, steps: [] });
+			assert.deepEqual(readTeacherWork(raw), { live: false, since: null, chatId: null, steps: [] });
 		}
 	});
 });

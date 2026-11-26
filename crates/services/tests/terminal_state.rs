@@ -1,8 +1,8 @@
 //! The terminal state: a line the learner types in the teacher's terminal while a talk page (a
 //! lesson, a cheat sheet) is shown goes to that page through the prompt hook, once and only in
-//! time; and the teacher's round of work, how it begins (the learner's line in the teacher's
-//! terminal, an outside agent's first counted call), how it ends (the Stop hook, quiet or stale by
-//! time, a closed terminal) and the 40 steps it keeps. Every time here is the app clock's now plus
+//! time; and the teacher's round of work, how it begins (a teacher panel chat's turn, the learner's
+//! line in the teacher's terminal, an outside agent's first counted call), how it ends (the turn's
+//! end, the Stop hook, quiet or stale by time, a closed terminal) and the 40 steps it keeps. Every time here is the app clock's now plus
 //! an offset; one test moves the clock, in its own binary.
 
 use gs_base::clock;
@@ -115,6 +115,32 @@ async fn the_learner_s_line_begins_the_teacher_s_round_and_its_stop_ends_it() {
 	assert_eq!(told(&mut rx), 1);
 	state.agent_stopped(TEACHER);
 	assert_eq!(told(&mut rx), 0, "no round, no news");
+}
+
+#[tokio::test]
+async fn a_teacher_panel_chat_s_turn_is_a_round_of_its_own_until_the_turn_ends() {
+	let (state, mut rx) = terminals();
+	let now = clock::now_ms();
+	state.talk_step("chat_a", step("Looking at your spaces").unwrap(), now);
+	assert_eq!(steps(&state, now), None, "no turn, no round");
+
+	state.talk_began("chat_a", now);
+	assert_eq!(state.teacher_work(now)["chatId"], json!("chat_a"));
+	state.talk_step("chat_a", step("Looking at your spaces").unwrap(), now + 1);
+	state.talk_step("chat_b", step("Reading a file").unwrap(), now + 2);
+	state.teacher_call(Some(TEACHER), step("Looking at CSE 21"), now + 3);
+	assert_eq!(steps(&state, now + 3), Some(vec!["Looking at your spaces".to_owned()]), "only that chat's steps");
+	state.talk_ended("chat_b");
+	assert!(steps(&state, now + 3).is_some(), "another chat's end leaves it");
+	state.talk_ended("chat_a");
+	assert_eq!(steps(&state, now + 3), None);
+	assert_eq!(told(&mut rx), 3, "began, one step, ended");
+
+	// A line in the teacher's terminal begins a round of its own, which a chat's end leaves alone.
+	state.talk_began("chat_a", now + 4);
+	state.chat_line(TEACHER, now + 5);
+	state.talk_ended("chat_a");
+	assert_eq!(state.teacher_work(now + 5)["chatId"], Json::Null);
 }
 
 #[tokio::test]
