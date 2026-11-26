@@ -190,20 +190,18 @@ describe("the approval card", () => {
 		});
 	});
 
-	it("brings the desk back while the teacher's words show, and the words stay", async () => {
+	it("comes on the desk under the teacher's words, and the words stay", async () => {
 		await page(async (draw, host) => {
 			const words = [card, first, { id: "a", role: "assistant", parts: [{ type: "text", text: "Let me draw it." }] } as LhViewMessage];
 			await draw({ work: work([]) });
 			await draw({ messages: words, work: work([]) });
-			await wait(450);
-			await wait(200);
-			assert.ok(host.querySelector("[data-testid=agent-at-work]") === null, "the words took the desk's place");
+			assert.ok(host.querySelector("[data-testid=agent-at-work]") !== null, "the desk stays under the words");
 			await draw({ messages: words, work: work([bash]) });
-			assert.ok(host.querySelector("[data-testid=agent-at-work] [data-testid=approval-card]") !== null, "the desk is back with the card");
+			assert.ok(host.querySelector("[data-testid=agent-at-work] [data-testid=approval-card]") !== null, "the card is on the desk");
 			assert.match(host.querySelector(".lh-source-passage")?.textContent ?? "", /Let me draw it\./);
 			await draw({ messages: words, work: work([]) });
 			await wait(220);
-			assert.ok(host.querySelector("[data-testid=agent-at-work]") !== null, "answered, the desk waits for the teacher's next words");
+			assert.ok(host.querySelector("[data-testid=agent-at-work]") !== null, "answered, the desk stays for the teacher's next words");
 		});
 	});
 });

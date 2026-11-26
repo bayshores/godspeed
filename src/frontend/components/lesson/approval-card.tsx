@@ -22,12 +22,12 @@ type AnswerApproval = (id: string, allow: boolean) => Promise<string | null>;
  * answered, or denied by Stop or the turn's end, it folds shut as it fades out. One there when the
  * desk first shows is simply there.
  */
-export function ApprovalCards({ approvals, slot, arrive, answer }: { approvals: readonly WorkApproval[]; slot: string; arrive: Arrive; answer: AnswerApproval }) {
+export function ApprovalCards({ approvals, slot, arrive, answer, className }: { approvals: readonly WorkApproval[]; slot: string; arrive: Arrive; answer: AnswerApproval; className?: string }) {
 	const items = useMemo(() => approvals.map((approval) => ({ key: approval.id, approval })), [approvals]);
 	const shown = useLeavingList(items, FOLD_MS);
 	if (shown.length === 0) return null;
 	return (
-		<div data-testid="desk-approvals" className="flex flex-col">
+		<div data-testid="desk-approvals" className={cn("flex flex-col", className)}>
 			{shown.map(({ item, leaving }) => (
 				<ApprovalCard key={item.key} approval={item.approval} leaving={leaving} live={!!arrive(`${slot}:ask:${item.key}`)} answer={answer} />
 			))}

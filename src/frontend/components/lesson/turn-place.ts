@@ -17,3 +17,8 @@ type TurnSlots = { task?: HTMLElement; row?: HTMLElement; line?: HTMLElement | n
 
 /** With no page around it, the turn draws its parts where it stands. */
 export const TurnSlotsContext = createContext<TurnSlots>({ closing: false, stepIn: false });
+
+/** The lesson page's right part while the desk lays the page it reads in the text with room for
+ *  both: the desk's steps and cards rest there on the writing row (LessonScroll). Null where the
+ *  desk is drawn whole in the text. */
+export const DeskRoomContext = createContext<HTMLElement | null>(null);

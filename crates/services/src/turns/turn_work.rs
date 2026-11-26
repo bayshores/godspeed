@@ -7,6 +7,7 @@
 //! beginning, steps and end go to the round too.
 
 use std::collections::VecDeque;
+use std::path::Path;
 use std::sync::Arc;
 
 use gs_base::clock;
@@ -125,7 +126,9 @@ pub(super) fn desk_listener(app: &Arc<App>, chat_id: &str) -> DeskListener {
 		match event {
 			DeskEvent::OwnTool { name, input } => {
 				let Some(step) = own_tool_input_step(name, input) else { return };
-				let reads = (name == "Read").then(|| input["file_path"].as_str().and_then(|path| path_reading(path, None, None, None))).flatten();
+				let read = input["file_path"].as_str().filter(|_| name == "Read");
+				// Only a file that is there lays its page on the desk: a read that fails leaves the page it had.
+				let reads = read.and_then(|path| path_reading(path, None, None, None)).filter(|reads| Path::new(reads["path"].str_or_empty()).is_file());
 				note_step(&app, &chat_id, step, None, reads);
 			}
 			DeskEvent::Approval { id, ask } => {
@@ -232,6 +235,24 @@ mod tests {
 		desk(&DeskEvent::ApprovalDone { id: "ap_1".to_owned() });
 		assert_eq!(lesson_work(&app, &chat).unwrap()["approvals"], json!([]));
 		assert_eq!(told(&mut events), [json!({ "chatId": chat, "asking": true }), json!({ "chatId": chat, "asking": false })], "the strip hears it wait and go");
+		end_turn(&app, &chat);
+	}
+
+	#[test]
+	fn the_agent_s_own_read_lays_the_page_only_of_a_file_that_is_there() {
+		let root = scratch_dir("turn-work-own-read");
+		let app = test_app(&root);
+		let notes = root.join("notes.md");
+		gs_base::fsx::write_text_atomic(&notes, "# Notes").unwrap();
+		let chat = app.stores.chats.create_chat("Files", Some("study"), None, None, &[]).unwrap()["id"].str_or_empty().to_owned();
+		assert!(begin_turn(&app, &chat));
+		begin(&app, &chat, TurnCause::Ask);
+		let desk = desk_listener(&app, &chat);
+		desk(&DeskEvent::OwnTool { name: "Read".to_owned(), input: json!({ "file_path": notes.to_string_lossy() }) });
+		desk(&DeskEvent::OwnTool { name: "Read".to_owned(), input: json!({ "file_path": root.join("gone.md").to_string_lossy() }) });
+		let steps = lesson_work(&app, &chat).unwrap()["steps"].clone();
+		assert_eq!((steps[0]["text"].as_str(), steps[0]["reads"]["kind"].as_str()), (Some("Reading notes.md"), Some("text")));
+		assert_eq!((steps[1]["text"].as_str(), &steps[1]["reads"]), (Some("Reading gone.md"), &Json::Null), "a file that is not there lays no page");
 		end_turn(&app, &chat);
 	}
 

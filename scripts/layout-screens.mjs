@@ -616,14 +616,23 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		helper: "approve",
 		shows: "[data-testid=desk-approvals] [data-testid=approval-subject]",
 	},
-	// Allow is pressed, so the card goes; the helper then writes the reply's first sentence and reads a file, so the desk comes back under the words.
+	// Allow is pressed, so the card goes; the helper then writes the reply's first sentence and reads a file: the words over the desk's page, its
+	// steps still on the writing row.
 	{
-		name: "Lesson whose reply is half written, the desk under it",
+		name: "Lesson whose reply is half written, its steps still there",
 		url: "/chat/{pending}",
 		ready: deskUp,
 		setup: `${whenThere("[data-testid=approval-allow]")}; document.querySelector("[data-testid=approval-allow]")?.click(); for (let n = 0; n < 100 && document.querySelector("[data-testid=approval-card]"); n++) ${pause}`,
 		helper: "stream",
-		shows: "[data-turn-wrote] [data-testid=agent-at-work]",
+		shows: `[data-turn-wrote] [data-testid=desk-paper], [data-turn-wrote] ${deskUp}`,
+	},
+	// The helper writes the reply's last sentence and ends the turn: the desk fades out and the text and the writing row are back in the middle.
+	{
+		name: "Lesson whose reply is finished",
+		url: "/chat/{pending}",
+		ready: "[data-turn-wrote]",
+		helper: "finish",
+		shows: "[data-testid=lesson-reading]:not([data-turn-wrote]) ~ *, [data-testid=next-problem-button]",
 	},
 	// The waiting lesson's held reply ends first, so the printed homework's held reply below is the only one the stand-in's desk requests reach.
 	// A line sent beside the problem's page: the desk lists the steps on the writing row's side and lays no paper of its own.
@@ -701,6 +710,15 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	},
 	// The held reply asks to run a command: its card waits under the desk's steps for Deny or Allow.
 	{ name: "Teacher chat, a card waiting", url: "/", ready: deadlineCard, setup: openTeacher, helper: "approve", shows: "[data-testid=talk-thread] [data-testid=approval-card]" },
+	// Allow is pressed; the held reply writes its first sentence and reads a file: the words over the desk, whose steps stay.
+	{
+		name: "Teacher chat, the reply's words over its steps",
+		url: "/",
+		ready: deadlineCard,
+		setup: `${openTeacher}; ${whenThere("[data-testid=approval-allow]")}; document.querySelector("[data-testid=approval-allow]")?.click(); for (let n = 0; n < 100 && document.querySelector("[data-testid=approval-card]"); n++) ${pause}`,
+		helper: "stream",
+		shows: "[data-testid=talk-thread] [data-testid=thread-teacher] ~ * [data-testid=desk-plan] li",
+	},
 	// The line that gives way on a lesson has Stop while the chat's held reply runs.
 	{ name: "Teacher's panel beside a lesson, Stop while the chat's reply runs", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=talk-gives-way] [data-testid=talk-stop]" },
 	// The held reply is stopped: the chats, the one shown "open now".
