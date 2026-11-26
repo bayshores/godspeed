@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use gs_base::hash::sha256_hex;
-use gs_core::messages::attachments::{ChatAttachment, pdf_file_name, pdf_note, pdf_note_of};
+use gs_core::messages::attachments::{ChatAttachment, PdfReader, pdf_file_name, pdf_note, pdf_note_of};
 use gs_json::{Json, json};
 
 use crate::outcome::{Outcome, Stop};
@@ -37,7 +37,7 @@ pub(super) fn files_for_agent(app: &App, space_id: &str, deadline_id: &str, file
 			let file = f["file"].as_str().filter(|file| !file.is_empty())?;
 			let (path, bytes) = app.stores.cheat_sheets.read_cheat_sheet_file(space_id, deadline_id, file)?;
 			if is_pdf_name(file) {
-				return Some(pdf_note(f["name"].str_or_empty(), &path.to_string_lossy()));
+				return Some(pdf_note(f["name"].str_or_empty(), &path.to_string_lossy(), PdfReader::PdfTool));
 			}
 			let mime_type = picture_type(extension(file)).unwrap_or("image/png");
 			Some(json!({ "type": "image", "data": gs_base::base64::encode(&bytes), "mimeType": mime_type }))
@@ -57,7 +57,7 @@ fn without_extension(name: &str) -> &str {
 /// sent. Returns `{ name, file }` for each.
 pub(super) fn keep_files(app: &App, space_id: &str, deadline_id: &str, attachments: &[ChatAttachment]) -> Outcome<Vec<Json>> {
 	let mut save = |file: &str, bytes: &[u8]| app.stores.cheat_sheets.save_cheat_sheet_file(space_id, deadline_id, file, bytes).map(|p| p.to_string_lossy().into_owned());
-	let parts = store_attachments(attachments, &mut save).map_err(|err| match err {
+	let parts = store_attachments(attachments, PdfReader::PdfTool, &mut save).map_err(|err| match err {
 		AttachmentError::Input(input) => Stop::Refuse(400, input.0),
 		AttachmentError::Save(message) => Stop::Throw(message),
 	})?;

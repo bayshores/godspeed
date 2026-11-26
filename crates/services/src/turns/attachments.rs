@@ -7,7 +7,7 @@ use std::path::Path;
 use gs_base::base64;
 use gs_base::config::resolve;
 use gs_base::hash::sha256_hex;
-use gs_core::messages::attachments::{ChatAttachment, is_pdf_type, pdf_file_name, pdf_note, pdf_note_of};
+use gs_core::messages::attachments::{ChatAttachment, PdfReader, is_pdf_type, pdf_file_name, pdf_note, pdf_note_of};
 use gs_core::messages::input_events::ChatInputError;
 use gs_json::{Json, json};
 
@@ -25,24 +25,24 @@ pub enum AttachmentError {
 /// `save_pdf(file_name, bytes)`: saves a PDF and returns its path.
 pub type SavePdf<'a> = dyn FnMut(&str, &[u8]) -> Result<String, String> + 'a;
 
-/// Stores the files in order. A PDF listed before a bad file is already saved when the error
-/// comes back, as in the TS.
-pub fn store_attachments(attachments: &[ChatAttachment], save_pdf: &mut SavePdf) -> Result<Vec<Json>, AttachmentError> {
+/// Stores the files in order, each PDF's note worded for `reader`. A PDF listed before a bad file
+/// is already saved when the error comes back, as in the TS.
+pub fn store_attachments(attachments: &[ChatAttachment], reader: PdfReader, save_pdf: &mut SavePdf) -> Result<Vec<Json>, AttachmentError> {
 	let mut parts = Vec::with_capacity(attachments.len());
 	for attachment in attachments {
 		let bytes = base64::decode(&attachment.data);
-		let part = if is_pdf_type(&attachment.mime_type) { pdf_part(&attachment.name, &bytes, save_pdf)? } else { image_part(&attachment.name, &bytes)? };
+		let part = if is_pdf_type(&attachment.mime_type) { pdf_part(&attachment.name, &bytes, reader, save_pdf)? } else { image_part(&attachment.name, &bytes)? };
 		parts.push(part);
 	}
 	Ok(parts)
 }
 
-fn pdf_part(name: &str, bytes: &[u8], save_pdf: &mut SavePdf) -> Result<Json, AttachmentError> {
+fn pdf_part(name: &str, bytes: &[u8], reader: PdfReader, save_pdf: &mut SavePdf) -> Result<Json, AttachmentError> {
 	if !bytes.starts_with(b"%PDF-") {
 		return Err(AttachmentError::Input(ChatInputError(format!("{name} is not a PDF."))));
 	}
 	let path = save_pdf(&pdf_file_name(name, &sha256_hex(bytes)), bytes).map_err(AttachmentError::Save)?;
-	Ok(pdf_note(name, &path))
+	Ok(pdf_note(name, &path, reader))
 }
 
 /// The learner's own name for a PDF they attached in a chat, from the note beside it in that
@@ -77,21 +77,23 @@ mod tests {
 			Ok(format!("/lessons/{name}"))
 		};
 		let pdf = base64::encode(b"%PDF-1.4 tiny");
-		let parts = store_attachments(&[file("Notes.pdf", "application/pdf", &pdf)], &mut save).unwrap();
+		let parts = store_attachments(&[file("Notes.pdf", "application/pdf", &pdf)], PdfReader::PdfTool, &mut save).unwrap();
 		let hash = sha256_hex(b"%PDF-1.4 tiny");
 		assert_eq!(parts[0]["text"].as_str().unwrap(), format!("[Attached PDF] Notes.pdf\nPath: /lessons/{}-Notes.pdf\nRead it with the pdf tool when you need its content.", &hash[..12]));
+		let panel = store_attachments(&[file("Notes.pdf", "application/pdf", &pdf)], PdfReader::OwnTools, &mut save).unwrap();
+		assert_eq!(panel[0]["text"].as_str().unwrap(), format!("[Attached PDF] Notes.pdf\nPath: /lessons/{}-Notes.pdf\nRead it when you need its content.", &hash[..12]));
 		let fake = base64::encode(b"not a pdf");
-		let err = store_attachments(&[file("a.pdf", "application/pdf", &pdf), file("b.pdf", "application/pdf", &fake)], &mut save).unwrap_err();
+		let err = store_attachments(&[file("a.pdf", "application/pdf", &pdf), file("b.pdf", "application/pdf", &fake)], PdfReader::PdfTool, &mut save).unwrap_err();
 		assert_eq!(err, AttachmentError::Input(ChatInputError("b.pdf is not a PDF.".to_owned())));
-		let err = store_attachments(&[file("c.png", "image/png", &fake)], &mut save).unwrap_err();
+		let err = store_attachments(&[file("c.png", "image/png", &fake)], PdfReader::PdfTool, &mut save).unwrap_err();
 		assert_eq!(err, AttachmentError::Input(ChatInputError("Can't read c.png.".to_owned())));
-		assert_eq!(saved.len(), 2);
+		assert_eq!(saved.len(), 3);
 	}
 
 	#[test]
 	fn a_failed_save_is_not_a_bad_input() {
 		let mut save = |_: &str, _: &[u8]| Err("EACCES".to_owned());
 		let pdf = base64::encode(b"%PDF-x");
-		assert_eq!(store_attachments(&[file("a.pdf", "application/pdf", &pdf)], &mut save).unwrap_err(), AttachmentError::Save("EACCES".to_owned()));
+		assert_eq!(store_attachments(&[file("a.pdf", "application/pdf", &pdf)], PdfReader::PdfTool, &mut save).unwrap_err(), AttachmentError::Save("EACCES".to_owned()));
 	}
 }

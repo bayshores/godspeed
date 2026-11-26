@@ -471,6 +471,7 @@ async fn an_attached_pdf_is_read_without_asking_and_keeps_its_name_in_a_space() 
 	fx.settled().await;
 	let parts: Vec<Json> = fx.messages().iter().flat_map(|m| m["content"].items().to_vec()).collect();
 	let (_, path) = parts.iter().find_map(|part| pdf_note_of(part["text"].as_str()?)).expect("the PDF's note");
+	assert!(parts.iter().any(|part| part["text"].str_or_empty().ends_with("\nRead it when you need its content.")), "the panel's chat has no pdf tool");
 	let read_dirs = fx.sent("open")[0]["readDirs"].clone();
 	assert_eq!(read_dirs.items().len(), 1);
 	assert!(std::path::Path::new(&path).starts_with(read_dirs[0].str_or_empty()), "{path} is in a folder the agent reads without asking");

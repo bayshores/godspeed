@@ -65,6 +65,8 @@ describe("attachment rules", () => {
 		assert.deepEqual(pdfNoteOf(pdf.text), { name: "notes.pdf", path: "/data/chats/chat_1/abc-notes.pdf" });
 		assert.equal(pdfNote("two\nlines.pdf", "/p").text.split("\n")[0], "[Attached PDF] two lines.pdf");
 		assert.equal(pdfNoteOf("[Attached PDF] notes.pdf"), null, "plain learner text is never a note");
+		assert.deepEqual(pdfNoteOf("[Attached PDF] notes.pdf\nPath: /p.pdf\nRead it when you need its content."), { name: "notes.pdf", path: "/p.pdf" }, "the teacher panel's note");
+		assert.equal(pdfNoteOf("[Attached PDF] notes.pdf\nPath: /p.pdf\nRead it."), null);
 	});
 
 	it("drafts show the picture as sent and the PDF with no path yet", () => {

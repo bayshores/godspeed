@@ -142,6 +142,9 @@ describe("attachment limits", () => {
 	it("the size limits are the same", () => {
 		for (const name of ["MAX_IMAGE_BYTES", "MAX_PDF_BYTES"]) assert.equal(valueOf(inTs, name), valueOf(inRust, name), name);
 	});
+	it("a PDF's note has the same lines", () => {
+		for (const name of ["PDF_NOTE_HEAD", "PDF_NOTE_PATH", "PDF_NOTE_TAILS"]) assert.deepEqual(strings(inTs, name), strings(inRust, name), name);
+	});
 	it("the accepted types are the same", () => {
 		for (const name of ["IMAGE_TYPES", "HEIC_TYPES", "PDF_TYPE"]) assert.deepEqual(strings(inTs, name), strings(inRust, name), name);
 		assert.equal(ATTACHMENT_ACCEPT, [...strings(inRust, "IMAGE_TYPES"), ...strings(inRust, "PDF_TYPE")].join(","));

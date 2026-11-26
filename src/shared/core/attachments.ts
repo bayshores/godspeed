@@ -86,17 +86,19 @@ export function pickAttachments<T extends { name: string; type: string; size: nu
 
 const PDF_NOTE_HEAD = "[Attached PDF] ";
 const PDF_NOTE_PATH = "Path: ";
-const PDF_NOTE_TAIL = "Read it with the pdf tool when you need its content.";
+/** A note's last line: the server words it for a lesson's teacher (the pdf
+ *  tool) or for the teacher panel's chat. */
+const PDF_NOTE_TAILS = ["Read it with the pdf tool when you need its content.", "Read it when you need its content."];
 
-/** The text part that stands for a saved PDF: the teacher reads its name
- *  and path, the view turns it back into a chip (pdfNoteOf). */
+/** A draft's note for a saved PDF, before the server's copy replaces it: the
+ *  view turns it into a chip (pdfNoteOf). */
 export function pdfNote(name: string, filePath: string): TextContent {
-	return { type: "text", text: `${PDF_NOTE_HEAD}${name.replace(/\s+/g, " ")}\n${PDF_NOTE_PATH}${filePath}\n${PDF_NOTE_TAIL}` };
+	return { type: "text", text: `${PDF_NOTE_HEAD}${name.replace(/\s+/g, " ")}\n${PDF_NOTE_PATH}${filePath}\n${PDF_NOTE_TAILS[0]}` };
 }
 
 export function pdfNoteOf(text: string): { name: string; path: string } | null {
 	const lines = text.split("\n");
-	if (lines.length !== 3 || !lines[0]!.startsWith(PDF_NOTE_HEAD) || !lines[1]!.startsWith(PDF_NOTE_PATH) || lines[2] !== PDF_NOTE_TAIL) {
+	if (lines.length !== 3 || !lines[0]!.startsWith(PDF_NOTE_HEAD) || !lines[1]!.startsWith(PDF_NOTE_PATH) || !PDF_NOTE_TAILS.includes(lines[2]!)) {
 		return null;
 	}
 	return { name: lines[0]!.slice(PDF_NOTE_HEAD.length), path: lines[1]!.slice(PDF_NOTE_PATH.length) };

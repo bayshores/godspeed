@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use gs_base::config::Paths;
 use gs_base::{fsx, ids};
-use gs_core::messages::attachments::ChatAttachment;
+use gs_core::messages::attachments::{ChatAttachment, PdfReader};
 use gs_json::{Json, json, parse, stringify_pretty};
 use gs_services::App;
 use gs_services::turns::attachments::{AttachmentError, store_attachments};
@@ -146,12 +146,12 @@ fn pdf_attachments_match_node() {
 		Ok(format!("/lessons/chat_g/{name}"))
 	};
 	let pdf = b"%PDF-1.4 a tiny synthetic document";
-	let parts = store_attachments(&[file("Week 3 notes.pdf", "application/pdf", pdf), file("../odd:name?.PDF", "application/pdf", pdf)], &mut save).unwrap();
+	let parts = store_attachments(&[file("Week 3 notes.pdf", "application/pdf", pdf), file("../odd:name?.PDF", "application/pdf", pdf)], PdfReader::PdfTool, &mut save).unwrap();
 	let message = |err: AttachmentError| match err {
 		AttachmentError::Input(err) => err.0,
 		AttachmentError::Save(err) => panic!("not a save failure: {err}"),
 	};
-	let refused = message(store_attachments(&[file("fake.pdf", "application/pdf", b"hello")], &mut save).unwrap_err());
-	let unreadable = message(store_attachments(&[file("photo.png", "image/png", b"not a picture")], &mut save).unwrap_err());
+	let refused = message(store_attachments(&[file("fake.pdf", "application/pdf", b"hello")], PdfReader::PdfTool, &mut save).unwrap_err());
+	let unreadable = message(store_attachments(&[file("photo.png", "image/png", b"not a picture")], PdfReader::PdfTool, &mut save).unwrap_err());
 	assert_eq!(json!({ "parts": parts, "saved": saved, "refused": refused, "unreadable": unreadable }), case("pdf attachments"));
 }

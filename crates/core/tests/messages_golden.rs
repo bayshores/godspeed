@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 
-use gs_core::messages::attachments::{attachment_refusal, base64_bytes, content_text, keeps_png, pdf_file_name, pdf_note, pdf_note_of};
+use gs_core::messages::attachments::{PdfReader, attachment_refusal, base64_bytes, content_text, keeps_png, pdf_file_name, pdf_note, pdf_note_of};
 use gs_core::messages::input_events::{About, ChatInput, dismiss_appends, input_appends, parse_chat_input, parse_dismiss_input, parse_user_steer_input};
 use gs_core::messages::native_messages::{
 	active_problem_of, space_card_text, space_files_text, concluded_by_dismissal_pair, dangling_question_of, failed_output_call_ids, has_probe_done, is_side_turn, new_answer_result,
@@ -265,7 +265,9 @@ fn attachment_rules_match_node() {
 		assert_eq!(pdf_file_name(s(&c["name"]), s(&c["hash"])), s(&c["file"]), "{c:?}");
 	}
 	for c in arr(&rules["notes"]) {
-		let note = pdf_note(s(&c["name"]), s(&c["path"]));
+		// A case names its reader when it is not a lesson's teacher.
+		let reader = if c["reader"].as_str() == Some("ownTools") { PdfReader::OwnTools } else { PdfReader::PdfTool };
+		let note = pdf_note(s(&c["name"]), s(&c["path"]), reader);
 		same(&note, &c["note"], "note");
 		let back = pdf_note_of(s(&note["text"])).map(|(name, path)| json!({ "name": name, "path": path }));
 		same(&opt(back), &c["back"], "note back");

@@ -8052,6 +8052,19 @@
 						"name": "tab name .pdf",
 						"path": "/x y/z.pdf"
 					}
+				},
+				{
+					"name": "Week 3.pdf",
+					"path": "/data/chats/c/0123456789ab-Week 3.pdf",
+					"reader": "ownTools",
+					"note": {
+						"type": "text",
+						"text": "[Attached PDF] Week 3.pdf\nPath: /data/chats/c/0123456789ab-Week 3.pdf\nRead it when you need its content."
+					},
+					"back": {
+						"name": "Week 3.pdf",
+						"path": "/data/chats/c/0123456789ab-Week 3.pdf"
+					}
 				}
 			],
 			"notesBack": [
@@ -8079,6 +8092,17 @@
 				},
 				{
 					"t": "Attached PDF x\nPath: y\nRead it with the pdf tool when you need its content.",
+					"back": null
+				},
+				{
+					"t": "[Attached PDF] x\nPath: y\nRead it when you need its content.",
+					"back": {
+						"name": "x",
+						"path": "y"
+					}
+				},
+				{
+					"t": "[Attached PDF] x\nPath: y\nRead it when you need it.",
 					"back": null
 				}
 			],

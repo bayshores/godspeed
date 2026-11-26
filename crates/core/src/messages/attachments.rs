@@ -106,19 +106,30 @@ pub fn pdf_file_name(name: &str, hash: &str) -> String {
 
 const PDF_NOTE_HEAD: &str = "[Attached PDF] ";
 const PDF_NOTE_PATH: &str = "Path: ";
-const PDF_NOTE_TAIL: &str = "Read it with the pdf tool when you need its content.";
+/// A note's last line for each `PdfReader`, in its order.
+const PDF_NOTE_TAILS: [&str; 2] = ["Read it with the pdf tool when you need its content.", "Read it when you need its content."];
+
+/// Who reads a PDF's note, which says how to open the file: a lesson's teacher (or a cheat
+/// sheet's writer) has godspeed's pdf tool; the teacher panel's chat opens it with the agent's
+/// own tools.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PdfReader {
+	PdfTool,
+	OwnTools,
+}
 
 /// The text part that stands for a saved PDF: the teacher reads its name and path, the view turns
 /// it back into a chip (`pdf_note_of`).
-pub fn pdf_note(name: &str, file_path: &str) -> Json {
-	json!({ "type": "text", "text": format!("{PDF_NOTE_HEAD}{}\n{PDF_NOTE_PATH}{file_path}\n{PDF_NOTE_TAIL}", collapse_spaces(name)) })
+pub fn pdf_note(name: &str, file_path: &str, reader: PdfReader) -> Json {
+	let tail = PDF_NOTE_TAILS[reader as usize];
+	json!({ "type": "text", "text": format!("{PDF_NOTE_HEAD}{}\n{PDF_NOTE_PATH}{file_path}\n{tail}", collapse_spaces(name)) })
 }
 
 /// The name and path a `pdf_note` text holds, or None for any other text.
 pub fn pdf_note_of(note: &str) -> Option<(String, String)> {
 	let lines: Vec<&str> = note.split('\n').collect();
 	match lines[..] {
-		[head, path, PDF_NOTE_TAIL] => Some((head.strip_prefix(PDF_NOTE_HEAD)?.to_owned(), path.strip_prefix(PDF_NOTE_PATH)?.to_owned())),
+		[head, path, tail] if PDF_NOTE_TAILS.contains(&tail) => Some((head.strip_prefix(PDF_NOTE_HEAD)?.to_owned(), path.strip_prefix(PDF_NOTE_PATH)?.to_owned())),
 		_ => None,
 	}
 }
@@ -173,9 +184,12 @@ mod tests {
 
 	#[test]
 	fn pdf_notes_round_trip() {
-		let note = pdf_note("my   file.pdf", "/tmp/a.pdf");
-		let text = note["text"].as_str().unwrap();
-		assert_eq!(pdf_note_of(text), Some(("my file.pdf".to_owned(), "/tmp/a.pdf".to_owned())));
+		for reader in [PdfReader::PdfTool, PdfReader::OwnTools] {
+			let note = pdf_note("my   file.pdf", "/tmp/a.pdf", reader);
+			let text = note["text"].as_str().unwrap();
+			assert_eq!(pdf_note_of(text), Some(("my file.pdf".to_owned(), "/tmp/a.pdf".to_owned())));
+		}
+		assert_eq!(pdf_note("a.pdf", "/p", PdfReader::OwnTools)["text"].as_str(), Some("[Attached PDF] a.pdf\nPath: /p\nRead it when you need its content."));
 		assert_eq!(pdf_note_of("[Attached PDF] x\nPath: y"), None);
 		assert_eq!(content_text(&json!([{ "type": "text", "text": "a" }, { "type": "image" }])), "a\n[image]");
 	}

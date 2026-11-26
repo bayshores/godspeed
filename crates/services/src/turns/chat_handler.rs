@@ -15,7 +15,7 @@ use gs_base::locks::LockKey;
 use gs_base::{ids, time};
 use gs_core::contracts::chat::{TALK_CHAT_ID, extracts_facts};
 use gs_core::messages::app_notes::app_note_for;
-use gs_core::messages::attachments::ChatAttachment;
+use gs_core::messages::attachments::{ChatAttachment, PdfReader};
 use gs_core::messages::input_events::{About, ChatInput, ChatInputError, TurnInput, input_appends};
 use gs_core::messages::native_messages::{dangling_question_of, has_probe_done, is_side_turn, retry_context};
 use gs_core::messages::role::Role;
@@ -163,7 +163,9 @@ async fn run(app: &Arc<App>, chat_id: &str, input: TurnInput) -> ChatReply {
 	let mut attachments = Vec::new();
 	if let Some(files) = input_files(&input) {
 		let mut save = |name: &str, bytes: &[u8]| app.stores.chats.save_attachment(chat_id, name, bytes).map(|p| p.to_string_lossy().into_owned());
-		match store_attachments(files, &mut save) {
+		// The panel's chat has no pdf tool of godspeed's.
+		let reader = if is_talk(&record) { PdfReader::OwnTools } else { PdfReader::PdfTool };
+		match store_attachments(files, reader, &mut save) {
 			Ok(parts) => attachments = parts,
 			Err(AttachmentError::Input(err)) => return ChatReply::error(400, &err.0),
 			Err(AttachmentError::Save(err)) => return ChatReply::thrown(err),
