@@ -284,6 +284,8 @@ export class SessionModel {
 	// The single live consume (POST response or reattach stream): a newer
 	// consume cancels the older — one reader at a time.
 	private consumeAbort: AbortController | null = null;
+	/** A send waiting out a running turn (409) before it posts again; the learner's Stop ends the wait. */
+	private resendWait: AbortController | null = null;
 	/** The last kept drop's store, which the next one waits for; never rejects. */
 	private keptStores: Promise<void> = Promise.resolve();
 	/** Synchronous ready check for the gate (send/read mount logic). */
@@ -360,24 +362,27 @@ export class SessionModel {
 
 	/** The 409 identity-retry fetch: the event was
 	 *  never persisted (write-ahead happens only on acceptance), so the
-	 *  retry waits out the running turn and re-POSTs the SAME body. */
-	async postInputEvent(input: ChatInput, signal?: AbortSignal): Promise<Response> {
+	 *  retry waits out the running turn and re-POSTs the SAME body. An
+	 *  aborted `wait` ends the waiting with the last 409; a POST already
+	 *  sent is never cut off. */
+	async postInputEvent(input: ChatInput, wait?: AbortSignal): Promise<Response> {
 		const body = JSON.stringify({ chatId: this.chatId, input });
 		const init: RequestInit = {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body,
-			signal,
 		};
 		let response = await this.fetch("/api/chat", init);
 		let waited = 0;
 		while (response.status === 409) {
 			await response.body?.cancel().catch(() => {});
-			if (signal?.aborted || waited >= this.waitMaxMs) return response;
-			await delay(this.pollMs, signal);
+			if (wait?.aborted || waited >= this.waitMaxMs) return response;
+			// An aborted wait rejects the delay; the check after it ends the loop.
+			await delay(this.pollMs, wait).catch(() => {});
 			waited += this.pollMs;
-			if (signal?.aborted) return response;
+			if (wait?.aborted) return response;
 			if ((await turnInFlight(this)) !== false) continue;
+			if (wait?.aborted) return response;
 			response = await this.fetch("/api/chat", init); // may 409 again → loop
 		}
 		return response;
@@ -639,9 +644,11 @@ export class SessionModel {
 	 * server's 409 + identity retry covers the wake-race window).
 	 * Resolves false only when the input was surely not taken (the gate
 	 * was closed or the server refused it), so the caller can give the
-	 * learner their text back.
+	 * learner their text back. An `automatic` send (continueIfOwed) never
+	 * waits out a running turn: on a 409 it goes quietly, and that turn's
+	 * end decides again what is owed.
 	 */
-	async send(input: ChatInput): Promise<boolean> {
+	async send(input: ChatInput, automatic = false): Promise<boolean> {
 		const recovering = this.statusValue === "error";
 		if (!this.canSend()) return false;
 		this.consumeAbort?.abort();
@@ -711,8 +718,24 @@ export class SessionModel {
 			// is a short ack and cannot starve the connection pool. The
 			// STREAM consume stays on the controller, since releasing that
 			// held connection is the point of the abort.
-			const res = await this.postInputEvent(input);
+			const wait = new AbortController();
+			if (automatic) wait.abort();
+			else this.resendWait = wait;
+			const res = await this.postInputEvent(input, wait.signal).finally(() => {
+				if (this.resendWait === wait) this.resendWait = null;
+			});
 			refused = !res.ok;
+			if (res.status === 409 && automatic) {
+				const ids = new Set(optimistic.map((m) => m.id));
+				this.mutate(() => {
+					this.tail = this.tail.filter((m) => !ids.has(m.id));
+				});
+				if (this.consumeAbort === controller) {
+					this.consumeAbort = null;
+					this.setStatus("ready");
+				}
+				return false;
+			}
 			if (res.status === 409) {
 				throw new Error("A turn is already running. Try again in a moment.");
 			}
@@ -811,7 +834,7 @@ export class SessionModel {
 	/** Keep going at a stop: the UI-only marker lands optimistically (the
 	 *  next topic's stored opener shows at once), then the route stores it,
 	 *  even during a turn; it never starts one. With no opener stored and
-	 *  no turn running on the server, the go-ahead follows (continueIfOwed);
+	 *  no turn running on the server, the go-ahead follows;
 	 *  a running turn's end drives the next step instead. A failed store
 	 *  takes the marker back, so the stop card returns. */
 	async keepGoing(stopOf: string): Promise<void> {
@@ -824,7 +847,9 @@ export class SessionModel {
 			// The server's refusal words are for logs; he sees that Keep going didn't save.
 			if (!res.ok) throw new Error(`status ${res.status}`);
 			const { opener, running } = (await res.json()) as { opener?: boolean; running?: boolean };
-			if (!opener && !running) await this.continueIfOwed([...this.base, ...this.tail]);
+			// His own go-ahead, so a Stop before it holds nothing back; never a retried reply.
+			const owed = !opener && !running && this.statusValue === "ready" && this.getState().error === null && keepGoingOwesNext([...this.base, ...this.tail]);
+			if (owed) await this.send({ type: "next" }, true);
 		} catch (err) {
 			this.mutate(() => {
 				this.tail = this.tail.filter((m) => m !== marker);
@@ -881,6 +906,17 @@ export class SessionModel {
 	/** POST `{ input }` to one of the chat's silent routes. */
 	private postRoute(route: string, input: unknown): Promise<Response> {
 		return this.fetch(`/api/chats/${this.chatId}/${route}`, jsonInit("POST", { input }));
+	}
+
+	/** The learner's Stop, before the server is asked to end the turn: an
+	 *  input still waiting out the running turn is dropped, nothing goes out
+	 *  on its own until he acts again, and a live view detaches (stop). A
+	 *  failed view detaches too, so the send after it is not taken for a
+	 *  recovery that re-attaches. */
+	halt(): void {
+		this.resendWait?.abort();
+		this.automaticContinuationBlocked = true;
+		if (this.statusValue !== "ready") this.stop();
 	}
 
 	/** Local detach: cancel the consume, keep the partial tail. The page's
@@ -944,8 +980,8 @@ export class SessionModel {
 	 * A Keep going whose stop has no stored opener is owed the go-ahead. */
 	async continueIfOwed(record: readonly LhMessage[]): Promise<void> {
 		if (this.statusValue !== "ready" || this.automaticContinuationBlocked || this.getState().error !== null) return;
-		if (needsContinuation(record)) await this.send({ type: "continue" });
-		else if (keepGoingOwesNext(record)) await this.send({ type: "next" });
+		if (needsContinuation(record)) await this.send({ type: "continue" }, true);
+		else if (keepGoingOwesNext(record)) await this.send({ type: "next" }, true);
 	}
 
 	clearError(): void {

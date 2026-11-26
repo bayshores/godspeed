@@ -8,12 +8,11 @@ import type { useChatSession } from "@/frontend/components/session";
 import { escAbortTarget } from "@/frontend/components/lesson/chat-helpers";
 import { jsonInit, send as sendRequest } from "@/frontend/lib/api";
 
-type Session = Pick<ReturnType<typeof useChatSession>, "stop" | "status" | "send" | "submitAnswer" | "dismissProblem">;
+type Session = Pick<ReturnType<typeof useChatSession>, "halt" | "send" | "submitAnswer" | "dismissProblem">;
 
 export function useLessonAbort({
 	chatId,
 	session,
-	localStreamRef,
 	pendingRef,
 	activeProblemRef,
 	busyRef,
@@ -23,7 +22,6 @@ export function useLessonAbort({
 }: {
 	chatId: string;
 	session: Session;
-	localStreamRef: RefObject<unknown>;
 	pendingRef: RefObject<ReturnType<typeof findPendingToolCall>>;
 	activeProblemRef: RefObject<ReturnType<typeof activeProblemOf>>;
 	busyRef: RefObject<boolean>;
@@ -32,17 +30,15 @@ export function useLessonAbort({
 	closeMermaid: () => void;
 	skipReview: () => void;
 }) {
-	const { stop, status, send, submitAnswer, dismissProblem } = session;
+	const { halt, send, submitAnswer, dismissProblem } = session;
 
-	// The abort is always the remote kill (turns are server processes); a
-	// local view also detaches at once and keeps the partial. A failed view
-	// with a reply still running detaches too, so the send after it is not
-	// taken for a recovery that re-attaches.
+	// The abort is always the remote kill (turns are server processes); the
+	// view stops first (halt), keeping the partial and sending nothing more.
 	const abortInFlightTurn = useCallback(() => {
-		if (localStreamRef.current || status === "error") stop();
+		halt();
 		// A failed abort is transient: the turn settles on its own.
 		void sendRequest("/api/activity/abort", jsonInit("POST", { kind: "turn", id: chatId }));
-	}, [chatId, stop, status, localStreamRef]);
+	}, [chatId, halt]);
 
 	// THE LAYERED ESC: an open focus claims Esc first (the plan's dialog
 	// takes its own); then the abort chain: a question or problem opens its

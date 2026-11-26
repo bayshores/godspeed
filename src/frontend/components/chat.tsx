@@ -152,7 +152,7 @@ export function Chat({
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
 	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, keepGoing, dropKept, status, error, clearError, resumeStream } = session;
-	const { turnInFlight, localStreamRef, jobs, turns, pricing, summarizeAt, adoptAppendOnly } = useLessonServer({
+	const { turnInFlight, jobs, turns, pricing, summarizeAt, adoptAppendOnly } = useLessonServer({
 		chatId,
 		session,
 		initiallyInFlight: initiallyInFlight ?? false,
@@ -231,7 +231,6 @@ export function Chat({
 	const { abortInFlightTurn, abortAsk, setAbortAsk, confirmAbort } = useLessonAbort({
 		chatId,
 		session,
-		localStreamRef,
 		pendingRef,
 		activeProblemRef,
 		busyRef,

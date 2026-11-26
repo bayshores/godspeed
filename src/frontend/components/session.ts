@@ -119,7 +119,7 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 			dismissProblem: (problemCallId: string) => void model.dismissProblem(problemCallId),
 			setMessages: (record: LhMessage[], turnError?: string) => model.setMessages(record, turnError),
 			adoptRecord: (record: LhMessage[]) => model.adoptRecord(record),
-			stop: () => model.stop(),
+			halt: () => model.halt(),
 			clearError: () => model.clearError(),
 			resumeStream: () => void model.resumeStream(),
 		}),
