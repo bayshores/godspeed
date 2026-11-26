@@ -168,8 +168,9 @@ jobs:
             *) target/debug/godspeed --self-test ;;
           esac
 
-  # The Mac's debug builds in the real app window, on their own runner so the layout walk (about
-  # 8 minutes) runs beside the release server build in the desktop job instead of after it.
+  # The Mac's debug builds in the real app window, on their own runner so the layout walk (the
+  # longest step, in one part on this small runner) runs beside the release server build in the
+  # desktop job instead of after it.
   window:
     name: App window (mac)
     runs-on: macos-15

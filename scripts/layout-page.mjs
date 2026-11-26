@@ -467,6 +467,11 @@ function mainScroller() {
 	return best ?? (page.scrollHeight > page.clientHeight + 1 ? page : null);
 }
 
+/** How far the screen's scroller stands from its top. */
+export function scrolledAt() {
+	return mainScroller()?.scrollTop ?? 0;
+}
+
 /** Scrolls the screen's scroller to `top` pixels, or to its end for "end"; 0 goes back. Answers
  *  whether it moved, so a screen that can't scroll that far is not checked twice. */
 export function scrollMain(top) {
