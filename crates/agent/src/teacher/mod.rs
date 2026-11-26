@@ -3,4 +3,5 @@
 
 pub mod prompt_segments;
 mod prompts;
+pub use prompts::SOURCE_MARKS;
 pub mod teacher_agent;

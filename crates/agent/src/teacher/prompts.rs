@@ -3,6 +3,9 @@
 //! is also how a learner's saved version is keyed. Sorted by folder then file name, so a folder's
 //! fragments are already in the order they compose.
 
+/// How the teacher marks what it read, which the teacher panel's chat is told as well.
+pub const SOURCE_MARKS: &str = include_str!("../../prompts/shared/13-source-marks.md");
+
 pub const SOURCES: [(&str, &str); 27] = [
 	("system-prompt.md", include_str!("../../prompts/system-prompt.md")),
 	("homework/00-base.md", include_str!("../../prompts/homework/00-base.md")),
@@ -13,7 +16,7 @@ pub const SOURCES: [(&str, &str); 27] = [
 	("shared/10-voice.md", include_str!("../../prompts/shared/10-voice.md")),
 	("shared/11-learner-first.md", include_str!("../../prompts/shared/11-learner-first.md")),
 	("shared/12-space-context.md", include_str!("../../prompts/shared/12-space-context.md")),
-	("shared/13-source-marks.md", include_str!("../../prompts/shared/13-source-marks.md")),
+	("shared/13-source-marks.md", SOURCE_MARKS),
 	("shared/14-deadline-changes.md", include_str!("../../prompts/shared/14-deadline-changes.md")),
 	("shared/15-accuracy.md", include_str!("../../prompts/shared/15-accuracy.md")),
 	("shared/16-mental-model.md", include_str!("../../prompts/shared/16-mental-model.md")),
