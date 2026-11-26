@@ -194,7 +194,7 @@ function ChatRoom({ chatId, first, ...room }: RoomProps & ModelProps & { chatId:
 function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus }: RoomProps & ModelProps & { chatId: string; read: Read; first: TextInput | null }) {
 	const models = useAgentModels();
 	const session = useChatSession({ chatId, initialMessages: read.messages, initialError: read.turnError, initiallyInFlight: read.turnInFlight });
-	const { turnInFlight, localStreamRef } = useLessonServer({ chatId, session, initiallyInFlight: read.turnInFlight, initialStats: read, initialJobs: [] });
+	const { turnInFlight } = useLessonServer({ chatId, session, initiallyInFlight: read.turnInFlight, initialStats: read, initialJobs: [] });
 	const work = useLessonWork(chatId, undefined);
 	const busy = session.status === "submitted" || session.status === "streaming" || turnInFlight;
 	const { desk, closing } = useDesk(session.messages, busy, work, name);
@@ -208,7 +208,7 @@ function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus
 	const steers = visibleQueuedSteers(session.steerQueue, session.nativeMessages);
 	const waiting = (busy || closing) && steers.length > 0 ? <QueuedSteersBody steers={steers} /> : null;
 
-	const { send: sendInputNow, steer, stop, clearError, resumeStream } = session;
+	const { send: sendInputNow, steer, halt, clearError, resumeStream } = session;
 	const go = useCallback((input: TextInput): Promise<boolean> => (busy ? steer(input.text) : sendInputNow(input)), [busy, steer, sendInputNow]);
 	// The first message of a chat made here goes before the chat is first painted, so its plate
 	// takes the room "Try asking" held with no blank frame between.
@@ -236,7 +236,7 @@ function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus
 		});
 	};
 	const stopTurn = () => {
-		if (localStreamRef.current) stop();
+		halt();
 		// A failed abort is transient: the turn settles on its own.
 		void send("/api/activity/abort", jsonInit("POST", { kind: "turn", id: chatId }));
 	};

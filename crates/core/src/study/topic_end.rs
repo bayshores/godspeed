@@ -102,7 +102,8 @@ pub fn ends_topic(conclude_args: &Json, open_problem: Option<&ActiveProblem>) ->
 
 /// The lesson's stop, or none when it never stopped (every lesson from before stops existed):
 /// `{kind, at, nodeId, stopOf, next, activeMinutes, keptGoing}`. `kind` "end" is a topic stop with
-/// no topic left. `next` is the next topic's title (Study topic stop), the current plan step's
+/// no topic left: each one ended or is ticked on the step bar (a shown opener's question counts,
+/// as there). `next` is the next topic's title (Study topic stop), the current plan step's
 /// title (Study problem stop), "problem {n}" (homework) or null (practice). `tree` is a Study
 /// lesson's plan; `homework` is a homework lesson's problems (`{number, done}`), and with none
 /// left undone there is no stop (the done bar shows instead).
@@ -115,16 +116,19 @@ pub fn lesson_stop(messages: &[Json], tree: Option<&Json>, homework: Option<&[Js
 		let open = homework.iter().find(|p| !p["done"].truthy())?;
 		next = Json::from(format!("problem {}", js_string(open.get("number"))));
 	} else if let Some(tree) = tree.filter(|t| !t["nodes"].items().is_empty()) {
+		let statuses = derive_plan_statuses_lh(tree, messages, &opener_nodes(messages));
+		let current = statuses.current.as_deref();
 		let node_id = last.stop["nodeId"].as_str();
 		if let (Some(node_id), "topic") = (node_id, kind) {
-			let ended: HashSet<&str> = stops.iter().filter(|s| s.stop["kind"].as_str() == Some("topic")).filter_map(|s| s.stop["nodeId"].as_str()).collect();
+			// Behind him: a topic that ended, and a step the step bar ticks (visited, not current).
+			let mut ended: HashSet<&str> = stops.iter().filter(|s| s.stop["kind"].as_str() == Some("topic")).filter_map(|s| s.stop["nodeId"].as_str()).collect();
+			ended.extend(statuses.visited.iter().map(String::as_str).filter(|id| Some(*id) != current));
 			match next_topic(tree, node_id, &ended) {
 				Some(title) => next = title,
 				None => kind = "end",
 			}
 		} else {
-			let current = derive_plan_statuses_lh(tree, messages, &HashMap::new()).current;
-			next = tree["nodes"].items().iter().find(|n| n["id"].as_str().is_some_and(|id| current.as_deref() == Some(id))).map_or(Json::Null, |n| n["title"].clone());
+			next = tree["nodes"].items().iter().find(|n| n["id"].as_str().is_some_and(|id| current == Some(id))).map_or(Json::Null, |n| n["title"].clone());
 		}
 	}
 	let kept_going = keep_going_markers(messages).any(|(_, k)| k["stopOf"].as_str() == Some(last.stop_of)) || moved_past(messages, last);
@@ -168,23 +172,34 @@ fn next_topic(tree: &Json, node_id: &str, ended: &HashSet<&str>) -> Option<Json>
 	(!title.is_null()).then(|| title.clone())
 }
 
-/// The topic the record's newest graded event finished, and whether a quiz finished it: a clean
-/// conclude carrying a topic stop, or a right answer to a quiz (a prediction never counts). A newer
-/// problem, conclude or quiz answer that finishes nothing means no topic is finished.
-pub fn finished_topic(messages: &[Json]) -> Option<(String, bool)> {
+/// The topics the record finished, the newest last, each with whether a quiz finished it. A topic
+/// is finished while its own newest graded event finished it: a clean conclude carrying its topic
+/// stop, or a right answer to a quiz tagged with it (a prediction never counts). A newer problem
+/// on it, or a newer quiz answer on it that is not right, means it is not finished.
+pub fn finished_topics(messages: &[Json]) -> Vec<(String, bool)> {
 	let calls = call_args(messages);
-	let mut finished = None;
+	let mut finished: Vec<(String, bool)> = Vec::new();
+	let mut set = |node: Option<&str>, by_quiz: Option<bool>| {
+		let Some(node) = node else { return };
+		finished.retain(|(n, _)| n != node);
+		if let Some(by_quiz) = by_quiz {
+			finished.push((node.to_owned(), by_quiz));
+		}
+	};
 	for m in messages.iter().filter(|m| is_ok_tool_result(m)) {
 		let args = calls.get(m["toolCallId"].str_or_empty()).copied().unwrap_or(&Json::Null);
 		match m["toolName"].as_str() {
-			Some(PRACTICE_PROBLEM_TOOL) => finished = None,
-			Some(PRACTICE_CONCLUDE_TOOL) => finished = stop_in(m).filter(|s| s["kind"].as_str() == Some("topic")).and_then(|s| s["nodeId"].as_str()).map(|n| (n.to_owned(), false)),
+			Some(PRACTICE_PROBLEM_TOOL) => set(args["nodeId"].as_str(), None),
+			Some(PRACTICE_CONCLUDE_TOOL) => {
+				if let Some(stop) = stop_in(m).filter(|s| s["kind"].as_str() == Some("topic")) {
+					set(stop["nodeId"].as_str(), Some(false));
+				}
+			}
 			Some("quiz") => {
 				let predict = normalize_quiz_type(if m["details"]["questionType"].is_null() { &args["type"] } else { &m["details"]["questionType"] }) == Some("predict");
 				match answer_outcome(&m["details"]) {
 					Some(_) if predict => {}
-					Some("right") => finished = args["nodeId"].as_str().map(|n| (n.to_owned(), true)),
-					Some(_) => finished = None,
+					Some(outcome) => set(args["nodeId"].as_str(), (outcome == "right").then_some(true)),
 					None => {}
 				}
 			}
@@ -510,15 +525,20 @@ mod tests {
 	}
 
 	#[test]
-	fn the_finished_topic_is_the_newest_graded_events() {
-		assert_eq!(finished_topic(&regularization_ends()), Some(("reg".to_owned(), false)), "the topic-ending conclude");
-		assert_eq!(finished_topic(&quiz("q1", "cv", "check", true, 50.0)), Some(("cv".to_owned(), true)));
-		assert_eq!(finished_topic(&[regularization_ends(), quiz("q1", "cv", "check", true, 50.0)].concat()), Some(("cv".to_owned(), true)));
-		assert_eq!(finished_topic(&[regularization_ends(), quiz("q1", "cv", "predict", true, 50.0)].concat()), Some(("reg".to_owned(), false)), "a prediction counts for nothing");
-		assert_eq!(finished_topic(&[quiz("q1", "cv", "check", true, 50.0), quiz("q2", "cv", "check", false, 51.0)].concat()), None, "a newer miss");
+	fn a_topic_is_finished_while_its_own_newest_graded_event_finished_it() {
+		let topics = |messages: &[Json]| finished_topics(messages);
+		let owned = |list: &[(&str, bool)]| list.iter().map(|(n, q)| ((*n).to_owned(), *q)).collect::<Vec<_>>();
+		assert_eq!(topics(&regularization_ends()), owned(&[("reg", false)]), "the topic-ending conclude");
+		assert_eq!(topics(&quiz("q1", "cv", "check", true, 50.0)), owned(&[("cv", true)]));
+		assert_eq!(topics(&[regularization_ends(), quiz("q1", "cv", "check", true, 50.0)].concat()), owned(&[("reg", false), ("cv", true)]), "an earlier topic stays finished");
+		assert_eq!(topics(&[regularization_ends(), quiz("q1", "cv", "predict", true, 50.0)].concat()), owned(&[("reg", false)]), "a prediction counts for nothing");
+		assert_eq!(topics(&[quiz("q1", "cv", "check", true, 50.0), quiz("q2", "cv", "check", false, 51.0)].concat()), owned(&[]), "a newer miss on it");
+		assert_eq!(topics(&[quiz("q1", "cv", "check", true, 50.0), quiz("q2", "deg", "check", false, 51.0)].concat()), owned(&[("cv", true)]), "a miss on another topic");
+		assert_eq!(topics(&[quiz("q1", "cv", "check", true, 50.0), quiz("q2", "deg", "check", true, 51.0), quiz("q3", "cv", "check", true, 52.0)].concat()), owned(&[("deg", true), ("cv", true)]), "newest last");
 		let posed = regularization_ends()[..2].to_vec();
-		assert_eq!(finished_topic(&[quiz("q1", "cv", "check", true, 20.0), posed].concat()), None, "a newer problem");
-		assert_eq!(finished_topic(&[]), None);
+		assert_eq!(topics(&[quiz("q1", "reg", "check", true, 20.0), posed.clone()].concat()), owned(&[]), "a newer problem on it");
+		assert_eq!(topics(&[quiz("q1", "cv", "check", true, 20.0), posed].concat()), owned(&[("cv", true)]), "a problem on another topic");
+		assert_eq!(topics(&[]), owned(&[]));
 	}
 
 	#[test]

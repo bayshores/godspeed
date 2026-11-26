@@ -412,14 +412,14 @@ mod tests {
 			json!([
 				lesson("mid", "study", json!({ "plan": { "done": 1, "total": 3, "inTopic": "Regularization" } })),
 				lesson("ended", "study", json!({ "plan": { "done": 2, "total": 3, "endedAt": "2026-11-16T11:00:00.000Z" } })),
-				lesson("out", "teach", json!({ "plan": { "done": 3, "total": 3 } })),
-				lesson("skipped", "study", json!({ "plan": { "done": 3, "total": 3, "stop": stop } })),
+				lesson("out", "teach", json!({ "plan": { "done": 2, "step": 3, "total": 3 } })),
+				lesson("skipped", "study", json!({ "plan": { "done": 3, "step": 3, "total": 3, "stop": stop } })),
 			]),
 			json!([]), json!([]), json!([]),
 		);
 		assert_eq!((r["mid"]["step"].clone(), r["mid"]["unfinished"].clone()), (json!({ "done": 1, "total": 3 }), json!(true)), "mid-way");
 		assert_eq!((r["ended"]["step"].clone(), r["ended"].get("unfinished")), (json!({ "done": 2, "total": 3 }), None), "reached its end");
-		assert_eq!(r["out"].get("unfinished"), None, "counted out");
+		assert_eq!((r["out"]["step"].clone(), r["out"].get("unfinished")), (json!({ "done": 2, "total": 3 }), None), "at its last step: the blocks are the ticked steps");
 		assert_eq!(r["skipped"]["unfinished"], json!(true), "a stop with a skipped topic left");
 		assert_eq!(r["mid"].get("deadlineId"), None);
 	}

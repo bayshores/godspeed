@@ -1921,6 +1921,68 @@ describe("Keep going and the opener", () => {
 	});
 });
 
+describe("Stop is final", () => {
+	// Keep going is stored and its stop has no opener: the go-ahead is owed.
+	const kept = [...regularizationEnds().slice(0, 4), text("w", "Solid.", 48.2), keepGoing("c1", 50)];
+	function scripted(running: () => boolean) {
+		const posted: string[] = [];
+		const fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = String(input);
+			if (url === "/api/chat") {
+				posted.push((JSON.parse(String(init?.body)) as { input: ChatInput }).input.type);
+				return running() ? new Response("busy", { status: 409 }) : Response.json({ ok: true });
+			}
+			if (url.startsWith("/api/jobs")) return Response.json({ turnInFlight: running() });
+			if (url === "/api/chats/chat_x/keep-going") return Response.json({ ok: true, opener: false, running: running() });
+			if (url === "/api/chats/chat_x") return Response.json({ messages: kept });
+			if (url === "/api/chats/chat_x/stream") return sseResponse("[DONE]");
+			throw new Error(`unexpected fetch: ${url}`);
+		}) as typeof globalThis.fetch;
+		return { posted, fetch };
+	}
+	const nextLines = (m: SessionModel) => m.getState().nativeMessages.filter((x) => x.role === "custom" && x.customType === "practice-next").length;
+
+	it("a go-ahead waiting out the turn he stopped is never posted again, and its line goes", async () => {
+		let running = true;
+		const { posted, fetch } = scripted(() => running);
+		const m = model({ initialMessages: kept, fetch, pollMs: 5, waitMaxMs: 2000 });
+		const sending = m.send({ type: "next" });
+		for (let i = 0; i < 200 && posted.length === 0; i++) await new Promise((r) => setTimeout(r, 2));
+		assert.equal(nextLines(m), 1, "the line shows while it waits");
+		m.halt();
+		running = false;
+		assert.equal(await sending, false, "not taken");
+		await new Promise((r) => setTimeout(r, 40));
+		assert.deepEqual(posted, ["next"], "posted once, and not again when the stopped turn ended");
+		assert.equal(nextLines(m), 0);
+		assert.equal(m.getState().status, "ready");
+		assert.equal(m.getState().error, null, "no banner: he stopped it");
+	});
+
+	it("an owed go-ahead that meets a running turn goes quietly, and is not posted when that turn ends", async () => {
+		let running = true;
+		const { posted, fetch } = scripted(() => running);
+		const m = model({ initialMessages: kept, fetch, pollMs: 5, waitMaxMs: 2000 });
+		await m.continueIfOwed(kept);
+		running = false;
+		await new Promise((r) => setTimeout(r, 40));
+		assert.deepEqual(posted, ["next"]);
+		assert.equal(nextLines(m), 0);
+		assert.equal(m.getState().status, "ready");
+		assert.equal(m.getState().error, null);
+	});
+
+	it("after Stop nothing goes out on its own; his Keep going is his go-ahead", async () => {
+		const { posted, fetch } = scripted(() => false);
+		const m = model({ initialMessages: kept, fetch });
+		m.halt();
+		await m.continueIfOwed(kept);
+		assert.deepEqual(posted, [], "the owed go-ahead waits for him");
+		await m.keepGoing("c1");
+		assert.deepEqual(posted, ["next"]);
+	});
+});
+
 describe("Drop this analogy and the phrase", () => {
 	function scripted(kept: () => Response) {
 		const bodies: unknown[] = [];

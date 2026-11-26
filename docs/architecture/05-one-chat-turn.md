@@ -4,7 +4,7 @@
 
 1. Window posts `{chatId, input}` to `POST /api/chat`. Input is one event: `text`, `answer`, `continue`, `side`, `next` (practice, study or homework), `open` (a homework problem picked by number) or `opener-answer` (`core::messages::input_events`). `dismiss-problem` is the only dismissal: it discards an open problem and never starts a turn.
 2. Handler turns input, or queued steers, into record appends.
-3. `begin_turn(chatId)` registers turn in `turn_liveness` (in memory). A turn already running gives 409; window waits for it to end and posts same input again, giving up after 30 s.
+3. `begin_turn(chatId)` registers turn in `turn_liveness` (in memory). A turn already running gives 409; window waits for it to end and posts same input again, giving up after 30 s. The learner's Stop ends the wait, and the input is not posted. An input the window sends on its own (a continuation, or the go-ahead a Keep going owes) never waits: it is dropped, and the running turn's end decides again what is owed.
 4. `save_messages` writes input before anything streams (write-ahead).
 5. Handler builds the turn's instructions and tools from the record (`lesson_setup`) and runs the turn on the lesson's agent session (`SessionTurn`, see below).
 6. The turn's events stream to window as SSE (`ui_stream`): each piece of the reply as it is written, at most every 100 ms.

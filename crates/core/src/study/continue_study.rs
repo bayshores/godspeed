@@ -1,6 +1,6 @@
 //! A deadline's Study button reopens the lesson tied to it that the learner last worked in, until
-//! that one is finished: it reached its end, or its step bar's count reached its last topic with
-//! no stop left to go on from (continue-study.ts).
+//! that one is finished: it reached its end, or it is at its last step with no stop left to go on
+//! from.
 
 use gs_base::time;
 use gs_json::{Json, Obj};
@@ -40,13 +40,14 @@ fn last_worked<'a>(deadline_id: &str, sessions: &'a [Json]) -> Option<&'a Json> 
 	latest_session(deadline_id, sessions, "updatedAt")
 }
 
-/// Whether a lesson's plan state (`{ done?, total?, stop?, endedAt? }`) is finished: it reached
-/// its end, or its count reached its last step with no stop left to go on from.
+/// Whether a lesson's plan state (`{ step?, total?, stop?, endedAt? }`) is finished: it reached
+/// its end, or it is at its last step with no stop left to go on from (a lesson from before stops
+/// ends no other way).
 pub fn plan_finished(state: &Json) -> bool {
-	let (done, total) = (state["done"].as_f64(), state["total"].as_f64());
-	// `done >= total` is false when either is missing, so a lesson with no count stays open.
-	let counted_out = matches!((done, total), (Some(d), Some(t)) if d >= t) && !state["stop"].truthy();
-	counted_out || state["endedAt"].truthy()
+	let (step, total) = (state["step"].as_f64(), state["total"].as_f64());
+	// `step >= total` is false when either is missing, so a lesson with no count stays open.
+	let at_last = matches!((step, total), (Some(s), Some(t)) if s >= t) && !state["stop"].truthy();
+	at_last || state["endedAt"].truthy()
 }
 
 /// Whether the deadline's session last worked in reached its end on `today` (the learner's day,
@@ -64,7 +65,7 @@ mod tests {
 
 	#[test]
 	fn the_session_last_worked_in_wins_while_unfinished() {
-		let s = |chat: &str, at: &str, done: i64| json!({ "chatId": chat, "deadlineId": "d1", "updatedAt": at, "done": done, "total": 3 });
+		let s = |chat: &str, at: &str, done: i64| json!({ "chatId": chat, "deadlineId": "d1", "updatedAt": at, "done": done, "step": done, "total": 3 });
 		let sessions = [s("a", "2026-01-01", 1), s("b", "2026-01-03", 2), s("c", "2026-01-02", 0), json!({ "chatId": "z", "deadlineId": "d2", "updatedAt": "2027", "done": 0, "total": 1 })];
 		assert_eq!(continue_study_for("d1", &sessions), Some(json!({ "chatId": "b", "done": 2, "total": 3 })));
 		assert_eq!(continue_study_for("d1", &[s("a", "2026-01-01", 3)]), None);
@@ -91,23 +92,24 @@ mod tests {
 	#[test]
 	fn a_full_count_still_continues_at_a_stop() {
 		let stop = json!({ "at": "2026-11-18T21:48:00.000Z", "next": "Cross-validation" });
-		let skipped_left = json!({ "chatId": "a", "deadlineId": "d1", "updatedAt": "1", "done": 3, "total": 3, "stop": stop.clone() });
+		let skipped_left = json!({ "chatId": "a", "deadlineId": "d1", "updatedAt": "1", "done": 3, "step": 3, "total": 3, "stop": stop.clone() });
 		assert_eq!(continue_study_for("d1", &[skipped_left]), Some(json!({ "chatId": "a", "done": 3, "total": 3, "stop": stop })), "a skipped topic is left");
-		let old_finished = json!({ "chatId": "a", "deadlineId": "d1", "updatedAt": "1", "done": 3, "total": 3 });
+		let old_finished = json!({ "chatId": "a", "deadlineId": "d1", "updatedAt": "1", "done": 2, "step": 3, "total": 3 });
 		assert_eq!(continue_study_for("d1", &[old_finished]), None, "finished before stops existed");
-		let mid_last = json!({ "chatId": "a", "deadlineId": "d1", "updatedAt": "1", "done": 3, "total": 3, "inTopic": "Model selection" });
+		let mid_last = json!({ "chatId": "a", "deadlineId": "d1", "updatedAt": "1", "done": 2, "step": 3, "total": 3, "inTopic": "Model selection" });
 		assert_eq!(continue_study_for("d1", &[mid_last]), None, "in the middle of the last topic");
 	}
 
 	#[test]
-	fn a_plan_is_finished_at_its_end_or_counted_out_with_no_stop_left() {
+	fn a_plan_is_finished_at_its_end_or_at_its_last_step_with_no_stop_left() {
 		let stop = json!({ "at": "2026-11-18T21:48:00.000Z", "next": "Cross-validation" });
-		assert!(!plan_finished(&json!({ "done": 1, "total": 3 })), "mid-way");
+		assert!(!plan_finished(&json!({ "done": 1, "step": 2, "total": 3 })), "mid-way");
 		assert!(!plan_finished(&json!({})), "no count yet");
-		assert!(plan_finished(&json!({ "done": 3, "total": 3 })), "counted out");
-		assert!(plan_finished(&json!({ "done": 3, "total": 3, "inTopic": "Model selection" })), "in the last topic");
-		assert!(!plan_finished(&json!({ "done": 3, "total": 3, "stop": stop })), "a skipped topic is left");
-		assert!(plan_finished(&json!({ "done": 1, "total": 3, "endedAt": "2026-11-18T22:40:00.000Z" })), "reached its end");
+		assert!(plan_finished(&json!({ "done": 2, "step": 3, "total": 3 })), "at its last step");
+		assert!(plan_finished(&json!({ "done": 2, "step": 3, "total": 3, "inTopic": "Model selection" })), "in the last topic");
+		assert!(!plan_finished(&json!({ "done": 3, "step": 3, "total": 3, "stop": stop })), "a skipped topic is left");
+		assert!(!plan_finished(&json!({ "done": 3, "step": 2, "total": 3 })), "the step number decides, not the ticks");
+		assert!(plan_finished(&json!({ "done": 1, "step": 1, "total": 3, "endedAt": "2026-11-18T22:40:00.000Z" })), "reached its end");
 	}
 
 	#[test]

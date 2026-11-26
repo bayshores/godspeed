@@ -13,7 +13,7 @@ use gs_core::messages::quote_find::QuoteMiss;
 use gs_core::session::argument_heal::heal_encoded_arguments;
 use gs_core::session::question_core::{quiz_input_object, quiz_input_problems};
 use gs_core::session::schema::{described, object, string};
-use gs_core::study::topic_end::{finished_topic, topic_done_stored, topic_stop};
+use gs_core::study::topic_end::{finished_topics, topic_done_stored, topic_stop};
 use gs_engine::turn::messages::text_block;
 use gs_engine::turn::tool::{ExecutionMode, Tool, ToolContext};
 use gs_engine::turn::validate::argument_problems;
@@ -181,17 +181,20 @@ impl TopicDone {
 	fn run(&self, args: &Json) -> Result<Json, String> {
 		let messages = record_messages(&self.record.chat_store, &self.record.chat_id);
 		let node_id = args["nodeId"].str_or_empty();
-		// The topic this turn's conclude finished, else the one the record's newest graded event did;
-		// one whose topic_done is already stored counts as none.
-		let finished = match self.gate.topic_ended() {
-			Some(turn) => (!turn.stored).then_some((turn.node_id, false)),
-			None => finished_topic(&messages),
+		// Every finished topic whose topic_done is not stored, the newest last: the record's, then
+		// the one this turn's conclude finished (the record holds this turn only once it ends).
+		let mut waiting: Vec<(String, bool)> = finished_topics(&messages).into_iter().filter(|(done, _)| !topic_done_stored(&messages, done)).collect();
+		if let Some(turn) = self.gate.topic_ended() {
+			waiting.retain(|(done, _)| *done != turn.node_id);
+			if !turn.stored {
+				waiting.push((turn.node_id, false));
+			}
 		}
-		.filter(|(done, _)| !topic_done_stored(&messages, done));
 		let mut problems = Vec::new();
-		match &finished {
+		let finished = waiting.iter().find(|(done, _)| done == node_id).cloned();
+		match waiting.last() {
 			None => problems.push(NOTHING_FINISHED.to_owned()),
-			Some((done, _)) if done != node_id => problems.push(format!("nodeId: \"{node_id}\" is not the topic you just finished (\"{done}\").")),
+			Some((done, _)) if finished.is_none() => problems.push(format!("nodeId: \"{node_id}\" is not the topic you just finished (\"{done}\").")),
 			Some(_) => {}
 		}
 		let lead = args["opener"]["lead"].as_str().map(|lead| {
@@ -422,6 +425,26 @@ mod tests {
 		assert_eq!(call(&tool, sent()).await.unwrap_err(), NOTHING_FINISHED);
 		let next = with(with(sent(), &["nodeId"], json!("n4")), &["opener", "quiz", "nodeId"], json!("n5"));
 		assert_eq!(call(&tool, next).await.unwrap_err(), NOTHING_FINISHED, "a stored topic is not named as the one just finished");
+	}
+
+	#[tokio::test]
+	async fn an_earlier_finished_topic_left_without_its_topic_done_still_takes_one() {
+		let n4_quiz = quiz("check", "n4");
+		let record = [quiz_ended(), vec![
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q2", "name": "quiz", "arguments": n4_quiz }], "timestamp": 3_000 }),
+			json!({ "role": "toolResult", "toolCallId": "q2", "toolName": "quiz", "details": { "kind": "quiz", "correct": true }, "isError": false, "timestamp": 4_000 }),
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "t0", "name": "topic_done", "arguments": { "nodeId": "n4" } }], "timestamp": 5_000 }),
+			json!({ "role": "toolResult", "toolCallId": "t0", "toolName": "topic_done", "details": { "part": "topic_done", "v": 1 }, "isError": false, "timestamp": 5_000 }),
+		]].concat();
+		let (tool, _) = tool_on(record.clone(), true);
+		let later = with(with(sent(), &["nodeId"], json!("n5")), &["opener", "quiz", "nodeId"], json!("n4"));
+		assert_eq!(call(&tool, later).await.unwrap_err(), "nodeId: \"n5\" is not the topic you just finished (\"n3\").", "n5 never finished");
+		let done = call(&tool, sent()).await.unwrap();
+		assert_eq!(done["details"]["stop"]["nodeId"], json!("n3"), "n3 finished by a quiz before n4 did, and its stop comes now");
+
+		let (tool, gate) = tool_on(record, true);
+		gate.set_topic_ended("n5", false);
+		assert!(call(&tool, sent()).await.is_ok(), "this turn's conclude on n5 leaves n3 waiting too");
 	}
 
 	#[tokio::test]

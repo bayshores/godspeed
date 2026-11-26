@@ -1070,13 +1070,19 @@ describe("the reading pane", () => {
 		assert.doesNotMatch(pane({ busy: false, status: "ready" }), /data-testid="agent-at-work"/);
 	});
 
-	it("while the teacher writes: the lines waiting for it under the desk, and Stop in the writing row after Send; none when idle or at a stop", () => {
+	it("while the teacher writes: the lines waiting for it under the desk, and Stop in the writing row after Send; none when idle", () => {
 		const out = pane({ messages: planned, queuedSteers: [{ id: "s1", text: "and the variance?" }] });
 		assert.match(out, /data-testid="agent-at-work"[\s\S]*data-testid="queued-steers"[\s\S]*?and the variance\?/);
 		assert.doesNotMatch(out, /stop-turn/, "Stop is not in the text");
 		assert.match(html({ busy: true, onStop: () => {} }), /data-testid="composer-keys"[^>]*>[\s\S]*data-testid="composer-send"[\s\S]*data-testid="stop-turn" class="lh-btn shrink-0">Stop</);
 		assert.doesNotMatch(html(), /stop-turn/);
-		assert.doesNotMatch(html({ busy: true }), /stop-turn/, "the teacher reading ahead at a stop is not stopped");
+		assert.doesNotMatch(html({ busy: true }), /stop-turn/, "no Stop without a turn to stop");
+	});
+
+	it("at a stop while the teacher reads ahead, Stop stands before the next key, which stays the one bright key", () => {
+		const out = html({ busy: true, onStop: () => {}, shown: shown(atStop) });
+		assert.match(out, /data-testid="composer-keys"[\s\S]*data-testid="stop-turn" class="lh-btn shrink-0">Stop<[\s\S]*data-testid="next-problem-button" data-action="keep-going" class="lh-btn lh-btn-main shrink-0">Continue</);
+		assert.equal(out.split("lh-btn-main").length - 1, 1, "one bright key");
 	});
 
 	it("Stop sends the stop once", async () => {

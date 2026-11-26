@@ -6,13 +6,13 @@
  * and browser-safe.
  */
 
-/** A lesson for a deadline (not its homework lesson), with its step bar's count. */
+/** A lesson for a deadline (not its homework lesson), with the steps its step bar ticks. */
 interface DeadlineSession {
 	chatId: string;
 	deadlineId: string;
 	/** When a message of it was last saved. */
 	updatedAt: string;
-	/** The step bar's count; absent until
+	/** The steps its step bar ticks; absent until
 	 *  the session has a plan (the agent writes it when the space has no
 	 *  topics for it). */
 	done?: number;

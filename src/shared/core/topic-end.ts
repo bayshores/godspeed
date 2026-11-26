@@ -38,7 +38,9 @@ interface HomeworkMark {
 }
 
 /** The lesson's stop, or null when it never stopped (every lesson from
- *  before stops existed). `tree` is a Study lesson's plan (null for
+ *  before stops existed). A topic stop is "end" once every topic ended or
+ *  is ticked on the step bar (a shown opener's question counts, as
+ *  there). `tree` is a Study lesson's plan (null for
  *  practice and homework); `homework` is a homework lesson's problems, and
  *  with none left undone there is no stop (the done bar shows instead). */
 export function lessonStop(messages: readonly LhMessage[], tree: PlanTree | null | undefined, homework?: readonly HomeworkMark[]): LessonStop | null {
@@ -52,11 +54,14 @@ export function lessonStop(messages: readonly LhMessage[], tree: PlanTree | null
 		if (!open) return null;
 		next = `problem ${open.number}`;
 	} else if (tree && tree.nodes.length > 0) {
+		const { current, visited } = derivePlanStatusesLh(tree, messages, openerNodes(messages));
 		if (last.stop.kind === "topic") {
-			next = nextTopic(tree, last.stop.nodeId, new Set(stops.flatMap((s) => (s.stop.kind === "topic" ? [s.stop.nodeId] : []))));
+			// Behind him: a topic that ended, and a step the step bar ticks (visited, not current).
+			const ended = new Set(stops.flatMap((s) => (s.stop.kind === "topic" ? [s.stop.nodeId] : [])));
+			for (const id of visited) if (id !== current) ended.add(id);
+			next = nextTopic(tree, last.stop.nodeId, ended);
 			if (next === null) kind = "end";
 		} else {
-			const current = derivePlanStatusesLh(tree, messages).current;
 			next = tree.nodes.find((n) => n.id === current)?.title ?? null;
 		}
 	}
@@ -135,6 +140,11 @@ export function shownOpeners(messages: readonly LhMessage[]): Map<string, ShownO
 		if (details && opener && !opener.answer) opener.answer = { answer: details.answer, timestamp: m.timestamp };
 	}
 	return out;
+}
+
+/** The node of each shown opener's question, by its topic_done call id. */
+function openerNodes(messages: readonly LhMessage[]): Map<string, string> {
+	return new Map([...shownOpeners(messages)].flatMap(([id, o]) => (typeof o.quiz.nodeId === "string" ? [[id, o.quiz.nodeId] as const] : [])));
 }
 
 // ─── record scans ────────────────────────────────────────────────────────────

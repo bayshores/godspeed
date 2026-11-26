@@ -9,7 +9,7 @@ use gs_base::{clock, time};
 use gs_core::spaces::problem_list::with_problem_lists;
 use gs_core::spaces::today_note::local_day;
 use gs_core::graph::graph::get_graph;
-use gs_core::session::plan_step_bar::{current_step_title, plan_position_lh};
+use gs_core::session::plan_step_bar::{current_step_title, plan_position_lh, steps_done_lh};
 use gs_core::session::practice_outcomes::practice_outcomes;
 use gs_core::study::kept::{KeptSentence, kept_comebacks, kept_sentences};
 use gs_core::study::progress::{collect_answers, derive_progress, facts_by_message, facts_for_answer};
@@ -72,12 +72,20 @@ pub fn lesson_ended(app: &App, chat_id: &str) -> bool {
 	lesson_readout(app, chat_id).and_then(|r| r.plan.as_ref().map(|plan| plan.contains_key("endedAt"))).unwrap_or(false)
 }
 
-/// Where a lesson's plan stands: its step bar's count (`done`, `total`), the stop it waits at
-/// until he keeps going (`stop`: `{at, next}`), when it reached its end (`endedAt`), and otherwise
-/// the topic it is in the middle of (`inTopic`, the current step's title).
+/// Where a lesson's plan stands: the steps its step bar ticks (`done`, of `total`), the current
+/// step's number (`step`, the steps visited while none is current), the stop it waits at until he
+/// keeps going (`stop`: `{at, next}`), when it reached its end (`endedAt`), and otherwise the topic
+/// it is in the middle of (`inTopic`, the current step's title).
 fn plan_state(tree: &Json, messages: &[Json]) -> Obj {
-	let mut out = picked(&plan_position_lh(tree, messages), &["done", "total"]);
-	let (key, value) = match lesson_stop(messages, Some(tree), None) {
+	let stop = lesson_stop(messages, Some(tree), None);
+	// The step bar ticks the current step at its topic's stop, as stepsRow does.
+	let finished = stop.as_ref().filter(|s| s["kind"].as_str() != Some("problem") && !s["keptGoing"].truthy()).and_then(|s| s["nodeId"].as_str());
+	let position = plan_position_lh(tree, messages);
+	let mut out = Obj::new();
+	out.insert("done", steps_done_lh(tree, messages, finished) as f64);
+	out.insert("total", position["total"].clone());
+	out.insert("step", position["done"].clone());
+	let (key, value) = match stop {
 		Some(stop) if stop["kind"].as_str() == Some("end") => ("endedAt", Some(stop["at"].clone())),
 		Some(stop) if !stop["keptGoing"].truthy() => ("stop", Some(json!({ "at": stop["at"], "next": stop["next"] }))),
 		_ => ("inTopic", current_step_title(tree, messages)),
@@ -484,9 +492,10 @@ pub(super) mod tests {
 		let going = [stopped, vec![kept_going("c1")]].concat();
 		app.stores.chats.save_messages(&chat_id, &going).unwrap();
 		let r = row(&app);
-		assert_eq!((r["step"].clone(), r["unfinished"].clone()), (json!({ "done": 2, "total": 3 }), json!(true)), "on the second topic");
-		app.stores.chats.save_messages(&chat_id, &[going, ended("c2", "cv"), ended("c3", "gd")].concat()).unwrap();
-		assert_eq!(row(&app).get("unfinished"), None, "reached its end");
+		assert_eq!((r["step"].clone(), r["unfinished"].clone()), (json!({ "done": 1, "total": 3 }), json!(true)), "on the second topic, the first one ticked");
+		app.stores.chats.save_messages(&chat_id, &[going, ended("c2", "cv"), vec![asked("gd")], ended("c3", "gd")].concat()).unwrap();
+		let r = row(&app);
+		assert_eq!((r["step"].clone(), r.get("unfinished")), (json!({ "done": 3, "total": 3 }), None), "reached its end, every step ticked");
 	}
 
 	#[test]
