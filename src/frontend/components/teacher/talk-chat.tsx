@@ -197,9 +197,9 @@ function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus
 	const { turnInFlight, localStreamRef } = useLessonServer({ chatId, session, initiallyInFlight: read.turnInFlight, initialStats: read, initialJobs: [] });
 	const work = useLessonWork(chatId, undefined);
 	const busy = session.status === "submitted" || session.status === "streaming" || turnInFlight;
-	const { desk, closing, shown } = useDesk(session.messages, busy, work, name);
+	const { desk, closing } = useDesk(session.messages, busy, work, name);
 	const earlier = useMemo(() => readEarlier(read.earlier), [read.earlier]);
-	const talk = talkLines(shown, earlier, session.status === "streaming");
+	const talk = talkLines(session.messages, earlier, session.status === "streaming");
 	const arrive = useArrivals();
 	// What the chat's first drawing holds stays at rest; a desk that opens later rises in.
 	const [drawn, setDrawn] = useState(false);
@@ -262,7 +262,7 @@ function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus
 	const deskBlock = desk && (
 		<DeskIn live={drawn} afterSend={talk.at(-1)?.who === "you"}>
 			<div data-state={closing ? "closed" : "open"} inert={closing} className={cn("flex flex-col", closing && "lh-fade")}>
-				<AgentAtWork chatId={chatId} head={desk.head} work={desk.work} arrive={arrive} foot={waiting} paper={false} />
+				<AgentAtWork chatId={chatId} head={desk.head} writing={desk.writing} work={desk.work} arrive={arrive} foot={waiting} paper={false} room={null} closing={closing} />
 			</div>
 		</DeskIn>
 	);

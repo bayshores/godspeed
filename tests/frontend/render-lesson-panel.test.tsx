@@ -1002,7 +1002,7 @@ describe("the turn sheet", () => {
 
 describe("the lesson page's pair", () => {
 	const page = (turn: React.ReactNode | null, reading: React.ReactNode | null = <div data-testid="lesson-reading" />, open = true, place: TurnPlace = "beside", pin = false) =>
-		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={reading} turn={turn} open={open} shutting={false} onShut={() => {}} onRest={() => {}} pin={pin} place={place} onPlace={() => {}} />);
+		renderToStaticMarkup(<LessonScroll steps={null} restKey="" busy={false} contextRef={{ current: null }} reading={reading} turn={turn} open={open} shutting={false} onShut={() => {}} onRest={() => {}} pin={pin} room={false} place={place} onPlace={() => {}} />);
 
 	it("draws Your turn alone, in the middle at its width in the pair, while the lesson text draws nothing", () => {
 		const alone = page(<aside data-testid="turn-sheet" />, null);
@@ -1074,7 +1074,7 @@ describe("the reading pane", () => {
 		const out = pane({ messages: planned, queuedSteers: [{ id: "s1", text: "and the variance?" }] });
 		assert.match(out, /data-testid="agent-at-work"[\s\S]*data-testid="queued-steers"[\s\S]*?and the variance\?/);
 		assert.doesNotMatch(out, /stop-turn/, "Stop is not in the text");
-		assert.match(html({ busy: true, onStop: () => {} }), /data-testid="composer-keys"[^>]*>[\s\S]*data-testid="composer-send"[\s\S]*data-testid="stop-turn"[^>]*lh-btn-quiet[^>]*>Stop</);
+		assert.match(html({ busy: true, onStop: () => {} }), /data-testid="composer-keys"[^>]*>[\s\S]*data-testid="composer-send"[\s\S]*data-testid="stop-turn" class="lh-btn shrink-0">Stop</);
 		assert.doesNotMatch(html(), /stop-turn/);
 		assert.doesNotMatch(html({ busy: true }), /stop-turn/, "the teacher reading ahead at a stop is not stopped");
 	});

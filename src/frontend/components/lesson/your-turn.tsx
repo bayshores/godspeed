@@ -354,7 +354,7 @@ export function YourTurn({
 				end={
 					<>
 						{onStop && (
-							<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn lh-btn-quiet shrink-0">
+							<button type="button" data-testid="stop-turn" onClick={onStop} className="lh-btn shrink-0">
 								Stop
 							</button>
 						)}

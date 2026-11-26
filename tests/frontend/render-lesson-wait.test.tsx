@@ -1,8 +1,8 @@
 /**
  * The lesson while the teacher works: the desk from the start, with its sentence, its steps and
- * the files as a stack, the title's bubble left out, no Start again at the foot of the text, and the reply as it is written: its words wait a moment
- * under the desk, the desk leaves before they show, then they grow in place, and a step after them
- * brings the desk back.
+ * the files as a stack, the title's bubble left out, no Start again at the foot of the text, and the
+ * reply as it is written: its words grow in place over the desk, whose steps stay until the reply is
+ * finished while its sentence folds away.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -197,29 +197,41 @@ describe("the reply as it is written", () => {
 	const step = (id: string, text: string): DeskStep => ({ id, at: "2026-11-23T22:20:33.000Z", text, call: null, reads: null });
 	const working = (steps: DeskStep[]): LessonWork => ({ ...NO_LESSON_WORK, live: true, cause: "ask", steps });
 
-	it("waits for the desk to fade out, then grows in place as the words come, never printed", async () => {
+	it("grows in place over the desk as the words come, never printed: the steps stay, the sentence folds away, and the desk fades out once the reply is finished", async () => {
 		animated.length = 0;
 		const host = document.createElement("div");
 		document.body.append(host);
 		const root = createRoot(host);
-		const at = (text: string) => props({ messages: [card(1), first, teacher({ type: "text", text })], status: "streaming", arrive: () => "lh-rise" });
+		const steps = [step("1", "Looking at Calculus")];
+		const at = (text: string) => props({ messages: [card(1), first, teacher({ type: "text", text })], status: "streaming", work: working(steps), arrive: () => "lh-rise" });
+		const desk = () => host.querySelector("[data-testid=agent-at-work]");
+		const head = () => host.querySelector("[data-testid=desk-head]")?.closest(".lh-collapse")?.getAttribute("data-state");
 		try {
-			await act(async () => root.render(<ReadingPane {...props({ messages: [card(1), first], arrive: () => "lh-rise" })} />));
+			await act(async () => root.render(<ReadingPane {...props({ messages: [card(1), first], work: working(steps), arrive: () => "lh-rise" })} />));
+			assert.equal(head(), "open", "the sentence says what the teacher does");
 			await act(async () => root.render(<ReadingPane {...at("First")} />));
-			await wait(450);
-			assert.ok(host.querySelector("[data-desk-closing]") !== null, "the desk fades out");
-			assert.ok(host.querySelector(".lh-source-passage") === null, "the words wait until it has gone");
-			await wait(200);
-			assert.ok(host.querySelector("[data-testid=agent-at-work]") === null);
 			const passage = host.querySelector(".lh-source-passage");
-			assert.match(passage?.textContent ?? "", /First/);
+			assert.match(passage?.textContent ?? "", /First/, "the words show at once");
 			assert.ok(passage?.querySelector(".lh-streaming") !== null, "the writing mark at the words' end");
+			assert.ok(desk() !== null, "the desk stays");
+			assert.match(desk()?.textContent ?? "", /Looking at Calculus/, "with its steps");
+			assert.equal(host.querySelector("[data-testid=desk-head]")?.parentElement?.getAttribute("data-state"), "closed", "its sentence fades");
+			await wait(150);
+			assert.equal(head(), "closed", "then its room folds shut");
+			await wait(200);
+			assert.equal(head(), undefined);
+			assert.ok(desk() !== null, "the steps still there");
+			assert.ok(host.querySelector("[data-turn-wrote]") !== null);
 			await act(async () => root.render(<ReadingPane {...at("First words, and more.")} />));
 			assert.ok(host.querySelector(".lh-source-passage") === passage, "the same passage grows");
 			assert.match(passage?.textContent ?? "", /First words, and more\./);
 			assert.deepEqual(animated, [], "nothing prints");
 			await act(async () => root.render(<ReadingPane {...at("First words, and more.")} busy={false} status="ready" />));
+			assert.ok(host.querySelector("[data-desk-closing]") !== null, "the reply is finished: the desk fades out");
+			assert.equal(head(), undefined, "its sentence does not come back");
 			assert.ok(host.querySelector(".lh-source-passage .lh-streaming") === null, "the writing mark goes when the turn ends");
+			await wait(200);
+			assert.ok(desk() === null);
 			assert.ok(host.querySelector(".lh-source-passage") === passage, "the words stay as they were drawn");
 		} finally {
 			await act(async () => root.unmount());
@@ -227,29 +239,20 @@ describe("the reply as it is written", () => {
 		}
 	});
 
-	it("brings the desk back under the words for a step after them, and sends it away when words come again", async () => {
+	it("adds the row of a step after the words to the desk under them", async () => {
 		const host = document.createElement("div");
 		document.body.append(host);
 		const root = createRoot(host);
 		const at = (text: string, steps: DeskStep[]) => props({ messages: [card(1), first, teacher({ type: "text", text })], status: "streaming", work: working(steps), arrive: () => "lh-rise" });
 		const desk = () => host.querySelector("[data-testid=agent-at-work]");
 		try {
-			await act(async () => root.render(<ReadingPane {...props({ messages: [card(1), first], work: working([step("1", "Looking at Calculus")]) })} />));
 			await act(async () => root.render(<ReadingPane {...at("Let me look at your notes.", [step("1", "Looking at Calculus")])} />));
-			await wait(450);
-			await wait(200);
-			assert.ok(desk() === null, "the words took the desk's place");
 			const passage = host.querySelector(".lh-source-passage");
 			await act(async () => root.render(<ReadingPane {...at("Let me look at your notes.", [step("1", "Looking at Calculus"), step("2", "Reading notes.md")])} />));
-			assert.ok(desk() !== null, "a step after the words brings the desk back");
-			assert.match(desk()?.textContent ?? "", /Reading notes\.md/);
+			assert.match(desk()?.textContent ?? "", /Looking at Calculus[\s\S]*Reading notes\.md/);
 			assert.ok(host.querySelector(".lh-source-passage") === passage, "under the words, which stay");
 			await act(async () => root.render(<ReadingPane {...at("Let me look at your notes. Found it.", [step("1", "Looking at Calculus"), step("2", "Reading notes.md")])} />));
-			assert.ok(desk() !== null, "new words wait a moment under the desk");
-			assert.doesNotMatch(host.textContent ?? "", /Found it/);
-			await wait(450);
-			await wait(200);
-			assert.ok(desk() === null);
+			assert.ok(desk() !== null, "new words leave the desk where it is");
 			assert.match(host.querySelector(".lh-source-passage")?.textContent ?? "", /Found it\./);
 		} finally {
 			await act(async () => root.unmount());
@@ -257,67 +260,22 @@ describe("the reply as it is written", () => {
 		}
 	});
 
-	it("under the desk, holds the reply's words until its turn ends, so Stop never stands under them", async () => {
+	it("opened while a reply is written, takes the words since the learner's last line as written", async () => {
 		const host = document.createElement("div");
 		document.body.append(host);
 		const root = createRoot(host);
-		const waiting = props();
-		const words = { ...waiting, messages: [card(5), first, teacher({ type: "text", text: "Here it is." })] };
 		try {
-			await act(async () => root.render(<ReadingPane {...waiting} />));
-			await act(async () => root.render(<ReadingPane {...words} />));
-			assert.doesNotMatch(host.textContent ?? "", /Here it is/, "the words wait");
-			assert.ok(host.querySelector("[data-testid=agent-at-work]") !== null, "and the desk stays");
-			await act(async () => root.render(<ReadingPane {...words} busy={false} status="ready" />));
-			await act(async () => {
-				await new Promise((done) => setTimeout(done, 200));
-			});
-			assert.match(host.textContent ?? "", /Here it is/);
-			assert.ok(host.querySelector("[data-testid=agent-at-work]") === null);
+			await act(async () => root.render(<ReadingPane {...props({ messages: [card(1), first, teacher({ type: "text", text: "Half a reply" })], status: "streaming", work: working([step("1", "Looking at Calculus")]), arrive: () => "lh-rise" })} />));
+			assert.ok(host.querySelector("[data-turn-wrote]") !== null);
+			assert.ok(host.querySelector("[data-testid=desk-head]") === null, "the sentence is not there");
+			assert.match(host.querySelector("[data-testid=agent-at-work]")?.textContent ?? "", /Looking at Calculus/, "the steps are");
 		} finally {
 			await act(async () => root.unmount());
 			host.remove();
 		}
 	});
 
-	it("under the desk, holds a reply's first part that leaves again before its words", async () => {
-		const host = document.createElement("div");
-		document.body.append(host);
-		const root = createRoot(host);
-		const waiting = props();
-		try {
-			await act(async () => root.render(<ReadingPane {...waiting} />));
-			const rows = host.querySelectorAll("[data-session-find-root] > *").length;
-			await act(async () => root.render(<ReadingPane {...waiting} messages={[card(5), first, teacher({ type: "reasoning", text: "" })]} />));
-			assert.equal(host.querySelectorAll("[data-session-find-root] > *").length, rows, "no row is added for it");
-		} finally {
-			await act(async () => root.unmount());
-			host.remove();
-		}
-	});
-
-	it("shows the words of a turn that goes on", async () => {
-		const host = document.createElement("div");
-		document.body.append(host);
-		const root = createRoot(host);
-		const waiting = props();
-		try {
-			await act(async () => root.render(<ReadingPane {...waiting} />));
-			await act(async () => root.render(<ReadingPane {...waiting} messages={[card(5), first, teacher({ type: "text", text: "Here it is." })]} />));
-			await act(async () => {
-				await new Promise((done) => setTimeout(done, 450));
-			});
-			await act(async () => {
-				await new Promise((done) => setTimeout(done, 200));
-			});
-			assert.match(host.textContent ?? "", /Here it is/, "the words wait, then the desk fades out");
-		} finally {
-			await act(async () => root.unmount());
-			host.remove();
-		}
-	});
-
-	it("holds back an answered question's reply that grows the same message until the desk has gone", async () => {
+	it("grows an answered question's reply in the same message over the desk", async () => {
 		const host = document.createElement("div");
 		document.body.append(host);
 		const root = createRoot(host);
@@ -326,20 +284,14 @@ describe("the reply as it is written", () => {
 		const grown = (text: string) => teacher({ type: "text", text: "Try this." }, answered, { type: "step-start" }, read("r1", "/h/a.md"), { type: "text", text });
 		const working = props({ messages: [card(1), first, asked], status: "streaming", arrive: () => "lh-rise" });
 		try {
+			await act(async () => root.render(<ReadingPane {...working} busy={false} status="ready" />));
 			await act(async () => root.render(<ReadingPane {...working} />));
 			await act(async () => root.render(<ReadingPane {...working} messages={[card(1), first, grown("")]} />));
-			assert.ok(host.querySelector("[data-testid=agent-at-work]") !== null, "an empty text part keeps the desk");
+			assert.ok(host.querySelector("[data-turn-wrote]") === null, "an empty text part is no words yet");
 			await act(async () => root.render(<ReadingPane {...working} messages={[card(1), first, grown("Your pick holds.")]} />));
-			assert.ok(host.querySelector("[data-testid=agent-at-work]") !== null, "its words wait under the desk for the turn's end");
-			assert.doesNotMatch(host.textContent ?? "", /Your pick holds/);
-			await act(async () => root.render(<ReadingPane {...working} busy={false} status="ready" messages={[card(1), first, grown("Your pick holds. More.")]} />));
-			assert.ok(host.querySelector("[data-desk-closing]") !== null, "the desk fades out");
-			assert.doesNotMatch(host.textContent ?? "", /Your pick holds/, "still held while the desk leaves");
-			await act(async () => {
-				await new Promise((done) => setTimeout(done, 200));
-			});
-			assert.ok(host.querySelector("[data-testid=agent-at-work]") === null);
-			assert.match(host.textContent ?? "", /Try this\.[\s\S]*Your pick holds\. More\./);
+			assert.ok(host.querySelector("[data-turn-wrote]") !== null);
+			assert.ok(host.querySelector("[data-testid=agent-at-work]") !== null, "the desk stays under the words");
+			assert.match(host.textContent ?? "", /Try this\.[\s\S]*Your pick holds\./);
 		} finally {
 			await act(async () => root.unmount());
 			host.remove();
