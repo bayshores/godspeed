@@ -70,7 +70,6 @@ const props = (over: Partial<Props> = {}): Props => ({
 	status: "submitted",
 	busy: true,
 	stoppedEmpty: false,
-	waitingForAgent: false,
 	work: NO_LESSON_WORK,
 	problemSheet: false,
 	queuedSteers: [],
@@ -81,7 +80,14 @@ const props = (over: Partial<Props> = {}): Props => ({
 	onDesk: () => {},
 	...over,
 });
-const pane = (over: Partial<Props> = {}) => renderToStaticMarkup(<ReadingPane {...props(over)} />);
+// An agent is here, so the desk is at work.
+const here = { connected: true, teaching: true, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [] } as AgentStatus;
+const pane = (over: Partial<Props> = {}) =>
+	renderToStaticMarkup(
+		<AgentStatusContext.Provider value={here}>
+			<ReadingPane {...props(over)} />
+		</AgentStatusContext.Provider>,
+	);
 const count = (html: string, pattern: RegExp) => [...html.matchAll(pattern)].length;
 
 describe("the desk", () => {
@@ -101,9 +107,11 @@ describe("the desk", () => {
 
 	it("says what the teacher does in the teacher's name, and keeps the sentence's line before the server's first word", () => {
 		const named = renderToStaticMarkup(
-			<TeacherContext.Provider value={{ name: "Quigley" } as TeacherApi}>
-				<ReadingPane {...props({ work: work({ cause: "answer" }) })} />
-			</TeacherContext.Provider>,
+			<AgentStatusContext.Provider value={here}>
+				<TeacherContext.Provider value={{ name: "Quigley" } as TeacherApi}>
+					<ReadingPane {...props({ work: work({ cause: "answer" }) })} />
+				</TeacherContext.Provider>
+			</AgentStatusContext.Provider>,
 		);
 		assert.match(named, /Quigley is reading your answer\./);
 		assert.match(pane(), /data-testid="desk-head" class="[^"]*min-h-\[1lh\][^"]*"><\/p>/, "an empty line, kept");
@@ -118,7 +126,7 @@ describe("the desk", () => {
 
 	it("says only that the teacher is off while no agent is here or starting: no rows, no pencil, no paper", () => {
 		const none = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 1, helperWork: 0, claimedLessons: [] } as AgentStatus;
-		const waiting = props({ waitingForAgent: true, work: work({ taken: false, files: [pdf("a.pdf")] }) });
+		const waiting = props({ work: work({ taken: false, files: [pdf("a.pdf")] }) });
 		const out = renderToStaticMarkup(
 			<AgentStatusContext.Provider value={none}>
 				<ReadingPane {...waiting} />
@@ -129,7 +137,7 @@ describe("the desk", () => {
 	});
 
 	it("draws only the sentence's empty line until godspeed has read whether an agent is here, so nothing drawn has to leave", () => {
-		const unread = renderToStaticMarkup(<ReadingPane {...props({ waitingForAgent: true, work: work({ taken: false, files: [pdf("a.pdf")] }) })} />);
+		const unread = renderToStaticMarkup(<ReadingPane {...props({ work: work({ taken: false, files: [pdf("a.pdf")] }) })} />);
 		assert.match(unread, /data-testid="agent-at-work" data-state="unknown"[\s\S]*data-testid="desk-head" class="[^"]*min-h-\[1lh\][^"]*"><\/p>/);
 		assert.doesNotMatch(unread, /desk-plan|pencil|desk-paper|is off|Waiting for/);
 	});

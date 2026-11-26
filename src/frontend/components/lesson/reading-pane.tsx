@@ -41,7 +41,6 @@ export function ReadingPane({
 	status,
 	busy,
 	stoppedEmpty,
-	waitingForAgent,
 	work,
 	problemSheet,
 	queuedSteers,
@@ -67,8 +66,6 @@ export function ReadingPane({
 	busy: boolean;
 	/** The first reply was stopped with nothing written, and no turn or error line is up. */
 	stoppedEmpty: boolean;
-	/** No agent runs the work loop: the desk says the teacher is off, or waits while godspeed starts one. */
-	waitingForAgent: boolean;
 	/** What the teacher does in the running turn (useLessonWork). */
 	work: LessonWork;
 	/** The page shows the open problem's sheet beside the text or over it: the desk lays no paper of
@@ -93,12 +90,11 @@ export function ReadingPane({
 	const arrived = replyArrived(replying);
 	// Its words wait a moment under the desk for the turn to end.
 	const held = useReplyHold(busy && arrived, deskMark(messages));
-	// Waiting for an agent while godspeed starts one is not off: the desk waits for it to start.
+	// From the page's own read of the agent, not the count of waiting work, which arrives after the turn does.
 	const teacherOff = useTeacherOff();
-	const off = waitingForAgent && teacherOff === true;
-	const state: DeskState = waitingForAgent && teacherOff === null ? "unknown" : off ? "off" : "working";
+	const state: DeskState = teacherOff === null ? "unknown" : teacherOff ? "off" : "working";
 	const name = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
-	const head = state === "unknown" ? null : deskHead({ name, off, work });
+	const head = state === "unknown" ? null : deskHead({ name, off: state === "off", work });
 	const open = useMemo(() => (busy && (!arrived || held) ? { state, head, work, calls: deskCalls(work), mark: held ?? deskMark(messages) } : null), [busy, arrived, held, state, head, work, messages]);
 	const desk = useLastWhileClosing(open);
 	const closing = desk.mounted && desk.state === "closed" && !prefersReducedMotion();

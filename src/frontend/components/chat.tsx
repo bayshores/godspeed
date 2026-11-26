@@ -646,7 +646,6 @@ export function Chat({
 											status={status}
 											busy={busy}
 											stoppedEmpty={stoppedEmpty}
-											waitingForAgent={waitingForAgent}
 											work={work}
 											problemSheet={problemShown}
 											queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
@@ -680,7 +679,6 @@ export function Chat({
 												onNext={onNext}
 												busy={busy}
 												onStop={busy && !atStop ? abortInFlightTurn : null}
-												waitingForAgent={waitingForAgent}
 												boxRef={workBoxRef}
 												value={text}
 												onChange={editText}

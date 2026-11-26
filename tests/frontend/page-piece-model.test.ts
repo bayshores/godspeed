@@ -112,7 +112,7 @@ describe("veils", () => {
 
 describe("pieceSheet", () => {
 	it("shows a line of the page above the first part and under the last, and nothing more between them", () => {
-		const { piece } = pieceSheet(PIECE, null);
+		const { piece } = pieceSheet(PIECE, null, false);
 		assert.deepEqual(
 			piece.parts.map((p) => p.crop),
 			[
@@ -120,16 +120,16 @@ describe("pieceSheet", () => {
 				[0.1, 0.05, 0.9, 0.53],
 			],
 		);
-		assert.deepEqual(pieceSheet(SINGLE_PIECE, null).piece.parts[0]!.crop, [0.1, 0.17, 0.9, 0.43]);
+		assert.deepEqual(pieceSheet(SINGLE_PIECE, null, false).piece.parts[0]!.crop, [0.1, 0.17, 0.9, 0.43]);
 	});
 
 	it("reaches no further than the page", () => {
 		const edge: ProblemPiece = { fileId: "f", parts: [{ page: 1, crop: [0, 0.01, 1, 0.99], aspect: 0.75 }] };
-		assert.deepEqual(pieceSheet(edge, null).piece.parts[0]!.crop, [0, 0, 1, 1]);
+		assert.deepEqual(pieceSheet(edge, null, false).piece.parts[0]!.crop, [0, 0, 1, 1]);
 	});
 
 	it("names the line over the first part and the line under the last as the sheet's edges", () => {
-		const { edges } = pieceSheet(PIECE, null);
+		const { edges } = pieceSheet(PIECE, null, false);
 		assert.equal(edges[0]![1], null);
 		assert.equal(edges[1]![0], null);
 		bandsAre([edges[0]![0]!, edges[1]![1]!], [
@@ -137,21 +137,21 @@ describe("pieceSheet", () => {
 			[0.9375, 0.0625],
 		]);
 		const whole: ProblemPiece = { fileId: "f", parts: [{ page: 1, crop: [0, 0, 1, 1], aspect: 0.75 }] };
-		assert.deepEqual(pieceSheet(whole, null).edges, [[null, null]]);
+		assert.deepEqual(pieceSheet(whole, null, false).edges, [[null, null]]);
 	});
 
 	it("veils the lines around the problem and bars the rest", () => {
-		const { veiled, lit, current } = pieceSheet(SINGLE_PIECE, null);
+		const { veiled, lit, rest } = pieceSheet(SINGLE_PIECE, null, false);
 		bandsAre(veiled[0]!, [
 			[0, 0.1154],
 			[0.8846, 0.1154],
 		]);
 		bandsAre(lit[0]!, [[0.1154, 0.7692]]);
-		assert.equal(current, null);
+		assert.equal(rest, null);
 	});
 
 	it("veils the parts the learner is not on with those lines, joined where they meet, and bars only what is left", () => {
-		const { veiled, lit, current } = pieceSheet(PIECE, "b");
+		const { veiled, lit, rest } = pieceSheet(PIECE, "b", false);
 		bandsAre(veiled[0]!, [
 			[0, 0.0789],
 			[0.6053, 0.3947],
@@ -162,13 +162,45 @@ describe("pieceSheet", () => {
 		]);
 		bandsAre(lit[0]!, [[0.0789, 0.5263]]);
 		bandsAre(lit[1]!, [[0.2083, 0.4167]]);
-		assert.equal(current?.part, 1);
-		near(current!.at, 0.2083);
+		assert.equal(rest?.part, 1);
+		near(rest!.at, 0.2083);
+	});
+
+	it("shows the page itself when whole: from its top to its foot, veiled around the problem, with no fading edges, resting on the problem's start", () => {
+		const { piece, veiled, lit, edges, rest } = pieceSheet(SINGLE_PIECE, null, true);
+		assert.deepEqual(piece.parts[0]!.crop, [0.1, 0, 0.9, 1]);
+		bandsAre(veiled[0]!, [
+			[0, 0.2],
+			[0.4, 0.6],
+		]);
+		bandsAre(lit[0]!, [[0.2, 0.2]]);
+		assert.deepEqual(edges, [[null, null]]);
+		assert.equal(rest?.part, 0);
+		near(rest!.at, 0.2);
+	});
+
+	it("shows both pages of a problem that runs on, whole, and rests on the part the learner is on", () => {
+		const { piece, rest } = pieceSheet(PIECE, "b", true);
+		assert.deepEqual(
+			piece.parts.map((p) => p.crop),
+			[
+				[0.1, 0, 0.9, 0.95],
+				[0.1, 0.05, 0.9, 1],
+			],
+		);
+		assert.equal(rest?.part, 1);
+	});
+
+	it("rests a whole page with columns on its mark", () => {
+		const columns: ProblemPiece = { fileId: "f", parts: [{ page: 4, crop: [0, 0, 1, 1], aspect: 0.75 }], mark: { page: 4, x: 0.1, y: 0.2, width: 0.3, height: 0.02 } };
+		const { rest } = pieceSheet(columns, null, true);
+		assert.equal(rest?.part, 0);
+		near(rest!.at, 0.2);
 	});
 
 	it("bars nothing on a page shown whole, which has its mark", () => {
 		const whole: ProblemPiece = { fileId: "f", parts: [{ page: 4, crop: [0, 0, 1, 1], aspect: 0.75 }], mark: { page: 4, x: 0.1, y: 0.2, width: 0.3, height: 0.02 } };
-		const { piece, veiled, lit } = pieceSheet(whole, null);
+		const { piece, veiled, lit } = pieceSheet(whole, null, false);
 		assert.deepEqual(piece.parts[0]!.crop, [0, 0, 1, 1]);
 		assert.deepEqual(veiled, [[]]);
 		assert.deepEqual(lit, [[]]);

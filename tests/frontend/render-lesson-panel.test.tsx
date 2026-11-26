@@ -122,7 +122,6 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		onNext: () => {},
 		busy: false,
 		onStop: null,
-		waitingForAgent: false,
 		value: "",
 		onChange: () => {},
 		onSend: () => {},
@@ -1066,7 +1065,6 @@ describe("the reading pane", () => {
 		status: "submitted",
 		busy: true,
 		stoppedEmpty: false,
-		waitingForAgent: false,
 		work: NO_LESSON_WORK,
 		problemSheet: false,
 		queuedSteers: [],
@@ -1077,7 +1075,14 @@ describe("the reading pane", () => {
 		onDesk: () => {},
 		...over,
 	});
-	const pane = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}) => renderToStaticMarkup(<ReadingPane {...readingProps(over)} />);
+	// An agent is here, so the desk is at work.
+	const here = { connected: true, teaching: true, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, helperWork: 0, claimedLessons: [] } as AgentStatus;
+	const pane = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}) =>
+		renderToStaticMarkup(
+			<AgentStatusContext.Provider value={here}>
+				<ReadingPane {...readingProps(over)} />
+			</AgentStatusContext.Provider>,
+		);
 
 	const planned: React.ComponentProps<typeof ReadingPane>["messages"] = [{ id: "a1", role: "assistant", parts: [{ type: "tool-work_plan", toolCallId: "p", state: "output-available", input: { items: ["Read"], done: 0 } }] }];
 
@@ -1095,14 +1100,14 @@ describe("the reading pane", () => {
 		assert.doesNotMatch(html({ busy: true }), /stop-turn/, "the teacher reading ahead at a stop is not stopped");
 	});
 
-	it("the key that turns the teacher on stands alone at the row's end while the turn waits for an agent: no Send and no Stop", () => {
+	it("the key that turns the teacher on stands alone at the row's end while a turn runs and no agent is here: no Send and no Stop", () => {
 		const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 1, helperWork: 0, claimedLessons: [] } as AgentStatus;
-		const row = (waitingForAgent: boolean) => html({ busy: true, onStop: () => {}, waitingForAgent, problem, value: "x" }, (n) => <AgentStatusContext.Provider value={off}>{named(n)}</AgentStatusContext.Provider>);
-		const waiting = row(true);
+		const row = (status: AgentStatus) => html({ busy: true, onStop: () => {}, problem, value: "x" }, (n) => <AgentStatusContext.Provider value={status}>{named(n)}</AgentStatusContext.Provider>);
+		const waiting = row(off);
 		assert.match(waiting, /lh-btn-main[^>]*>Turn on marco<\/button>/);
 		assert.doesNotMatch(waiting, /composer-send|stop-turn/);
 		assert.match(waiting, /data-testid="help-hint"/, "the Stuck? keys stay");
-		const taken = row(false);
+		const taken = row({ ...off, connected: true });
 		assert.doesNotMatch(taken, /Turn on/);
 		assert.match(taken, /composer-send[\s\S]*stop-turn/);
 	});
@@ -1126,7 +1131,7 @@ describe("the reading pane", () => {
 		const none = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 1, helperWork: 0, claimedLessons: [] } as AgentStatus;
 		const out = renderToStaticMarkup(
 			<AgentStatusContext.Provider value={none}>
-				<ReadingPane {...readingProps({ waitingForAgent: true })} />
+				<ReadingPane {...readingProps({})} />
 			</AgentStatusContext.Provider>,
 		);
 		assert.match(out, /data-testid="agent-at-work" data-state="off"[\s\S]*Teacher is off\./);

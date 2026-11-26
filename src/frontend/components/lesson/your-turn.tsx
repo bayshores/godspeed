@@ -58,8 +58,6 @@ export interface YourTurnProps {
 	busy: boolean;
 	/** Stops the running turn; null with none running, and while the teacher reads ahead at a stop, which is not stopped. */
 	onStop: (() => void) | null;
-	/** No agent runs the turn yet: the key that turns the teacher on may show. */
-	waitingForAgent: boolean;
 	/** The answer box's text. */
 	value: string;
 	onChange: (v: string) => void;
@@ -124,7 +122,6 @@ export function YourTurn({
 	onNext,
 	busy,
 	onStop,
-	waitingForAgent,
 	value,
 	onChange,
 	onSend,
@@ -163,7 +160,7 @@ export function YourTurn({
 				? ({ kind: "words", ready: value.trim().length > 0 && over <= 0, leave: nextKey?.label ?? null } as const)
 				: ({ kind: "ask", nextKey: nextKey !== null } as const);
 	// While the turn waits for an agent: the key that turns the teacher on, in place of Send and Stop.
-	const starts = useStartKey() && onStop !== null && waitingForAgent;
+	const starts = useStartKey() && onStop !== null;
 	const view = lessonBox({ teacher, busy, off: starts, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
 	// Nothing waits: the foot row offers what any lesson can be asked for.
 	const ideas = lessonIdeas(useSettings().record?.agent?.tools ?? NO_SWITCHES);

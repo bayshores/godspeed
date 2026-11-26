@@ -149,6 +149,20 @@ describe("PagePiece", () => {
 		});
 	});
 
+	it("as the whole page: each page from its top or to its foot, no fading edge, and it tells where the problem starts", async () => {
+		const placed: string[] = [];
+		await mounted(<PagePiece piece={PIECE} text="" whole onPlace={(start) => placed.push(start.style.top)} />, (host) => {
+			assert.deepEqual(
+				images(host).map((i) => i.getAttribute("src")),
+				["/api/cited/f_123/page/2?crop=0.1,0,0.9,0.95&w=1440&ink=cfcfcf", "/api/cited/f_123/page/3?crop=0.1,0.05,0.9,1&w=1440&ink=cfcfcf"],
+			);
+			assert.equal(host.querySelectorAll('[data-testid="piece-edge"]').length, 0);
+			assert.equal(host.querySelectorAll('[data-testid="piece-veil"]').length, 2, "the page over the problem and the page under it");
+			assert.equal(placed.length, 1);
+			assert.match(placed[0]!, /^63\.15/);
+		});
+	});
+
 	it("veils the parts the learner is not on and tells where the one they are on starts", async () => {
 		const placed: string[] = [];
 		const onPlace = (start: HTMLElement) => placed.push(start.style.top);

@@ -132,7 +132,8 @@ export function OpenProblemPane({
 			{/* Holds a last-line fraction's denominator, which hangs 6px below its line box. */}
 			{piece ? (
 				<div data-testid="problem-piece" style={proseVars(18, 28)}>
-					<PagePiece piece={piece.piece} text={piece.text} part={part} printed={printed} onPlace={restOnPart} onFail={onPieceFail} />
+					{/* Beside the text the sheet is the page itself, top to foot; choices must follow the problem, so with them it ends there. */}
+					<PagePiece piece={piece.piece} text={piece.text} part={part} whole={place === "left" && !picks} printed={printed} onPlace={restOnPart} onFail={onPieceFail} />
 				</div>
 			) : (
 				<div ref={statementRef} data-testid="problem-statement" className="pb-1.5" style={proseVars(18, 28)}>

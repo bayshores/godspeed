@@ -118,20 +118,34 @@ function around(top: number, ownTop: number, ownBottom: number, bottom: number):
 	return [over.height > TOUCH ? over : null, under.height > TOUCH ? under : null];
 }
 
+/** Where the problem itself starts on its sheet: its mark on a page shown whole, else its first own line. */
+function startOf(piece: ProblemPiece, parts: readonly PiecePart[]): Place {
+	const marked = piece.mark ? parts.findIndex((p) => p.page === piece.mark!.page) : -1;
+	const index = Math.max(0, marked);
+	const [, top, , bottom] = parts[index]!.crop;
+	const y = marked >= 0 ? piece.mark!.y : piece.parts[0]!.crop[1];
+	return { part: index, at: clamp((y - top) / (bottom - top)) };
+}
+
 /**
- * The problem as its sheet shows it: its first part reaches a line higher on its page and its
- * last a line lower, as far as the page goes, so the problem is read in its place on the page.
- * Each part's stretches, as fractions of that part from its top: `veiled`, those lines and the
- * labelled parts the learner is not on (veils); `lit`, the rest, which carries the bar of the
- * problem's own lines. A page shown whole (its columns can't be cut) has its mark instead of a
- * bar. `edges`: each part's line over it and line under it, which fade out toward the sheet's
- * edge, since a line of the page may be cut through. `current`: where the part the learner is on starts.
+ * The problem as its sheet shows it, read in its place on the page. `whole`: the sheet is the
+ * page itself, from its top to its foot (the first part from its page's top, the last to its
+ * page's foot); else the first part reaches a line higher on its page and the last a line lower,
+ * as far as the page goes. Each part's stretches, as fractions of that part from its top:
+ * `veiled`, the page around the problem and the labelled parts the learner is not on (veils);
+ * `lit`, the rest, which carries the bar of the problem's own lines. A page with columns (which
+ * can't be cut) has its mark instead of a bar. `edges`: each part's line over it and line under
+ * it, which fade out toward the sheet's edge, since a line of the page may be cut through; a
+ * whole page has none. `rest`: where the sheet rests, the start of the part the learner is on,
+ * or on a whole page with no such part the problem's start.
  */
-export function pieceSheet(piece: ProblemPiece, part: string | null): { piece: ProblemPiece; veiled: Band[][]; lit: Band[][]; edges: (Band | null)[][]; current: Place | null } {
+export function pieceSheet(piece: ProblemPiece, part: string | null, whole: boolean): { piece: ProblemPiece; veiled: Band[][]; lit: Band[][]; edges: (Band | null)[][]; rest: Place | null } {
 	const last = piece.parts.length - 1;
 	const parts = piece.parts.map((p, i): PiecePart => {
 		const [left, top, right, bottom] = p.crop;
-		return { ...p, crop: [left, i === 0 ? fourPlaces(Math.max(0, top - LINE)) : top, right, i === last ? fourPlaces(Math.min(1, bottom + LINE)) : bottom] };
+		const from = i !== 0 ? top : whole ? 0 : fourPlaces(Math.max(0, top - LINE));
+		const to = i !== last ? bottom : whole ? 1 : fourPlaces(Math.min(1, bottom + LINE));
+		return { ...p, crop: [left, from, right, to] };
 	});
 	const sheet = { ...piece, parts };
 	const { bands, current } = veils(sheet, part);
@@ -140,8 +154,8 @@ export function pieceSheet(piece: ProblemPiece, part: string | null): { piece: P
 		const [, ownTop, , ownBottom] = piece.parts[i]!.crop;
 		return joined([...bands[i]!, ...around(top, ownTop, ownBottom, bottom).filter((band) => band !== null)]);
 	});
-	const edges = parts.map((p, i) => around(p.crop[1], piece.parts[i]!.crop[1], piece.parts[i]!.crop[3], p.crop[3]));
-	return { piece: sheet, veiled, lit: veiled.map((bands) => (piece.mark ? [] : between(bands))), edges, current };
+	const edges = parts.map((p, i): [Band | null, Band | null] => (whole ? [null, null] : around(p.crop[1], piece.parts[i]!.crop[1], piece.parts[i]!.crop[3], p.crop[3])));
+	return { piece: sheet, veiled, lit: veiled.map((bands) => (piece.mark ? [] : between(bands))), edges, rest: current ?? (whole ? startOf(piece, parts) : null) };
 }
 
 /** The mark of a piece, as fractions of the part that shows its page (a page with columns is
