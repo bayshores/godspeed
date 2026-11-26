@@ -47,7 +47,6 @@ import { practiceProgress } from "@/frontend/components/lesson/practice-progress
 import { useLessonServer, type LessonStats } from "@/frontend/components/lesson/use-lesson-server";
 import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
 import { useLessonStop } from "@/frontend/components/lesson/use-lesson-stop";
-import { readsAhead } from "@/frontend/components/lesson/lesson-stop-model";
 import { useFromEarlier } from "@/frontend/components/lesson/use-from-earlier";
 import { LessonBar } from "@/frontend/components/lesson/lesson-bar";
 import { PlanRow } from "@/frontend/components/lesson/plan-row";
@@ -474,7 +473,6 @@ export function Chat({
 
 	// With nothing to answer, "Your turn" says what is next and holds the one key that goes on.
 	const { atStop } = lessonStop;
-	const stopReadsAhead = useMemo(() => atStop !== null && readsAhead(nativeMessages, atStop.stopOf), [atStop, nativeMessages]);
 	const goLabel = goAheadLabel({ kind, problemList: problems !== null, startLabel: startLabel ?? null, teacherSpoke, posedAny });
 	const lessonNotes = useLessonNotes(chatId, atStop?.kind === "end");
 	const next = turnNext({ stop: atStop, problemList: problems !== null, goLabel, busy, error: error !== null, nothingWritten: unwritten, notes: lessonNotes.notes, obsidian: lessonNotes.obsidian });
@@ -652,7 +650,7 @@ export function Chat({
 												kept={kept}
 												onNext={onNext}
 												busy={busy}
-												onStop={busy && !stopReadsAhead ? abortInFlightTurn : null}
+												onStop={busy ? abortInFlightTurn : null}
 												boxRef={workBoxRef}
 												value={text}
 												onChange={editText}

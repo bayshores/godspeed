@@ -212,6 +212,14 @@ describe("a new chat", () => {
 		assert.equal(store.get("teacher-panel-next-model"), undefined, "the chat took the pick");
 	});
 
+	it("keeps the pick while the panel shows an older chat after a reload, and New chat shows it again", async () => {
+		store.set("teacher-panel-next-model", JSON.stringify({ agent: "claude", model: "opus" }));
+		await show(chat({ chatId: "chat_1" }));
+		assert.notEqual(q("talk-model")?.textContent, "Opus", "the older chat keeps its own model");
+		await show(chat());
+		assert.equal(q("talk-model")?.textContent, "Opus");
+	});
+
 	it("does not send a model kept for the other agent", async () => {
 		store.set("teacher-panel-next-model", JSON.stringify({ agent: "codex", model: "gpt-5.5" }));
 		await show(chat());

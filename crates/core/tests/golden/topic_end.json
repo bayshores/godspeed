@@ -5736,5 +5736,257 @@
 				}
 			}
 		}
+	},
+	{
+		"name": "lesson_stop: ended: every other topic is ticked on the step bar, though none of them stopped",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_q1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "r_q1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "m_q2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "cv",
+									"question": "?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795036200000
+					},
+					{
+						"id": "r_q2",
+						"role": "toolResult",
+						"toolCallId": "q2",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795036200000
+					},
+					{
+						"id": "m_p3",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p3",
+								"name": "problem",
+								"arguments": {
+									"statement": "x",
+									"nodeId": "ms"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795036800000
+					},
+					{
+						"id": "r_p3",
+						"role": "toolResult",
+						"toolCallId": "p3",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795036800000
+					},
+					{
+						"id": "m_c3",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c3",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038000000
+					},
+					{
+						"id": "r_c3",
+						"role": "toolResult",
+						"toolCallId": "c3",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "ms",
+								"activeMinutes": 30,
+								"at": "2026-11-18T21:40:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038000000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": {
+				"kind": "end",
+				"at": "2026-11-18T21:40:00.000Z",
+				"nodeId": "ms",
+				"stopOf": "c3",
+				"next": null,
+				"activeMinutes": 30,
+				"keptGoing": false
+			}
+		}
 	}
 ]

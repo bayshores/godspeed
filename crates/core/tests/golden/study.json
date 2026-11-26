@@ -69882,6 +69882,7 @@
 						"deadlineId": "d1",
 						"updatedAt": "2026-11-01T10:00:00.000Z",
 						"done": 1,
+						"step": 1,
 						"total": 3
 					},
 					{
@@ -69889,6 +69890,7 @@
 						"deadlineId": "d1",
 						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 3,
+						"step": 3,
 						"total": 3
 					},
 					{
@@ -69896,6 +69898,7 @@
 						"deadlineId": "d2",
 						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 0,
+						"step": 0,
 						"total": 4
 					},
 					{
@@ -69903,6 +69906,7 @@
 						"deadlineId": "d2",
 						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 2,
+						"step": 2,
 						"total": 4
 					},
 					{
@@ -69910,6 +69914,7 @@
 						"deadlineId": "d3",
 						"updatedAt": "2026-11-03T10:00:00.000Z",
 						"done": 0,
+						"step": 0,
 						"total": 0
 					}
 				]
@@ -69928,6 +69933,7 @@
 						"deadlineId": "d1",
 						"updatedAt": "2026-11-01T10:00:00.000Z",
 						"done": 1,
+						"step": 1,
 						"total": 3
 					},
 					{
@@ -69935,6 +69941,7 @@
 						"deadlineId": "d1",
 						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 3,
+						"step": 3,
 						"total": 3
 					},
 					{
@@ -69942,6 +69949,7 @@
 						"deadlineId": "d2",
 						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 0,
+						"step": 0,
 						"total": 4
 					},
 					{
@@ -69949,6 +69957,7 @@
 						"deadlineId": "d2",
 						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 2,
+						"step": 2,
 						"total": 4
 					},
 					{
@@ -69956,6 +69965,7 @@
 						"deadlineId": "d3",
 						"updatedAt": "2026-11-03T10:00:00.000Z",
 						"done": 0,
+						"step": 0,
 						"total": 0
 					}
 				]
@@ -69978,6 +69988,7 @@
 						"deadlineId": "d1",
 						"updatedAt": "2026-11-01T10:00:00.000Z",
 						"done": 1,
+						"step": 1,
 						"total": 3
 					},
 					{
@@ -69985,6 +69996,7 @@
 						"deadlineId": "d1",
 						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 3,
+						"step": 3,
 						"total": 3
 					},
 					{
@@ -69992,6 +70004,7 @@
 						"deadlineId": "d2",
 						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 0,
+						"step": 0,
 						"total": 4
 					},
 					{
@@ -69999,6 +70012,7 @@
 						"deadlineId": "d2",
 						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 2,
+						"step": 2,
 						"total": 4
 					},
 					{
@@ -70006,6 +70020,7 @@
 						"deadlineId": "d3",
 						"updatedAt": "2026-11-03T10:00:00.000Z",
 						"done": 0,
+						"step": 0,
 						"total": 0
 					}
 				]
@@ -70024,6 +70039,7 @@
 						"deadlineId": "d1",
 						"updatedAt": "2026-11-01T10:00:00.000Z",
 						"done": 1,
+						"step": 1,
 						"total": 3
 					},
 					{
@@ -70031,6 +70047,7 @@
 						"deadlineId": "d1",
 						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 3,
+						"step": 3,
 						"total": 3
 					},
 					{
@@ -70038,6 +70055,7 @@
 						"deadlineId": "d2",
 						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 0,
+						"step": 0,
 						"total": 4
 					},
 					{
@@ -70045,6 +70063,7 @@
 						"deadlineId": "d2",
 						"updatedAt": "2026-11-02T10:00:00.000Z",
 						"done": 2,
+						"step": 2,
 						"total": 4
 					},
 					{
@@ -70052,6 +70071,7 @@
 						"deadlineId": "d3",
 						"updatedAt": "2026-11-03T10:00:00.000Z",
 						"done": 0,
+						"step": 0,
 						"total": 0
 					}
 				]

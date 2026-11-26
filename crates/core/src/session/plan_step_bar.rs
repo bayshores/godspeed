@@ -79,6 +79,21 @@ pub fn plan_position_lh(tree: &Json, messages: &[Json]) -> Json {
 	Json::Obj(out)
 }
 
+/// How many steps the step bar ticks: the visited ones, and the current one when it is `finished`
+/// (the topic of the stop the lesson waits at or ended on). A shown opener's question counts, as
+/// in `plan_position_lh`.
+pub fn steps_done_lh(tree: &Json, messages: &[Json], finished: Option<&str>) -> usize {
+	let derived = derive_plan_statuses_lh(tree, messages, &opener_nodes(messages));
+	ordered_plan_ids(tree)
+		.into_iter()
+		.filter(|id| match derived_node_status(&derived, id) {
+			"visited" => true,
+			"current" => finished == Some(*id),
+			_ => false,
+		})
+		.count()
+}
+
 /// The current step's title, a shown opener's question moving it as in `plan_position_lh`; none
 /// before the first tagged call or when that step has no title.
 pub fn current_step_title(tree: &Json, messages: &[Json]) -> Option<Json> {
@@ -116,6 +131,16 @@ mod tests {
 		assert_eq!(plan_position_lh(&tree, &[]), json!({ "done": 0, "total": 3 }));
 		assert_eq!(plan_position_lh(&tree, &[call("a"), call("b")]), json!({ "done": 2, "total": 3 }));
 		assert_eq!(step_position(&["visited", "upcoming", "visited"]), 2);
+	}
+
+	#[test]
+	fn the_ticked_count_is_the_visited_steps_and_the_current_one_once_finished() {
+		let tree = json!({ "nodes": [{ "id": "a" }, { "id": "b" }, { "id": "c" }], "edges": [] });
+		assert_eq!(steps_done_lh(&tree, &[], None), 0);
+		assert_eq!(steps_done_lh(&tree, &[call("a"), call("c")], None), 1, "c is under way");
+		assert_eq!(steps_done_lh(&tree, &[call("a"), call("c")], Some("c")), 2, "c's topic stopped");
+		assert_eq!(steps_done_lh(&tree, &[call("a"), call("c")], Some("a")), 1, "only the current step finishes this way");
+		assert_eq!(steps_done_lh(&tree, &[call("c"), call("a")], None), 1, "a step behind the current one in learning order still counts");
 	}
 
 	#[test]

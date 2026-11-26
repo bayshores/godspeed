@@ -1,7 +1,6 @@
 /**
- * A lesson's stop: what Keep going leads to when no opener is stored, whether
- * the turn running at it can be stopped, and the card that lights when he
- * comes back to it. Pure.
+ * A lesson's stop: what Keep going leads to when no opener is stored, and the
+ * card that lights when he comes back to it. Pure.
  */
 import { isQuestionTool, lessonStop, PRACTICE_CONCLUDE_TOOL, shownOpeners, type LhMessage } from "@/shared/core";
 import { answerAnchorSelector, toolCardSelector } from "./card-anchors";
@@ -21,13 +20,6 @@ export function keepGoingOwesNext(messages: readonly LhMessage[]): boolean {
 	if (keptTimes.length === 0) return false;
 	const keptAt = Math.min(...keptTimes);
 	return !messages.some((m) => m.timestamp >= keptAt && (m.role === "user" || (m.role === "custom" && m.customType === "practice-next")));
-}
-
-/** Whether a turn running at a stop is the teacher reading ahead from it, which is not stopped:
- *  he has sent nothing since the stop. A question he asks after it runs a turn he can stop. */
-export function readsAhead(messages: readonly LhMessage[], stopOf: string): boolean {
-	const at = messages.findIndex((m) => m.role === "toolResult" && m.toolCallId === stopOf);
-	return !messages.slice(at + 1).some((m) => m.role === "user");
 }
 
 /** The card that lights when he comes back to a stop: the Concluded card
