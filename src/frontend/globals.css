@@ -1113,7 +1113,8 @@ body {
  * lifts the math off the line, so those browsers skip the scrolling. */
 @supports (baseline-source: last) {
 	:not(.katex-display) > .katex .katex-base {
-		max-width: 100%;
+		/* Its box holds the side padding the margin takes back, so a piece that fits has room for all of itself. */
+		max-width: calc(100% + 0.4em);
 		overflow-x: auto;
 		overflow-y: hidden;
 		baseline-source: last;
