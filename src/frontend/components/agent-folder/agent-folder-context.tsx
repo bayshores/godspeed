@@ -8,7 +8,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { FolderAgent, OldSetup } from "@/shared/core";
 import { useServerResource } from "@/frontend/components/use-server-resource";
 import type { FolderView } from "./agent-folder-model";
-import { pickAgent, postAgentFolder, sendOldAgent } from "./agent-folder-api";
+import { pickAgent, pickModel as patchModel, postAgentFolder, sendOldAgent } from "./agent-folder-api";
 
 interface FolderState {
 	/** null until read. */
@@ -19,6 +19,8 @@ interface FolderState {
 	post: (body: object) => Promise<FolderView>;
 	/** The agent that runs the lessons, picked. Throws the line to show. */
 	pick: (agent: FolderAgent) => Promise<FolderView>;
+	/** The model an agent's new lessons start on, picked (null: its default). Throws the line to show. */
+	pickModel: (agent: FolderAgent, model: string | null) => Promise<FolderView>;
 	/** What Remove took away, for the restart note; null until then. */
 	removed: OldSetup | null;
 	setRemoved: (setup: OldSetup) => void;
@@ -45,16 +47,24 @@ export function AgentFolderProvider({ children }: { children: ReactNode }) {
 		},
 		[update],
 	);
+	const pickModel = useCallback(
+		async (agent: FolderAgent, model: string | null) => {
+			const next = await patchModel(agent, model);
+			update(() => next);
+			return next;
+		},
+		[update],
+	);
 	useEffect(() => {
 		sendOldAgent(pick).catch((err: unknown) => console.error("[agent folder] the agent this window kept could not be sent:", err));
 	}, [pick]);
-	const value = useMemo(() => ({ view, reload, post, pick, removed, setRemoved }), [view, reload, post, pick, removed]);
+	const value = useMemo(() => ({ view, reload, post, pick, pickModel, removed, setRemoved }), [view, reload, post, pick, pickModel, removed]);
 	return <FolderContext.Provider value={value}>{children}</FolderContext.Provider>;
 }
 
 /** Outside a provider (isolated renders, tests): nothing read, and posts
  *  that still reach the server. */
-const OUTSIDE: FolderState = { view: null, reload: async () => {}, post: postAgentFolder, pick: pickAgent, removed: null, setRemoved: () => {} };
+const OUTSIDE: FolderState = { view: null, reload: async () => {}, post: postAgentFolder, pick: pickAgent, pickModel: patchModel, removed: null, setRemoved: () => {} };
 
 export function useAgentFolderView(): FolderState {
 	return useContext(FolderContext) ?? OUTSIDE;

@@ -21,7 +21,7 @@ import {
 	type TerminalRecord,
 } from "./terminal-model";
 
-export interface TerminalsApi {
+interface TerminalsApi {
 	/** The desktop app runs terminals; false in a browser. */
 	available: boolean;
 	teacher: TerminalRecord | null;

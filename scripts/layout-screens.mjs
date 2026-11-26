@@ -9,7 +9,8 @@ import { TALK_HOLDS, WAITING_TOPIC } from "./layout-lessons.mjs";
  * (layout-agent.mjs), and `helper` asks the stand-in helper, holding a lesson's reply, to `read` files, `approve` a command it asks to run, or `stream` half a reply (layout-helper.mjs). `ready` and `shows` name something drawn from the screen's data, not its frame, so the
  * check never runs on a screen still loading. `height` gives it a window higher than the
  * check's own. `before` runs in the page first, on the screen
- * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}`,
+ * before it, for a change of data; it stays for the screens after it. `agent` puts the stand-in agent
+ * in a state for the setup card's checks ("signed-out", "old", or "missing"), for that screen only. `{space}`, `{lesson}`,
  * `{deadline}`, `{homeworkOpen}`, `{homeworkFirst}`, `{homeworkMany}`, `{homeworkPrinted}`, `{homeworkOpenDeadline}`, `{longProblem}`, `{problemFirst}`, `{twoSheets}`, `{askedFirst}`, `{codeChoices}`, `{codeWrite}`, the lessons that stand at a state of "Your turn" `{explained}`, `{quizAnswered}`, `{concluded}`, `{skipped}`, `{discarded}` and `{lastTopic}`, `{pending}`, `{sheetless}`, `{pathSpace}`, `{vault}`, the cheat sheet deadlines `{sheetMade}`, `{sheetVersions}` and `{waitingDeadline}`, the mock deadline `{mockRunDeadline}` and the mocks `{mockGraded}`, `{mockReady}`, `{mockRunning}` and `{mockPaused}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
 
@@ -480,6 +481,35 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	// No chat yet: the panel opens on a new one, with what the teacher can be asked here.
 	{ name: "Teacher chat, a new chat", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=talk-try] [data-testid=talk-starter]" },
 	{ name: "Teacher's Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`, shows: "[data-testid=teacher-panel-list] [data-testid=activity-list] > *" },
+	{
+		name: "Settings, Teacher",
+		url: "/settings?section=teacher",
+		ready: "[data-testid=agent-card] [data-testid=agent-model-select]",
+		shows: "[data-testid=group-teacher]:has([data-testid=teacher-name-row]) [data-testid=agent-folder-path]",
+	},
+	{ name: "Settings, Teacher, logged out", agent: "signed-out", url: "/settings?section=teacher", ready: "[data-testid=agent-row-account][data-mark=need] [data-testid=agent-key]" },
+	{
+		name: "Settings, Teacher, logging in with the code field",
+		agent: "signed-out",
+		url: "/settings?section=teacher",
+		ready: "[data-testid=agent-row-account][data-mark=need] [data-testid=agent-key]",
+		setup: `document.querySelector("[data-testid=agent-row-account] [data-testid=agent-key]").click()`,
+		shows: "[data-testid=agent-row-account][data-mark=wait] [data-testid=agent-login-code]",
+	},
+	{ name: "Settings, Teacher, too old", agent: "old", url: "/settings?section=teacher", ready: "[data-testid=agent-row-version][data-mark=need] [data-testid=agent-key]" },
+	{ name: "Settings, Teacher, not installed", agent: "missing", url: "/settings?section=teacher", ready: "[data-testid=agent-row-version][data-mark=need] [data-testid=agent-key]" },
+	// While the agent can't run, the writing row's place says why, with the key that fixes it.
+	{ name: "Teacher's panel while the agent isn't logged in", agent: "signed-out", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=panel-setup][data-state=open] [data-testid=agent-compact] [data-testid=agent-key]" },
+	{
+		name: "Teacher's panel while logging in with the code field",
+		agent: "signed-out",
+		url: "/",
+		ready: deadlineCard,
+		setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=panel-setup] [data-testid=agent-key]").click()`,
+		shows: "[data-testid=panel-setup] [data-testid=agent-compact] [data-testid=agent-login-code]",
+	},
+	{ name: "Teacher's panel while the agent is too old", agent: "old", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=panel-setup][data-state=open] [data-testid=agent-compact] [data-testid=agent-key]" },
+	{ name: "Home, the strip's peek while the agent isn't logged in", agent: "signed-out", url: "/", ready: deadlineCard, setup: peekOut, shows: peekShown },
 	{ name: "Settings, Connection", url: "/settings?section=connection", ready: "[data-testid=agent-status]" },
 	{ name: "Settings, Teaching", url: "/settings?section=teaching", ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)" },
 	{ name: "Settings, Plugins", url: "/settings?section=plugins", ready: "[data-testid=plugins-list]" },
@@ -498,7 +528,7 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	},
 	{ name: "Settings, Appearance", url: "/settings?section=appearance", ready: "[data-testid=appearance-preview]" },
 	{ name: "Settings, Appearance, the font list", url: "/settings?section=appearance", ready: "[data-testid=font-trigger]", setup: `document.querySelector("[data-testid=font-trigger]").click()`, shows: "[data-testid=font-menu][data-state=open] [data-testid=font-option-default]" },
-	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=teacher-name-row]", shows: "[data-testid=group-vault] [data-testid=vault-pick]" },
+	{ name: "Settings, General", url: "/settings?section=general", ready: "[data-testid=group-sounds]", shows: "[data-testid=group-vault] [data-testid=vault-pick]" },
 	{
 		name: "Settings, General, an Obsidian vault picked",
 		before: `await fetch("/api/vault", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: "{vault}" }) })${HTTP_OK};`,
@@ -728,5 +758,12 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		before: `${dropGapSpace}; ${dropLateHomework}; const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, onboarded: false }) })${HTTP_OK}`,
 		url: "/",
 		ready: "[data-testid=onboarding-intro]",
+	},
+	{
+		name: "Onboarding, Your teacher",
+		url: "/",
+		ready: "[data-testid=onboarding-start]",
+		setup: `document.querySelector("[data-testid=onboarding-start]").click()`,
+		shows: "[data-testid=agent-card] [data-testid=agent-model-select]",
 	},
 ];

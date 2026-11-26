@@ -20,7 +20,6 @@ const { MemoryRouter } = await import("react-router");
 const { TerminalsProvider, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
 const { TeacherStatus } = await import("../../src/frontend/components/terminal/teacher-status.tsx");
 const { RestartDialog } = await import("../../src/frontend/components/terminal/restart-dialog.tsx");
-const { AgentNeed } = await import("../../src/frontend/components/onboarding/agent-need.tsx");
 const { TeacherPanel } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
 const { useTeacherPanel } = await import("../../src/frontend/components/teacher/use-teacher-panel.ts");
@@ -28,6 +27,7 @@ const { panelBody } = await import("../../src/frontend/components/teacher/dock-m
 const { ChatWindow } = await import("../../src/frontend/components/teacher/chat-window.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { AgentFolderProvider } = await import("../../src/frontend/components/agent-folder/agent-folder-context.tsx");
+const { AgentSetupProvider } = await import("../../src/frontend/components/agent-setup/agent-setup-context.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 
 // The chat's writing box is CodeMirror.
@@ -36,6 +36,10 @@ stubCodeMirrorDom(dom);
 const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, turnsRunning: 0, terminals: [], outsideHere: false, ...over });
 const teacher = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", agent: "claude", startedAt: Date.now(), ended: null, prompt: null, url: false, ...over });
 const FOLDER = { folder: "/home/ada/godspeed", short: "~/godspeed", exists: true, commands: { claude: "claude", codex: "codex" }, startCommands: {}, oldSetup: { plugin: false, codex: false }, agent: "claude" as string | null, model: {} };
+
+/** The agent can run: the panel's chat is open to ask. */
+const passed = (check: string) => ({ check, state: "passed", fact: null, problem: null, reason: null, needs: null, link: null });
+const READY = { agent: "claude", checking: false, ownCommand: false, checks: ["installed", "node", "upToDate", "loggedIn"].map(passed), failing: null, login: null, update: null };
 
 const realFetch = globalThis.fetch;
 const stored = new Map<string, string>();
@@ -52,6 +56,7 @@ beforeEach(() => {
 	let folder = FOLDER;
 	globalThis.fetch = (async (url: string, init?: RequestInit) => {
 		if (url.startsWith("/api/graph/costs")) return new Response(null, { status: 404 });
+		if (url === "/api/agent/health") return Response.json(READY);
 		if (url === "/api/chats" && init?.method === "POST") {
 			made.push(JSON.parse(String(init.body)));
 			return Response.json({ id: "chat_new" });
@@ -157,9 +162,11 @@ async function mounted(status: Access, run: (render: (s: Access, extra?: React.R
 				<MemoryRouter>
 					<ServerEventsProvider connect={noEvents as never}>
 						<AgentFolderProvider>
-							<TerminalsProvider status={s}>
-								<PanelHost>{more}</PanelHost>
-							</TerminalsProvider>
+							<AgentSetupProvider>
+								<TerminalsProvider status={s}>
+									<PanelHost>{more}</PanelHost>
+								</TerminalsProvider>
+							</AgentSetupProvider>
 						</AgentFolderProvider>
 					</ServerEventsProvider>
 				</MemoryRouter>,
@@ -254,52 +261,6 @@ describe("opening by itself", () => {
 			});
 		} finally {
 			proto.focus = realFocus;
-		}
-	});
-});
-
-describe("onboarding", () => {
-	it("a step after the agent step says what the teacher needs, and its button shows the screen there without the keyboard", async () => {
-		const shell = fakeShell([teacher()]);
-		const proto = dom.window.HTMLElement.prototype as { focus: () => void };
-		const realFocus = proto.focus;
-		let focused = 0;
-		proto.focus = () => void focused++;
-		const host = document.createElement("div");
-		document.body.append(host);
-		const root = createRoot(host);
-		const status = access({ terminals: [{ id: "t1", here: true }] });
-		function Step() {
-			const [open, setOpen] = React.useState(false);
-			return <AgentNeed open={open} onOpen={() => setOpen(true)} />;
-		}
-		const page = (done: boolean) => (
-			<MemoryRouter>
-				<ServerEventsProvider connect={noEvents as never}>
-					<TerminalsProvider status={status}>{done ? <PanelHost /> : <Step />}</TerminalsProvider>
-				</ServerEventsProvider>
-			</MemoryRouter>
-		);
-		try {
-			await act(async () => root.render(page(false)));
-			await settle();
-			assert.ok(q("onboarding-agent-need") === null, "nothing while it needs nothing");
-			await act(async () => shell.push({ id: "t1", ended: null, prompt: "trust", url: false }));
-			await settle();
-			assert.equal(text("onboarding-agent-need"), "Claude Code asks to trust its folder.Show its screen");
-			await click("onboarding-agent-need-show");
-			for (let i = 0; i < 10 && !document.querySelector("[data-terminal-screen] textarea"); i++) await settle();
-			assert.ok(q("first-run-screen") !== null, "the screen shows in the step");
-			assert.ok(focused === 0, "no focus until a click in it");
-			await act(async () => root.render(page(true)));
-			await settle();
-			assert.ok(q("teacher-panel") === null, "the panel stays shut after onboarding");
-		} finally {
-			proto.focus = realFocus;
-			await act(async () => root.unmount());
-			await settle();
-			host.remove();
-			shell.remove();
 		}
 	});
 });

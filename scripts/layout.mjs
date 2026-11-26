@@ -185,9 +185,64 @@ const HELPER_DIR = path.join(RUN, "helper");
 export function standInAgent(home) {
 	const bin = path.join(home, "bin");
 	fs.mkdirSync(bin);
-	const run = `#!/bin/sh\n[ "$1" = --version ] && { echo "99.0.0 (stand-in)"; exit 0; }\nLAYOUT_TYPED=${JSON.stringify(typedFile(home))} exec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}\n`;
+	const state = JSON.stringify(agentStateFile(home));
+	// The setup card's checks: the version, and Claude Code's sign-in as `auth status` prints it, by the
+	// screen's `agent` state (missing: ready). `auth login` prints its link and waits for the code, which
+	// signs it in when it is "ok"; `update` brings an old one up to date.
+	const run = `#!/bin/sh
+state=$(cat ${state} 2>/dev/null)
+case "$1 $2" in
+"--version "*) if [ "$state" = old ]; then echo "2.1.300 (Claude Code)"; else echo "99.0.0 (stand-in)"; fi; exit 0 ;;
+"auth status") if [ "$state" = signed-out ]; then echo '{"loggedIn": false, "authMethod": "none"}'; exit 1; fi
+	echo '{"loggedIn": true, "authMethod": "claude.ai", "subscriptionType": "max"}'; exit 0 ;;
+"auth login") printf 'Opening browser to sign in\\nIf the browser did not open, visit: https://claude.ai/oauth/authorize?stand-in=1\\nPaste code here if prompted > '
+	read code; [ "$code" = ok ] || exit 1; echo ready > ${state}; exit 0 ;;
+"update ") echo "Checking for updates"; sleep 1; echo "Updated to 99.0.0"; echo ready > ${state}; exit 0 ;;
+esac
+LAYOUT_TYPED=${JSON.stringify(typedFile(home))} exec ${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(import.meta.dirname, "layout-agent.mjs"))}
+`;
 	for (const name of ["claude", "codex"]) fs.writeFileSync(path.join(bin, name), run, { mode: 0o755 });
 	fs.writeFileSync(path.join(home, ".zshrc"), `export PATH=${JSON.stringify(bin)}:$PATH\n`);
+}
+
+/** The state the stand-in agent answers the setup card's checks in: ready, signed-out or old. */
+const agentStateFile = (home) => path.join(home, "agent-state");
+
+/** The app's PATH without a folder that holds a real claude or codex: a check of a missing agent
+ *  must never find the learner's own (the stand-in's folder comes first from the home's .zshrc). */
+export function pathWithoutAgents(pathVar) {
+	const holdsAgent = (dir) => ["claude", "codex"].some((name) => fs.existsSync(path.join(dir, name)));
+	return pathVar
+		.split(path.delimiter)
+		.filter((dir) => dir && !holdsAgent(dir))
+		.join(path.delimiter);
+}
+
+/** The folders godspeed also looks in for an agent missing from the PATH (gs_transcribe::programs::HOMEBREW_BIN_DIRS). */
+const AGENT_FALLBACK_DIRS = ["/opt/homebrew/bin", "/usr/local/bin"];
+
+/**
+ * Puts the stand-in agent in `state` (a screen's `agent`; ready when it names none) and has the app
+ * check it again, waiting until the check has ended. "missing" moves the stand-in's claude out of
+ * its folder. A sign-in left running by the screen before is cancelled first. False when a real
+ * agent in Homebrew's folders would be found in the stand-in's place, so the screen is skipped.
+ */
+async function putAgent(app, home, state) {
+	if (state === "missing" && AGENT_FALLBACK_DIRS.some((dir) => fs.existsSync(path.join(dir, "claude")))) return false;
+	const bin = path.join(home, "bin");
+	const away = path.join(home, "claude-away");
+	if (state === "missing") fs.renameSync(path.join(bin, "claude"), away);
+	else if (fs.existsSync(away)) fs.renameSync(away, path.join(bin, "claude"));
+	fs.writeFileSync(agentStateFile(home), state === "missing" ? "ready" : state);
+	await app.run(`await fetch("/api/agent/login/cancel", { method: "POST" });
+await fetch("/api/agent/health", { method: "POST" })${HTTP_OK};
+for (let n = 0; n < 200; n++) {
+	const health = await fetch("/api/agent/health")${HTTP_OK}.then((r) => r.json());
+	if (!health.checking) return;
+	await new Promise((done) => setTimeout(done, 100));
+}
+throw new Error("the agent's check never ended");`);
+	return true;
 }
 
 /** Hands the stand-in teacher a screen's `teacher` line and waits until it has done it. */
@@ -229,6 +284,7 @@ async function startApp(port, name) {
 			LH_PORT: String(port),
 			LH_DATA_DIR: DATA,
 			HOME: path.join(RUN, "home"),
+			PATH: pathWithoutAgents(process.env.PATH ?? ""),
 			// The agent's start script runs in zsh, which reads the home's .zshrc (standInAgent).
 			SHELL: "/bin/zsh",
 			TMPDIR: path.join(RUN, "tmp"),
@@ -425,6 +481,7 @@ async function main() {
 	const count = SCREENS.filter(walked).length;
 	if (count === 0) throw new Error(`LAYOUT_ONLY="${process.env.LAYOUT_ONLY}" names no screen`);
 	app = await startApp(port, "walk");
+	let agentState = "ready";
 	try {
 		await app.ready();
 		for (const screen of SCREENS) {
@@ -434,6 +491,16 @@ async function main() {
 			}
 			const widths = widthsOf(screen);
 			try {
+				// Each screen sees the stand-in agent in its `agent` state, the rest in ready.
+				const state = screen.agent ?? "ready";
+				if (state !== agentState) {
+					if (!(await putAgent(app, path.join(RUN, "home"), state))) {
+						warnings.push(`WARNING: ${screen.name} was NOT checked: a real claude in Homebrew's folders would be found in the stand-in's place`);
+						console.warn(warnings.at(-1));
+						continue;
+					}
+					agentState = state;
+				}
 				if (screen.before) await app.run(fill(screen.before, ids));
 				const url = fill(screen.url, ids);
 				// The terminal's page opens only in a window of its own, by a full load.

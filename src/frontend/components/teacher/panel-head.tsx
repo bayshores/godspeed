@@ -15,8 +15,10 @@ import { useTeacher } from "./teacher-context";
  * where the teacher works), Activity and Pop out. Chats and Activity each
  * drop their list over the top of the chat, one at a time. While the chat is
  * in a window of its own, Activity is the panel's body and its key gives way
- * to Put back, which is also the only key in that window's head. The strip
- * beside it names the panel, and the strip that opened it closes it.
+ * to Put back, which is also the only key in that window's head. While the
+ * agent can't run (`blocked`) only Activity stays: Chats, Follow and Pop out
+ * fade back once it can. The strip beside it names the panel, and the strip
+ * that opened it closes it.
  */
 export function PanelHead({
 	name,
@@ -25,6 +27,7 @@ export function PanelHead({
 	list,
 	popOut,
 	putBack,
+	blocked,
 }: {
 	name: string;
 	/** The teacher works, here or anywhere. */
@@ -37,6 +40,7 @@ export function PanelHead({
 	popOut: (() => void) | null;
 	/** The chat is in its own window: the key that brings it back. */
 	putBack: (() => void) | null;
+	blocked: boolean;
 }) {
 	const teacher = useTeacher();
 	const listKey = useRef<HTMLButtonElement>(null);
@@ -45,8 +49,12 @@ export function PanelHead({
 	const listId = useId();
 	const listOpen = !!list?.open;
 	// The panel's own head has Chats and Follow; the popped window's has no teacher.
-	const own = !!(list || putBack) && !!teacher;
+	const own = !!(list || putBack) && !!teacher && !blocked;
 	const chatsThere = own && !!list;
+	// The keys that went while the agent couldn't run fade back; at the panel's opening they are at rest.
+	const [cameBack, setCameBack] = useState(false);
+	if (blocked && !cameBack) setCameBack(true);
+	const back = cameBack && "lh-fade";
 	const [chatsWanted, setChatsWanted] = useState(false);
 	const chatsOpen = chatsWanted && chatsThere && !listOpen;
 	const open = listOpen ? "activity" : chatsOpen ? "chats" : null;
@@ -126,7 +134,7 @@ export function PanelHead({
 							list?.onOpen(false);
 							setChatsWanted(!chatsOpen);
 						}}
-						className={barWord(chatsOpen)}
+						className={cn(barWord(chatsOpen), back)}
 					>
 						Chats
 					</button>
@@ -137,7 +145,7 @@ export function PanelHead({
 						data-testid={teacher.follow ? "follow-stop" : "follow-start"}
 						aria-pressed={teacher.follow}
 						onClick={() => teacher.setFollow(!teacher.follow)}
-						className={barWord(teacher.follow)}
+						className={cn(barWord(teacher.follow), back)}
 					>
 						{teacher.follow ? "Following" : "Follow"}
 					</button>
@@ -158,8 +166,8 @@ export function PanelHead({
 						Activity
 					</button>
 				)}
-				{popOut && (
-					<button type="button" data-testid="teacher-panel-pop-out" onClick={popOut} className={barWord(false)}>
+				{popOut && !blocked && (
+					<button type="button" data-testid="teacher-panel-pop-out" onClick={popOut} className={cn(barWord(false), back)}>
 						Pop out
 					</button>
 				)}

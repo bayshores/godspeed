@@ -5,7 +5,8 @@
  * left to make room and covering it where there is none; the learner
  * drags its left edge. One head row (panel-head.tsx), then its chat
  * (talk-chat.tsx), or Activity (teacher-activity.tsx) while the chat is in
- * a window of its own.
+ * a window of its own. While the agent can't run, the head keeps only
+ * Activity and the chat's foot says what stops the agent (setup-foot.tsx).
  */
 import { useEffect, useLayoutEffect, useState } from "react";
 import { useLocation } from "react-router";
@@ -20,6 +21,7 @@ import { useTeacher } from "./teacher-context";
 import type { AgentDoing } from "./follow-status";
 import { TeacherActivity } from "./teacher-activity";
 import { PanelHead } from "./panel-head";
+import { useAskable } from "./setup-foot";
 import { boxPage } from "./starter-model";
 import { TalkChatView } from "./talk-chat";
 import { PANEL_WIDTH, panelLayout, type PanelView } from "./dock-model";
@@ -85,6 +87,7 @@ export function TeacherPanel({
 	const teacher = useTeacher();
 	const { pathname } = useLocation();
 	const doing = teacher?.doing ?? null;
+	const blocked = useAskable() !== true;
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
 	const [{ width, whole }, setLayout] = useState({ width: wanted, whole: false });
 	const [popError, setPopError] = useState<string | null>(null);
@@ -130,6 +133,7 @@ export function TeacherPanel({
 				list={popped ? null : { open: list, onOpen: onList }}
 				popOut={!popped && popOut ? () => void popOut().then(setPopError) : null}
 				putBack={popped ? putBack : null}
+				blocked={blocked}
 			/>
 			{popError && (
 				<p role="alert" className="shrink-0 px-[18px] pb-2 text-[15px] text-ans-wrong">
@@ -149,8 +153,6 @@ export function TeacherPanel({
 						<TeacherActivity />
 					</div>
 				) : (
-					// SETUP CARD SLOT: while the agent can't run, the setup card takes this place (its
-					// thread is kept and glides back once the agent is ready).
 					<TalkChatView chatId={chat.id} chat={chat.row} onChat={chat.show} name={name} page={boxPage(pathname)} ask={asking} focus={focus} />
 				)}
 			</div>

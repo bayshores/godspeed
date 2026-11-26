@@ -93,7 +93,6 @@ To add a row:
 | Calculator | Any writing box | `menu-shortcuts` | Home, the keyboard shortcuts list | learner | `calculator-keep` |
 | A plugin's lesson word and space tab | Lesson, space tabs | `plugins-add` | Settings, Plugins, Add | learner | `space/plugin/:id` |
 | Teacher's strip | Right edge | `strip` | | learner | |
-| Start the teacher | Onboarding, the teacher step | `open-agent` | | learner | |
 | Chat with the teacher outside lessons: its reply written as it comes, its steps and Allow cards in the chat, Stop by Send | Teacher panel | `talk-try` | Teacher chat, a new chat | learner | |
 | A chat's model, by Send | Teacher panel | `talk-model` | Teacher chat, its model list | learner | |
 | On a lesson or cheat sheet page, the panel says to type in the page's box, with Stop while the teacher writes | Teacher panel | `talk-gives-way` | Teacher's panel beside a lesson | learner | |
@@ -102,14 +101,18 @@ To add a row:
 | Pop out the teacher's chat into its own window, and Put back | Teacher panel | `teacher-panel-pop-out` | | learner | `terminal-window` |
 | Try asking | Teacher panel | `talk-try` | | learner | |
 | Everything the teacher can do | Teacher panel | `talk-all-ideas` | | learner | |
-| Attach or paste into the teacher's screen | Onboarding, the first run's terminal | `terminal-attach` | | learner | |
 | Activity and graph costs | Teacher panel | `teacher-panel-activity` | Teacher's Activity | learner | |
 | Saved rules | Settings, Teaching | `area-detail` | | learner | `save_rule` |
 | Delete a remembered note | Settings, Teaching | `remembered-notes` | | learner | `forget` |
 | Notes in Obsidian or a notes folder | Settings, General; Progress; lesson end; Graph | `vault-pick` | Settings, General | teacher | `write_vault_note`, `search_vault` |
 | Add a remembered note | Settings, Teaching | none: only the teacher adds one; you can only delete | | teacher | `remember` |
 | Settings | Menu | `settings-entry` | | learner | `settings`, `open-settings` |
-| Teacher name and sounds | Settings, General | `teacher-name-row` | Settings, General | learner | |
+| Pick the teacher's agent and model, and see whether it can teach | Settings, Teacher; onboarding | `agent-card` | Settings, Teacher | learner | |
+| While the agent can't run, the panel's box place says why, with the key that fixes it and the other agent | Teacher panel | `panel-setup` | Teacher's panel while the agent isn't logged in | learner | |
+| Log in to the agent | Settings, Teacher, and the card wherever it shows | `agent-row-account` | Settings, Teacher, logged out | learner | |
+| Update the agent | Settings, Teacher, and the card wherever it shows | `agent-row-version` | Settings, Teacher, too old | learner | |
+| Teacher name | Settings, Teacher | `teacher-name-row` | Settings, Teacher | learner | |
+| Sounds | Settings, General | `group-sounds` | Settings, General | learner | |
 | Noise: soft brown noise to study to, on and off with one word, hidden while Sounds is off | Top bar | `noise-word` | Home with Sounds on, Noise in the top bar | learner | |
 | Deadline reminders | Settings, General | `deadline-reminders-row` | | learner | |
 | Menu bar countdown | Settings, General | `menu-bar-countdown-row` | | learner | |
@@ -125,7 +128,7 @@ To add a row:
 | Edit full instructions | Settings, Teaching | `area-detail` | | learner | |
 | Web search key | Settings, Teaching | `web-search` | | learner | |
 | Access token | Settings, Connection | `agent-token` | | learner | |
-| Teacher folder and start command | Settings, Connection | `agent-folder-change` | | learner | |
+| Teacher folder and start command | Settings, Teacher | `agent-folder-change` | | learner | |
 | Welcome screen | First launch | `welcome-go` | | learner | |
 | Onboarding | First launch | `onboarding-intro` | Onboarding | learner | |
 | Page magnifier | Any page | `menu-shortcuts` | Home, the keyboard shortcuts list | learner | `page-magnify` |

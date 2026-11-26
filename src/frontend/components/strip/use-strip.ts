@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useRouteLoaderData } from "react-router";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { useAgentStatus } from "@/frontend/components/agent-status";
+import { compact } from "@/frontend/components/agent-setup/agent-card-model";
+import { useAgentSetup } from "@/frontend/components/agent-setup/agent-setup-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { coverNotices, setNoticesOpen, useNotices } from "@/frontend/components/notice-store";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
@@ -52,8 +54,14 @@ export function useStrip() {
 		() => stripView({ agent, terminal, talkWaits: !!waiting?.talk, working: !!doing?.working || talkWorking, work, ready, asking: waiting?.lessons ?? [], panelOpen }),
 		[agent, terminal, waiting, doing, talkWorking, work, ready, panelOpen],
 	);
+	// While the agent can't run the peek says why, unlit: a skipped setup is not nagged about.
+	const { health, update } = useAgentSetup();
+	const cantRun = compact(health, update)?.sentence ?? null;
 	// The open panel's head says the teacher's status: the peek leaves it out.
-	const status = useMemo(() => (panelOpen ? null : teacherHead({ agent, name, doing, facts: teacherFacts })), [panelOpen, agent, name, doing, teacherFacts]);
+	const status = useMemo(
+		() => (panelOpen ? null : cantRun ? { status: cantRun, lit: false, working: false } : teacherHead({ agent, name, doing, facts: teacherFacts })),
+		[panelOpen, cantRun, agent, name, doing, teacherFacts],
+	);
 	const due = useMemo(() => (deadlines && minute !== null ? dueSoon(deadlines, minute, pathname) : null), [deadlines, minute, pathname]);
 
 	// No card shows by itself over the open panel's head: it waits in the strip's count.

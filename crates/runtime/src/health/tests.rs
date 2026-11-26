@@ -70,6 +70,17 @@ fn the_claude_login_is_read_from_auth_status() {
 }
 
 #[test]
+fn a_problem_says_what_it_needs_and_where_to_fix_it() {
+	assert_eq!(Problem::TooOld.needs(FolderAgent::Claude), Some(CLAUDE_FLOOR));
+	assert_eq!(Problem::TooOld.needs(FolderAgent::Codex), Some(CODEX_FLOOR));
+	assert_eq!(Problem::NoNode.needs(FolderAgent::Claude), Some("18"));
+	assert_eq!(Problem::SignedOut.needs(FolderAgent::Claude), None);
+	assert_eq!(Problem::NotInstalled.link(FolderAgent::Codex), Some(CODEX_INSTALL));
+	assert_eq!(Problem::FreeAccount.link(FolderAgent::Claude), Some(CLAUDE_PLANS));
+	assert_eq!(Problem::TooOld.link(FolderAgent::Claude), None, "Update fixes it in godspeed");
+}
+
+#[test]
 fn a_plan_gets_its_words_and_an_unknown_one_none() {
 	assert_eq!(plan_words("plus").as_deref(), Some("Plus plan"));
 	assert_eq!(plan_words("max").as_deref(), Some("Max plan"));

@@ -16,7 +16,7 @@ const CLAUDE_FLOOR: &str = "2.1.331";
 /// The oldest Codex whose app-server has client tools as godspeed uses them.
 const CODEX_FLOOR: &str = "0.169.0";
 /// The oldest version of `agent` godspeed runs.
-pub(crate) fn floor(agent: FolderAgent) -> &'static str {
+pub fn floor(agent: FolderAgent) -> &'static str {
 	match agent {
 		FolderAgent::Claude => CLAUDE_FLOOR,
 		FolderAgent::Codex => CODEX_FLOOR,
@@ -25,6 +25,13 @@ pub(crate) fn floor(agent: FolderAgent) -> &'static str {
 
 /// The oldest Node.js the Claude helper runs on.
 const NODE_FLOOR: &str = "18.0.0";
+
+/// The pages the card's keys open for a problem the learner fixes outside godspeed.
+const CLAUDE_INSTALL: &str = "https://code.claude.com/docs/en/setup";
+const CODEX_INSTALL: &str = "https://developers.openai.com/codex/cli";
+const NODE_DOWNLOAD: &str = "https://nodejs.org/en/download";
+const CLAUDE_PLANS: &str = "https://claude.com/pricing";
+const GODSPEED_DOWNLOAD: &str = "https://learnatgodspeed.com";
 
 /// The whole check takes at most this long.
 const CHECK_MS: i64 = 15_000;
@@ -86,6 +93,27 @@ impl Problem {
 	pub fn reason(&self) -> Option<&str> {
 		match self {
 			Problem::Failed(why) => Some(why),
+			_ => None,
+		}
+	}
+
+	/// The version it needs: the agent's floor when too old, Node.js's major one when Node.js is.
+	pub fn needs(&self, agent: FolderAgent) -> Option<&'static str> {
+		match self {
+			Problem::TooOld => Some(floor(agent)),
+			Problem::NoNode => NODE_FLOOR.split('.').next(),
+			_ => None,
+		}
+	}
+
+	/// The page the learner fixes it on, outside godspeed.
+	pub fn link(&self, agent: FolderAgent) -> Option<&'static str> {
+		match (self, agent) {
+			(Problem::NotInstalled, FolderAgent::Claude) => Some(CLAUDE_INSTALL),
+			(Problem::NotInstalled, FolderAgent::Codex) => Some(CODEX_INSTALL),
+			(Problem::NoNode, _) => Some(NODE_DOWNLOAD),
+			(Problem::FreeAccount, _) => Some(CLAUDE_PLANS),
+			(Problem::NoHelper, _) => Some(GODSPEED_DOWNLOAD),
 			_ => None,
 		}
 	}

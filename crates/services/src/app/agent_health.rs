@@ -8,8 +8,9 @@ use std::sync::Arc;
 
 use gs_base::events::EventKind;
 use gs_base::tasks;
-use gs_json::{Json, json};
-use gs_runtime::{AgentHealth, Check, Outcome};
+use gs_core::spaces::agent_folder::FolderAgent;
+use gs_json::{Json, Obj, json};
+use gs_runtime::{AgentHealth, Check, Outcome, Problem};
 use parking_lot::Mutex;
 
 use super::agent_folder::{folder_agent, start_command};
@@ -67,8 +68,20 @@ pub fn check_health(app: &Arc<App>) {
 	});
 }
 
-/// GET /api/agent/health: the picked agent's checks, the first that failed, its sign-in and its
-/// update.
+/// A check and, when it failed, why: the problem, the reason a check that could not run gives, the
+/// version it needs and the link to the page that fixes it.
+fn failure(check: Check, problem: Option<&Problem>, agent: FolderAgent) -> Obj {
+	let mut view = Obj::new();
+	view.insert("check", check.name());
+	view.insert("problem", problem.map(Problem::name));
+	view.insert("reason", problem.and_then(Problem::reason).map(str::to_owned));
+	view.insert("needs", problem.and_then(|problem| problem.needs(agent)));
+	view.insert("link", problem.and_then(|problem| problem.link(agent)));
+	view
+}
+
+/// GET /api/agent/health: the picked agent's checks, the first that failed (with the version it
+/// needs and the link to the page that fixes it, where there is one), its sign-in and its update.
 /// Before a check of this agent has ended its rows are unchecked; one starts if none runs.
 pub fn health_view(app: &Arc<App>) -> Json {
 	let agent = folder_agent(app);
@@ -86,15 +99,18 @@ pub fn health_view(app: &Arc<App>) -> Json {
 		.rows
 		.iter()
 		.map(|row| {
-			let state = match row.outcome {
-				Outcome::Passed => "passed",
-				Outcome::Failed(_) => "failed",
-				Outcome::Unchecked => "unchecked",
+			let (state, problem) = match &row.outcome {
+				Outcome::Passed => ("passed", None),
+				Outcome::Failed(problem) => ("failed", Some(problem)),
+				Outcome::Unchecked => ("unchecked", None),
 			};
-			json!({ "check": row.check.name(), "state": state, "fact": row.fact })
+			let mut view = failure(row.check, problem, agent);
+			view.insert("state", state);
+			view.insert("fact", row.fact.clone());
+			Json::Obj(view)
 		})
 		.collect();
-	let failing = health.failing().map(|(check, problem)| json!({ "check": check.name(), "problem": problem.name(), "reason": problem.reason() }));
+	let failing = health.failing().map(|(check, problem)| Json::Obj(failure(check, Some(&problem), agent)));
 	json!({
 		"agent": agent.name(),
 		"checking": checking,
@@ -114,7 +130,6 @@ mod tests {
 	use super::*;
 	use crate::app::agent_folder::set_folder_agent;
 	use crate::app::test_support::{scratch_dir, test_app};
-	use gs_core::spaces::agent_folder::FolderAgent;
 
 	/// The view once the check running now has ended.
 	async fn checked(app: &Arc<App>) -> Json {
@@ -136,7 +151,7 @@ mod tests {
 		let first = health_view(&app);
 		assert_eq!(
 			stringify(&first),
-			r#"{"agent":"claude","checking":true,"ownCommand":false,"checks":[{"check":"installed","state":"unchecked","fact":null},{"check":"node","state":"unchecked","fact":null},{"check":"upToDate","state":"unchecked","fact":null},{"check":"loggedIn","state":"unchecked","fact":null}],"failing":null,"login":null,"update":null}"#
+			r#"{"agent":"claude","checking":true,"ownCommand":false,"checks":[{"check":"installed","problem":null,"reason":null,"needs":null,"link":null,"state":"unchecked","fact":null},{"check":"node","problem":null,"reason":null,"needs":null,"link":null,"state":"unchecked","fact":null},{"check":"upToDate","problem":null,"reason":null,"needs":null,"link":null,"state":"unchecked","fact":null},{"check":"loggedIn","problem":null,"reason":null,"needs":null,"link":null,"state":"unchecked","fact":null}],"failing":null,"login":null,"update":null}"#
 		);
 		let view = checked(&app).await;
 		assert!(view["checks"].items().iter().all(|check| check["state"].as_str() == Some("passed")), "the stand-in agent is ready");

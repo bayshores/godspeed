@@ -138,7 +138,7 @@ describe("settings restyle", () => {
 			if (init?.method) saves.push(String(url));
 			return Response.json({ settings: { version: 1 } });
 		}) as typeof fetch;
-		await mount(<Settings section="general" />);
+		await mount(<Settings section="teacher" />);
 		const input = q("teacher-name") as HTMLInputElement;
 		await act(async () => {
 			Object.defineProperty(input, "value", { configurable: true, writable: true, value: "Ada" });
@@ -151,7 +151,7 @@ describe("settings restyle", () => {
 		assert.deepEqual(saves, [], "the dropped edit is not saved");
 	});
 
-	it("Connection: the teacher, the folder and the token masked (web search is in Teaching)", async () => {
+	it("Connection: the teacher, the command and the token masked (web search is in Teaching)", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:47613/api/mcp", agentConnected: true });
 		const el = await mount(<Connection />);
 		const text = el.textContent!;
@@ -165,7 +165,7 @@ describe("settings restyle", () => {
 		assert.equal(q("agent-window-teacher-chip")!.textContent, "Running", "teaching with nothing to do");
 		assert.ok(q("agent-window-teacher-open") === null);
 		assert.ok(!/Background work|helper/.test(text), "no second agent");
-		assert.equal(q("agent-folder-path")!.textContent, "~/godspeed");
+		assert.ok(q("agent-folder-path") === null && q("open-agent-menu") === null, "the folder and the pick are in Teacher");
 		assert.ok(!text.includes("/plugin"), "no plugin to install");
 		assert.ok(q("old-setup-warning") === null, "nothing old left: no warning");
 	});
@@ -231,24 +231,12 @@ describe("settings restyle", () => {
 		assert.ok(el.textContent!.includes("Your agent is Codex"));
 	});
 
-	it("the menu switches the agent to Codex, and Other app shows the address and a masked token", async () => {
+	it("Other app's setup shows the address and a masked token", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_secret_e77e", url: "http://127.0.0.1:1/api/mcp", agentConnected: false });
 		const el = await mount(<Connection />);
-		const pick = async (id: string) => {
-			await act(async () => q("open-agent-menu")!.click());
-			await act(async () => {
-				q(id)!.click();
-				await new Promise((r) => setTimeout(r, 10));
-			});
-		};
-		await pick("open-agent-codex");
-		assert.ok(el.textContent!.includes("Your agent is Codex"));
-		await pick("open-agent-other");
-		assert.ok(q("agent-window-teacher-open") === null, "godspeed can't start another app");
 		assert.ok(el.textContent!.includes("Add a Streamable HTTP MCP server"));
 		assert.ok(el.textContent!.includes("http://127.0.0.1:1/api/mcp"));
 		assert.ok(el.textContent!.includes("Bearer ••••••••••••e77e"));
-		assert.ok(!el.textContent!.includes("Copy the command"), "no command for another app");
 	});
 
 	it("Web search: the teacher's own search until a key is saved, then Tavily with its count", async () => {
@@ -314,7 +302,7 @@ describe("settings restyle", () => {
 		assert.ok(q("web-search-agent")!.hasAttribute("data-picked"), "the teacher's own search is the one in use");
 	});
 
-	it("Change command opens a box for the picked agent's own start command, and Save keeps it", async () => {
+	it("Teacher: Change opens a box for the picked agent's own start command, and Save keeps it", async () => {
 		const posted: unknown[] = [];
 		const access = { token: "tok_f", url: "http://127.0.0.1:1/api/mcp", agentConnected: false };
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
@@ -325,7 +313,11 @@ describe("settings restyle", () => {
 			posted.push(body);
 			return Response.json({ ...FOLDER, startCommands: { claude: body.command } });
 		}) as unknown as typeof fetch;
-		const el = await mount(<Connection />);
+		const el = await mount(
+			<AgentFolderProvider>
+				<Settings section="teacher" />
+			</AgentFolderProvider>,
+		);
 		assert.ok(q("agent-start-command") === null, "closed until asked for");
 		await act(async () => q("agent-start-command-change")!.click());
 		assert.ok(el.textContent!.includes("Command that starts Claude Code"));
@@ -341,7 +333,8 @@ describe("settings restyle", () => {
 			await new Promise((r) => setTimeout(r, 10));
 		});
 		assert.deepEqual(posted, [{ action: "set-start-command", agent: "claude", command: "standardcompute launch claude --" }]);
-		assert.ok(q("agent-start-command") === null, "saved: the box closes");
+		await act(() => new Promise((r) => setTimeout(r, 200)));
+		assert.ok(q("agent-start-command") === null, "saved: the box folds away");
 		await act(async () => q("agent-start-command-change")!.click());
 		assert.equal(el.querySelector<HTMLInputElement>("#agent-start-command-input")!.value, "standardcompute launch claude --", "the saved command is there to edit");
 	});

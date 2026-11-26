@@ -1,72 +1,51 @@
-import { useState } from "react";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { AGENT_LABEL } from "@/frontend/components/agent-folder/agent-folder-model";
-import { Log, OtherAppSetup } from "@/frontend/components/agent-folder/agent-launcher";
-import { FolderLine } from "@/frontend/components/agent-folder/folder-line";
+import { useAgentFolderView } from "@/frontend/components/agent-folder/agent-folder-context";
+import { OtherAppSetup } from "@/frontend/components/agent-folder/agent-launcher";
 import { OldSetupWarning } from "@/frontend/components/agent-folder/old-setup";
-import { AgentMenu } from "@/frontend/components/agent-folder/start-agent-button";
-import { useAgentChoice, useAgentFolder } from "@/frontend/components/agent-folder/use-agent-folder";
 import type { AgentStatus } from "@/frontend/components/agent-status";
+import { CopyButton } from "@/frontend/components/copy-button";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { TeacherStatus } from "@/frontend/components/terminal/teacher-status";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { teacherTile, type AgentTile } from "./agent-windows-model";
+import { QUIET_KEY } from "./controls.tsx";
 
 /**
- * "Your agent": whether the teacher runs and what it is doing. The teacher
- * starts from its own window, so its tile has no button. Its line shows its
- * screen while godspeed runs it. Under the tile, the folder it runs in.
- * "Other app" shows the setup for any MCP app.
+ * "Your agent": whether the teacher runs and what it is doing, the command
+ * that starts the picked agent in a terminal of the learner's own, and the
+ * setup for any other MCP app. The agent, its folder and its start command
+ * are picked in Settings, Teacher.
  */
 export function AgentWindows({ agent }: { agent: AgentStatus }) {
-	const { view, lines, error: startError, change, setStartCommand } = useAgentFolder();
+	const { view } = useAgentFolderView();
 	const terminals = useTerminals();
-	const outside = !!terminals?.outsideHere;
 	const panel = useTeacher();
-	const [choice, setChoice] = useAgentChoice();
-	const [error, setError] = useState<string | null>(null);
-
-	const folderAgent = choice === "other" ? null : choice;
-	const teacherName = panel?.name ?? DEFAULT_TEACHER_NAME;
-	const teacher = teacherTile(panel?.doing ?? null, outside);
+	const picked = view?.agent ?? "claude";
+	const teacher = teacherTile(panel?.doing ?? null, !!terminals?.outsideHere);
 
 	return (
 		<section data-testid="agent-windows" className="@container lh-sheet lh-card">
 			<div className="lh-card-head">
-				<div className="min-w-0 flex-1">
-					{/* Each tile's chip says whether it runs; the headline names the agent. */}
-					<h2 data-testid="agent-status" className="lh-card-title">
-						Your agent is {agent.name ?? (folderAgent ? AGENT_LABEL[folderAgent] : "another app")}
-					</h2>
-				</div>
-				<AgentMenu
-					choice={choice}
-					onChoose={(c) => {
-						setChoice(c);
-						setError(null);
-					}}
-					className="shrink-0"
-				/>
+				{/* Each tile's chip says whether it runs; the headline names the agent. */}
+				<h2 data-testid="agent-status" className="lh-card-title">
+					Your agent is {agent.name ?? AGENT_LABEL[picked]}
+				</h2>
 			</div>
-			<Tile name={teacherName} tile={teacher} said={!!panel?.panelOpen} />
+			<Tile name={panel?.name ?? DEFAULT_TEACHER_NAME} tile={teacher} said={!!panel?.panelOpen} />
+			{view && (
+				<div className="flex justify-end">
+					<CopyButton aria-label="Copy the command" className={QUIET_KEY} text={view.commands[picked]}>
+						Copy the command
+					</CopyButton>
+				</div>
+			)}
 			<OldSetupWarning />
-			{choice === "other" ? <OtherAppSetup /> : lines.length > 0 && <Log lines={lines} />}
-			{(error ?? (lines.length === 0 && startError)) && (
-				<p role="alert" className="text-[15px] text-ans-wrong">
-					{error ?? startError}
-				</p>
-			)}
-			{folderAgent && (
-				<FolderLine key={folderAgent} agent={folderAgent} view={view} change={change} setStartCommand={setStartCommand} onError={setError}>
-					<PixelIcon name="folder" className="h-3" />
-					{view?.short}
-				</FolderLine>
-			)}
+			<OtherAppSetup />
 		</section>
 	);
 }
-
 
 /** The teacher: its icon, name and status chip, then what it is doing.
  *  `said`: the teacher's open panel beside it says its status, so the

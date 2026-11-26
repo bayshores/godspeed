@@ -1,26 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useSound } from "@/frontend/components/sounds";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { AgentNeed } from "./agent-need";
 import { useReturn } from "./use-return";
 
-/** The last screen: "You’re all set." with a connected agent, "You’re
- *  almost set." without one. */
+/** The last screen: "You’re all set." once the agent can teach, "You’re
+ *  almost set." before. */
 export function DoneStep({
-	connected,
+	ready,
 	onStart,
 	onConnect,
 	disabled,
 	failed,
 }: {
-	/** An agent is connected. */
-	connected: boolean;
+	/** The agent can teach. */
+	ready: boolean;
 	onStart: () => void;
-	/** Back to step 1, "Turn on your teacher". */
+	/** Back to step 1, "Your teacher". */
 	onConnect: () => void;
 	disabled: boolean;
 	/** Saving the finished onboarding failed. */
@@ -29,7 +28,6 @@ export function DoneStep({
 	const play = useSound();
 	useEffect(() => play("all-set"), [play]);
 	useReturn(disabled ? null : onStart);
-	const [screen, setScreen] = useState(false);
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	return (
 		<div data-testid="onboarding-done" className="ob-step m-auto flex flex-col items-center gap-[30px] px-4 text-center">
@@ -37,9 +35,9 @@ export function DoneStep({
 				<PixelIcon name="check" className="h-5" />
 			</span>
 			<div className="flex flex-col items-center gap-2.5">
-				<h1 className="text-[40px] leading-tight text-ink">{connected ? "You’re all set." : "You’re almost set."}</h1>
+				<h1 className="text-[40px] leading-tight text-ink">{ready ? "You’re all set." : "You’re almost set."}</h1>
 				<p className="text-[17px] text-ink-2">
-					{connected ? `Ask ${teacher} to teach you anything, or type a topic in godspeed.` : `Teaching starts once ${teacher} is on.`}
+					{ready ? `Ask ${teacher} to teach you anything, or type a topic in godspeed.` : `Teaching starts once ${teacher} is on.`}
 				</p>
 				{failed && (
 					<p role="alert" data-testid="onboarding-save-error" className="text-[15px] text-ans-wrong">
@@ -47,9 +45,8 @@ export function DoneStep({
 					</p>
 				)}
 			</div>
-			<AgentNeed open={screen} onOpen={() => setScreen(true)} />
 			<div className="flex items-center gap-2.5">
-				{!connected && (
+				{!ready && (
 					<button type="button" data-testid="onboarding-connect" className={cn("lh-btn", BIG_BUTTON)} onClick={onConnect}>
 						Turn on {teacher}
 					</button>
