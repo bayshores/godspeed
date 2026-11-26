@@ -21,7 +21,6 @@ export function OldSetupNotice() {
 	return (
 		<NoticeCard
 			data-testid="old-setup-notice"
-			role="status"
 			title={title}
 			actions={
 				removed ? (

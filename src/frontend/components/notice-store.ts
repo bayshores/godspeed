@@ -1,12 +1,12 @@
 /**
  * The notices on screen, shared by the cards (notice-card.tsx), the strip
- * and its peek: each card adds itself, shows by itself for a while, then
- * folds into the strip until its count is asked for. The time stands
- * still while the pointer or keyboard focus is on the peek.
+ * and its peek: each card adds itself and waits folded in the strip until
+ * its count is asked for; an error first shows by itself for a while. The
+ * time stands still while the pointer or keyboard focus is on the peek.
  */
 
 import { useEffect, useId, useSyncExternalStore } from "react";
-import { PRESENT_MS, noticeView, type Notice, type NoticeKind } from "./notice-stack-model";
+import { PRESENT_MS, noticeView, type Alone, type Notice, type NoticeKind } from "./notice-stack-model";
 
 /** After the pointer leaves, a notice stays at least this long. */
 const AFTER_HOLD_MS = 3_000;
@@ -34,8 +34,8 @@ const EMPTY: NoticeState = {
 
 let notices: Notice[] = [];
 let open = false;
-/** The teacher's panel is open where the cards hang, or a lesson is, whose step line they would lie over. */
-let covered = false;
+/** Which notices show by themselves; all, until a strip says otherwise. */
+let alone: Alone = "all";
 /** Since when the peek is held; null while it is not. */
 let heldSince: number | null = null;
 let state = EMPTY;
@@ -44,7 +44,7 @@ const listeners = new Set<() => void>();
 
 function update() {
 	const now = heldSince ?? Date.now();
-	const view = noticeView(notices, now, open, covered);
+	const view = noticeView(notices, now, open, alone);
 	const up = view.shown.length > 0;
 	// A peek that closed under the pointer never says the pointer left.
 	if (!up) heldSince = null;
@@ -70,10 +70,10 @@ export function setNoticesOpen(next: boolean) {
 	update();
 }
 
-/** The teacher's panel or a lesson opened where the peek shows (or closed): meanwhile no card shows by itself. */
-export function coverNotices(next: boolean) {
-	if (covered === next) return;
-	covered = next;
+/** The strip says which notices show by themselves where it stands. */
+export function noticesAlone(next: Alone) {
+	if (alone === next) return;
+	alone = next;
 	update();
 }
 
@@ -110,7 +110,7 @@ export function useNotices(): NoticeState {
 
 /**
  * A notice card adds itself while mounted, and shows unless it waits
- * folded or behind others. A new title shows by itself again.
+ * folded or behind others. A new title starts its time again.
  */
 export function useNotice(title: string, kind: NoticeKind | null, timed: boolean): boolean {
 	const id = useId();

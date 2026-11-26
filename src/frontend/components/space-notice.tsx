@@ -80,7 +80,7 @@ function ChangeCard({ check, onDone }: { check: SpaceCheck; onDone: () => void }
 
 	if (mode.kind === "undone") {
 		return (
-			<NoticeCard data-testid="space-notice" role="status" kind="quiet" {...handlers} title={mode.title} close={closeKey}>
+			<NoticeCard data-testid="space-notice" kind="quiet" {...handlers} title={mode.title} close={closeKey}>
 				{mode.left && <NoticeText>{mode.left}</NoticeText>}
 			</NoticeCard>
 		);
@@ -88,7 +88,6 @@ function ChangeCard({ check, onDone }: { check: SpaceCheck; onDone: () => void }
 	return (
 		<NoticeCard
 			data-testid="space-notice"
-			role="status"
 			kind="quiet"
 			{...handlers}
 			title={`${teacher} updated ${name}`}
@@ -144,7 +143,6 @@ function OverdueCard({ deadline: d }: { deadline: OpenDeadline }) {
 	return (
 		<NoticeCard
 			data-testid="overdue-notice"
-			role="status"
 			kind="quiet"
 			title={`Is ${d.name} done?`}
 			actions={

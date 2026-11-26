@@ -5,7 +5,7 @@ import { useAgentStatus } from "@/frontend/components/agent-status";
 import { compact } from "@/frontend/components/agent-setup/agent-card-model";
 import { useAgentSetup } from "@/frontend/components/agent-setup/agent-setup-context";
 import { useMinute } from "@/frontend/components/countdown";
-import { coverNotices, setNoticesOpen, useNotices } from "@/frontend/components/notice-store";
+import { noticesAlone, setNoticesOpen, useNotices } from "@/frontend/components/notice-store";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useOpenInSpace } from "@/frontend/components/use-join-space";
@@ -64,12 +64,11 @@ export function useStrip() {
 	);
 	const due = useMemo(() => (deadlines && minute !== null ? dueSoon(deadlines, minute, pathname) : null), [deadlines, minute, pathname]);
 
-	// No card shows by itself over the open panel's head or the lesson's step line: it waits in the strip's count.
-	const inLesson = pathname.startsWith("/chat/");
+	// Beside the strip a notice waits in its count, so none lies over the page unasked; only an error comes out, and not over the open panel's head.
 	useEffect(() => {
-		coverNotices(panelOpen || inLesson);
-		return () => coverNotices(false);
-	}, [panelOpen, inLesson]);
+		noticesAlone(panelOpen ? "none" : "errors");
+		return () => noticesAlone("all");
+	}, [panelOpen]);
 	// Another page: the peek tucks back and the notices fold. So does leaving the app frame.
 	useEffect(
 		() => () => {
@@ -152,7 +151,7 @@ export function useStrip() {
 		openDue,
 		click,
 		openLesson,
-		inLesson,
+		inLesson: pathname.startsWith("/chat/"),
 	};
 }
 

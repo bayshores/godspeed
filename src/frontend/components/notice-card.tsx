@@ -7,7 +7,7 @@ import type { NoticeKind } from "./notice-stack-model";
 /**
  * The one frame every notice shares, a section of the strip's peek: a
  * title line, an optional close button, a body, and buttons on the right.
- * It shows by itself for a while, then waits folded on the strip.
+ * It waits folded on the strip; an error first shows by itself for a while.
  */
 export function NoticeCard({
 	title,
@@ -27,10 +27,10 @@ export function NoticeCard({
 	actions?: ReactNode;
 	children?: ReactNode;
 	ref?: Ref<HTMLDivElement>;
-} & Omit<HTMLAttributes<HTMLDivElement>, "title">) {
+} & Omit<HTMLAttributes<HTMLDivElement>, "title" | "role">) {
 	const shown = useNotice(title, kind, timed);
 	return (
-		<div {...rest} hidden={!shown} className={cn("lh-notice flex flex-col gap-2 py-3.5 pr-4 pl-[18px] font-ui", className)}>
+		<div {...rest} role={kind === "error" ? "alert" : "status"} hidden={!shown} className={cn("lh-notice flex flex-col gap-2 py-3.5 pr-4 pl-[18px] font-ui", className)}>
 			<div className="flex gap-3">
 				<p className="min-w-0 flex-1 text-[17px] text-ink">{title}</p>
 				{close && (

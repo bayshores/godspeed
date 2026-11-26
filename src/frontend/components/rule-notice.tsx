@@ -48,7 +48,6 @@ function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 	return (
 		<NoticeCard
 			data-testid="rule-notice"
-			role="status"
 			timed
 			{...handlers}
 			title={mode.kind === "removed" ? "Rule removed" : `${teacher} saved a rule`}

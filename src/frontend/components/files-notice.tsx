@@ -84,7 +84,6 @@ export function FilesNoticeView({
 					<NoticeCard
 						key={`${entry.spaceId}:${entry.change}`}
 						data-testid={`files-notice-${entry.change}`}
-						role="status"
 						title={changeTitle(entry, name, agentConnected, teacher)}
 						close={{ onClick: () => onDismiss(entry), testId: "files-notice-close" }}
 						actions={
