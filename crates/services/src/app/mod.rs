@@ -33,7 +33,6 @@ pub mod reading_pages;
 pub mod settings_body;
 mod settings_put;
 pub(crate) mod settings_record;
-pub mod teacher_round;
 pub mod vault_settings;
 #[cfg(test)]
 pub(crate) mod test_support;

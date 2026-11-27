@@ -12,7 +12,7 @@ use crate::turns::chat_handler::handle_chat_input;
 use crate::turns::stand_in::{Lesson, bash, lesson, text, tool};
 use crate::turns::turn_liveness::is_turn_running;
 use crate::turns::turn_runs::{abort_turn, answer_approval};
-use crate::turns::turn_work::lesson_work;
+use crate::turns::turn_work::{lesson_work, teacher_work};
 
 /// Words only talk sessions are told, which key their own script.
 const TALK_KEY: &str = "godspeed's teacher panel";
@@ -140,14 +140,14 @@ async fn a_talk_turn_is_the_teacher_s_round_for_follow_with_the_desk_s_steps_unt
 	let fx = talk("talk-round", vec![vec![tool("list_spaces", json!({})), web, bash(), text("Both spaces are up to date.")]]);
 	fx.say("Update my spaces").await;
 	let id = fx.approval().await;
-	let round = fx.app.teacher_round.view(clock::now_ms());
+	let round = teacher_work(&fx.app);
 	assert_eq!((&round["live"], &round["chatId"]), (&json!(true), &json!(fx.chat_id)));
 	let words = |steps: &Json| steps.items().iter().map(|s| s["text"].str_or_empty().to_owned()).collect::<Vec<_>>();
 	assert_eq!(words(&round["steps"]), ["Looking at your spaces", "Searching the web for \u{201c}slope\u{201d}"]);
 	assert_eq!(words(&round["steps"]), words(&lesson_work(&fx.app, &fx.chat_id).unwrap()["steps"]), "the slip lists the desk's steps");
 	assert!(answer_approval(&fx.app, &fx.chat_id, &id, true));
 	fx.settled().await;
-	assert_eq!(fx.app.teacher_round.view(clock::now_ms())["live"], json!(false), "the round ends with the turn");
+	assert_eq!(teacher_work(&fx.app)["live"], json!(false), "the round ends with the turn");
 }
 
 #[tokio::test(flavor = "multi_thread")]

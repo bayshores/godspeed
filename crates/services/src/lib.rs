@@ -29,7 +29,6 @@ pub struct App {
 	pub pdf: gs_pdf::worker::Pdf,
 	pub search: gs_search::index::Search,
 	/// The teacher's round of work, for Follow's slip.
-	pub teacher_round: app::teacher_round::TeacherRound,
 	/// The learner's agent program, which runs the lessons.
 	pub agents: app::agents::AgentsState,
 	pub turns: turns::TurnsState,
@@ -51,7 +50,6 @@ impl App {
 		let locks = Locks::new();
 		let stores = Stores::new(&paths, &events, &locks);
 		let app = Arc::new(App {
-			teacher_round: app::teacher_round::TeacherRound::new(&events),
 			stores,
 			pdf: gs_pdf::worker::Pdf::from_env(&paths.resources),
 			search: gs_search::index::Search::new(&paths),

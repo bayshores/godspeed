@@ -13,7 +13,7 @@ use gs_runtime::fake::{FakeAgent, FakeStep};
 use gs_services::App;
 use gs_services::app::agents::use_runtime;
 use gs_services::turns::turn_liveness::is_turn_running;
-use gs_services::turns::turn_work::lesson_work;
+use gs_services::turns::turn_work::{lesson_work, teacher_work};
 use gs_services::turns::{answer_approval, handle_chat_input};
 
 /// An app over a fresh folder whose lessons run on `agent`.
@@ -42,7 +42,7 @@ fn work(app: &App, chat_id: &str) -> Json {
 
 /// Follow's round of work as GET /api/teacher-work sends it: live or not.
 fn round_live(app: &App) -> bool {
-	app.teacher_round.view(clock::now_ms())["live"] == Json::Bool(true)
+	teacher_work(app)["live"] == Json::Bool(true)
 }
 
 fn call(name: &str, args: Json) -> FakeStep {

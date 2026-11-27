@@ -13,19 +13,20 @@ use gs_json::json;
 use gs_services::App;
 use gs_services::app::window_page::{WindowPage, set_window_page};
 use gs_services::turns::turn_liveness::turns_running;
+use gs_services::turns::turn_work::teacher_work;
 
 use crate::http::reply::{self, Unhandled, error, fields};
 use crate::http::route::ApiRoute;
 
 pub fn routes() -> Router<Arc<App>> {
 	Router::new()
-		.route("/api/teacher-work", ApiRoute::new().get(teacher_work).into_route())
+		.route("/api/teacher-work", ApiRoute::new().get(round).into_route())
 		.route("/api/turns", ApiRoute::new().get(turns).into_route())
 		.route("/api/window-page", ApiRoute::new().put(window_page).into_route())
 }
 
-async fn teacher_work(State(app): State<Arc<App>>) -> Response {
-	reply::json_no_store(200, &app.teacher_round.view(gs_base::clock::now_ms()))
+async fn round(State(app): State<Arc<App>>) -> Response {
+	reply::json_no_store(200, &teacher_work(&app))
 }
 
 /// `{running}`: the lessons' and the teacher panel chats' turns running now.

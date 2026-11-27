@@ -16,7 +16,7 @@ Two traits in `crates/core` let pure code work against storage: `GraphStore` and
 
 ### The two composition roots
 
-`App` (`crates/services/src/lib.rs`) is the root for storage and state. `App::new` builds the stores and holds `paths`, `events`, `locks`, `stores`, `pdf`, `search`, `teacher_round` (the teacher's round of work, `services::app::teacher_round`), `agents` (the learner's agent program), one state struct per service area, and the shell link when the shell started the server. Routes and the agent's tools get an `Arc<App>`. `graph_store_for(app, scope)` (`services::graph::graph`) hands out one `GraphStore` per graph folder (§6.1).
+`App` (`crates/services/src/lib.rs`) is the root for storage and state. `App::new` builds the stores and holds `paths`, `events`, `locks`, `stores`, `pdf`, `search`, `agents` (the learner's agent program), one state struct per service area, and the shell link when the shell started the server. Routes and the agent's tools get an `Arc<App>`. `graph_store_for(app, scope)` (`services::graph::graph`) hands out one `GraphStore` per graph folder (§6.1).
 
 `services::turns::chat_handler` is the root for a turn: wires stores, job runner, extraction pipeline and engine into it, and registers the wake pipeline's seams with `set_turn_runner` and `set_job_respawn`.
 

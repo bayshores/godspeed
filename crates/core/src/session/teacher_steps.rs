@@ -126,7 +126,7 @@ pub fn step_head(text: String, now: i64) -> Obj {
 }
 
 /// Adds `step` after the others, dropping the oldest past `STEPS_MAX`.
-pub fn keep_step(steps: &mut VecDeque<Json>, step: Json) {
+pub fn keep_step<T>(steps: &mut VecDeque<T>, step: T) {
 	steps.push_back(step);
 	if steps.len() > STEPS_MAX {
 		steps.pop_front();

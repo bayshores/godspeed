@@ -68,7 +68,7 @@ Use `gs_base::re::Re::new(pattern, flags)` with the pattern as the screens' JS w
 
 ### No globals
 
-Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `locks`, `stores`, `pdf`, `search`, `teacher_round`, `agents`, `shell` and one state struct per service package. Routes and tools get `Arc<App>`. Service state is a field of its package's state struct, behind a `parking_lot::Mutex`.
+Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `locks`, `stores`, `pdf`, `search`, `agents`, `shell` and one state struct per service package. Routes and tools get `Arc<App>`. Service state is a field of its package's state struct, behind a `parking_lot::Mutex`.
 
 ### Events, errors and concurrency
 

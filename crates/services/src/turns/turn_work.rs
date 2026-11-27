@@ -3,15 +3,15 @@
 //! the permission questions waiting for the learner. A step comes from a godspeed tool call, one
 //! of the agent's own tools, or the PDF reader's progress. Made when the turn begins and dropped
 //! when it ends, so a restart loses it with the turn. Every change goes out as "lesson-work". A
-//! teacher panel chat's turn is also the teacher's round of work, which Follow's slip shows, so its
-//! beginning, steps and end go to the round too.
+//! teacher panel chat's turn is also the teacher's round of work, which Follow's slip shows (GET
+//! /api/teacher-work): its beginning, each step and its end also go out as "teacher-work".
 
 use std::collections::VecDeque;
 use std::path::Path;
 use std::sync::Arc;
 
-use gs_base::clock;
 use gs_base::events::EventKind;
+use gs_base::{clock, time};
 use gs_core::contracts::space::base_name;
 use gs_core::session::approval_card::approval_card;
 use gs_core::session::jobs::JobKind;
@@ -20,7 +20,7 @@ use gs_core::session::teacher_steps::{StepNames, TeacherStep, keep_step, own_too
 use gs_core::session::turn_cause::TurnCause;
 use gs_engine::turn::events::{AgentEvent, Listener};
 use gs_engine::turn::session_turn::{DeskEvent, DeskListener};
-use gs_json::{Json, json};
+use gs_json::{Json, Obj, json};
 
 use super::desk_files::{desk_files, path_reading, step_reading};
 use super::step_names::AppStepNames;
@@ -30,11 +30,20 @@ use crate::jobs::asks::{AskedOn, asks_on};
 
 pub(super) struct TurnWork {
 	cause: TurnCause,
+	/// When the turn began.
+	since: i64,
 	plan: Option<Json>,
 	/// Oldest first.
-	steps: VecDeque<Json>,
+	steps: VecDeque<Step>,
 	/// `{id, text, subject}`, oldest first.
 	approvals: Vec<Json>,
+}
+
+struct Step {
+	/// `{id, at, text, call, reads}`, as the desk reads it.
+	desk: Json,
+	/// A file read's place, which only Follow's slip links.
+	link: Option<Json>,
 }
 
 /// Tells the window the lesson's work changed, and whether it waits for the learner to allow
@@ -55,10 +64,10 @@ fn update(app: &App, chat_id: &str, change: impl FnOnce(&mut TurnWork) -> bool) 
 
 /// The turn began, for `cause`.
 pub(super) fn begin(app: &App, chat_id: &str, cause: TurnCause) {
-	app.turns.work.lock().insert(chat_id.to_owned(), TurnWork { cause, plan: None, steps: VecDeque::new(), approvals: Vec::new() });
+	app.turns.work.lock().insert(chat_id.to_owned(), TurnWork { cause, since: clock::now_ms(), plan: None, steps: VecDeque::new(), approvals: Vec::new() });
 	lesson_work_changed(app, chat_id);
 	if cause == TurnCause::Talk {
-		app.teacher_round.began(chat_id, clock::now_ms());
+		round_changed(app);
 	}
 }
 
@@ -67,24 +76,28 @@ pub(super) fn end(app: &App, chat_id: &str) {
 	let Some(work) = app.turns.work.lock().remove(chat_id) else { return };
 	lesson_work_changed(app, chat_id);
 	if work.cause == TurnCause::Talk {
-		app.teacher_round.ended(chat_id);
+		round_changed(app);
 	}
+}
+
+/// Tells the window the teacher's round of work changed.
+fn round_changed(app: &App) {
+	app.events.emit(EventKind::TeacherWork, json!({}));
 }
 
 /// One step: its words, the reply's tool call it stands for, the file and place it reads.
 pub fn note_step(app: &App, chat_id: &str, step: TeacherStep, call: Option<&str>, reads: Option<Json>) {
-	let now = clock::now_ms();
-	let mut out = step_head(step.text.clone(), now);
-	out.insert("call", call);
-	out.insert("reads", reads);
+	let mut desk = step_head(step.text, clock::now_ms());
+	desk.insert("call", call);
+	desk.insert("reads", reads);
 	let mut talk = false;
 	update(app, chat_id, |work| {
-		keep_step(&mut work.steps, Json::Obj(out));
+		keep_step(&mut work.steps, Step { desk: Json::Obj(desk), link: step.link });
 		talk = work.cause == TurnCause::Talk;
 		true
 	});
 	if talk {
-		app.teacher_round.step(chat_id, step, now);
+		round_changed(app);
 	}
 }
 
@@ -167,15 +180,36 @@ pub fn lesson_work(app: &App, chat_id: &str) -> Option<Json> {
 	Some(match turns.get(chat_id) {
 		Some(work) => {
 			let approvals = [work.approvals.clone(), job_asks].concat();
-			json!({ "live": true, "cause": work.cause.name(), "plan": work.plan.clone(), "steps": work.steps.iter().cloned().collect::<Vec<_>>(), "approvals": approvals, "files": files })
+			json!({ "live": true, "cause": work.cause.name(), "plan": work.plan.clone(), "steps": work.steps.iter().map(|step| step.desk.clone()).collect::<Vec<_>>(), "approvals": approvals, "files": files })
 		}
 		None => json!({ "live": false, "cause": null, "plan": null, "steps": [], "approvals": job_asks, "files": files }),
 	})
 }
 
+/// A step as Follow's slip reads it: `{id, at, text, link?}`.
+fn round_step(step: &Step) -> Json {
+	let mut out: Obj = ["id", "at", "text"].into_iter().map(|key| (key, step.desk[key].clone())).collect();
+	if let Some(link) = &step.link {
+		out.insert("link", link.clone());
+	}
+	Json::Obj(out)
+}
+
+/// GET /api/teacher-work, the teacher's round of work: `{live, since, chatId, steps: [{id, at,
+/// text, link?}]}`, the running turn of a teacher panel chat, the newest begun when several run.
+pub fn teacher_work(app: &App) -> Json {
+	let turns = app.turns.work.lock();
+	match turns.iter().filter(|(_, work)| work.cause == TurnCause::Talk).max_by_key(|(chat_id, work)| (work.since, chat_id.as_str())) {
+		Some((chat_id, work)) => json!({ "live": true, "since": time::iso(work.since), "chatId": chat_id.as_str(), "steps": work.steps.iter().map(round_step).collect::<Vec<_>>() }),
+		None => json!({ "live": false, "since": null, "steps": [] }),
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use gs_base::events::Event;
+
+	use gs_core::session::teacher_steps::STEPS_MAX;
 
 	use super::*;
 	use crate::app::test_support::{scratch_dir, test_app};
@@ -183,6 +217,11 @@ mod tests {
 
 	fn told(events: &mut tokio::sync::mpsc::UnboundedReceiver<Event>) -> Vec<Json> {
 		std::iter::from_fn(|| events.try_recv().ok()).filter(|e| e.kind == EventKind::LessonWork).map(|e| e.payload).collect()
+	}
+
+	/// How many "teacher-work" events went out since the last look.
+	fn round_told(events: &mut tokio::sync::mpsc::UnboundedReceiver<Event>) -> usize {
+		std::iter::from_fn(|| events.try_recv().ok()).filter(|e| e.kind == EventKind::TeacherWork).count()
 	}
 
 	fn step(text: &str) -> TeacherStep {
@@ -219,6 +258,58 @@ mod tests {
 		note_step(&app, &a, step("Late"), None, None);
 		assert_eq!(lesson_work(&app, &a).unwrap()["steps"], json!([]), "a step after the turn is dropped");
 		end_turn(&app, &b);
+	}
+
+	#[test]
+	fn a_talk_turn_is_the_teacher_s_round_with_the_desk_s_steps_until_it_ends() {
+		let root = scratch_dir("turn-work-round");
+		let app = test_app(&root);
+		let mut events = app.events.subscribe();
+		let none = json!({ "live": false, "since": null, "steps": [] });
+		begin(&app, "chat_lesson", TurnCause::First);
+		note_step(&app, "chat_lesson", step("Looking at CSE 29"), None, None);
+		assert_eq!(teacher_work(&app), none, "a lesson's turn is no round");
+		assert_eq!(round_told(&mut events), 0);
+
+		let began = clock::now_ms();
+		begin(&app, "chat_talk", TurnCause::Talk);
+		let link = json!({ "spaceId": "spc_1", "fileId": "f_1", "name": "HW7.pdf", "range": "p. 1" });
+		note_step(&app, "chat_talk", TeacherStep { text: "Reading HW7.pdf, page 1".to_owned(), link: Some(link.clone()) }, Some("agent_1"), None);
+		let round = teacher_work(&app);
+		assert_eq!((&round["live"], &round["chatId"]), (&json!(true), &json!("chat_talk")));
+		assert!(round["since"].as_str().is_some_and(|since| since >= time::iso(began).as_str()), "{round:?}");
+		let on_desk = app.turns.work.lock()["chat_talk"].steps[0].desk.clone();
+		assert_eq!(round["steps"], json!([{ "id": on_desk["id"].clone(), "at": on_desk["at"].clone(), "text": "Reading HW7.pdf, page 1", "link": link }]), "the desk's step, with its link");
+		assert!(on_desk.get("link").is_none(), "the desk's step carries no link");
+
+		for n in 0..STEPS_MAX + 4 {
+			note_step(&app, "chat_talk", step(&format!("Step {n}")), None, None);
+		}
+		let kept = teacher_work(&app)["steps"].clone();
+		assert_eq!((kept.items().len(), kept[0]["text"].as_str(), kept[0].get("link")), (STEPS_MAX, Some("Step 4"), None), "the last forty");
+
+		end(&app, "chat_talk");
+		assert_eq!(teacher_work(&app), none);
+		assert_eq!(round_told(&mut events), STEPS_MAX + 4 + 3, "began, each step, ended");
+		end(&app, "chat_lesson");
+		assert_eq!(round_told(&mut events), 0, "a lesson's end is no news of the round");
+	}
+
+	#[test]
+	fn the_round_is_the_newest_talk_turn_that_still_runs() {
+		let root = scratch_dir("turn-work-rounds");
+		let app = test_app(&root);
+		begin(&app, "chat_a", TurnCause::Talk);
+		note_step(&app, "chat_a", step("Looking at your spaces"), None, None);
+		clock::advance(5);
+		begin(&app, "chat_b", TurnCause::Talk);
+		let round = teacher_work(&app);
+		assert_eq!((&round["chatId"], &round["steps"]), (&json!("chat_b"), &json!([])), "a new turn begins a new round");
+		end(&app, "chat_b");
+		let round = teacher_work(&app);
+		assert_eq!((round["chatId"].as_str(), round["steps"][0]["text"].as_str()), (Some("chat_a"), Some("Looking at your spaces")), "the turn that still runs is the round again");
+		end(&app, "chat_a");
+		assert_eq!(teacher_work(&app)["live"], json!(false));
 	}
 
 	#[test]
