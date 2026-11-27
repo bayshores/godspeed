@@ -28,6 +28,16 @@ pub struct ToolReply {
 	pub ends_turn: bool,
 }
 
+/// What the agent hears when godspeed drops a tool call's reply without answering it.
+const TOOL_DROPPED: &str = "godspeed stopped before this tool finished.";
+
+impl ToolReply {
+	/// The reply to a call godspeed dropped without answering.
+	pub(crate) fn dropped() -> ToolReply {
+		ToolReply { content: vec![Part::Text(TOOL_DROPPED.to_owned())], is_error: true, ends_turn: false }
+	}
+}
+
 /// What the agent asks permission for.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Ask {
@@ -50,6 +60,16 @@ pub enum Ask {
 pub struct Verdict {
 	pub allow: bool,
 	pub message: Option<String>,
+}
+
+/// What the agent hears when the learner refuses without saying why, or the question is dropped.
+const REFUSED: &str = "The learner did not allow this.";
+
+impl Verdict {
+	/// A refusal that says no more than that the learner did not allow it.
+	pub(crate) fn refused() -> Verdict {
+		Verdict { allow: false, message: Some(REFUSED.to_owned()) }
+	}
 }
 
 /// One model call's tokens: everything it read (cached included), the cached part, and what it
@@ -90,9 +110,3 @@ pub enum SessionEvent {
 	Compacted,
 	Ended(End),
 }
-
-/// What the agent hears when godspeed drops a tool call's reply without answering it.
-pub(crate) const TOOL_DROPPED: &str = "godspeed stopped before this tool finished.";
-
-/// What the agent hears when the learner refuses without saying why, or the question is dropped.
-pub(crate) const REFUSED: &str = "The learner did not allow this.";

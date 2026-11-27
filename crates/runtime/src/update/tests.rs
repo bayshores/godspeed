@@ -3,6 +3,7 @@
 //! version in a file the update rewrites. No test starts a real agent, npm or Homebrew.
 
 use super::*;
+use crate::process::NO_CLAUDE;
 use crate::stand_ins::Programs;
 
 /// The command, each line it printed, and how it ended.

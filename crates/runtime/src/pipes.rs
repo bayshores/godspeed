@@ -1,5 +1,8 @@
 //! A started agent's two pipes, read and written one line at a time.
 
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use gs_base::{clock, tasks};
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader};
 use tokio::sync::mpsc;
@@ -36,8 +39,21 @@ pub fn writer(label: &'static str, mut writer: Box<dyn AsyncWrite + Send + Unpin
 	tx
 }
 
+/// Reads the agent's output on a task of its own: each line goes to `each`, and once the agent
+/// has gone, `ended` hears why.
+pub fn serve(label: &'static str, reader: Box<dyn AsyncRead + Send + Unpin>, process: Option<AgentProcess>, each: impl FnMut(String) + Send + 'static, ended: impl FnOnce(&str) + Send + 'static) -> Reader {
+	let alive = Arc::new(AtomicBool::new(true));
+	let reading = alive.clone();
+	let task = tasks::spawn(label, async move {
+		let why = read(reader, process, each).await;
+		reading.store(false, Ordering::SeqCst);
+		ended(&why);
+	});
+	Reader { task, alive }
+}
+
 /// Gives each line the agent writes to `each` until it closes its output, then says why it went.
-pub async fn read(reader: Box<dyn AsyncRead + Send + Unpin>, process: Option<AgentProcess>, mut each: impl FnMut(String)) -> String {
+async fn read(reader: Box<dyn AsyncRead + Send + Unpin>, process: Option<AgentProcess>, mut each: impl FnMut(String)) -> String {
 	let mut lines = BufReader::new(reader).lines();
 	let closed = loop {
 		match lines.next_line().await {
@@ -58,10 +74,20 @@ pub async fn read(reader: Box<dyn AsyncRead + Send + Unpin>, process: Option<Age
 const EXIT_WAIT_MS: i64 = 2_000;
 
 /// The task that reads a connection; dropping the connection stops it, which drops the process.
-pub struct Reader(pub JoinHandle<()>);
+pub struct Reader {
+	task: JoinHandle<()>,
+	alive: Arc<AtomicBool>,
+}
+
+impl Reader {
+	/// False once the agent has gone.
+	pub fn alive(&self) -> bool {
+		self.alive.load(Ordering::SeqCst)
+	}
+}
 
 impl Drop for Reader {
 	fn drop(&mut self) {
-		self.0.abort();
+		self.task.abort();
 	}
 }

@@ -104,7 +104,12 @@ pub fn tool_result(id: &str, reply: &ToolReply) -> Json {
 }
 
 pub fn approval(id: &str, verdict: &Verdict) -> Json {
-	json!({ "type": "approval", "id": id, "allow": verdict.allow, "message": verdict.message })
+	// The SDK passes a refusal's message to Claude, and needs one.
+	let message = match &verdict.message {
+		None if !verdict.allow => Verdict::refused().message,
+		message => message.clone(),
+	};
+	json!({ "type": "approval", "id": id, "allow": verdict.allow, "message": message })
 }
 
 /// A line from the helper.
@@ -122,11 +127,12 @@ pub enum FromHelper {
 }
 
 pub fn from_helper(line: &str) -> Result<FromHelper, String> {
-	let message = gs_json::parse(line).map_err(|err| format!("not JSON ({err})"))?;
+	let mut message = gs_json::parse(line).map_err(|err| format!("not JSON ({err})"))?;
 	let text = |key: &str| message[key].str_or_empty().to_owned();
 	Ok(match message["type"].as_str() {
 		Some("opened") => FromHelper::Opened { session: text("session"), native_id: text("nativeId") },
-		Some("sdk") => FromHelper::Sdk { session: text("session"), message: message["message"].clone() },
+		// Moved out, not copied: a tool result in it can hold a whole file.
+		Some("sdk") => FromHelper::Sdk { session: text("session"), message: message.get_mut("message").map(std::mem::take).unwrap_or_default() },
 		Some("tool_call") => FromHelper::ToolCall { id: text("id"), session: text("session"), call: ToolCall { id: text("toolUseId"), name: text("name"), args: message["args"].clone() } },
 		Some("approval") => FromHelper::Approval { id: text("id"), session: text("session"), ask: Ask::Tool { name: text("tool"), input: message["input"].clone() } },
 		Some("closed") => FromHelper::Closed { session: text("session") },
@@ -143,26 +149,8 @@ pub struct Reading {
 	own: HashMap<String, (String, Json)>,
 	/// The model call under way: what it read, until its output count arrives.
 	call: Option<Usage>,
-}
-
-/// How the SDK says a turn ended.
-#[derive(Debug, PartialEq)]
-pub enum Finish {
-	Done,
-	/// Stopped while running, with the SDK's errors.
-	Stopped(String),
-	Failed(String),
-}
-
-impl Finish {
-	/// An interrupted turn reports an error; it was godspeed's own Stop.
-	pub fn end(self, interrupting: bool) -> End {
-		match self {
-			Finish::Done => End::Completed,
-			Finish::Stopped(_) if interrupting => End::Interrupted,
-			Finish::Stopped(why) | Finish::Failed(why) => End::Failed(why),
-		}
-	}
+	/// godspeed asked the turn to stop.
+	pub interrupting: bool,
 }
 
 /// The godspeed tool a Claude Code tool name names (`mcp__godspeed__quiz` is quiz).
@@ -176,7 +164,7 @@ fn count(value: &Json) -> u64 {
 
 /// The events one SDK message makes, and the turn's end when it is the result. Messages from a
 /// subagent (`parent_tool_use_id`) are not the reply.
-pub fn read_sdk(message: &Json, reading: &mut Reading) -> (Vec<SessionEvent>, Option<Finish>) {
+pub fn read_sdk(message: &Json, reading: &mut Reading) -> (Vec<SessionEvent>, Option<End>) {
 	let mut events = Vec::new();
 	if !message["parent_tool_use_id"].is_null() {
 		return (events, None);
@@ -234,13 +222,14 @@ pub fn read_sdk(message: &Json, reading: &mut Reading) -> (Vec<SessionEvent>, Op
 			let subtype = message["subtype"].as_str().unwrap_or("no result");
 			let errors = message["errors"].strs().join("; ");
 			let why = if errors.is_empty() { format!("the turn ended with {subtype}") } else { errors };
-			let finish = match subtype {
-				"success" if !message["is_error"].truthy() => Finish::Done,
-				"success" => Finish::Failed(message["result"].as_str().unwrap_or("Claude Code reported an error").to_owned()),
-				"error_during_execution" => Finish::Stopped(why),
-				_ => Finish::Failed(why),
+			let end = match subtype {
+				"success" if !message["is_error"].truthy() => End::Completed,
+				"success" => End::Failed(message["result"].as_str().unwrap_or("Claude Code reported an error").to_owned()),
+				// An interrupted turn reports an error; it was godspeed's own Stop.
+				"error_during_execution" if reading.interrupting => End::Interrupted,
+				_ => End::Failed(why),
 			};
-			return (events, Some(finish));
+			return (events, Some(end));
 		}
 		_ => {}
 	}

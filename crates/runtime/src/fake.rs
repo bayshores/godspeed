@@ -11,7 +11,7 @@ use gs_base::tasks;
 use gs_core::spaces::agent_folder::FolderAgent;
 use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, WriteHalf};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, DuplexStream, WriteHalf};
 
 use crate::claude::protocol::TOOL_SERVER;
 use crate::event::Usage;
@@ -60,21 +60,6 @@ struct Script {
 	sent: Vec<Json>,
 }
 
-impl Script {
-	/// The key of the script a session opened with these instructions plays; None is the shared one.
-	fn key_for(&self, instructions: &str) -> Option<String> {
-		self.keyed.iter().find(|(key, _)| instructions.contains(key.as_str())).map(|(key, _)| key.clone())
-	}
-
-	fn next_turn(&mut self, key: Option<&str>) -> Vec<FakeStep> {
-		let turns = match key {
-			Some(key) => self.keyed.iter_mut().find(|(k, _)| k == key).map(|(_, turns)| turns),
-			None => Some(&mut self.turns),
-		};
-		turns.and_then(VecDeque::pop_front).unwrap_or_default()
-	}
-}
-
 impl FakeAgent {
 	pub fn new(turns: Vec<Vec<FakeStep>>) -> FakeAgent {
 		FakeAgent { script: Arc::new(Mutex::new(Script { turns: turns.into(), ..Script::default() })) }
@@ -95,14 +80,19 @@ impl FakeAgent {
 		}
 	}
 
-	/// The key of the script a session opened with `instructions` plays.
+	/// The key of the script a session opened with `instructions` plays; None is the shared one.
 	fn key_for(&self, instructions: &str) -> Option<String> {
-		self.script.lock().key_for(instructions)
+		self.script.lock().keyed.iter().find(|(key, _)| instructions.contains(key.as_str())).map(|(key, _)| key.clone())
 	}
 
 	/// The next turn of the script `key` names.
 	fn next_turn(&self, key: Option<&str>) -> Vec<FakeStep> {
-		self.script.lock().next_turn(key)
+		let mut script = self.script.lock();
+		let turns = match key {
+			Some(key) => script.keyed.iter_mut().find(|(k, _)| k == key).map(|(_, turns)| turns),
+			None => Some(&mut script.turns),
+		};
+		turns.and_then(VecDeque::pop_front).unwrap_or_default()
 	}
 
 	/// Every message godspeed sent the agent, in order, as the agent reads them: helper lines or
@@ -135,7 +125,7 @@ impl FakeAgent {
 		})
 	}
 
-	async fn play(self, pipe: tokio::io::DuplexStream) {
+	async fn play(self, pipe: DuplexStream) {
 		let (reader, writer) = tokio::io::split(pipe);
 		let mut player = Player { agent: self, out: writer, turns: HashMap::new(), keys: HashMap::new(), next_id: 1 };
 		let mut lines = BufReader::new(reader).lines();
@@ -149,6 +139,11 @@ impl FakeAgent {
 	}
 }
 
+/// Writes one message to godspeed as a line.
+async fn write_line(out: &mut WriteHalf<DuplexStream>, message: &Json) -> std::io::Result<()> {
+	out.write_all(format!("{}\n", stringify(message)).as_bytes()).await
+}
+
 /// A session's turn under way: the steps left, the calls of a `Calls` step not yet made (id,
 /// name, arguments), and the call or question it waits on.
 struct Playing {
@@ -159,7 +154,7 @@ struct Playing {
 
 struct Player {
 	agent: FakeAgent,
-	out: WriteHalf<tokio::io::DuplexStream>,
+	out: WriteHalf<DuplexStream>,
 	turns: HashMap<String, Playing>,
 	/// Each session's script key, from its instructions.
 	keys: HashMap<String, Option<String>>,
@@ -167,14 +162,10 @@ struct Player {
 }
 
 impl Player {
-	async fn write(&mut self, message: Json) -> std::io::Result<()> {
-		self.out.write_all(format!("{}\n", stringify(&message)).as_bytes()).await
-	}
-
 	async fn sdk(&mut self, session: &str, message: Json) -> std::io::Result<()> {
 		let mut message = message;
 		message.set("parent_tool_use_id", Json::Null);
-		self.write(json!({ "type": "sdk", "session": session, "message": message })).await
+		write_line(&mut self.out, &json!({ "type": "sdk", "session": session, "message": message })).await
 	}
 
 	async fn take(&mut self, message: &Json) -> std::io::Result<()> {
@@ -183,7 +174,7 @@ impl Player {
 			Some("open") => {
 				self.keys.insert(session.clone(), self.agent.key_for(message["systemPrompt"].str_or_empty()));
 				let native = message["resume"].as_str().map_or_else(|| format!("fake-{session}"), str::to_owned);
-				self.write(json!({ "type": "opened", "session": session, "nativeId": native })).await
+				write_line(&mut self.out, &json!({ "type": "opened", "session": session, "nativeId": native })).await
 			}
 			Some("send") => {
 				let steps = self.agent.next_turn(self.keys.get(&session).cloned().flatten().as_deref());
@@ -206,11 +197,11 @@ impl Player {
 			Some("close") => {
 				self.turns.remove(&session);
 				self.keys.remove(&session);
-				self.write(json!({ "type": "closed", "session": session })).await
+				write_line(&mut self.out, &json!({ "type": "closed", "session": session })).await
 			}
 			Some("models") => {
 				let model = |value: &str, name: &str| json!({ "value": value, "displayName": name, "description": "" });
-				self.write(json!({ "type": "models", "id": message["id"], "models": [model("default", "Default (recommended)"), model("sonnet", "Sonnet 5.5")] })).await
+				write_line(&mut self.out, &json!({ "type": "models", "id": message["id"], "models": [model("default", "Default (recommended)"), model("sonnet", "Sonnet 5.5")] })).await
 			}
 			_ => Ok(()),
 		}
@@ -220,7 +211,7 @@ impl Player {
 	async fn advance(&mut self, session: &str) -> std::io::Result<()> {
 		loop {
 			if let Some((id, name, args)) = self.turns.get_mut(session).and_then(|playing| playing.calls.pop_front()) {
-				self.write(json!({ "type": "tool_call", "id": id, "session": session, "toolUseId": format!("toolu_{id}"), "name": name, "args": args })).await?;
+				write_line(&mut self.out, &json!({ "type": "tool_call", "id": id, "session": session, "toolUseId": format!("toolu_{id}"), "name": name, "args": args })).await?;
 				return self.wait(session, id);
 			}
 			let Some(step) = self.turns.get_mut(session).and_then(|playing| playing.steps.pop_front()) else { return self.finish(session, None).await };
@@ -239,7 +230,7 @@ impl Player {
 					self.sdk(session, json!({ "type": "user", "message": { "content": [{ "type": "tool_result", "tool_use_id": use_id }] } })).await?;
 				}
 				FakeStep::Tool { name, args } => {
-					self.write(json!({ "type": "tool_call", "id": id, "session": session, "toolUseId": format!("toolu_{id}"), "name": name, "args": args })).await?;
+					write_line(&mut self.out, &json!({ "type": "tool_call", "id": id, "session": session, "toolUseId": format!("toolu_{id}"), "name": name, "args": args })).await?;
 					return self.wait(session, id);
 				}
 				FakeStep::Calls(calls) => {
@@ -251,7 +242,7 @@ impl Player {
 					}
 				}
 				FakeStep::Approval { tool, input } => {
-					self.write(json!({ "type": "approval", "id": id, "session": session, "tool": tool, "input": input, "toolUseId": format!("toolu_{id}") })).await?;
+					write_line(&mut self.out, &json!({ "type": "approval", "id": id, "session": session, "tool": tool, "input": input, "toolUseId": format!("toolu_{id}") })).await?;
 					return self.wait(session, id);
 				}
 				FakeStep::Usage(usage) => {

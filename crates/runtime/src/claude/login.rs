@@ -6,13 +6,13 @@
 use std::ffi::OsString;
 
 use gs_base::{clock, tasks};
+use gs_core::spaces::agent_folder::FolderAgent;
 use parking_lot::Mutex;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::{Mutex as AsyncMutex, oneshot};
 
 use crate::process::{AgentEnv, AgentProcess};
-use crate::session::NO_CLAUDE;
 
 const LABEL: &str = "claude auth login";
 /// How long the link may take to be printed.
@@ -22,7 +22,7 @@ const LOGIN_MS: i64 = 5 * 60_000;
 
 /// A running `claude auth login`.
 pub struct ClaudeLogin {
-	stdin: AsyncMutex<Option<ChildStdin>>,
+	stdin: AsyncMutex<ChildStdin>,
 	/// Sending, or dropping it with the login, ends the child.
 	cancel: Mutex<Option<oneshot::Sender<()>>>,
 }
@@ -32,7 +32,7 @@ type Ended = oneshot::Receiver<Result<(), String>>;
 impl ClaudeLogin {
 	/// Starts the learner's own `claude`, found as lessons find it, and waits for its link.
 	pub async fn start(env: &AgentEnv) -> Result<(ClaudeLogin, String, Ended), String> {
-		let claude = env.find("claude").await.ok_or(NO_CLAUDE)?;
+		let claude = env.find_agent(FolderAgent::Claude).await?;
 		let mut launch = env.launch(claude).await?;
 		launch.args.extend(["auth", "login", "--claudeai"].map(OsString::from));
 		let (process, stdin, stdout) = AgentProcess::start(LABEL, &launch, env.vars().await)?;
@@ -40,7 +40,7 @@ impl ClaudeLogin {
 		let (cancel, cancelled) = oneshot::channel();
 		let (done, mut ended) = oneshot::channel();
 		tasks::detach(LABEL, watch(process, stdout, link, cancelled, done));
-		let login = ClaudeLogin { stdin: AsyncMutex::new(Some(stdin)), cancel: Mutex::new(Some(cancel)) };
+		let login = ClaudeLogin { stdin: AsyncMutex::new(stdin), cancel: Mutex::new(Some(cancel)) };
 		match clock::within(LINK_MS, linked).await {
 			Some(Ok(url)) => Ok((login, url, ended)),
 			// It ended without one.
@@ -59,8 +59,7 @@ impl ClaudeLogin {
 		if code.is_empty() || code.contains(['\n', '\r']) {
 			return Err("The code is one line of text.".to_owned());
 		}
-		let mut stdin = self.stdin.lock().await;
-		let input = stdin.as_mut().ok_or("the sign-in has ended")?;
+		let mut input = self.stdin.lock().await;
 		let wrote = async {
 			input.write_all(format!("{code}\n").as_bytes()).await?;
 			input.flush().await

@@ -9,7 +9,7 @@ use gs_core::spaces::agent_folder::FolderAgent;
 
 use crate::codex::wire::{self, Account};
 use crate::process::{AgentEnv, Launch, printed};
-use crate::session::{Runtime, codex_vars, debug_helper, helper_to_run};
+use crate::session::{Runtime, codex_vars, helper_file};
 
 /// The oldest Claude Code the pinned Agent SDK was built with.
 const CLAUDE_FLOOR: &str = "2.1.331";
@@ -200,7 +200,7 @@ impl Runtime {
 		};
 		let (rows, helper_missing) = match agent {
 			FolderAgent::Claude => {
-				let helper = self.claude_helper().is_some_and(|helper| helper_to_run(helper, debug_helper()).is_file());
+				let helper = self.claude_helper().is_some_and(|helper| helper_file(helper).is_ok());
 				(claude_rows(env, own_command, &deadline).await, !helper)
 			}
 			FolderAgent::Codex => (if own_command { Vec::new() } else { codex_rows(self, env, &deadline).await }, false),
@@ -215,17 +215,22 @@ async fn claude_rows(env: &AgentEnv, own_command: bool, deadline: &Deadline) -> 
 	if own_command {
 		return vec![node];
 	}
-	let Some(claude) = env.find("claude").await else {
-		return vec![row(Check::Installed, Outcome::Failed(Problem::NotInstalled), None), node, unchecked(Check::UpToDate), unchecked(Check::LoggedIn)];
-	};
-	let launch = match env.launch(claude).await {
+	let launch = match installed(env, FolderAgent::Claude).await {
 		Ok(launch) => launch,
-		Err(err) => return vec![row(Check::Installed, Outcome::Failed(Problem::Failed(err)), None), node, unchecked(Check::UpToDate), unchecked(Check::LoggedIn)],
+		Err(failed) => {
+			let rest = |check: &Check| match check {
+				Check::Installed => failed.clone(),
+				Check::Node => node.clone(),
+				_ => unchecked(*check),
+			};
+			return checks_of(FolderAgent::Claude, false).iter().map(rest).collect();
+		}
 	};
 	let vars = env.vars().await;
-	let (installed, up_to_date) = version_rows("claude", run(&launch, &["--version"], vars, deadline).await, floor(FolderAgent::Claude));
+	let (installed, up_to_date) = version_rows(found_version(&launch, vars, deadline.left(), "claude").await, floor(FolderAgent::Claude));
 	let logged_in = if installed.outcome == Outcome::Passed {
-		let (outcome, fact) = match run(&launch, &["auth", "status"], vars, deadline).await.and_then(|out| claude_login(&out)) {
+		// Read whatever its exit code: `auth status` ends with 1 when signed out.
+		let (outcome, fact) = match printed(&launch, &["auth", "status"], vars, deadline.left()).await.map_err(Problem::Failed).and_then(|out| claude_login(&out)) {
 			Ok(plan) => (Outcome::Passed, plan),
 			Err(problem) => (Outcome::Failed(problem), None),
 		};
@@ -238,14 +243,12 @@ async fn claude_rows(env: &AgentEnv, own_command: bool, deadline: &Deadline) -> 
 
 async fn node_row(env: &AgentEnv, deadline: &Deadline) -> Row {
 	let Some(node) = env.find("node").await else { return row(Check::Node, Outcome::Failed(Problem::NoNode), None) };
-	let launch = Launch { program: node, args: Vec::new() };
-	match run(&launch, &["--version"], env.vars().await, deadline).await.map(|out| version(&out)) {
-		Ok(Some(found)) => {
+	match found_version(&Launch { program: node, args: Vec::new() }, env.vars().await, deadline.left(), "node").await {
+		Ok(found) => {
 			let outcome = if at_least(&found, NODE_FLOOR) { Outcome::Passed } else { Outcome::Failed(Problem::NoNode) };
 			row(Check::Node, outcome, Some(found))
 		}
-		Ok(None) => row(Check::Node, Outcome::Failed(Problem::Failed("node --version printed no version".to_owned())), None),
-		Err(problem) => row(Check::Node, Outcome::Failed(problem), None),
+		Err(why) => row(Check::Node, Outcome::Failed(Problem::Failed(why)), None),
 	}
 }
 
@@ -254,14 +257,14 @@ async fn node_row(env: &AgentEnv, deadline: &Deadline) -> Row {
 /// not asked.
 async fn codex_rows(runtime: &Runtime, env: &AgentEnv, deadline: &Deadline) -> Vec<Row> {
 	let Some(home) = runtime.codex_home() else { return Vec::new() };
-	let Some(codex) = env.find("codex").await else {
-		return vec![row(Check::Installed, Outcome::Failed(Problem::NotInstalled), None), unchecked(Check::UpToDate), unchecked(Check::LoggedIn)];
-	};
-	let launch = match env.launch(codex).await {
+	let launch = match installed(env, FolderAgent::Codex).await {
 		Ok(launch) => launch,
-		Err(err) => return vec![row(Check::Installed, Outcome::Failed(Problem::Failed(err)), None), unchecked(Check::UpToDate), unchecked(Check::LoggedIn)],
+		Err(failed) => {
+			let rest = |check: &Check| if *check == Check::Installed { failed.clone() } else { unchecked(*check) };
+			return checks_of(FolderAgent::Codex, false).iter().map(rest).collect();
+		}
 	};
-	let (installed, up_to_date) = version_rows("codex", run(&launch, &["--version"], &codex_vars(env.vars().await, home), deadline).await, floor(FolderAgent::Codex));
+	let (installed, up_to_date) = version_rows(found_version(&launch, &codex_vars(env.vars().await, home), deadline.left(), "codex").await, floor(FolderAgent::Codex));
 	if up_to_date.outcome != Outcome::Passed {
 		return vec![installed, up_to_date, unchecked(Check::LoggedIn)];
 	}
@@ -277,27 +280,33 @@ async fn codex_rows(runtime: &Runtime, env: &AgentEnv, deadline: &Deadline) -> V
 	vec![installed, up_to_date, logged_in]
 }
 
-/// The Installed and Up to date rows from what `<name> --version` printed.
-fn version_rows(name: &str, out: Result<String, Problem>, floor: &str) -> (Row, Row) {
-	match out.map(|out| version(&out)) {
-		Ok(Some(found)) => {
+/// How to start the agent, or its Installed row saying why it can't be.
+async fn installed(env: &AgentEnv, agent: FolderAgent) -> Result<Launch, Row> {
+	let failed = |problem| row(Check::Installed, Outcome::Failed(problem), None);
+	let program = env.find(agent.name()).await.ok_or_else(|| failed(Problem::NotInstalled))?;
+	env.launch(program).await.map_err(|err| failed(Problem::Failed(err)))
+}
+
+/// The Installed and Up to date rows from the version the agent said, or why it said none.
+fn version_rows(found: Result<String, String>, floor: &str) -> (Row, Row) {
+	match found {
+		Ok(found) => {
 			let new_enough = at_least(&found, floor);
 			let up_to_date = if new_enough { row(Check::UpToDate, Outcome::Passed, None) } else { row(Check::UpToDate, Outcome::Failed(Problem::TooOld), Some(found.clone())) };
 			(row(Check::Installed, Outcome::Passed, Some(found)), up_to_date)
 		}
-		Ok(None) => (row(Check::Installed, Outcome::Failed(Problem::Failed(format!("{name} --version printed no version"))), None), unchecked(Check::UpToDate)),
-		Err(problem) => (row(Check::Installed, Outcome::Failed(problem), None), unchecked(Check::UpToDate)),
+		Err(why) => (row(Check::Installed, Outcome::Failed(Problem::Failed(why)), None), unchecked(Check::UpToDate)),
 	}
 }
 
-/// What the program prints with `args`, whatever its exit code (`auth status` ends with 1 when
-/// signed out), within the check's time.
-async fn run(launch: &Launch, args: &[&str], vars: &[(OsString, OsString)], deadline: &Deadline) -> Result<String, Problem> {
-	printed(launch, args, vars, deadline.left()).await.map_err(Problem::Failed)
+/// The version `<name> --version` prints, within `ms`, or why there is none.
+pub(crate) async fn found_version(launch: &Launch, vars: &[(OsString, OsString)], ms: i64, name: &str) -> Result<String, String> {
+	let out = printed(launch, &["--version"], vars, ms).await?;
+	version(&out).ok_or_else(|| format!("{name} --version printed no version"))
 }
 
 /// The first `x.y.z` in a program's version line.
-pub(crate) fn version(text: &str) -> Option<String> {
+fn version(text: &str) -> Option<String> {
 	text.split(|c: char| !(c.is_ascii_digit() || c == '.')).find_map(|word| {
 		let parts: Vec<&str> = word.split('.').take(3).collect();
 		(parts.len() == 3 && parts.iter().all(|part| !part.is_empty())).then(|| parts.join("."))
