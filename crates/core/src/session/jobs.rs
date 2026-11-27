@@ -135,8 +135,9 @@ pub fn is_subagent_failure(kind: &str, result: &Json) -> bool {
 	match JobKind::of(kind) {
 		Some(JobKind::Research) => result["sources"].as_arr().is_some_and(Vec::is_empty) && failed_brief(&RESEARCH_FAILED),
 		Some(JobKind::Pdf) => failed_brief(&PDF_FAILED),
-		// A removed kind's record is judged like a demo.
-		Some(JobKind::Demo) | None => empty("html"),
+		Some(JobKind::Demo) => empty("html"),
+		// The old figure job's record.
+		None => empty("svg"),
 	}
 }
 
@@ -161,13 +162,15 @@ fn steer_text(kind: &str, result: &Json) -> String {
 		return match known {
 			Some(JobKind::Research) => format!("{brief}\n\nContinue with what you can establish and flag the uncertainty to the learner."),
 			Some(JobKind::Pdf) => format!("{brief}\n\nContinue with what you can establish from the session and flag the gap to the learner."),
-			Some(JobKind::Demo) | None => format!("The demo \"{}\" could not be built: {}. Fall back to explaining in prose; if the brief was the problem, re-call demo with a tighter one.", field_text(result, "title"), notes_text(result, "unknown reason")),
+			Some(JobKind::Demo) => format!("The demo \"{}\" could not be built: {}. Fall back to explaining in prose; if the brief was the problem, re-call demo with a tighter one.", field_text(result, "title"), notes_text(result, "unknown reason")),
+			None => format!("The figure could not be made: {}. Fall back to prose or mermaid, or draw it with visual.", notes_text(result, "unknown reason")),
 		};
 	}
 	match known {
 		Some(JobKind::Research) => format!("Research complete \u{2014} the researcher's full brief follows. Weave it into the lesson and cite its sources when you use its findings:\n\n{brief}"),
 		Some(JobKind::Pdf) => format!("PDF reading complete \u{2014} the reader's brief on \"{}\" follows. Weave it into the lesson, and copy its page citations exactly as they are written when you use it:\n\n{brief}", base_name(&field_text(result, "path"))),
-		Some(JobKind::Demo) | None => format!("The demo \"{}\" is built, headlessly tested, and rendered in the lesson. Builder notes: {}.\nTeach with it \u{2014} reference its controls by name and point the learner at what to try.", field_text(result, "title"), notes_text(result, "(none)")),
+		Some(JobKind::Demo) => format!("The demo \"{}\" is built, headlessly tested, and rendered in the lesson. Builder notes: {}.\nTeach with it \u{2014} reference its controls by name and point the learner at what to try.", field_text(result, "title"), notes_text(result, "(none)")),
+		None => format!("The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: {}.\nReference its elements as you teach.", notes_text(result, "(none)")),
 	}
 }
 
@@ -255,5 +258,16 @@ mod tests {
 		assert_eq!(flipped[0]["details"]["ui"]["inverted"], Json::Bool(true));
 		assert!(flipped[1]["details"].is_null());
 		assert!(is_subagent_failure("research", &json!({ "sources": [], "brief": "research failed: no" })));
+	}
+
+	#[test]
+	fn an_old_figure_job_is_judged_by_its_figure_and_told_as_one() {
+		let job = json!({ "id": "j2", "kind": "figure", "toolCallId": "c2" });
+		let drawn = json!({ "svg": "<svg/>", "notes": "two panels" });
+		assert!(!is_subagent_failure("figure", &drawn));
+		assert!(build_subagent_steer(&job, &drawn)["content"].as_str().unwrap().starts_with("The figure is drawn, verified by inspection, and rendered in the lesson. Maker notes: two panels."));
+		let failed = json!({ "svg": "" });
+		assert!(is_subagent_failure("figure", &failed));
+		assert_eq!(build_subagent_steer(&job, &failed)["content"].as_str(), Some("The figure could not be made: unknown reason. Fall back to prose or mermaid, or draw it with visual."));
 	}
 }
