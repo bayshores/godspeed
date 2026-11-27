@@ -11,9 +11,9 @@ use gs_core::spaces::agent_folder::FolderAgent;
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 use tokio::sync::{mpsc, oneshot};
 
-use crate::health::{at_least, floor, version};
+use crate::health::{at_least, floor, found_version};
 use crate::process::{AgentEnv, AgentProcess, Launch, printed};
-use crate::session::{NO_CLAUDE, NO_CODEX, Runtime};
+use crate::session::Runtime;
 
 const CLAUDE_UPDATE: &str = "claude update";
 const CODEX_NPM: &str = "npm install -g @openai/codex@latest";
@@ -42,11 +42,7 @@ impl Runtime {
 		}
 		let env = self.env().ok_or("the stand-in agent has no update")?;
 		let agent = self.agent();
-		let (name, missing) = match agent {
-			FolderAgent::Claude => ("claude", NO_CLAUDE),
-			FolderAgent::Codex => ("codex", NO_CODEX),
-		};
-		let program = env.find(name).await.ok_or(missing)?;
+		let program = env.find_agent(agent).await?;
 		let command = match agent {
 			FolderAgent::Claude => CLAUDE_UPDATE,
 			FolderAgent::Codex => match codex_way(env, &program).await {
@@ -63,7 +59,7 @@ impl Runtime {
 		let (done, ended) = oneshot::channel();
 		let (told, lines) = mpsc::unbounded_channel();
 		let ran = async move { tokio::join!(read_lines(stdout, &told), read_lines(stderr, &told)) };
-		let checked = async move { new_enough(name, &agent_launch, &vars, floor(agent)).await };
+		let checked = async move { new_enough(agent.name(), &agent_launch, &vars, floor(agent)).await };
 		tasks::detach("agent update", watch(process, ran, checked, done));
 		Ok(Update::Running { command, lines, ended })
 	}
@@ -95,12 +91,8 @@ async fn folder(line: &str, vars: &[(OsString, OsString)]) -> Option<PathBuf> {
 
 /// Ok when the agent now says a version at least `floor`; else what it says.
 async fn new_enough(name: &str, launch: &Launch, vars: &[(OsString, OsString)], floor: &str) -> Result<(), String> {
-	let out = printed(launch, &["--version"], vars, ASK_MS).await?;
-	match version(&out) {
-		Some(found) if at_least(&found, floor) => Ok(()),
-		Some(found) => Err(format!("{name} is still {found}")),
-		None => Err(format!("{name} --version printed no version")),
-	}
+	let found = found_version(launch, vars, ASK_MS, name).await?;
+	if at_least(&found, floor) { Ok(()) } else { Err(format!("{name} is still {found}")) }
 }
 
 /// Waits for the update to end, or the 10 minutes to pass, then ends it if it still runs (by its

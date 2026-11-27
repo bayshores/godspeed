@@ -7,39 +7,18 @@ use gs_core::records::settings::{OUTSIDE_AGENT_CONTEXT_WINDOW, OUTSIDE_AGENT_MOD
 use gs_json::{Json, json};
 use gs_runtime::Part;
 
+/// The `provider:id` usage stamps and compaction carry for the learner's agent.
+pub fn agent_model_id() -> String {
+	format!("{OUTSIDE_AGENT_PROVIDER}:{OUTSIDE_AGENT_MODEL_ID}")
+}
+
 /// The model record lessons and jobs carry: the learner's own agent, whichever model it runs.
 pub fn agent_model() -> Json {
 	json!({
 		"id": OUTSIDE_AGENT_MODEL_ID,
-		"name": "Outside agent (MCP)",
 		"api": "godspeed-agent",
 		"provider": OUTSIDE_AGENT_PROVIDER,
-		"baseUrl": "http://localhost:0",
-		"reasoning": false,
-		"input": ["text", "image"],
-		"cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
 		"contextWindow": OUTSIDE_AGENT_CONTEXT_WINDOW as f64,
-		"maxTokens": 32_000.0,
-	})
-}
-
-/// pi-ai's zero usage (`DEFAULT_USAGE`).
-pub fn zero_usage() -> Json {
-	json!({ "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0, "totalTokens": 0, "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0, "total": 0 } })
-}
-
-/// pi-ai's `fauxAssistantMessage(content, { stopReason })`: the faux provider's own ids and a
-/// fresh timestamp; the faux stream swaps in the model's api, provider and id.
-pub fn faux_assistant_message(content: Vec<Json>, stop_reason: &str) -> Json {
-	json!({
-		"role": Role::Assistant.as_str(),
-		"content": content,
-		"api": "faux",
-		"provider": "faux",
-		"model": "faux-1",
-		"usage": zero_usage(),
-		"stopReason": stop_reason,
-		"timestamp": clock::now_ms(),
 	})
 }
 

@@ -12,6 +12,7 @@ mod health;
 mod jsonrpc;
 mod login;
 mod models;
+mod pending;
 mod pipes;
 pub mod process;
 mod session;

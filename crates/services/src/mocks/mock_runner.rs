@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 use gs_base::tasks::detach;
-use gs_base::{clock, fsx, ids, text};
+use gs_base::{child_env, clock, fsx, ids, text};
 use gs_core::mocks::mock::MockLanguage;
 use gs_core::mocks::mock_run::{RUN_SECONDS, read_run, run_file, runner_source};
 use gs_engine::turn::abort::Abort;
@@ -22,14 +22,14 @@ use tokio::process::{Child, Command};
 
 const MAX_OUTPUT: usize = 1024 * 1024;
 
-/// The server's environment (`vars`) without godspeed's own settings: LH_DESKTOP_API_SECRET
-/// opens the app's whole API, and the learner's program has no use for any of them.
+/// The server's environment (`vars`) without the app's own variables (`child_env::app_variable`):
+/// LH_DESKTOP_API_SECRET opens the app's whole API, and the learner's program has no use for any.
 fn run_env(vars: impl Iterator<Item = (OsString, OsString)>) -> Vec<(OsString, OsString)> {
 	let mut env: Vec<(OsString, OsString)> = vars
 		.filter(|(key, _)| {
 			let key = key.to_string_lossy();
 			// The compile cache would gain a file for every run's new temp folder.
-			!key.to_uppercase().starts_with("LH_") && key != "NODE_COMPILE_CACHE" && key != "NODE_OPTIONS" && key != "PYTHONIOENCODING"
+			!child_env::app_variable(&key, std::env::consts::OS) && key != "NODE_COMPILE_CACHE" && key != "NODE_OPTIONS" && key != "PYTHONIOENCODING"
 		})
 		.collect();
 	// Python on Windows prints to a pipe in the old code page, so "→" would crash.

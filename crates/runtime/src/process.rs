@@ -9,10 +9,16 @@ use std::process::Stdio;
 
 use gs_base::child_env::{self, app_variable, login_shell};
 use gs_base::{clock, tasks};
+use gs_core::spaces::agent_folder::FolderAgent;
 use gs_transcribe::programs::{HOMEBREW_BIN_DIRS, find_in};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command};
 use tokio::sync::OnceCell;
+
+/// What the learner reads when a program godspeed starts is not on this computer.
+const NO_CODEX: &str = "godspeed couldn't find Codex on this computer.";
+pub(crate) const NO_CLAUDE: &str = "godspeed couldn't find Claude Code on this computer.";
+pub(crate) const NO_NODE: &str = "godspeed couldn't find Node.js on this computer.";
 
 /// API keys the agents would bill instead of the learner's plan; godspeed runs on plans only.
 const API_KEYS: [&str; 3] = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "CODEX_API_KEY"];
@@ -44,11 +50,10 @@ fn marked_path(output: &str) -> Option<&str> {
 /// the Dock gets only the system's folders.
 async fn login_path(vars: &[(OsString, OsString)], os: &str) -> Result<String, String> {
 	let shell = vars.iter().find(|(key, _)| key == "SHELL").and_then(|(_, value)| value.to_str()).unwrap_or_default();
-	let mut command = Command::new(login_shell(shell, os));
-	command.args(["-l", "-i", "-c", &format!("printf '{PATH_MARK}%s{PATH_MARK}' \"$PATH\"")]);
-	command.env_clear().envs(vars.iter().map(|(key, value)| (key, value)));
-	command.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null()).kill_on_drop(true);
-	let output = clock::within(PROBE_MS, command.output()).await.ok_or("it took too long")?.map_err(|err| err.to_string())?;
+	let args = ["-l", "-i", "-c", &format!("printf '{PATH_MARK}%s{PATH_MARK}' \"$PATH\"")].map(OsString::from);
+	let launch = Launch { program: login_shell(shell, os).into(), args: args.into() };
+	let child = child_env::start(&mut command(&launch, vars, Stdio::null())).map_err(|err| err.to_string())?;
+	let output = clock::within(PROBE_MS, child.wait_with_output()).await.ok_or("it took too long")?.map_err(|err| err.to_string())?;
 	marked_path(&String::from_utf8_lossy(&output.stdout)).map(str::to_owned).ok_or_else(|| "it printed no PATH".to_owned())
 }
 
@@ -116,28 +121,43 @@ impl AgentEnv {
 		find_in(name, path.as_deref(), &[], &exe).or_else(|| find_in(&format!("{name}.cmd"), path.as_deref(), &[], &|_| true).and_then(|shim| shim_program(&shim)))
 	}
 
+	/// The agent's own program, or the words that say it is not on this computer.
+	pub(crate) async fn find_agent(&self, agent: FolderAgent) -> Result<PathBuf, &'static str> {
+		let missing = match agent {
+			FolderAgent::Claude => NO_CLAUDE,
+			FolderAgent::Codex => NO_CODEX,
+		};
+		self.find(agent.name()).await.ok_or(missing)
+	}
+
 	/// How to start `program`: a Node script (what an npm shim on Windows may run) runs with Node.
 	pub async fn launch(&self, program: PathBuf) -> Result<Launch, String> {
 		let script = program.extension().and_then(OsStr::to_str).is_some_and(|ext| ["js", "mjs", "cjs"].contains(&ext));
 		if !script {
 			return Ok(Launch { program, args: Vec::new() });
 		}
-		let node = self.find("node").await.ok_or("godspeed couldn't find Node.js on this computer.")?;
+		let node = self.find("node").await.ok_or(NO_NODE)?;
 		Ok(Launch { program: node, args: vec![program.into()] })
 	}
 }
 
 /// What a program prints with `args`, whatever its exit code, within `ms`. Its input is closed.
 pub(crate) async fn printed(launch: &Launch, args: &[&str], vars: &[(OsString, OsString)], ms: i64) -> Result<String, String> {
-	let mut command = Command::new(&launch.program);
-	add_args(&mut command, launch);
-	command.args(args).env_clear().envs(vars.iter().map(|(key, value)| (key, value)));
-	command.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null()).kill_on_drop(true);
-	hide_window(&mut command);
 	let name = Path::new(&launch.program).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
 	let said = format!("{name} {}", args.join(" "));
-	let output = clock::within(ms, command.output()).await.ok_or_else(|| format!("{said} took too long"))?.map_err(|err| format!("{said}: {err}"))?;
+	let child = child_env::start(command(launch, vars, Stdio::null()).args(args)).map_err(|err| format!("{said}: {err}"))?;
+	let output = clock::within(ms, child.wait_with_output()).await.ok_or_else(|| format!("{said} took too long"))?.map_err(|err| format!("{said}: {err}"))?;
 	Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+/// `launch` with `vars` as its whole environment, its outputs piped, ended when dropped.
+fn command(launch: &Launch, vars: &[(OsString, OsString)], stdin: Stdio) -> Command {
+	let mut command = Command::new(&launch.program);
+	add_args(&mut command, launch);
+	command.env_clear().envs(vars.iter().map(|(key, value)| (key, value)));
+	command.stdin(stdin).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true);
+	hide_window(&mut command);
+	command
 }
 
 /// The program an npm `.cmd` shim runs. npm's cmd-shim names it last, as `"%dp0%\<path>"`, a
@@ -168,13 +188,9 @@ impl AgentProcess {
 	/// Starts `launch` with `vars` as its whole environment, its output piped and its input piped
 	/// or closed.
 	fn spawn(launch: &Launch, vars: &[(OsString, OsString)], stdin: Stdio) -> Result<(AgentProcess, Option<ChildStdin>, ChildStdout, ChildStderr), String> {
-		let mut command = Command::new(&launch.program);
-		add_args(&mut command, launch);
-		command.env_clear().envs(vars.iter().map(|(key, value)| (key, value)));
-		command.stdin(stdin).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true);
+		let mut command = command(launch, vars, stdin);
 		#[cfg(unix)]
 		command.process_group(0);
-		hide_window(&mut command);
 		let mut child = child_env::start(&mut command).map_err(|err| format!("cannot start {}: {err}", launch.program.display()))?;
 		#[cfg(windows)]
 		let job = hold(&child)?;

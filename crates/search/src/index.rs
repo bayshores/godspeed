@@ -37,6 +37,9 @@ pub enum PassageRef {
 }
 
 impl PassageRef {
+	/// What the teacher is told when `of_args` finds no passage named.
+	pub const REFUSAL: &str = "Give passage_id, or file_id with range.";
+
 	/// What read_passage's arguments name: `passage_id`, else `file_id` with `range`.
 	pub fn of_args(args: &Json) -> Option<PassageRef> {
 		let text = |key: &str| args[key].as_str().filter(|s| !s.is_empty()).map(str::to_owned);

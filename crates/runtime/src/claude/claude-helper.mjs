@@ -71,6 +71,23 @@ function launcher(command) {
 }
 
 /**
+ * What every query starts Claude Code with: none of the learner's own settings, hooks, skills,
+ * subagents or MCP servers, its errors logged under `label`, and started the way the learner
+ * starts it.
+ */
+function agentOptions({ claudePath, launcher: command }, label) {
+	return {
+		settingSources: [],
+		settings: SETTINGS,
+		strictMcpConfig: true,
+		stderr: (data) => process.stderr.write(`[claude ${label}] ${data}`),
+		...(command ? { spawnClaudeCodeProcess: launcher(command) } : { pathToClaudeCodeExecutable: claudePath }),
+	};
+}
+
+const errorText = (err) => (err instanceof Error ? err.message : String(err));
+
+/**
  * Serves sessions on `input` and `output`. `query` is the Agent SDK's; a test passes a stand-in.
  */
 export function serve({ input, output, query = sdkQuery }) {
@@ -110,7 +127,7 @@ export function serve({ input, output, query = sdkQuery }) {
 	}
 
 	function open(message) {
-		const { session: key, cwd, readDirs, model, resume, persist, systemPrompt, tools, claudePath, launcher: command } = message;
+		const { session: key, cwd, readDirs, model, resume, persist, systemPrompt, tools } = message;
 		const session = { key, queue: inputQueue(), endAfter: new Set(), query: null, closing: false };
 		const nativeId = resume ?? randomUUID();
 		try {
@@ -124,10 +141,6 @@ export function serve({ input, output, query = sdkQuery }) {
 					...(resume ? { resume } : { sessionId: nativeId }),
 					persistSession: persist,
 					systemPrompt: { type: "preset", preset: "claude_code", append: systemPrompt },
-					// None of the learner's own settings, hooks, skills, subagents or MCP servers.
-					settingSources: [],
-					settings: SETTINGS,
-					strictMcpConfig: true,
 					disallowedTools: ["Agent", "Skill"],
 					mcpServers: { [TOOL_SERVER]: toolServer(session, tools) },
 					includePartialMessages: true,
@@ -144,12 +157,11 @@ export function serve({ input, output, query = sdkQuery }) {
 						// A question for the learner ends the turn right after its result.
 						PostToolUse: [{ hooks: [async (hook) => (session.endAfter.delete(hook.tool_use_id) ? { continue: false, stopReason: "godspeed is waiting for the learner." } : {})] }],
 					},
-					stderr: (data) => process.stderr.write(`[claude ${key}] ${data}`),
-					...(command ? { spawnClaudeCodeProcess: launcher(command) } : { pathToClaudeCodeExecutable: claudePath }),
+					...agentOptions(message, key),
 				},
 			});
 		} catch (err) {
-			return write({ type: "error", session: key, message: err instanceof Error ? err.message : String(err) });
+			return write({ type: "error", session: key, message: errorText(err) });
 		}
 		sessions.set(key, session);
 		write({ type: "opened", session: key, nativeId });
@@ -161,21 +173,10 @@ export function serve({ input, output, query = sdkQuery }) {
 	 * is called, and none of the learner's own settings.
 	 */
 	async function models(message) {
-		const { id, claudePath, launcher: command } = message;
+		const { id } = message;
 		const queue = inputQueue();
 		try {
-			const listing = query({
-				prompt: queue,
-				options: {
-					cwd: tmpdir(),
-					persistSession: false,
-					settingSources: [],
-					settings: SETTINGS,
-					strictMcpConfig: true,
-					stderr: (data) => process.stderr.write(`[claude models] ${data}`),
-					...(command ? { spawnClaudeCodeProcess: launcher(command) } : { pathToClaudeCodeExecutable: claudePath }),
-				},
-			});
+			const listing = query({ prompt: queue, options: { cwd: tmpdir(), persistSession: false, ...agentOptions(message, "models") } });
 			try {
 				write({ type: "models", id, models: await listing.supportedModels() });
 			} finally {
@@ -183,7 +184,7 @@ export function serve({ input, output, query = sdkQuery }) {
 				listing.close();
 			}
 		} catch (err) {
-			write({ type: "models", id, error: err instanceof Error ? err.message : String(err) });
+			write({ type: "models", id, error: errorText(err) });
 		}
 	}
 
@@ -191,7 +192,7 @@ export function serve({ input, output, query = sdkQuery }) {
 		try {
 			for await (const message of session.query) write({ type: "sdk", session: session.key, message });
 		} catch (err) {
-			if (!session.closing) write({ type: "error", session: session.key, message: err instanceof Error ? err.message : String(err) });
+			if (!session.closing) write({ type: "error", session: session.key, message: errorText(err) });
 		}
 		sessions.delete(session.key);
 		write({ type: "closed", session: session.key });
@@ -199,7 +200,7 @@ export function serve({ input, output, query = sdkQuery }) {
 
 	/** Runs a query control call, reporting a failure as the session's error. */
 	function control(session, call) {
-		call(session.query).catch((err) => write({ type: "error", session: session.key, message: err instanceof Error ? err.message : String(err) }));
+		call(session.query).catch((err) => write({ type: "error", session: session.key, message: errorText(err) }));
 	}
 
 	function take(message) {

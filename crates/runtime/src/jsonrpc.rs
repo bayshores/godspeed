@@ -1,11 +1,10 @@
 //! JSON-RPC over lines, as `codex app-server` speaks it (no `"jsonrpc"` field): ids for our
 //! requests and the answers waiting on them, and the requests and notifications the agent sends.
 
-use std::collections::HashMap;
-
 use gs_json::{Json, json, stringify};
-use parking_lot::Mutex;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::mpsc;
+
+use crate::pending::Pending;
 
 /// What the agent sent that is not an answer to us.
 #[derive(Debug, PartialEq)]
@@ -17,44 +16,33 @@ pub enum Incoming {
 /// Method not found: a request this side does not handle.
 pub const UNKNOWN_METHOD: i64 = -32601;
 
-type Answer = oneshot::Sender<Result<Json, String>>;
+/// Why every request fails once the connection has ended.
+const CLOSED: &str = "the agent's connection closed";
 
 pub struct Rpc {
 	out: mpsc::UnboundedSender<String>,
-	/// None once the connection has closed, so no request waits on an answer that cannot come.
-	pending: Mutex<Option<HashMap<i64, Answer>>>,
-	next: Mutex<i64>,
+	/// The agent's result or error, by request id.
+	pending: Pending<u64, Result<Json, String>>,
 }
 
 impl Rpc {
 	/// `out` takes each line to write.
 	pub fn new(out: mpsc::UnboundedSender<String>) -> Rpc {
-		Rpc { out, pending: Mutex::new(Some(HashMap::new())), next: Mutex::new(1) }
+		Rpc { out, pending: Pending::new() }
 	}
 
 	/// Sends a request and waits for its result, or the error the agent answered.
 	pub async fn request(&self, method: &str, params: Json) -> Result<Json, String> {
-		let (tx, rx) = oneshot::channel();
-		let id = {
-			let mut next = self.next.lock();
-			*next += 1;
-			*next - 1
-		};
-		{
-			let mut pending = self.pending.lock();
-			let Some(pending) = pending.as_mut() else { return Err(closed(method)) };
-			pending.insert(id, tx);
-		}
+		let closed = |why: String| format!("{method}: {why}");
+		let id = self.pending.next_id();
+		let answer = self.pending.ask(id).map_err(closed)?;
 		self.write(&json!({ "id": id, "method": method, "params": params }));
-		rx.await.unwrap_or_else(|_| Err(closed(method)))
+		let answered = answer.await.unwrap_or_else(|_| Err(CLOSED.to_owned()));
+		answered.unwrap_or_else(|why| Err(closed(why)))
 	}
 
-	pub fn notify(&self, method: &str, params: Option<Json>) {
-		let mut message = json!({ "method": method });
-		if let Some(params) = params {
-			message.set("params", params);
-		}
-		self.write(&message);
+	pub fn notify(&self, method: &str) {
+		self.write(&json!({ "method": method }));
 	}
 
 	pub fn respond(&self, id: Json, result: Json) {
@@ -67,7 +55,7 @@ impl Rpc {
 
 	/// Reads one line from the agent: an answer settles its request and gives None.
 	pub fn take(&self, line: &str) -> Option<Incoming> {
-		let message = match gs_json::parse(line) {
+		let mut message = match gs_json::parse(line) {
 			Ok(message) => message,
 			Err(err) => {
 				eprintln!("[jsonrpc] a line that is not JSON ({err}): {}", line.chars().take(200).collect::<String>());
@@ -76,17 +64,16 @@ impl Rpc {
 		};
 		let method = message["method"].as_str().map(str::to_owned);
 		let id = message.get("id").cloned();
+		// Moved out, not copied: a notification's can be long, such as a command's whole output.
+		let params = message.get_mut("params").map(std::mem::take).unwrap_or_default();
 		match (method, id) {
-			(Some(method), Some(id)) => Some(Incoming::Request { id, method, params: message["params"].clone() }),
-			(Some(method), None) => Some(Incoming::Notification { method, params: message["params"].clone() }),
+			(Some(method), Some(id)) => Some(Incoming::Request { id, method, params }),
+			(Some(method), None) => Some(Incoming::Notification { method, params }),
 			(None, Some(id)) => {
-				let waiting = id.as_i64().and_then(|id| self.pending.lock().as_mut().and_then(|pending| pending.remove(&id)));
-				match waiting {
-					Some(answer) => {
-						let result = if message["error"].is_null() { Ok(message["result"].clone()) } else { Err(error_text(&message["error"])) };
-						let _ = answer.send(result);
-					}
-					None => eprintln!("[jsonrpc] an answer to no request: {}", stringify(&id)),
+				let result = if message["error"].is_null() { Ok(message.get_mut("result").map(std::mem::take).unwrap_or_default()) } else { Err(error_text(&message["error"])) };
+				let request = id.as_i64().and_then(|id| u64::try_from(id).ok());
+				if !request.is_some_and(|request| self.pending.settle(&request, Ok(result))) {
+					eprintln!("[jsonrpc] an answer to no request: {}", stringify(&id));
 				}
 				None
 			}
@@ -99,17 +86,13 @@ impl Rpc {
 
 	/// The connection ended: every request still waiting fails, and later ones fail at once.
 	pub fn close(&self) {
-		self.pending.lock().take();
+		self.pending.close(CLOSED);
 	}
 
 	fn write(&self, message: &Json) {
 		// The writer is gone only once the connection has ended, which the reader reports.
 		let _ = self.out.send(stringify(message));
 	}
-}
-
-fn closed(method: &str) -> String {
-	format!("{method}: the agent's connection closed")
 }
 
 fn error_text(error: &Json) -> String {
@@ -170,7 +153,7 @@ mod tests {
 		let (rpc, mut out) = rpc();
 		rpc.respond(json!(3), json!({ "decision": "accept" }));
 		rpc.respond_error(json!("r"), UNKNOWN_METHOD, "not handled");
-		rpc.notify("initialized", None);
+		rpc.notify("initialized");
 		assert_eq!(out.try_recv().unwrap(), r#"{"id":3,"result":{"decision":"accept"}}"#);
 		assert_eq!(out.try_recv().unwrap(), r#"{"id":"r","error":{"code":-32601,"message":"not handled"}}"#);
 		assert_eq!(out.try_recv().unwrap(), r#"{"method":"initialized"}"#);

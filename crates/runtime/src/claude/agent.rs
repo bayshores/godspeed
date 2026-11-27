@@ -3,7 +3,6 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use gs_base::tasks;
 use gs_json::stringify;
@@ -11,30 +10,30 @@ use parking_lot::Mutex;
 use tokio::sync::{mpsc, oneshot};
 
 use super::protocol::{self, ClaudeProgram, FromHelper, Reading};
-use crate::event::{End, Part, REFUSED, SessionEvent, TOOL_DROPPED, ToolReply, Verdict};
+use crate::event::{End, Part, SessionEvent, ToolReply, Verdict};
 use crate::models::Model;
+use crate::pending::Pending;
 use crate::pipes::{self, Reader, Started};
 use crate::session::{Link, Session, SessionSpec, Trouble};
 
 const LABEL: &str = "claude helper";
 
-type ModelsAsked = oneshot::Sender<Result<Vec<Model>, String>>;
+/// Why a question fails once the helper has gone.
+const STOPPED: &str = "the Claude helper stopped";
 
 pub struct Connection {
 	state: Arc<State>,
 	program: ClaudeProgram,
-	_reader: Reader,
+	reader: Reader,
 }
 
 struct State {
 	out: mpsc::UnboundedSender<String>,
 	sessions: Mutex<HashMap<String, Arc<Open>>>,
-	/// Opens waiting for the helper's `opened`, or its error.
-	opening: Mutex<HashMap<String, oneshot::Sender<Result<String, String>>>>,
+	/// Opens waiting for the helper's `opened`, or its error, by session key.
+	opening: Pending<String, String>,
 	/// Model lists asked for, by question id.
-	models: Mutex<HashMap<String, ModelsAsked>>,
-	next: Mutex<u64>,
-	alive: AtomicBool,
+	models: Pending<String, Vec<Model>>,
 	trouble: Trouble,
 }
 
@@ -48,48 +47,29 @@ struct Open {
 struct Turn {
 	running: bool,
 	started: bool,
-	interrupting: bool,
 	reading: Reading,
 }
 
 impl Connection {
 	/// A refused sign-in is told to `trouble`.
 	pub fn start(started: Started, program: ClaudeProgram, trouble: Trouble) -> Arc<Connection> {
-		let state = Arc::new(State {
-			out: pipes::writer(LABEL, started.writer),
-			sessions: Mutex::new(HashMap::new()),
-			opening: Mutex::new(HashMap::new()),
-			models: Mutex::new(HashMap::new()),
-			next: Mutex::new(1),
-			alive: AtomicBool::new(true),
-			trouble,
-		});
-		let reading = state.clone();
-		let reader = tasks::spawn(LABEL, async move {
-			let why = pipes::read(started.reader, started.process, |line| reading.take(&line)).await;
-			reading.end(&why);
-		});
-		Arc::new(Connection { state, program, _reader: Reader(reader) })
+		let state = Arc::new(State { out: pipes::writer(LABEL, started.writer), sessions: Mutex::new(HashMap::new()), opening: Pending::new(), models: Pending::new(), trouble });
+		let (reading, ending) = (state.clone(), state.clone());
+		let reader = pipes::serve(LABEL, started.reader, started.process, move |line| reading.take(&line), move |why| ending.end(why));
+		Arc::new(Connection { state, program, reader })
 	}
 
 	pub fn alive(&self) -> bool {
-		self.state.alive.load(Ordering::SeqCst)
-	}
-
-	fn next_key(&self, prefix: &str) -> String {
-		let mut next = self.state.next.lock();
-		*next += 1;
-		format!("{prefix}{}", *next - 1)
+		self.reader.alive()
 	}
 
 	pub async fn open(self: &Arc<Self>, spec: SessionSpec) -> Result<Session, String> {
-		let key = self.next_key("s");
+		let key = format!("s{}", self.state.opening.next_id());
+		let answer = self.state.opening.ask(key.clone())?;
 		let (events, rx) = mpsc::unbounded_channel();
-		let (opened, answer) = oneshot::channel();
 		self.state.sessions.lock().insert(key.clone(), Arc::new(Open { events, turn: Mutex::new(Turn::default()) }));
-		self.state.opening.lock().insert(key.clone(), opened);
 		self.state.write(&protocol::open(&key, &spec, &self.program));
-		let native_id = match answer.await.unwrap_or_else(|_| Err("the Claude helper stopped".to_owned())) {
+		let native_id = match answer.await.unwrap_or_else(|_| Err(STOPPED.to_owned())) {
 			Ok(id) => id,
 			Err(err) => {
 				self.state.sessions.lock().remove(&key);
@@ -101,11 +81,10 @@ impl Connection {
 
 	/// The models Claude Code offers, which the helper asks it for.
 	pub async fn models(&self) -> Result<Vec<Model>, String> {
-		let id = self.next_key("m");
-		let (tx, answer) = oneshot::channel();
-		self.state.models.lock().insert(id.clone(), tx);
+		let id = format!("m{}", self.state.models.next_id());
+		let answer = self.state.models.ask(id.clone())?;
 		self.state.write(&protocol::models(&id, &self.program));
-		answer.await.unwrap_or_else(|_| Err("the Claude helper stopped".to_owned()))
+		answer.await.unwrap_or_else(|_| Err(STOPPED.to_owned()))
 	}
 }
 
@@ -127,7 +106,7 @@ impl SessionLink {
 	}
 
 	pub fn interrupt(&self) -> Result<(), String> {
-		self.open()?.turn.lock().interrupting = true;
+		self.open()?.turn.lock().reading.interrupting = true;
 		self.connection.state.write(&protocol::interrupt(&self.key));
 		Ok(())
 	}
@@ -163,10 +142,7 @@ impl State {
 		};
 		match message {
 			FromHelper::Opened { session, native_id } => {
-				let opened = self.opening.lock().remove(&session);
-				if let Some(opened) = opened {
-					let _ = opened.send(Ok(native_id));
-				}
+				self.opening.settle(&session, Ok(native_id));
 			}
 			FromHelper::Sdk { session, message } => {
 				if protocol::signed_out(&message) {
@@ -182,12 +158,11 @@ impl State {
 					turn.started = true;
 					let _ = open.events.send(SessionEvent::TurnStarted);
 				}
-				let (events, finish) = protocol::read_sdk(&message, &mut turn.reading);
+				let (events, end) = protocol::read_sdk(&message, &mut turn.reading);
 				for event in events {
 					let _ = open.events.send(event);
 				}
-				if let Some(finish) = finish {
-					let end = finish.end(turn.interrupting);
+				if let Some(end) = end {
 					*turn = Turn::default();
 					let _ = open.events.send(SessionEvent::Ended(end));
 				}
@@ -199,7 +174,7 @@ impl State {
 					let _ = open.events.send(SessionEvent::ToolCall { call, reply });
 				}
 				tasks::detach(LABEL, async move {
-					let reply = answer.await.unwrap_or_else(|_| ToolReply { content: vec![Part::Text(TOOL_DROPPED.to_owned())], is_error: true, ends_turn: false });
+					let reply = answer.await.unwrap_or_else(|_| ToolReply::dropped());
 					state.write(&protocol::tool_result(&id, &reply));
 				});
 			}
@@ -210,10 +185,8 @@ impl State {
 					let _ = open.events.send(SessionEvent::Approval { ask, reply });
 				}
 				tasks::detach(LABEL, async move {
-					let verdict = answer.await.unwrap_or(Verdict { allow: false, message: None });
-					// The SDK passes a refusal's message to Claude, and needs one.
-					let message = verdict.message.or_else(|| (!verdict.allow).then(|| REFUSED.to_owned()));
-					state.write(&protocol::approval(&id, &Verdict { allow: verdict.allow, message }));
+					let verdict = answer.await.unwrap_or_else(|_| Verdict::refused());
+					state.write(&protocol::approval(&id, &verdict));
 				});
 			}
 			FromHelper::Closed { session } => {
@@ -223,18 +196,14 @@ impl State {
 				}
 			}
 			FromHelper::Models { id, models } => {
-				let asked = self.models.lock().remove(&id);
-				if let Some(asked) = asked {
-					let _ = asked.send(models);
-				}
+				self.models.settle(&id, models);
 			}
 			FromHelper::Error { session, message } => {
 				eprintln!("[{LABEL}] {}{message}", session.as_deref().map(|s| format!("{s}: ")).unwrap_or_default());
 				let Some(session) = session else { return };
-				let opened = self.opening.lock().remove(&session);
-				if let Some(opened) = opened {
-					let _ = opened.send(Err(message));
-				} else if let Some(open) = self.session(&session) {
+				if !self.opening.settle(&session, Err(message.clone()))
+					&& let Some(open) = self.session(&session)
+				{
 					stopped(&open, message);
 				}
 			}
@@ -244,15 +213,11 @@ impl State {
 	/// The helper stopped: every open session ends, and the next open starts a new one.
 	fn end(&self, why: &str) {
 		eprintln!("[{LABEL}] stopped: {why}");
-		self.alive.store(false, Ordering::SeqCst);
-		for (_, opened) in self.opening.lock().drain() {
-			let _ = opened.send(Err(format!("the Claude helper stopped: {why}")));
-		}
-		for (_, asked) in self.models.lock().drain() {
-			let _ = asked.send(Err(format!("the Claude helper stopped: {why}")));
-		}
+		let why = format!("{STOPPED}: {why}");
+		self.opening.close(&why);
+		self.models.close(&why);
 		for (_, open) in self.sessions.lock().drain() {
-			let _ = open.events.send(SessionEvent::Ended(End::Failed(format!("the Claude helper stopped: {why}"))));
+			let _ = open.events.send(SessionEvent::Ended(End::Failed(why.clone())));
 		}
 	}
 }

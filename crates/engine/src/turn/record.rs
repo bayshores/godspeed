@@ -113,14 +113,19 @@ impl TranscriptBuilder {
 			emit(AgentEvent::TurnStart);
 		}
 		if self.step.is_none() {
-			for marker in std::mem::take(&mut self.steered) {
-				emit(AgentEvent::MessageStart(marker.clone()));
-				emit(AgentEvent::MessageEnd(marker.clone()));
-				self.messages.push(marker);
-			}
+			self.flush_steered(emit);
 			self.step = Some(Step { message: self.new_message(), shown: false, closed: false, ended: false, results: Vec::new(), open_text: false, from: self.messages.len() });
 		}
 		self.step.as_mut().expect("just made")
+	}
+
+	/// Sends the steered markers as messages of their own, in the order they came.
+	fn flush_steered(&mut self, emit: &mut dyn FnMut(AgentEvent)) {
+		for marker in std::mem::take(&mut self.steered) {
+			emit(AgentEvent::MessageStart(marker.clone()));
+			emit(AgentEvent::MessageEnd(marker.clone()));
+			self.messages.push(marker);
+		}
 	}
 
 	fn show(&mut self, emit: &mut dyn FnMut(AgentEvent)) {
@@ -142,9 +147,8 @@ impl TranscriptBuilder {
 			Self::blocks(step).push(json!({ "type": "text", "text": "" }));
 			step.open_text = true;
 		}
-		if let Some(block) = Self::blocks(step).last_mut() {
-			let grown = format!("{}{text}", block["text"].str_or_empty());
-			block.set("text", grown);
+		if let Some(Json::Str(words)) = Self::blocks(step).last_mut().and_then(|block| block.get_mut("text")) {
+			words.push_str(text);
 		}
 		self.show(emit);
 	}
@@ -308,7 +312,7 @@ impl TranscriptBuilder {
 
 	/// The turn ended: the reply being written ends as `end` says (a stopped one keeps what was
 	/// written), markers steered in go last, and every message of the turn goes out once more.
-	pub fn finish(&mut self, end: &End, emit: &mut dyn FnMut(AgentEvent)) -> Vec<Json> {
+	pub fn finish(&mut self, end: &End, emit: &mut dyn FnMut(AgentEvent)) {
 		self.decide_all();
 		let open = self.step.as_ref().is_some_and(|step| !step.closed);
 		let (stop, error) = match end {
@@ -323,13 +327,8 @@ impl TranscriptBuilder {
 			self.close(stop, error, emit);
 		}
 		self.end_step(emit);
-		for marker in std::mem::take(&mut self.steered) {
-			emit(AgentEvent::MessageStart(marker.clone()));
-			emit(AgentEvent::MessageEnd(marker.clone()));
-			self.messages.push(marker);
-		}
+		self.flush_steered(emit);
 		emit(AgentEvent::AgentEnd { messages: self.messages.clone() });
-		self.messages.clone()
 	}
 }
 
@@ -342,11 +341,11 @@ pub fn wrote_anything(messages: &[Json]) -> bool {
 mod tests {
 	use super::*;
 
-	fn played(play: impl FnOnce(&mut TranscriptBuilder, &mut dyn FnMut(AgentEvent)) -> Vec<Json>) -> (Vec<String>, Vec<Json>) {
+	fn played(play: impl FnOnce(&mut TranscriptBuilder, &mut dyn FnMut(AgentEvent))) -> (Vec<String>, Vec<Json>) {
 		let mut builder = TranscriptBuilder::new(json!({ "api": "godspeed-agent", "provider": "agent", "id": "outside-agent" }));
 		let mut events = Vec::new();
-		let messages = play(&mut builder, &mut |event: AgentEvent| events.push(event.to_json()["type"].str_or_empty().to_owned()));
-		(events, messages)
+		play(&mut builder, &mut |event: AgentEvent| events.push(event.to_json()["type"].str_or_empty().to_owned()));
+		(events, builder.messages().to_vec())
 	}
 
 	#[test]

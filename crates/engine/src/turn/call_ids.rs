@@ -140,7 +140,7 @@ impl ToolCallIdUniquifier {
 				let tool_results = tool_results.iter().map(|r| self.with_result_id(r, self.epoch)).collect();
 				AgentEvent::TurnEnd { message, tool_results }
 			}
-			AgentEvent::AgentEnd { messages } => AgentEvent::AgentEnd { messages: self.remap_settled(&messages, 0) },
+			AgentEvent::AgentEnd { messages } => AgentEvent::AgentEnd { messages: self.remap_settled(&messages) },
 			other => other,
 		}
 	}
@@ -157,17 +157,16 @@ impl ToolCallIdUniquifier {
 		}
 	}
 
-	/// The settled transcript with the ids the wire showed. Messages before `first_new` are
-	/// history and pass through; a tool result takes the table of the assistant message before it.
-	pub fn remap_settled(&mut self, messages: &[Json], first_new: usize) -> Vec<Json> {
+	/// The settled transcript with the ids the wire showed; a tool result takes the table of the
+	/// assistant message before it.
+	pub fn remap_settled(&mut self, messages: &[Json]) -> Vec<Json> {
 		let mut ended = self.ended.clone().into_iter();
 		let mut scope = None;
 		messages
 			.iter()
-			.enumerate()
-			.map(|(i, m)| match Role::of(m) {
+			.map(|m| match Role::of(m) {
 				Some(Role::Assistant) => {
-					scope = if i < first_new { None } else { ended.next().flatten() };
+					scope = ended.next().flatten();
 					match scope {
 						Some(t) => self.remap_with(m, t),
 						None => m.clone(),

@@ -33,14 +33,13 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
-import { jobAnswer } from "./layout-jobs.mjs";
+import { inDays, jobAnswer, PASSAGE, sleep } from "./layout-jobs.mjs";
 import { LESSONS, PLAN_ORDER_SENT_BACK, PRINTED_HOLDS, SEED_CALL, TALK_HOLDS, TALK_ROUND } from "./layout-lessons.mjs";
 
 const DIR = process.env.LAYOUT_HELPER_DIR;
 const STATE = DIR && path.join(DIR, "state.json");
 const DESK = DIR && path.join(DIR, "desk");
 const AGENT_STATE = process.env.LAYOUT_AGENT_STATE;
-const PASSAGE = /f_[0-9a-f]{12}:\d+/;
 /** The passage the seed found, which lessons cite. */
 const CITED = DIR && path.join(DIR, "passage");
 
@@ -51,6 +50,7 @@ const save = () => STATE && fs.writeFileSync(STATE, JSON.stringify(stands));
 const write = (message) => process.stdout.write(`${JSON.stringify(message)}\n`);
 const log = (line) => process.stderr.write(`[layout helper] ${line}\n`);
 const sdk = (session, message) => write({ type: "sdk", session, message: { ...message, parent_tool_use_id: null } });
+const textDelta = (session, word) => sdk(session.key, { type: "stream_event", event: { type: "content_block_delta", delta: { type: "text_delta", text: word } } });
 
 /** Words only the teacher panel's prompt holds, which mark a session as one of its chats. */
 const TALK_KEY = "godspeed's teacher panel";
@@ -92,7 +92,7 @@ function callTool(session, call) {
 /** Sends the assistant message of one step: text, then the tool uses that follow it. */
 function assistant(session, text, calls) {
 	if (text) {
-		for (const word of text.split(/(?<= )/)) sdk(session.key, { type: "stream_event", event: { type: "content_block_delta", delta: { type: "text_delta", text: word } } });
+		for (const word of text.split(/(?<= )/)) textDelta(session, word);
 	}
 	const content = [...(text ? [{ type: "text", text }] : []), ...calls.map((call) => ({ type: "tool_use", id: `toolu_${call.id}`, name: `mcp__godspeed__${call.name}`, input: call.arguments }))];
 	if (content.length > 0) sdk(session.key, { type: "assistant", message: { content } });
@@ -128,12 +128,18 @@ async function playReply(session, reply) {
 	return "went on";
 }
 
+/** Searches the space's files (the chat's own when `spaceId` is left out) and reads the first passage found. */
+async function readPassage(session, spaceId) {
+	const scope = spaceId === undefined ? {} : { space_id: spaceId };
+	const found = await callTool(session, newCall("search_space_files", { ...scope, query: "graphing" }));
+	const passage = found.stopped ? null : PASSAGE.exec(textOf(found))?.[0];
+	if (passage) await callTool(session, newCall("read_passage", { ...scope, passage_id: passage }));
+}
+
 /** Reads a file of its own, then a passage of the space's, as an agent at work would. */
 async function readFiles(session) {
 	ownTool(session, "Read", { file_path: "notes.md" });
-	const found = await callTool(session, newCall("search_space_files", { query: "graphing" }));
-	const passage = found.stopped ? null : PASSAGE.exec(textOf(found))?.[0];
-	if (passage) await callTool(session, newCall("read_passage", { passage_id: passage }));
+	await readPassage(session);
 }
 
 /** Asks to run a command, and leaves the card on the desk until the learner answers it. */
@@ -157,8 +163,8 @@ const LAST_SENTENCE = "In 2x + 3 = 11, take 3 from both sides, then halve both, 
 /** Writes `text` word by word, as the agent streams its words. */
 async function writeWords(session, text) {
 	for (const word of text.split(/(?<= )/)) {
-		sdk(session.key, { type: "stream_event", event: { type: "content_block_delta", delta: { type: "text_delta", text: word } } });
-		await new Promise((done) => setTimeout(done, 60));
+		textDelta(session, word);
+		await sleep(60);
 	}
 	sdk(session.key, { type: "assistant", message: { content: [{ type: "text", text }] } });
 }
@@ -183,7 +189,6 @@ async function finishReply(session) {
 const ROUND_SPACE = "Lab Algebra";
 const ROUND_HOMEWORK = "Homework 7: slopes";
 const ROUND_REPLY = "Lab Algebra is up to date.";
-const inDays = (days) => new Date(Date.now() + days * 86_400_000).toLocaleDateString("sv");
 const answerOf = (answer) => (answer.stopped ? {} : JSON.parse(textOf(answer) || "{}"));
 
 /** Adds a homework to the space in the round, and reads the space for its id. */
@@ -210,7 +215,7 @@ async function hold(session) {
 			await DESK_REQUESTS[fs.readFileSync(DESK, "utf8").trim()]?.(session);
 			fs.rmSync(DESK, { force: true });
 		}
-		await new Promise((done) => setTimeout(done, 100));
+		await sleep(100);
 	}
 }
 
@@ -219,10 +224,13 @@ function finish(session, stopped) {
 	sdk(session.key, stopped ? { type: "result", subtype: "error_during_execution", is_error: true, errors: [] } : { type: "result", subtype: "success", is_error: false });
 }
 
+/** The passage the seed found, or null before it has written it. */
+const readCited = () => (CITED && fs.existsSync(CITED) ? fs.readFileSync(CITED, "utf8").trim() : null);
+
 /** The passage the seed found. A job can start before the seed has written it, so it waits. */
 async function citedPassage(session) {
-	for (let tries = 0; CITED && !fs.existsSync(CITED) && tries < 600 && !session.stopped; tries++) await new Promise((done) => setTimeout(done, 100));
-	return CITED && fs.existsSync(CITED) ? fs.readFileSync(CITED, "utf8").trim() : null;
+	for (let tries = 0; CITED && !fs.existsSync(CITED) && tries < 600 && !session.stopped; tries++) await sleep(100);
+	return readCited();
 }
 
 /** One model call's tokens, as Claude Code streams them, so the job's run keeps what it took
@@ -239,7 +247,7 @@ async function playJob(session, texts) {
 	if (!session.answered && !answer) log(`no job answer for ${JSON.stringify(texts.join("\n").slice(0, 80))}`);
 	session.answered = true;
 	if (answer?.holds) {
-		while (!session.stopped) await new Promise((done) => setTimeout(done, 100));
+		while (!session.stopped) await sleep(100);
 		return finish(session, true);
 	}
 	if (answer) modelCall(session);
@@ -253,9 +261,7 @@ async function playRound(session) {
 	const spaces = await callTool(session, newCall("list_spaces", {}));
 	session.space = answerOf(spaces).spaces?.find((space) => space.name === ROUND_SPACE)?.id ?? "";
 	await callTool(session, newCall("read_space", { space_id: session.space }));
-	const found = await callTool(session, newCall("search_space_files", { space_id: session.space, query: "graphing" }));
-	const passage = found.stopped ? null : PASSAGE.exec(textOf(found))?.[0];
-	if (passage) await callTool(session, newCall("read_passage", { space_id: session.space, passage_id: passage }));
+	await readPassage(session, session.space);
 	ownTool(session, "WebSearch", { query: "lab algebra homework 7" });
 	await hold(session);
 	if (session.stopped) return finish(session, true);
@@ -304,7 +310,7 @@ async function playTurn(session, texts) {
 		await hold(session);
 		return finish(session, !session.finished);
 	}
-	session.passage = CITED && fs.existsSync(CITED) ? fs.readFileSync(CITED, "utf8").trim() : null;
+	session.passage = readCited();
 	if (!session.lesson) {
 		const at = LESSONS.findIndex((lesson) => lesson.is(texts));
 		if (at < 0) log(`no lesson starts with ${JSON.stringify(texts.map((text) => text.slice(0, 60)))}`);

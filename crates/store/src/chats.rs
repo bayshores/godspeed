@@ -66,16 +66,8 @@ impl ChatStore {
 	/// and `space_id` for "No space"; `file_ids` are the files a lesson on files works from, its
 	/// first file first. Returns the record as it landed on disk.
 	pub fn create_chat(&self, title: &str, kind: Option<&str>, space_id: Option<&str>, deadline_id: Option<&str>, file_ids: &[String]) -> Result<Json, String> {
-		let now = time::iso_now();
-		let kind = kind.filter(|k| !k.is_empty());
-		let id = ids::timed("chat");
 		let title = text::trim(title);
-		let mut record = Obj::new();
-		record.insert("id", id.as_str());
-		record.insert("title", if title.is_empty() { UNTITLED } else { title });
-		record.insert("createdAt", now.as_str());
-		record.insert("updatedAt", now.as_str());
-		record.insert("messages", Json::Arr(vec![]));
+		let mut record = new_record(if title.is_empty() { UNTITLED } else { title }, &time::iso_now());
 		for (key, value) in [("kind", kind), ("spaceId", space_id), ("deadlineId", deadline_id)] {
 			if let Some(value) = value.filter(|v| !v.is_empty()) {
 				record.insert(key, value);
@@ -84,9 +76,24 @@ impl ChatStore {
 		if !file_ids.is_empty() {
 			record.insert("fileIds", file_ids.iter().map(String::as_str).map(Json::from).collect::<Vec<_>>());
 		}
+		self.write_new(record)
+	}
+
+	/// Starts a talk chat named `title`, on `model` when one was picked first, in one write.
+	pub fn create_talk_chat(&self, title: &str, model: Option<&str>) -> Result<Json, String> {
+		let mut record = new_record(title, &time::iso_now());
+		record.insert("kind", ChatKind::Talk.name());
+		if let Some(model) = model {
+			record.insert("model", model);
+		}
+		self.write_new(record)
+	}
+
+	/// Saves a record made by `new_record`, tells the lesson list, and returns it as it landed on disk.
+	fn write_new(&self, record: Obj) -> Result<Json, String> {
 		let mut record = Json::Obj(record);
 		{
-			let _guard = self.locks.lock(LockKey::Chat(&id));
+			let _guard = self.locks.lock(LockKey::Chat(record["id"].str_or_empty()));
 			self.write_chat(&record)?;
 		}
 		self.events.emit(EventKind::ChatsChanged, json!({}));
@@ -198,24 +205,12 @@ impl ChatStore {
 	/// A chat from the teacher's terminal in an older build, carried over as a talk chat: named
 	/// `title`, last used `at`, with `fields` (`agentSession`, `terminalChat`) set on it.
 	pub fn import_talk_chat(&self, title: &str, at: &str, fields: &Json) -> Result<Json, String> {
-		let id = ids::timed("chat");
-		let mut record = Obj::new();
-		record.insert("id", id.as_str());
-		record.insert("title", title);
-		record.insert("createdAt", at);
-		record.insert("updatedAt", at);
-		record.insert("messages", Json::Arr(vec![]));
+		let mut record = new_record(title, at);
 		record.insert("kind", ChatKind::Talk.name());
 		for (key, value) in fields.as_obj().into_iter().flatten() {
 			record.insert(key.as_str(), value.clone());
 		}
-		let record = Json::Obj(record);
-		{
-			let _guard = self.locks.lock(LockKey::Chat(&id));
-			self.write_chat(&record)?;
-		}
-		self.events.emit(EventKind::ChatsChanged, json!({}));
-		Ok(record)
+		self.write_new(record)
 	}
 
 	/// Sets the talk chat's model, which its next reply runs on. Quiet like a plan save.
@@ -358,6 +353,17 @@ fn talk_summary(record: &Json) -> Json {
 }
 
 /// Sets `key` on a record, keeping its place when it already has one.
+/// A chat with no messages yet, made at `at`.
+fn new_record(title: &str, at: &str) -> Obj {
+	let mut record = Obj::new();
+	record.insert("id", ids::timed("chat"));
+	record.insert("title", title);
+	record.insert("createdAt", at);
+	record.insert("updatedAt", at);
+	record.insert("messages", Json::Arr(vec![]));
+	record
+}
+
 fn set_field(record: &mut Json, key: &str, value: impl Into<Json>) {
 	if let Some(o) = record.as_obj_mut() {
 		o.insert(key, value);

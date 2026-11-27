@@ -14,7 +14,7 @@ use crate::claude::protocol::ClaudeProgram;
 use crate::codex::agent::{Connection as CodexConnection, ThreadLink};
 use crate::event::{Part, SessionEvent};
 use crate::pipes::Started;
-use crate::process::{AgentEnv, AgentProcess, Launch};
+use crate::process::{AgentEnv, AgentProcess, Launch, NO_NODE};
 
 /// A godspeed tool as the agent sees it: its input is described by a JSON Schema.
 #[derive(Clone, Debug, PartialEq)]
@@ -197,7 +197,7 @@ impl Runtime {
 				let launch = match own_command {
 					Some(command) => Launch::shell(&format!("{command} {}", APP_SERVER.join(" "))),
 					None => {
-						let mut launch = env.launch(env.find("codex").await.ok_or(NO_CODEX)?).await?;
+						let mut launch = env.launch(env.find_agent(FolderAgent::Codex).await?).await?;
 						launch.args.extend(APP_SERVER.map(Into::into));
 						launch
 					}
@@ -209,12 +209,9 @@ impl Runtime {
 			Start::Claude { env, helper, own_command } => {
 				let program = match own_command {
 					Some(command) => ClaudeProgram::Command(command.clone()),
-					None => ClaudeProgram::Path(env.find("claude").await.ok_or(NO_CLAUDE)?.to_string_lossy().into_owned()),
+					None => ClaudeProgram::Path(env.find_agent(FolderAgent::Claude).await?.to_string_lossy().into_owned()),
 				};
-				let helper = helper_to_run(helper, debug_helper());
-				if !helper.is_file() {
-					return Err(format!("godspeed's Claude helper is missing: {}", helper.display()));
-				}
+				let helper = helper_file(helper).map_err(|missing| format!("godspeed's Claude helper is missing: {}", missing.display()))?;
 				let node = env.find("node").await.ok_or(NO_NODE)?;
 				let started = spawn("claude helper", &Launch { program: node, args: vec![helper.into_os_string()] }, env.vars().await)?;
 				Ok(Connection::Claude(ClaudeConnection::start(started, program, self.trouble.clone())))
@@ -228,10 +225,16 @@ impl Runtime {
 	}
 }
 
+/// The helper that runs, from the bundled one: Ok when it is there, else Err with its path.
+pub(crate) fn helper_file(bundled: &Path) -> Result<PathBuf, PathBuf> {
+	let helper = helper_to_run(bundled, debug_helper());
+	if helper.is_file() { Ok(helper) } else { Err(helper) }
+}
+
 /// The helper `npm run layout` names in `LH_CLAUDE_HELPER`, so lessons play on a stand-in with no
 /// real agent. A release build never reads it: a variable in the learner's environment must not
 /// swap the helper that runs their agent.
-pub(crate) fn debug_helper() -> Option<OsString> {
+fn debug_helper() -> Option<OsString> {
 	#[cfg(debug_assertions)]
 	{
 		std::env::var_os("LH_CLAUDE_HELPER")
@@ -242,17 +245,13 @@ pub(crate) fn debug_helper() -> Option<OsString> {
 	}
 }
 
-pub(crate) fn helper_to_run(bundled: &Path, named: Option<OsString>) -> PathBuf {
+fn helper_to_run(bundled: &Path, named: Option<OsString>) -> PathBuf {
 	named.filter(|file| !file.is_empty()).map_or_else(|| bundled.to_path_buf(), PathBuf::from)
 }
 
 /// How Codex is started: its app server, with Codex's own memories off, so godspeed's remember and
 /// forget notes are the teacher's only memory and no chat becomes material for Codex's.
 const APP_SERVER: [&str; 7] = ["app-server", "--disable", "memories", "-c", "memories.generate_memories=false", "-c", "memories.use_memories=false"];
-
-pub(crate) const NO_CODEX: &str = "godspeed couldn't find Codex on this computer.";
-pub(crate) const NO_CLAUDE: &str = "godspeed couldn't find Claude Code on this computer.";
-const NO_NODE: &str = "godspeed couldn't find Node.js on this computer.";
 
 /// Codex's environment: the agent's, with godspeed's own settings folder in place of the learner's.
 pub(crate) fn codex_vars(vars: &[(OsString, OsString)], home: &Path) -> Vec<(OsString, OsString)> {
@@ -326,9 +325,6 @@ impl Session {
 			Link::Claude(session) => session.set_model(model),
 		}
 	}
-
-	/// Ends the session and its query or thread, as dropping it does.
-	pub fn close(self) {}
 }
 
 impl Drop for Session {

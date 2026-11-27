@@ -24,7 +24,7 @@ use gs_core::session::lesson_steps::{lesson_call, talk_call};
 use gs_core::session::prices::CallUsage;
 use gs_core::session::turn_cause::{TurnCause, turn_cause};
 use gs_core::spaces::agent_folder::FolderAgent;
-use gs_engine::turn::messages::agent_model;
+use gs_engine::turn::messages::{agent_model, agent_model_id};
 use gs_engine::turn::tool_host::{BeforeToolCall, BeforeToolCallFn};
 use gs_engine::turn::call_ids::collect_tool_call_ids;
 use gs_engine::turn::events::AgentEvent;
@@ -340,7 +340,7 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 	let context: Vec<Json> = if fresh { retry_context(&merged).to_vec() } else { merged.clone() };
 	let side_turn = is_side_turn(&context);
 	let model = agent_model();
-	let model_id = model_id_of(&model);
+	let model_id = agent_model_id();
 	let runtime = agents::runtime(app);
 	let agent = runtime.agent();
 	let setup = if talk {
@@ -443,10 +443,6 @@ fn settlement_error_text(err: &SettleError) -> String {
 	}
 }
 
-fn model_id_of(model: &Json) -> String {
-	format!("{}:{}", model["provider"].str_or_empty(), model["id"].str_or_empty())
-}
-
 struct Usage<'a> {
 	id: &'a str,
 	model: &'a str,
@@ -534,8 +530,7 @@ fn kick(app: &Arc<App>, chat_id: &str) {
 
 /// The compaction settings for a lesson, shared by the turn-start gate and the settle kick.
 fn compaction_deps(effective: &Json) -> CompactionDeps {
-	let model = agent_model();
-	CompactionDeps { model_id: model_id_of(&model), threshold_tokens: summarize_at_tokens(effective, &model) }
+	CompactionDeps { model_id: agent_model_id(), threshold_tokens: summarize_at_tokens(effective, &agent_model()) }
 }
 
 /// Wires the wake pipeline to this composition at start-up: its steers run turns through

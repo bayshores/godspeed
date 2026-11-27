@@ -19,6 +19,7 @@ mod stand_in {
 	use std::path::PathBuf;
 
 	use super::*;
+	use crate::process::NO_CLAUDE;
 
 	const LINK: &str = "https://claude.com/cai/oauth/authorize?code=true&client_id=c&state=s";
 

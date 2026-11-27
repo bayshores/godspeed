@@ -101,6 +101,17 @@ export function evalLine(source) {
 	return `eval (0, eval)(${JSON.stringify(source)})`;
 }
 
+/** One call of the page code `installPage` put on the window. */
+function inPage(call) {
+	return evalLine(`window.__lhPage.${call}`);
+}
+
+/** Puts the page code on the window once per full load (a load drops it), so each read after it
+ *  sends only its call. */
+async function installPage(app, pageSource) {
+	await app.value(evalLine(`window.__lhPage ??= (() => { ${pageSource}; return { checkPage, scrollMain, scrolledAt, watchOpening, openingFindings }; })(); null`));
+}
+
 /** Whether two reads found the same things on the same elements; words may differ (a clock). */
 export function sameFindings(first, second) {
 	const keys = (findings) => findings.map((f) => f.key).sort().join("\n");
@@ -380,12 +391,12 @@ async function startApp(port, name) {
 
 /** Reads the page until two reads in a row agree, so what is drawn late is checked too; a page
  *  that never settles answers its last read. */
-async function checkScreen(app, pageCheck) {
+async function checkScreen(app) {
 	let last = null;
 	for (let read = 0; read < READS; read++) {
 		if (read > 0) await sleep(SETTLE_MS);
 		await app.value(evalLine(STILL));
-		const findings = await app.value(evalLine(pageCheck));
+		const findings = await app.value(inPage("checkPage()"));
 		if (last && sameFindings(last, findings)) return findings;
 		last = findings;
 	}
@@ -399,11 +410,11 @@ async function watchOpenings(app, screen, url, ids, pageSource, widths) {
 	const lines = [];
 	const warnings = [];
 	const from = openingFrom(url);
-	const inPage = (call) => evalLine(`(() => { ${pageSource}; return ${call}; })()`);
 	// A full load first: the screen before may have left a menu open and motion off.
 	await app.value("eval window.__layoutLeft = true");
 	await app.value(`nav ${app.origin}${from.url}`);
 	await app.ready(from.ready);
+	await installPage(app, pageSource);
 	let atStart = true;
 	for (const width of widths) {
 		const height = screen.height ?? HEIGHT;
@@ -508,8 +519,6 @@ async function walkPart(mine) {
 	standInAgent(path.join(RUN, "home"));
 	const port = await freePort();
 	const pageSource = fs.readFileSync(path.join(import.meta.dirname, "layout-page.mjs"), "utf8").replace(/^export /gm, "");
-	const inPage = (call) => `(() => { ${pageSource}; return ${call}; })()`;
-	const pageCheck = inPage("checkPage()");
 	const scrollTo = (at) => inPage(`scrollMain(${JSON.stringify(at)})`);
 
 	const failures = [];
@@ -535,14 +544,15 @@ async function walkPart(mine) {
 					return status;
 				},
 				json: async (url, init = {}) => JSON.parse(await app.run(`return fetch(${JSON.stringify(url)}, ${JSON.stringify(init)})${HTTP_OK}.then((r) => r.text())`)),
+				/** Every GET in `urls`, answered in order by one run: runs share one answer slot, so none may overlap. */
+				jsonAll: (urls) => app.run(`return Promise.all(${JSON.stringify(urls)}.map((url) => fetch(url)${HTTP_OK}.then((r) => r.json())))`),
 			};
 			ids = await seed(DATA, HELPER_DIR, page, log).catch((err) => {
 				throw new Error(`${err.message}; steps: ${seedLog}`);
 			});
-			const { settings } = JSON.parse(await app.run(`return fetch("/api/settings")${HTTP_OK}.then((r) => r.text())`));
 			const version = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version;
-			const general = { ...settings.general, onboarded: true, lastSeenVersion: version, activeSpace: ids.space, teacherName: "Quigley" };
-			await page.fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(general) });
+			const general = { onboarded: true, lastSeenVersion: version, activeSpace: ids.space, teacherName: "Quigley" };
+			await page.fetch("/api/settings/general", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(general) });
 		} finally {
 			await app.quit();
 		}
@@ -592,6 +602,7 @@ async function walkPart(mine) {
 					await app.value("eval window.__layoutLeft = true");
 					await app.value(`nav ${app.origin}${url}`);
 					await app.ready(fill(screen.ready, ids));
+					await installPage(app, pageSource);
 					if (screen.setup) await app.run(fill(screen.setup, ids));
 					if (screen.helper) await tellHelper(screen.helper);
 					if (screen.shows) await app.ready(fill(screen.shows, ids));
@@ -617,10 +628,10 @@ async function walkPart(mine) {
 					if (menuOpen) await sleep(SETTLE_MS);
 					// A screen that opens scrolled (a lesson, at its rest) is checked at its top too, last. Not one the
 					// walk itself scrolled to an open menu's key: at its top the menu would lie outside the window.
-					const opensScrolled = !menuOpen && (await app.value(evalLine(inPage("scrolledAt()")))) > 1;
+					const opensScrolled = !menuOpen && (await app.value(inPage("scrolledAt()"))) > 1;
 					for (const at of opensScrolled ? [...SCROLL_TO, "top"] : SCROLL_TO) {
-						if (at !== 0 && !(await app.value(evalLine(scrollTo(at === "top" ? 0 : at))))) continue;
-						const findings = await checkScreen(app, pageCheck);
+						if (at !== 0 && !(await app.value(scrollTo(at === "top" ? 0 : at)))) continue;
+						const findings = await checkScreen(app);
 						if (states && at === 0 && screen.url.startsWith("/chat/")) await app.value(`snap ${path.join(states, snapName(screen.name, width))}`);
 						if (findings.length === 0) continue;
 						const name = at === 0 ? screen.name : `${screen.name}, ${scrolledWords(at)}`;
@@ -629,7 +640,7 @@ async function walkPart(mine) {
 						for (const finding of findings) failures.push(findingLine(name, width, finding));
 						failures.push(`  picture: ${snap}`);
 					}
-					await app.value(evalLine(scrollTo(0)));
+					await app.value(scrollTo(0));
 				}
 				left = `${all.at(-1)} ${screen.height ?? HEIGHT}`;
 			}

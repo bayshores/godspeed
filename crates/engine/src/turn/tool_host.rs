@@ -1,7 +1,6 @@
 //! Running one godspeed tool call: find the tool, prepare and validate its arguments, ask the
 //! before-call hook, run it. A lesson's agent session calls its tools one at a time through a
-//! `ToolHost`, which also says whether a call ends the turn; the agent loop's batches run their
-//! calls through the same `prepare` and `run`.
+//! `ToolHost`, which also says whether a call ends the turn.
 
 use std::collections::HashSet;
 use std::panic::AssertUnwindSafe;

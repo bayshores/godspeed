@@ -3,7 +3,6 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use gs_base::config::VERSION;
 use gs_base::tasks;
@@ -12,9 +11,10 @@ use parking_lot::Mutex;
 use tokio::sync::{mpsc, oneshot};
 
 use super::wire::{self, Item, Note, ServerRequest, TurnStatus};
-use crate::event::{End, Part, REFUSED, SessionEvent, TOOL_DROPPED, ToolReply, Verdict};
+use crate::event::{End, Part, SessionEvent, ToolReply, Verdict};
 use crate::jsonrpc::{Incoming, Rpc, UNKNOWN_METHOD};
 use crate::models::Model;
+use crate::pending::Pending;
 use crate::pipes::{self, Reader, Started};
 use crate::session::{Session, SessionSpec, Trouble};
 
@@ -22,15 +22,14 @@ const LABEL: &str = "codex app-server";
 
 pub struct Connection {
 	state: Arc<State>,
-	_reader: Reader,
+	reader: Reader,
 }
 
 struct State {
 	rpc: Rpc,
 	threads: Mutex<HashMap<String, Arc<Thread>>>,
 	/// Sign-ins waiting to end, by login id.
-	logins: Mutex<HashMap<String, oneshot::Sender<Result<(), String>>>>,
-	alive: AtomicBool,
+	logins: Pending<String, ()>,
 	trouble: Trouble,
 }
 
@@ -66,20 +65,17 @@ impl Connection {
 	/// Starts talking to an app-server on `started`'s pipes and waits for its handshake. A refused
 	/// sign-in is told to `trouble`.
 	pub async fn start(started: Started, trouble: Trouble) -> Result<Arc<Connection>, String> {
-		let state = Arc::new(State { rpc: Rpc::new(pipes::writer(LABEL, started.writer)), threads: Mutex::new(HashMap::new()), logins: Mutex::new(HashMap::new()), alive: AtomicBool::new(true), trouble });
-		let reading = state.clone();
-		let reader = tasks::spawn(LABEL, async move {
-			let why = pipes::read(started.reader, started.process, |line| reading.take(&line)).await;
-			reading.end(&why);
-		});
-		let connection = Arc::new(Connection { state, _reader: Reader(reader) });
+		let state = Arc::new(State { rpc: Rpc::new(pipes::writer(LABEL, started.writer)), threads: Mutex::new(HashMap::new()), logins: Pending::new(), trouble });
+		let (reading, ending) = (state.clone(), state.clone());
+		let reader = pipes::serve(LABEL, started.reader, started.process, move |line| reading.take(&line), move |why| ending.end(why));
+		let connection = Arc::new(Connection { state, reader });
 		connection.state.rpc.request(wire::INITIALIZE, wire::initialize(VERSION)).await?;
-		connection.state.rpc.notify(wire::INITIALIZED, None);
+		connection.state.rpc.notify(wire::INITIALIZED);
 		Ok(connection)
 	}
 
 	pub fn alive(&self) -> bool {
-		self.state.alive.load(Ordering::SeqCst)
+		self.reader.alive()
 	}
 
 	/// Starts a thread, or resumes the one `spec.resume` names.
@@ -102,8 +98,7 @@ impl Connection {
 	pub async fn login_start(&self) -> Result<CodexLogin, String> {
 		let result = self.state.rpc.request(wire::LOGIN_START, wire::login_start()).await?;
 		let (id, url) = wire::login_started(&result).ok_or("Codex started a sign-in without a page to open")?;
-		let (done, ended) = oneshot::channel();
-		self.state.logins.lock().insert(id.clone(), done);
+		let ended = self.state.logins.ask(id.clone())?;
 		Ok(CodexLogin { id, url, ended })
 	}
 
@@ -198,10 +193,7 @@ impl State {
 		let thread_id = match &note {
 			Note::TurnStarted { thread, .. } | Note::TextDelta { thread, .. } | Note::Item { thread, .. } | Note::Usage { thread, .. } | Note::Compacted { thread } | Note::TurnCompleted { thread, .. } | Note::Error { thread, .. } => thread.clone(),
 			Note::LoginEnded { login, result } => {
-				if let Some(done) = self.logins.lock().remove(login) {
-					// Whoever started the sign-in may have stopped waiting.
-					let _ = done.send(result.clone());
-				}
+				self.logins.settle(login, result.clone());
 				return;
 			}
 			Note::Other => return,
@@ -285,7 +277,7 @@ impl State {
 				let (call_id, tool) = (call.id.clone(), call.name.clone());
 				let _ = thread.events.send(SessionEvent::ToolCall { call, reply });
 				tasks::detach(LABEL, async move {
-					let reply = answer.await.unwrap_or_else(|_| ToolReply { content: vec![Part::Text(TOOL_DROPPED.to_owned())], is_error: true, ends_turn: false });
+					let reply = answer.await.unwrap_or_else(|_| ToolReply::dropped());
 					// Marked before the answer goes, so Codex cannot complete the call first.
 					if reply.ends_turn {
 						thread.turn.lock().ending.push((call_id, tool));
@@ -297,7 +289,7 @@ impl State {
 				let (reply, answer) = oneshot::channel();
 				let _ = thread.events.send(SessionEvent::Approval { ask, reply });
 				tasks::detach(LABEL, async move {
-					let verdict = answer.await.unwrap_or_else(|_| Verdict { allow: false, message: Some(REFUSED.to_owned()) });
+					let verdict = answer.await.unwrap_or_else(|_| Verdict::refused());
 					state.rpc.respond(id, wire::approval_answer(&form, &verdict));
 				});
 			}
@@ -308,13 +300,11 @@ impl State {
 	/// app-server stopped: every open session ends, and the next open starts a new one.
 	fn end(&self, why: &str) {
 		eprintln!("[{LABEL}] stopped: {why}");
-		self.alive.store(false, Ordering::SeqCst);
 		self.rpc.close();
+		let why = format!("Codex stopped: {why}");
 		for (_, thread) in self.threads.lock().drain() {
-			let _ = thread.events.send(SessionEvent::Ended(End::Failed(format!("Codex stopped: {why}"))));
+			let _ = thread.events.send(SessionEvent::Ended(End::Failed(why.clone())));
 		}
-		for (_, login) in self.logins.lock().drain() {
-			let _ = login.send(Err(format!("Codex stopped: {why}")));
-		}
+		self.logins.close(&why);
 	}
 }

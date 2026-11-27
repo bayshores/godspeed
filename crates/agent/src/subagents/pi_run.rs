@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use gs_engine::turn::abort::Abort;
 use gs_engine::turn::job_session::{Approve, Finished, FollowUp, OneOff, OnToolStart, RunError};
-use gs_engine::turn::messages::{agent_model, parts_of};
+use gs_engine::turn::messages::{agent_model_id, parts_of};
 use gs_engine::turn::record::usage_json;
 use gs_engine::turn::tool::Tool;
 use gs_engine::turn::tool_host::ToolHost;
@@ -81,12 +81,6 @@ impl JobAgentOptions {
 			f(line);
 		}
 	}
-}
-
-/// The `provider:id` usage stamps carry for the learner's agent.
-pub fn agent_model_id() -> String {
-	let model = agent_model();
-	format!("{}:{}", model["provider"].str_or_empty(), model["id"].str_or_empty())
 }
 
 /// A prompt as the agent takes it: text, or content parts.

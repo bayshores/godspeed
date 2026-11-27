@@ -117,7 +117,7 @@ fn search_fn_tools(search: Arc<SpaceSearch>) -> Vec<FnTool> {
 		Returns the text with the ids of the passages before and after it, to keep reading.";
 	let read_tool = FnTool::server("read_passage", read_description, read_input, move |args, _ctx| {
 		let search = search.clone();
-		async move { Ok(Json::from(PassageRef::of_args(&args).map_or_else(|| "Give passage_id, or file_id with range.".to_owned(), |at| (search.read_passage)(at)))) }
+		async move { Ok(Json::from(PassageRef::of_args(&args).map_or_else(|| PassageRef::REFUSAL.to_owned(), |at| (search.read_passage)(at)))) }
 	});
 	vec![search_tool, read_tool]
 }

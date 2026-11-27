@@ -10,6 +10,14 @@ import * as path from "node:path";
 
 export const FIXTURES = path.resolve(import.meta.dirname, "..", "tests", "fixtures");
 
+/** A passage's id in a tool's answer: a file id and a place in the file. */
+export const PASSAGE = /f_[0-9a-f]{12}:\d+/;
+
+export const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+
+/** The day `days` from now on this computer's calendar, as YYYY-MM-DD. */
+export const inDays = (days) => new Date(Date.now() + days * 86_400_000).toLocaleDateString("sv");
+
 /** Every made-up name has letters that hang below the line (g, j, p, q, y), so the check for
  *  cut-off letters has something to catch. */
 export const DEADLINE = "Pop quiz: graphing";

@@ -142,7 +142,8 @@ impl TurnHandle {
 			let text = (turn.spec.on_error)(&err);
 			turn.wire.lock().reported_error = Some(text.clone());
 			turn.send(json!({ "type": "error", "errorText": text }));
-			turn.settle();
+			let messages = turn.uniquifier.lock().remap_settled(&turn.spec.turn.messages());
+			turn.settle(messages);
 			turn.close_all();
 		});
 	}
@@ -181,10 +182,9 @@ impl Turn {
 			return;
 		}
 		let event = self.uniquifier.lock().event(event);
-		let end = matches!(event, AgentEvent::AgentEnd { .. });
 		self.send(event.to_json());
-		if end {
-			self.settle();
+		if let AgentEvent::AgentEnd { messages } = event {
+			self.settle(messages);
 			self.close_all();
 		}
 	}
@@ -236,10 +236,8 @@ impl Turn {
 	}
 
 	/// The settle seam: `on_finish` gets the turn's own messages.
-	fn settle(self: &Arc<Self>) {
-		let all = self.spec.turn.messages();
-		let settled: Vec<Json> = self.uniquifier.lock().remap_settled(&all, 0);
-		let Err(err) = (self.spec.on_finish)(settled) else { return };
+	fn settle(self: &Arc<Self>, messages: Vec<Json>) {
+		let Err(err) = (self.spec.on_finish)(messages) else { return };
 		eprintln!("[turn] settlement failed: {err}");
 		let reported = self.wire.lock().reported_error.clone();
 		(self.spec.on_settle_failure)(&err, reported.as_deref());

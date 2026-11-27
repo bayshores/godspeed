@@ -137,7 +137,6 @@ Locks outside `LockKey`, each guarding one piece of memory or one task:
 | Lock | Guards | Taken |
 |---|---|---|
 | `SpaceStore::coloring` | picking and saving a space's color, so two spaces never get the same one | Inside the space lock (`get_space` holds it through `try_lock`); nothing else is locked while it is held |
-| `McpTokenStore::writing` | the token file's read-then-write | Alone |
 | `SpacesState::shortcut_sync` | one shortcut sync at a time (it rewrites the manifest) | Never while a `LockKey` is held; the sync reads spaces inside it, which takes `LockKey::Space` briefly |
 | `ExtractionState::graph_lock` | one graph extraction at a time (async mutex) | Never while a `LockKey` is held (a guard cannot cross an `.await`); the extraction takes graph and chat locks inside it |
 | `TurnsState::carrying_talk` | one carry-over of the terminal's old chats at a time, so two reads of the talk list never carry a chat over twice | Before any chat lock, never while a `LockKey` is held; the carry-over writes chat records inside it |

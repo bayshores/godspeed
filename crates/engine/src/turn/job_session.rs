@@ -4,6 +4,7 @@
 //! Stop, past its model-call cap, or after 10 minutes without a word from the agent.
 
 use std::fmt;
+use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -124,19 +125,24 @@ async fn interrupt(session: &Session) {
 	}
 }
 
+/// Runs `work` unless the job is stopped first: then the agent is stopped too.
+async fn unless_aborted<T>(abort: &Abort, session: &Session, work: impl Future<Output = T>) -> Result<T, RunError> {
+	tokio::select! {
+		biased;
+		() = abort.aborted() => {
+			interrupt(session).await;
+			Err(RunError::Aborted)
+		}
+		out = work => Ok(out),
+	}
+}
+
 impl Run {
 	/// One turn, to its end.
 	async fn turn(&mut self, session: &Session) -> Result<(), RunError> {
 		let abort = self.job.abort.clone();
 		loop {
-			let event = tokio::select! {
-				biased;
-				() = abort.aborted() => {
-					interrupt(session).await;
-					return Err(RunError::Aborted);
-				}
-				event = clock::within(IDLE_MS, session.next()) => event,
-			};
+			let event = unless_aborted(&abort, session, clock::within(IDLE_MS, session.next())).await?;
 			let Some(event) = event else {
 				interrupt(session).await;
 				return Err(RunError::Failed(format!("the agent said nothing for {} minutes", IDLE_MS / 60_000)));
@@ -155,14 +161,7 @@ impl Run {
 				}
 				SessionEvent::Approval { ask, reply } => {
 					let verdict = match (&self.job.approve, self.capped) {
-						(Some(approve), false) => tokio::select! {
-							biased;
-							() = abort.aborted() => {
-								interrupt(session).await;
-								return Err(RunError::Aborted);
-							}
-							verdict = approve(ask) => verdict,
-						},
+						(Some(approve), false) => unless_aborted(&abort, session, approve(ask)).await?,
 						_ => Verdict { allow: false, message: None },
 					};
 					let _ = reply.send(verdict);
@@ -199,14 +198,7 @@ impl Run {
 		}
 		let block = json!({ "type": "toolCall", "id": call.id, "name": call.name, "arguments": call.args });
 		let abort = self.job.abort.clone();
-		let out = tokio::select! {
-			biased;
-			() = abort.aborted() => {
-				interrupt(session).await;
-				return Err(RunError::Aborted);
-			}
-			out = self.job.host.call(&block, Reply { before: &[], message: &Json::Null }, &abort) => out,
-		};
+		let out = unless_aborted(&abort, session, self.job.host.call(&block, Reply { before: &[], message: &Json::Null }, &abort)).await?;
 		Ok(out.agent_reply())
 	}
 }

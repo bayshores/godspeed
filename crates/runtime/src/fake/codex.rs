@@ -4,10 +4,10 @@
 use std::collections::{HashMap, VecDeque};
 
 use gs_base::clock;
-use gs_json::{Json, json, stringify};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, DuplexStream, WriteHalf};
+use gs_json::{Json, json};
+use tokio::io::{AsyncBufReadExt, BufReader, DuplexStream, WriteHalf};
 
-use super::{FakeAgent, FakeStep};
+use super::{FakeAgent, FakeStep, write_line};
 use crate::codex::wire;
 use crate::jsonrpc::UNKNOWN_METHOD;
 
@@ -94,16 +94,12 @@ fn message_item(id: &str, text: &str) -> Json {
 }
 
 impl Player {
-	async fn write(&mut self, message: Json) -> std::io::Result<()> {
-		self.out.write_all(format!("{}\n", stringify(&message)).as_bytes()).await
-	}
-
 	async fn respond(&mut self, id: &Json, result: Json) -> std::io::Result<()> {
-		self.write(json!({ "id": id, "result": result })).await
+		write_line(&mut self.out, &json!({ "id": id, "result": result })).await
 	}
 
 	async fn note(&mut self, method: &str, params: Json) -> std::io::Result<()> {
-		self.write(json!({ "method": method, "params": params })).await
+		write_line(&mut self.out, &json!({ "method": method, "params": params })).await
 	}
 
 	async fn item(&mut self, thread: &str, turn: &str, item: Json, done: bool) -> std::io::Result<()> {
@@ -171,7 +167,7 @@ impl Player {
 				let model = |id: &str, name: &str, default: bool| json!({ "id": id, "model": id, "displayName": name, "description": "", "hidden": false, "isDefault": default });
 				self.respond(id, json!({ "data": [model("gpt-6.1-sol", "GPT-6.1-Sol", true), model("gpt-6-luna", "GPT-6-Luna", false)], "nextCursor": null })).await
 			}
-			_ if message.get("id").is_some() => self.write(json!({ "id": id, "error": { "code": UNKNOWN_METHOD, "message": "the stand-in agent does not handle this request" } })).await,
+			_ if message.get("id").is_some() => write_line(&mut self.out, &json!({ "id": id, "error": { "code": UNKNOWN_METHOD, "message": "the stand-in agent does not handle this request" } })).await,
 			_ => Ok(()),
 		}
 	}
@@ -222,7 +218,7 @@ impl Player {
 				}
 				FakeStep::Tool { name, args } => {
 					let (request, call) = (json!(n), format!("call_{n}"));
-					self.write(json!({ "id": request, "method": "item/tool/call", "params": { "threadId": thread, "turnId": turn, "callId": call, "namespace": null, "tool": name, "arguments": args } })).await?;
+					write_line(&mut self.out, &json!({ "id": request, "method": "item/tool/call", "params": { "threadId": thread, "turnId": turn, "callId": call, "namespace": null, "tool": name, "arguments": args } })).await?;
 					return self.wait(thread, Waiting::Call { request, call, tool: name, args });
 				}
 				// Codex has no message for a step's calls: they come one at a time.
@@ -236,7 +232,7 @@ impl Player {
 				FakeStep::Approval { tool, input } => {
 					let (request, item, command) = (json!(n), format!("item_{n}"), command_of(&tool, &input));
 					self.item(thread, &turn, command_item(&item, &command, &cwd, "inProgress"), false).await?;
-					self.write(json!({ "id": request, "method": "item/commandExecution/requestApproval", "params": { "kind": "command", "threadId": thread, "turnId": turn, "itemId": item, "startedAtMs": 0, "environmentId": null, "reason": null, "command": command, "cwd": cwd } })).await?;
+					write_line(&mut self.out, &json!({ "id": request, "method": "item/commandExecution/requestApproval", "params": { "kind": "command", "threadId": thread, "turnId": turn, "itemId": item, "startedAtMs": 0, "environmentId": null, "reason": null, "command": command, "cwd": cwd } })).await?;
 					return self.wait(thread, Waiting::Approval { request, item, command });
 				}
 				FakeStep::Usage(usage) => {
