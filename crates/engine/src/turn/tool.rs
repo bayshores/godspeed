@@ -5,8 +5,8 @@ use gs_json::Json;
 
 use super::abort::Abort;
 
-/// How a tool runs inside one batch of calls. One sequential tool makes the whole batch
-/// sequential.
+/// How a tool's call runs beside a turn's other calls. A sequential tool's call runs alone: it
+/// starts once every earlier call is done, and no later call starts before it is done.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ExecutionMode {
 	Parallel,

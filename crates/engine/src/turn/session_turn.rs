@@ -17,6 +17,7 @@ use parking_lot::Mutex;
 use tokio::sync::{mpsc, oneshot, watch};
 
 use super::abort::Abort;
+use super::call_queue::CallQueue;
 use super::events::{AgentEvent, Listener};
 use super::messages::{parts_of, tool_result_message};
 use super::record::{TranscriptBuilder, wrote_anything};
@@ -114,6 +115,14 @@ pub fn ask_json(ask: &Ask) -> Json {
 		Ask::Question { questions } => json!({ "kind": "question", "questions": questions.clone() }),
 		Ask::Elicitation { server, message } => json!({ "kind": "elicitation", "server": server, "message": message }),
 	}
+}
+
+/// A tool call that came in, with the reply it is part of, until it starts.
+struct Call {
+	block: Json,
+	before: Vec<Json>,
+	message: Json,
+	answer: oneshot::Sender<ToolReply>,
 }
 
 /// What comes back to the loop from a call that ran on its own task.
@@ -313,35 +322,47 @@ impl SessionTurn {
 
 	async fn drain(self: &Arc<Self>, session: &Arc<Session>) -> End {
 		let (ran_tx, mut ran_rx) = mpsc::unbounded_channel::<Ran>();
-		let mut running = 0usize;
+		let mut calls = CallQueue::new();
 		let end = loop {
 			tokio::select! {
 				event = session.next() => match event {
 					None => break End::Failed("the agent stopped".to_owned()),
 					Some(SessionEvent::Ended(end)) => break end,
-					Some(event) => {
-						if self.take(event, &ran_tx) {
-							running += 1;
-						}
-					}
+					Some(event) => self.take(event, &mut calls),
 				},
 				Some(ran) = ran_rx.recv() => {
-					running -= 1;
+					calls.done();
 					self.ran(ran);
 				}
 			}
+			self.start_calls(&mut calls, &ran_tx);
 		};
-		// A call still running was stopped with the turn; its result is kept.
-		while running > 0 {
+		// A call still running or waiting was stopped with the turn; its result is kept.
+		loop {
+			self.start_calls(&mut calls, &ran_tx);
+			if calls.running() == 0 {
+				break;
+			}
 			let Some(ran) = ran_rx.recv().await else { break };
-			running -= 1;
+			calls.done();
 			self.ran(ran);
 		}
 		end
 	}
 
-	/// One event; true when it started a tool call.
-	fn take(self: &Arc<Self>, event: SessionEvent, ran: &mpsc::UnboundedSender<Ran>) -> bool {
+	/// Starts every waiting call that may run now, each on its own task.
+	fn start_calls(self: &Arc<Self>, calls: &mut CallQueue<Call>, ran: &mpsc::UnboundedSender<Ran>) {
+		while let Some(Call { block, before, message, answer }) = calls.start() {
+			let (host, abort, ran) = (self.host.clone(), self.abort.clone(), ran.clone());
+			tasks::detach("lesson tool", async move {
+				let reply = host.call(&block, Reply { before: &before, message: &message }, &abort).await;
+				let _ = ran.send(Ran { block, reply, answer });
+			});
+		}
+	}
+
+	/// One event; a tool call joins `calls`.
+	fn take(&self, event: SessionEvent, calls: &mut CallQueue<Call>) {
 		match event {
 			SessionEvent::TurnStarted => {}
 			SessionEvent::TextDelta(text) => self.build(|b, emit| b.delta(&text, emit)),
@@ -364,18 +385,14 @@ impl SessionTurn {
 					(block, b.reply().cloned().unwrap_or_default(), b.before_reply().to_vec())
 				});
 				let before: Vec<Json> = self.before.iter().cloned().chain(earlier).collect();
-				let (host, abort, ran) = (self.host.clone(), self.abort.clone(), ran.clone());
-				tasks::detach("lesson tool", async move {
-					let out = host.call(&block, Reply { before: &before, message: &message }, &abort).await;
-					let _ = ran.send(Ran { block, reply: out, answer: reply });
-				});
-				return true;
+				let alone = self.host.runs_alone(&call.name);
+				calls.push(Call { block, before, message, answer: reply }, alone);
 			}
 			SessionEvent::Approval { ask, reply } => {
 				let id = ids::uuid_hex("approval", 12);
 				if self.abort.is_aborted() {
 					let _ = reply.send(Verdict { allow: false, message: None });
-					return false;
+					return;
 				}
 				self.state.lock().approvals.insert(id.clone(), reply);
 				self.tell_desk(DeskEvent::Approval { id, ask: ask_json(&ask) });
@@ -384,7 +401,6 @@ impl SessionTurn {
 			SessionEvent::Compacted => self.state.lock().compacted = true,
 			SessionEvent::Ended(_) => {}
 		}
-		false
 	}
 
 	/// A call's result: recorded (a held call set aside instead, a call it releases put back with
@@ -423,3 +439,7 @@ impl SessionTurn {
 		self.model_calls.send_modify(|n| *n += 1);
 	}
 }
+
+#[cfg(test)]
+#[path = "session_turn_tests.rs"]
+mod tests;

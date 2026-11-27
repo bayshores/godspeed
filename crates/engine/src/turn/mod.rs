@@ -2,6 +2,7 @@
 //! (`job_session`), with their messages, tool calls, aborts, stream events and usage estimates.
 
 pub mod abort;
+mod call_queue;
 pub mod call_ids;
 pub mod events;
 pub mod job_session;

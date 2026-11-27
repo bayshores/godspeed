@@ -1,6 +1,6 @@
 //! Running one godspeed tool call: find the tool, prepare and validate its arguments, ask the
-//! before-call hook, run it. A lesson's agent session calls its tools one at a time through a
-//! `ToolHost`, which also says whether a call ends the turn.
+//! before-call hook, run it. A lesson's agent session calls its tools through a `ToolHost`, which
+//! also says whether a call ends the turn and whether it runs alone.
 
 use std::collections::HashSet;
 use std::panic::AssertUnwindSafe;
@@ -14,7 +14,7 @@ use gs_runtime::{ToolReply, ToolSpec};
 
 use super::abort::Abort;
 use super::messages::{error_tool_result, parts_of, text_block};
-use super::tool::{Tool, ToolContext};
+use super::tool::{ExecutionMode, Tool, ToolContext};
 use super::validate::validate_tool_arguments;
 
 /// One call the `before_tool_call` hook decides on, with the whole reply it came in.
@@ -163,6 +163,11 @@ impl ToolHost {
 
 	pub fn may_hold(&self, name: &str) -> bool {
 		self.holding.contains(name)
+	}
+
+	/// Whether the tool's calls run alone, with no other call of the turn beside them.
+	pub fn runs_alone(&self, name: &str) -> bool {
+		self.tools.iter().any(|t| t.name() == name && t.execution_mode() == ExecutionMode::Sequential)
 	}
 
 	pub fn tool_names(&self) -> impl Iterator<Item = &str> {
