@@ -95,6 +95,17 @@ describe("the panel", () => {
 		assert.ok(el.querySelector("[data-testid='talk-chat']") === null, "the chat is in the other window");
 		assert.ok(el.querySelector("[role='tablist'], [role='tab']") === null, "no tabs");
 	});
+	it("on its way out it keeps what it showed, though the page that closes it would show another body", () => {
+		const el = mount(panel());
+		const body = () => el.querySelector("[data-testid='teacher-panel-body']")!;
+		assert.ok(body().querySelector("[data-testid='activity-list']"));
+		act(() => root!.render(inEvents(panel({ view: "chat", state: "closed" }))));
+		assert.ok(body().querySelector("[data-testid='activity-list']") && !body().querySelector("[data-testid='talk-chat']"), "closing: no swap");
+		assert.doesNotMatch(body().className, /lh-fade/);
+		act(() => root!.render(inEvents(panel({ view: "chat" }))));
+		assert.ok(body().querySelector("[data-testid='talk-chat']"), "open: the new body");
+		assert.match(body().className, /lh-fade/, "a swap fades");
+	});
 	it("head: the teacher's name beside its square, then Put back; the strip names the panel and closes it", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="teacher-panel-agent"[^>]*>(<[^>]*>)*<span[^>]*data-state="open"[^>]*>Ada</);
