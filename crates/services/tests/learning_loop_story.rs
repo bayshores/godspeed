@@ -112,7 +112,7 @@ impl Fixture {
 	/// every turn of a session that goes on.
 	fn input(&self, chat_id: &str) -> Vec<String> {
 		let mut parts = self.sends().pop().expect("a turn was sent");
-		let rules = every_turn_rules_for(&self.app, &self.app.stores.chats.get_chat(chat_id).unwrap());
+		let rules = every_turn_rules_for(&self.app, &self.app.stores.chats.get_chat(chat_id).unwrap(), &self.app.stores.settings.effective_settings().unwrap(), true);
 		if parts.last() == Some(&rules) {
 			parts.pop();
 		}

@@ -40,7 +40,7 @@ use super::homework::due_today_line_for;
 use super::lesson_problems::problems_view;
 use super::job_host::run_job;
 use super::lesson_session::{SessionPlan, SessionPlanFacts, opener, settle_session};
-use super::lesson_setup::{LessonTurn, every_turn_rules_for, lesson_setup};
+use super::lesson_setup::{LessonTurn, draws_figures, every_turn_rules_for, lesson_setup};
 use super::reply_nudges::{add_notes, call_refusal, reply_notes, take_notes};
 use super::review::askable;
 use super::turn_liveness::{begin_turn, end_turn, turn_started};
@@ -352,6 +352,7 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 		let teaching = has_probe_done(&merged);
 		lesson_setup(app, &record, effective, LessonTurn { chat_id: chat_id.to_owned(), teaching, side_turn, call_check: study.then(|| study_call_check(app, chat_id)) })
 	};
+	let figures = draws_figures(&setup);
 	let plan = SessionPlan {
 		chat_id: chat_id.to_owned(),
 		runtime,
@@ -365,7 +366,7 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 		fresh,
 		notes: if talk { None } else { take_notes(app, chat_id) },
 		opening: talk.then(|| talk_opening(app)),
-		rules: (!talk).then(|| every_turn_rules_for(app, &record)),
+		rules: (!talk).then(|| every_turn_rules_for(app, &record, effective, figures)),
 		due_today: if talk { None } else { due_today_line_for(app, &record) },
 	};
 	let facts = plan.facts();

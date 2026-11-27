@@ -26,7 +26,6 @@ use gs_core::spaces::space_tools::ToolOutcome;
 use gs_core::graph::ports::GraphStore;
 use gs_core::records::settings_resolution::graph_tools_enabled;
 use gs_core::records::teaching_areas::{every_turn_rules, learner_rules_section};
-use gs_core::messages::native_messages::has_probe_done;
 use gs_core::session::tool_switches::{VISUAL_TOOL, switched_off};
 use gs_engine::turn::tool_host::BeforeToolCallFn;
 use gs_json::{Json, json};
@@ -71,16 +70,15 @@ fn with_lesson_rules<T>(app: &App, effective: &Json, space_id: Option<&str>, tex
 	text(&effective["agent"]["rules"], space_rules.as_ref().map(|(name, rules)| (name.as_str(), rules.as_slice())))
 }
 
-/// The rules block a lesson's later turns end with (`every_turn_rules`). It names the
-/// figure tool while the lesson's teacher has it: the switch is on and its prober is done.
-pub fn every_turn_rules_for(app: &App, lesson: &Json) -> String {
-	let effective = app.stores.settings.effective_settings().unwrap_or_else(|err| {
-		eprintln!("[lesson turn] reading the settings for the learner's rules failed: {err}");
-		Json::Null
-	});
-	let probing = !matches!(ChatKind::of(lesson), ChatKind::Practice | ChatKind::Homework | ChatKind::Study) && !has_probe_done(lesson["messages"].items());
-	let figures = !probing && !switched_off(Some(&effective["agent"]["tools"]), VISUAL_TOOL);
-	with_lesson_rules(app, &effective, lesson["spaceId"].as_str(), |rules, space| every_turn_rules(rules, space, figures))
+/// Whether the turn's teacher has the figure tool.
+pub(super) fn draws_figures(setup: &LessonSetup) -> bool {
+	setup.host.tool_names().any(|name| name == VISUAL_TOOL)
+}
+
+/// The rules block a lesson's later turns end with (`every_turn_rules`). It names the figure
+/// tool only with `figures`, which is whether the turn's teacher has it (`draws_figures`).
+pub fn every_turn_rules_for(app: &App, lesson: &Json, effective: &Json, figures: bool) -> String {
+	with_lesson_rules(app, effective, lesson["spaceId"].as_str(), |rules, space| every_turn_rules(rules, space, figures))
 }
 
 /// search_graph over the lesson's own graph only, a few facts and chains at a time.
@@ -286,6 +284,26 @@ mod tests {
 		off.get_mut("graph").and_then(Json::as_obj_mut).unwrap().insert("enabled", false);
 		let study = names_for(&app, &json!({ "id": "chat_a", "kind": "study", "messages": [] }), &off);
 		assert!(!study.contains(&"search_graph".to_owned()), "{study:?}");
+	}
+
+	#[test]
+	fn the_rules_name_the_figure_tool_only_while_the_turn_s_teacher_has_it() {
+		let root = scratch_dir("lesson-agent-figure-rules");
+		let app = test_app(&root);
+		let effective = app.stores.settings.effective_settings().unwrap();
+		let named = |kind: &str, teaching: bool, effective: &Json| {
+			let record = json!({ "id": "chat_a", "kind": kind, "messages": [] });
+			let turn = LessonTurn { chat_id: "chat_a".to_owned(), teaching, side_turn: false, call_check: None };
+			let figures = draws_figures(&lesson_setup(&app, &record, effective, turn));
+			every_turn_rules_for(&app, &record, effective, figures).contains("`visual`")
+		};
+		assert!(named("study", false, &effective) && named("practice", false, &effective) && named("lesson", true, &effective));
+		assert!(!named("lesson", false, &effective), "a prober has no figure tool");
+		assert!(!named("homework", false, &effective), "homework with no problem list starts on the prober");
+		assert!(named("homework", true, &effective), "and goes on with the teacher");
+		let mut off = effective.clone();
+		off.get_mut("agent").and_then(Json::as_obj_mut).unwrap().insert("tools", json!({ "visual": false }));
+		assert!(!named("study", false, &off), "switched off");
 	}
 
 	#[test]

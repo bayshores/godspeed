@@ -87,7 +87,7 @@ impl Fixture {
 	fn input(&self, chat_id: &str) -> Vec<String> {
 		let sent = self.agent.sent().into_iter().rfind(|m| m["type"].as_str() == Some("send")).expect("a turn was sent");
 		let mut parts: Vec<String> = sent["content"].items().iter().filter_map(|p| p["text"].as_str().map(str::to_owned)).collect();
-		let rules = every_turn_rules_for(&self.app, &self.app.stores.chats.get_chat(chat_id).unwrap());
+		let rules = every_turn_rules_for(&self.app, &self.app.stores.chats.get_chat(chat_id).unwrap(), &self.app.stores.settings.effective_settings().unwrap(), true);
 		if parts.last() == Some(&rules) {
 			parts.pop();
 		}
