@@ -311,6 +311,15 @@ async fn a_source_mark_that_points_at_nothing_is_taken_out_and_noted_for_the_nex
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn a_panel_chat_loses_the_same_mark_and_keeps_no_note_of_it() {
+	let fx = lesson("session-talk-cites", Some("talk"), vec![vec![text("Sets are collections [[f_000000000000:9]].")]]);
+	fx.say("What is a set?").await;
+	fx.settled().await;
+	assert!(!fx.replies()[0].contains("[["), "{}", fx.replies()[0]);
+	assert!(fx.app.turns.notes.lock().is_empty(), "a panel chat is sent no notes, so none wait");
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn a_study_quiz_whose_question_reads_as_a_curve_is_refused_once() {
 	let options: Vec<Json> = ["U-shaped", "Flat", "Rising"].iter().map(|label| json!({ "label": label, "value": label })).collect();
 	let quiz = json!({ "type": "check", "nodeId": "t1", "question": CURVE, "options": options, "explanation": "It dips.", "correctAnswer": "U-shaped" });

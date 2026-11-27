@@ -318,13 +318,16 @@ fn study_call_check(app: &Arc<App>, chat_id: &str) -> BeforeToolCallFn {
 	})
 }
 
-/// Each finished text has its source marks checked; what it lost is noted for the next reply.
-fn cites_check(app: &Arc<App>, chat_id: &str) -> TextCheck {
+/// Each finished text has its source marks checked. A lesson notes what the text lost for its
+/// next reply; a panel chat (`noted` false) is sent no notes, so it keeps none.
+fn cites_check(app: &Arc<App>, chat_id: &str, noted: bool) -> TextCheck {
 	let (app, chat_id) = (Arc::downgrade(app), chat_id.to_owned());
 	Box::new(move |text: &str| {
 		let Some(app) = app.upgrade() else { return text.to_owned() };
 		let checked = check_cites(&app, text);
-		add_notes(&app, &chat_id, [mark_notes(&checked)]);
+		if noted {
+			add_notes(&app, &chat_id, [mark_notes(&checked)]);
+		}
 		checked.text
 	})
 }
@@ -367,7 +370,7 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 	};
 	let facts = plan.facts();
 	let parts = setup.parts;
-	let turn = SessionTurn::new(SessionTurnSpec { open: opener(app, plan), host: setup.host, check_text: cites_check(app, chat_id), before: context, model, folds_steers: agent == FolderAgent::Codex });
+	let turn = SessionTurn::new(SessionTurnSpec { open: opener(app, plan), host: setup.host, check_text: cites_check(app, chat_id, !talk), before: context, model, folds_steers: agent == FolderAgent::Codex });
 
 	turn.subscribe(turn_work::listener(app, chat_id, record["spaceId"].as_str(), if talk { talk_call } else { lesson_call }));
 	turn.on_desk(turn_work::desk_listener(app, chat_id));
