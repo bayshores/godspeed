@@ -184,27 +184,30 @@ fn check(svg: &str) -> Result<&str, Vec<String>> {
 	if problems.is_empty() { Ok(svg) } else { Err(problems) }
 }
 
-/// A checked figure as it is stored. A root with no size of its own gets its view box cut to
-/// the drawing (`drawn`, when the drawing could be measured) and a size from it, no wider than
-/// the text column. The root gains each default it does not say.
-fn stored(svg: &str, drawn: Option<[f64; 4]>) -> String {
+/// A checked figure with each default its root does not say, so it is measured, drawn and stored
+/// as the window draws it.
+fn with_defaults(svg: &str) -> String {
+	let root = attributes(&svg[4..tag_end(svg)]);
+	let added: String = ROOT_DEFAULTS.iter().filter(|(name, _)| !root.iter().any(|(n, _)| n == name)).map(|(name, value)| format!(" {name}=\"{value}\"")).collect();
+	format!("<svg{added}{}", &svg[4..])
+}
+
+/// The figure as it is stored. A root with no size of its own gets its view box cut to the
+/// drawing (`drawn`, when the drawing could be measured) and a size from it, no wider than the
+/// text column.
+fn sized(svg: &str, drawn: Option<[f64; 4]>) -> String {
 	let end = tag_end(svg);
 	let root = attributes(&svg[4..end]);
 	let has = |name: &str| root.iter().any(|(n, _)| *n == name);
-	let (mut tag, mut added) = (svg[4..end].to_owned(), String::new());
-	if !has("width") && !has("height") && let Some(asked) = view_box(&root) {
-		let [left, top, width, height] = drawn.map_or(asked, |drawn| trimmed(asked, drawn));
-		let value = root.iter().find(|(name, _)| *name == "viewBox").map_or("", |(_, value)| value);
-		// The value's place in the tag: both are slices of `svg`.
-		let at = value.as_ptr() as usize - svg.as_ptr() as usize - 4;
-		tag.replace_range(at..at + value.len(), &[left, top, width, height].map(|n| to_fixed(n, 0)).join(" "));
-		let scale = (MAX_WIDTH / width).min(1.0);
-		added = format!(" width=\"{}\" height=\"{}\"", to_fixed(width * scale, 0), to_fixed(height * scale, 0));
-	}
-	for (name, value) in ROOT_DEFAULTS.iter().filter(|(name, _)| !has(name)) {
-		added.push_str(&format!(" {name}=\"{value}\""));
-	}
-	format!("<svg{added}{tag}{}", &svg[end..])
+	let Some(asked) = view_box(&root).filter(|_| !has("width") && !has("height")) else { return svg.to_owned() };
+	let [left, top, width, height] = drawn.map_or(asked, |drawn| trimmed(asked, drawn));
+	let value = root.iter().find(|(name, _)| *name == "viewBox").map_or("", |(_, value)| value);
+	// The value's place in the tag: both are slices of `svg`.
+	let at = value.as_ptr() as usize - svg.as_ptr() as usize - 4;
+	let mut tag = svg[4..end].to_owned();
+	tag.replace_range(at..at + value.len(), &[left, top, width, height].map(|n| to_fixed(n, 0)).join(" "));
+	let scale = (MAX_WIDTH / width).min(1.0);
+	format!("<svg width=\"{}\" height=\"{}\"{tag}{}", to_fixed(width * scale, 0), to_fixed(height * scale, 0), &svg[end..])
 }
 
 /// The figure with the color names as real colors, for the render the teacher looks at.
@@ -219,13 +222,14 @@ async fn draw(headless: &dyn HeadlessApi, args: &Json) -> Json {
 	};
 	// Measuring reads fonts and lays out text: off the async threads. A figure this renderer
 	// cannot read keeps its view box, and the drawing below says why if nothing can draw it.
-	let colored = for_the_check(svg);
+	let svg = with_defaults(svg);
+	let colored = for_the_check(&svg);
 	let drawn = match gs_base::tasks::spawn_blocking("figure", move || drawn_box(&colored)).await {
 		Ok(Ok(None)) => return invalid_input_result(VISUAL_TOOL, &["The figure draws nothing.".to_owned()]),
 		Ok(Ok(Some(drawn))) => Some(drawn),
 		Ok(Err(_)) | Err(_) => None,
 	};
-	let svg = stored(svg, drawn);
+	let svg = sized(&svg, drawn);
 	match headless.render_svg(&for_the_check(&svg)).await {
 		Ok(png) => json!({
 			"content": [text_block(SHOWN_TEXT), { "type": "image", "data": base64::encode(&png), "mimeType": "image/png" }],
@@ -275,8 +279,15 @@ mod tests {
 	#[test]
 	fn a_wide_figure_is_no_wider_than_the_text_column() {
 		let svg = r#"<svg viewBox="0 0 1440 720"><path d="M0 0H1440V720"/></svg>"#;
-		assert!(stored(svg, None).starts_with(r#"<svg width="720" height="360" "#));
-		assert!(stored(svg, Some([0.0, 0.0, 1440.0, 720.0])).contains(r#" width="720" height="368" "#), "the margin joins the box before it is scaled");
+		assert!(sized(svg, None).starts_with(r#"<svg width="720" height="360" "#));
+		assert!(sized(svg, Some([0.0, 0.0, 1440.0, 720.0])).contains(r#" width="720" height="368" "#), "the margin joins the box before it is scaled");
+	}
+
+	#[tokio::test]
+	async fn the_drawing_is_measured_with_the_root_s_defaults() {
+		let result = call(r#"<svg viewBox="0 0 200 100"><title>Line</title><path d="M50 50H150" fill="none" stroke="var(--ink)" stroke-width="20"/></svg>"#).await;
+		// The default round line ends reach 10 past each end of the line.
+		assert!(result["details"]["svg"].str_or_empty().contains(r#" viewBox="24 24 152 52">"#), "{result:?}");
 	}
 
 	#[tokio::test]
