@@ -36,10 +36,10 @@ fn answer_schema(schema: &Json) -> Json {
 pub async fn ask_for_plugin(agent: &dyn JobAgent, input: PluginAsk) -> Result<Json, RunError> {
 	let prompt = format!("{} asks:\n\n{}", input.name, input.prompt);
 	let mut opts = SubmitAgentOptions::new("plugin_answer", "Send the plugin its answer.", answer_schema(&input.schema), PLUGIN_INSTRUCTIONS.to_owned(), Json::from(prompt), "the agent never answered");
-	opts.label = ask_label(&input.name);
+	opts.run.label = ask_label(&input.name);
 	// The learner asked for it.
-	opts.priority = Priority::Waited;
-	opts.abort = Some(input.signal);
+	opts.run.priority = Priority::Waited;
+	opts.run.abort_signal = Some(input.signal);
 	let submitted = run_submit_agent(agent, opts).await?;
 	Ok(submitted["answer"].clone())
 }

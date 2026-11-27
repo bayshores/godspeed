@@ -6,10 +6,11 @@ use std::sync::Arc;
 
 use gs_base::hash::sha256_text;
 use gs_base::{clock, time};
+use gs_core::contracts::chat::ChatKind;
 use gs_core::spaces::problem_list::with_problem_lists;
 use gs_core::spaces::today_note::local_day;
 use gs_core::graph::graph::get_graph;
-use gs_core::session::plan_step_bar::{current_step_title, plan_position_lh, steps_done_lh};
+use gs_core::session::plan_step_bar::step_bar;
 use gs_core::session::practice_outcomes::practice_outcomes;
 use gs_core::study::kept::{KeptSentence, kept_comebacks, kept_sentences};
 use gs_core::study::progress::{collect_answers, derive_progress, facts_by_message, facts_for_answer};
@@ -52,7 +53,7 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 	}
 	let record = app.stores.chats.get_chat(chat_id)?;
 	let messages = record["messages"].items();
-	let has_plan = !record["tree"]["nodes"].items().is_empty() && record["kind"].as_str() != Some("practice");
+	let has_plan = !record["tree"]["nodes"].items().is_empty() && ChatKind::of(&record) != ChatKind::Practice;
 	let readout = Arc::new(Readout {
 		version,
 		answers: collect_answers(chat_id, messages),
@@ -80,15 +81,15 @@ fn plan_state(tree: &Json, messages: &[Json]) -> Obj {
 	let stop = lesson_stop(messages, Some(tree), None);
 	// The step bar ticks the current step at its topic's stop, as stepsRow does.
 	let finished = stop.as_ref().filter(|s| s["kind"].as_str() != Some("problem") && !s["keptGoing"].truthy()).and_then(|s| s["nodeId"].as_str());
-	let position = plan_position_lh(tree, messages);
+	let bar = step_bar(tree, messages, finished);
 	let mut out = Obj::new();
-	out.insert("done", steps_done_lh(tree, messages, finished) as f64);
-	out.insert("total", position["total"].clone());
-	out.insert("step", position["done"].clone());
+	out.insert("done", bar.done as f64);
+	out.insert("total", bar.total as f64);
+	out.insert("step", bar.step as f64);
 	let (key, value) = match stop {
 		Some(stop) if stop["kind"].as_str() == Some("end") => ("endedAt", Some(stop["at"].clone())),
 		Some(stop) if !stop["keptGoing"].truthy() => ("stop", Some(json!({ "at": stop["at"], "next": stop["next"] }))),
-		_ => ("inTopic", current_step_title(tree, messages)),
+		_ => ("inTopic", bar.current_title),
 	};
 	if let Some(value) = value {
 		out.insert(key, value);
@@ -280,7 +281,7 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 		if c["spaceId"].as_str() != scope {
 			continue;
 		}
-		if c["kind"].as_str() == Some("homework") && c["deadlineId"].truthy() {
+		if ChatKind::of(c) == ChatKind::Homework && c["deadlineId"].truthy() {
 			homework_sessions.push(json!({ "chatId": c["id"], "deadlineId": c["deadlineId"], "createdAt": c["createdAt"] }));
 		}
 		let Some(readout) = lesson_readout(app, c["id"].str_or_empty()) else { continue };
@@ -290,13 +291,13 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 			lesson.insert("plan", plan.clone());
 		}
 		lessons.push(Json::Obj(lesson));
-		if c["kind"].as_str() == Some("study") {
+		if ChatKind::of(c) == ChatKind::Study {
 			let today_stops = readout.topic_stops.iter().filter(|(_, at)| time::parse_date(at).map(local_day).as_deref() == Some(today.as_str()));
 			finished_today.extend(today_stops.map(|(node, _)| node.clone()));
 		}
 		// A lesson whose agent has not written its plan yet is the deadline's session too,
 		// uncounted. A homework lesson is never one: Study for the deadline would reopen it.
-		if c["deadlineId"].truthy() && c["kind"].as_str() != Some("homework") {
+		if c["deadlineId"].truthy() && ChatKind::of(c) != ChatKind::Homework {
 			let mut session = Obj::new();
 			session.insert("chatId", c["id"].clone());
 			session.insert("deadlineId", c["deadlineId"].clone());
@@ -336,7 +337,7 @@ pub(super) fn studied_on(app: &App, space_id: &str, day: &str) -> HashSet<String
 	let mut ids = HashSet::new();
 	for c in app.stores.chats.list_chats() {
 		let created_day = time::parse_date(c["createdAt"].str_or_empty()).map(local_day);
-		if c["kind"].as_str() != Some("study") || c["spaceId"].as_str() != Some(space_id) || created_day.as_deref() != Some(day) {
+		if ChatKind::of(&c) != ChatKind::Study || c["spaceId"].as_str() != Some(space_id) || created_day.as_deref() != Some(day) {
 			continue;
 		}
 		let record = app.stores.chats.get_chat(c["id"].str_or_empty());

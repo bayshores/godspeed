@@ -1,5 +1,5 @@
-//! The space tools' descriptions and argument texts (src/shared/core/space-tools.ts). They go to
-//! the teacher panel's chat, lessons and deadline requests, so they stay word for word the same as the TypeScript's.
+//! The space tools' descriptions and argument texts. They go to the teacher panel's chat, lessons
+//! and deadline requests; the golden test in `crates/core/tests/spaces_golden.rs` pins their words.
 
 use std::sync::LazyLock;
 
@@ -143,3 +143,15 @@ pub static SPACE_ARG_TEXT: LazyLock<SpaceArgText> = LazyLock::new(|| SpaceArgTex
 	vault_limit: "Most notes to return (default 8).",
 	vault_space: "Only notes in this space's folder of the vault.",
 });
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::spaces::space_deadlines::PAST_ADD_DAYS;
+
+	#[test]
+	fn the_add_deadline_text_names_the_late_add_days() {
+		let text = SPACE_TOOL_TEXT.iter().find(|(name, _)| *name == "add_space_deadline").map(|(_, text)| *text).unwrap_or_default();
+		assert!(text.contains(&format!("more than {PAST_ADD_DAYS} days ago")));
+	}
+}

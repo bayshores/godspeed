@@ -135,13 +135,13 @@ pub async fn reply_on_sheet(agent: &dyn JobAgent, input: SheetRequest) -> Result
 		}
 	}));
 	opts.lookups = input.lookups;
-	opts.max_calls = Some(10);
-	opts.label = format!("Cheat sheet: {}", input.title);
+	opts.run.max_calls = 10;
+	opts.run.label = format!("Cheat sheet: {}", input.title);
 	// The learner asked for it.
-	opts.priority = Priority::Waited;
-	opts.cwd = Some(input.folder);
-	opts.approve = Some(input.approve);
-	opts.abort = Some(input.signal);
+	opts.run.priority = Priority::Waited;
+	opts.run.cwd = Some(input.folder);
+	opts.run.approve = Some(input.approve);
+	opts.run.abort_signal = Some(input.signal);
 	let reply = run_submit_agent(agent, opts).await?;
 	let rules = reply["rules"].items().iter().filter_map(|r| r.as_str().map(str::to_owned)).collect();
 	let pdf = pdf.lock().take();

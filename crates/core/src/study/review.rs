@@ -12,7 +12,7 @@ use gs_json::{Json, Obj, json};
 use crate::messages::role::Role;
 use super::progress::{answer_outcome, days_between};
 use super::topic_end::{ended_topics, lesson_stop, shown_openers, sitting_start};
-use crate::contracts::chat::TOPIC_DONE_TOOL;
+use crate::contracts::chat::{ChatKind, TOPIC_DONE_TOOL};
 use crate::messages::native_messages::{active_problem_of, dangling_question_of};
 use crate::messages::pending::is_question_tool;
 use crate::messages::tool_calls;
@@ -322,7 +322,7 @@ fn usable_item<'a>(items: &'a [Json], node: &str, today: &str, shown: &HashMap<S
 /// question, problem, opener or stop open.
 pub fn review_window_open(record: &Json, now_ms: i64, busy: bool) -> bool {
 	let messages = record["messages"].items();
-	if !busy || record["kind"].as_str() != Some("study") || dangling_question_of(messages).is_some() || active_problem_of(messages).is_some() {
+	if !busy || ChatKind::of(record) != ChatKind::Study || dangling_question_of(messages).is_some() || active_problem_of(messages).is_some() {
 		return false;
 	}
 	if shown_openers(messages).values().any(|o| o.get("answer").is_none()) || lesson_stop(messages, Some(&record["tree"]), None).is_some_and(|s| !s["keptGoing"].truthy()) {

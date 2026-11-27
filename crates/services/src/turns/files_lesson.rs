@@ -7,6 +7,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use gs_base::clock;
+use gs_core::contracts::chat::ChatKind;
 use gs_core::contracts::space::is_upcoming;
 use gs_core::study::homework::has_problems;
 use gs_json::Json;
@@ -111,7 +112,7 @@ fn unfinished_on(app: &App, space_id: &str, file_id: &str) -> Result<Option<Stri
 		.chats
 		.list_chats()
 		.into_iter()
-		.filter(|c| c["spaceId"].as_str() == Some(space_id) && c["kind"].as_str() == Some("study") && c["fileIds"][0].as_str() == Some(file_id))
+		.filter(|c| c["spaceId"].as_str() == Some(space_id) && ChatKind::of(c) == ChatKind::Study && c["fileIds"][0].as_str() == Some(file_id))
 		.filter_map(|c| c["id"].as_str().map(str::to_owned))
 		.collect();
 	if on_file.is_empty() {

@@ -12,8 +12,10 @@ use std::sync::Arc;
 
 use gs_base::clock;
 use gs_base::events::EventKind;
+use gs_core::contracts::space::base_name;
 use gs_core::session::approval_card::approval_card;
-use gs_core::session::lesson_steps::{LessonCall, base_name, pdf_progress};
+use gs_core::session::jobs::JobKind;
+use gs_core::session::lesson_steps::{LessonCall, pdf_progress};
 use gs_core::session::teacher_steps::{StepNames, TeacherStep, keep_step, own_tool_input_step, step_head};
 use gs_core::session::turn_cause::TurnCause;
 use gs_engine::turn::events::{AgentEvent, Listener};
@@ -150,7 +152,7 @@ pub(super) fn desk_listener(app: &Arc<App>, chat_id: &str) -> DeskListener {
 /// A job's new activity line: the PDF reader's progress is a step on its lesson's desk, at the
 /// page it reads.
 pub(super) fn job_activity(app: &App, job_id: &str, line: &str) {
-	let Some(job) = app.stores.jobs.get_job(job_id).filter(|job| job["kind"].as_str() == Some("pdf")) else { return };
+	let Some(job) = app.stores.jobs.get_job(job_id).filter(|job| job["kind"].as_str() == Some(JobKind::Pdf.name())) else { return };
 	let Some(path) = job["input"]["path"].as_str().map(gs_base::text::trim).filter(|p| !p.is_empty()) else { return };
 	let Some((step, page)) = pdf_progress(line, base_name(path)) else { return };
 	note_step(app, job["chatId"].str_or_empty(), step, None, path_reading(path, None, None, page));

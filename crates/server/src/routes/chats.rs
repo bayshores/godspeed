@@ -13,13 +13,14 @@ use gs_base::clock;
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::text;
+use gs_core::contracts::chat::ChatKind;
 use gs_core::contracts::space::parse_space_scope;
 use gs_core::graph::graph_deletion::ChatDeleteMode;
 use gs_core::messages::input_events::{TurnInput, dismiss_appends, parse_chat_input, parse_dismiss_input, parse_user_steer_input};
 use gs_core::messages::native_messages::new_user_steer;
 use gs_core::mocks::mock::is_mock_id;
 use gs_core::session::download_slug::slugify;
-use gs_core::session::jobs::set_steer_ui_inverted;
+use gs_core::session::jobs::{JobKind, set_steer_ui_inverted};
 use gs_core::session::prices::session_cost;
 use gs_core::session::session_markdown::session_markdown;
 use gs_core::study::kept::KeptPart;
@@ -96,7 +97,7 @@ async fn chat(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhan
 /// panel's chats instead.
 async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
 	let params = query(&uri);
-	if param(&params, "kind") == Some("talk") {
+	if param(&params, "kind") == Some(ChatKind::Talk.name()) {
 		return Ok(reply::json_no_store(200, &json!({ "chats": talk_chats(&app) })));
 	}
 	start_space_scanner(&app);
@@ -119,7 +120,7 @@ async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandl
 /// `model` when one was picked first.
 async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
 	let body = fields(body).await?;
-	if body["kind"].as_str() == Some("talk") {
+	if ChatKind::of(&body) == ChatKind::Talk {
 		return Ok(match create_talk_chat(&app, body["text"].as_str().unwrap_or_default(), body["model"].as_str()) {
 			Ok(created) => reply::json(200, &json!({ "id": created["id"], "title": created["title"] })),
 			Err(refused) => error(400, &refused),
@@ -249,7 +250,7 @@ async fn rename(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body)
 /// in what they destroy. A talk chat, and an older build's Talk chat, are not lessons and are
 /// never deleted here.
 async fn remove(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> Result<Response, Unhandled> {
-	if app.stores.chats.get_chat(&id).is_some_and(|chat| chat["kind"].as_str() == Some("talk")) {
+	if app.stores.chats.get_chat(&id).is_some_and(|chat| ChatKind::of(&chat) == ChatKind::Talk) {
 		return Ok(reply::coded(404, "No such lesson", "not_found"));
 	}
 	let params = query(&uri);
@@ -276,7 +277,7 @@ async fn artifact_ui(State(app): State<Arc<App>>, Path(id): Path<String>, body: 
 	};
 	let messages = chat["messages"].items();
 	let target = messages.iter().find(|m| m["id"].as_str() == Some(message_id));
-	if target.is_none_or(|m| m["details"]["kind"].as_str() != Some("demo")) {
+	if target.is_none_or(|m| m["details"]["kind"].as_str() != Some(JobKind::Demo.name())) {
 		return Ok(error(400, "No demo steer with that message id"));
 	}
 	app.stores.chats.save_messages(&id, &set_steer_ui_inverted(messages, message_id, inverted))?;

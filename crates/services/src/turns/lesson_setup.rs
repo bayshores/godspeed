@@ -20,6 +20,7 @@ use gs_agent::tools::rules::SaveRule;
 use gs_agent::tools::side::LessonSide;
 use gs_agent::tools::space_actions::SpaceActions;
 use gs_base::{text, time};
+use gs_core::contracts::chat::ChatKind;
 use gs_core::session::plan::agent_writes_plan;
 use gs_core::spaces::space_tools::ToolOutcome;
 use gs_core::graph::ports::GraphStore;
@@ -77,7 +78,7 @@ pub fn every_turn_rules_for(app: &App, lesson: &Json) -> String {
 		eprintln!("[lesson turn] reading the settings for the learner's rules failed: {err}");
 		Json::Null
 	});
-	let probing = !matches!(lesson["kind"].as_str(), Some("practice" | "homework" | "study")) && !has_probe_done(lesson["messages"].items());
+	let probing = !matches!(ChatKind::of(lesson), ChatKind::Practice | ChatKind::Homework | ChatKind::Study) && !has_probe_done(lesson["messages"].items());
 	let figures = !probing && !switched_off(Some(&effective["agent"]["tools"]), VISUAL_TOOL);
 	with_lesson_rules(app, &effective, lesson["spaceId"].as_str(), |rules, space| every_turn_rules(rules, space, figures))
 }
@@ -177,17 +178,16 @@ pub(super) fn lesson_setup(app: &Arc<App>, record: &Json, effective: &Json, turn
 	let teacher = || TeacherToolContext { plan: PlanContext { chat_id: chat_id.clone(), chat_store: chats.clone() }, jobs: jobs.clone(), side: side.clone() };
 
 	let pages = problem_pages(app, lesson_scope, None);
-	let kind = record["kind"].as_str();
-	match (kind, lesson_problem_list(app, record)) {
-		(Some("practice"), _) => {
+	match (ChatKind::of(record), lesson_problem_list(app, record)) {
+		(ChatKind::Practice, _) => {
 			let ctx = PracticeToolContext { chat_id, chat_store: chats, graph_nodes: Some(graph_nodes(app, lesson_scope)), jobs: Some(jobs), side, pages };
 			practice_setup(&ctx, opts)
 		}
-		(Some("homework"), Some(homework)) => {
+		(ChatKind::Homework, Some(homework)) => {
 			let ctx = HomeworkToolContext { chat_id, chat_store: chats, homework, jobs: Some(jobs), side, pages: problem_pages(app, lesson_scope, record["deadlineId"].as_str()) };
 			homework_setup(&ctx, opts)
 		}
-		(Some("study"), problems) => {
+		(ChatKind::Study, problems) => {
 			let marks_app = app.clone();
 			let check_marks = Arc::new(move |text: &str| check_cites(&marks_app, text));
 			// Study sends deadline changes outside lessons, so it has no deadline tools.

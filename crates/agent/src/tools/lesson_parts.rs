@@ -15,6 +15,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gs_core::messages::role::is_ok_tool_result;
 use gs_core::session::plot::{PLOT_TOOL, check_plot, plot_details};
+use gs_core::session::question_core::QUIZ_TOOL;
 use gs_core::study::topic_parts::{GUESS_DROPPED, GUESS_HELD, PLOT_DROPPED, PLOT_HELD, first_topic, question_open, reply_parts_problems};
 use gs_engine::turn::tool_host::BeforeToolCallFn;
 use gs_engine::turn::messages::{text_block, tool_calls};
@@ -27,7 +28,7 @@ use super::practice::record_messages;
 use super::questions::{node_ids_in, study_quiz_call};
 
 /// The tools whose calls it may hold: the plot, and the quiz as a guess.
-pub const HOLDS: [&str; 2] = [PLOT_TOOL, "quiz"];
+pub const HOLDS: [&str; 2] = [PLOT_TOOL, QUIZ_TOOL];
 
 /// What the agent reads for a plot the hook never decided on, which only a plot tool run without
 /// its hook can meet.

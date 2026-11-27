@@ -17,7 +17,7 @@ use crate::messages::native_messages::{ActiveProblem, PRACTICE_CONCLUDE_TOOL, PR
 use crate::messages::tool_calls;
 use crate::session::plan::{TAGGING_TOOLS, derive_plan_statuses_lh};
 use crate::session::plan_step_bar::ordered_plan_ids;
-use crate::session::question_core::normalize_quiz_type;
+use crate::session::question_core::{QUIZ_TOOL, normalize_quiz_type};
 
 const MINUTE_MS: f64 = 60_000.0;
 /// A longer gap between lesson events counts as this long.
@@ -195,7 +195,7 @@ pub fn finished_topics(messages: &[Json]) -> Vec<(String, bool)> {
 					set(stop["nodeId"].as_str(), Some(false));
 				}
 			}
-			Some("quiz") => {
+			Some(QUIZ_TOOL) => {
 				let predict = normalize_quiz_type(if m["details"]["questionType"].is_null() { &args["type"] } else { &m["details"]["questionType"] }) == Some("predict");
 				match answer_outcome(&m["details"]) {
 					Some(_) if predict => {}

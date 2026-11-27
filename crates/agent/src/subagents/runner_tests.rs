@@ -285,9 +285,9 @@ fn sources_come_from_cited_links_then_fetched_urls() {
 
 #[test]
 fn failure_shapes_per_kind() {
-	assert_eq!(failure_result("demo", Some(&json!({ "title": "  " })), "r"), json!({ "title": "Interactive demo", "html": "", "tested": true, "notes": "FAILED: r" }));
-	assert_eq!(failure_result("demo", Some(&json!({ "title": " T " })), "r")["title"], Json::from(" T "));
-	assert_eq!(failure_result("research", None, "r"), json!({ "brief": "Research failed: r", "sources": [] }));
+	assert_eq!(failure_result(JobKind::Demo, Some(&json!({ "title": "  " })), "r"), json!({ "title": "Interactive demo", "html": "", "tested": true, "notes": "FAILED: r" }));
+	assert_eq!(failure_result(JobKind::Demo, Some(&json!({ "title": " T " })), "r")["title"], Json::from(" T "));
+	assert_eq!(failure_result(JobKind::Research, None, "r"), json!({ "brief": "Research failed: r", "sources": [] }));
 }
 
 #[test]

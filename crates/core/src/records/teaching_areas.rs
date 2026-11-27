@@ -28,7 +28,7 @@ pub const TEACHING_AREAS: [TeachingArea; 6] = [
 
 /// One line of at most `max` code points: control, format and line-separator characters become
 /// spaces, runs of whitespace one space, trimmed.
-pub fn one_line(raw: &str, max: usize) -> String {
+pub fn clean_line(raw: &str, max: usize) -> String {
 	static INVISIBLE: LazyLock<Re> = LazyLock::new(|| Re::new(r"[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]", "gu"));
 	let line = collapse_spaces(&INVISIBLE.replace(raw, " "));
 	let cut: String = gs_json::lone::pair_up(text::trim(&line)).chars().take(max).collect();
@@ -40,7 +40,7 @@ pub fn sanitize_rules(raw: &Json) -> Vec<String> {
 	let mut out: Vec<String> = Vec::new();
 	for entry in raw.items().iter() {
 		let Some(entry) = entry.as_str() else { continue };
-		let rule = one_line(entry, RULE_MAX_CHARS);
+		let rule = clean_line(entry, RULE_MAX_CHARS);
 		if !rule.is_empty() && !out.contains(&rule) {
 			out.push(rule);
 		}
@@ -122,8 +122,8 @@ mod tests {
 
 	#[test]
 	fn rules_are_cleaned_and_deduplicated() {
-		assert_eq!(one_line("a\u{200b}\tb\u{2028}c  ", 200), "a b c");
-		assert_eq!(one_line("😀😀😀", 2), "😀😀");
+		assert_eq!(clean_line("a\u{200b}\tb\u{2028}c  ", 200), "a b c");
+		assert_eq!(clean_line("😀😀😀", 2), "😀😀");
 		assert_eq!(sanitize_rules(&json!(["x", 1, " x ", "y"])), ["x", "y"]);
 		assert!(sanitize_rules(&json!("x")).is_empty());
 	}

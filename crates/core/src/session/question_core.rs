@@ -14,6 +14,9 @@ use gs_json::js_text::js_string;
 use super::schema::{array, boolean, described, object, one_of_literals, string};
 use crate::messages::value_debris::strip_model_value_debris;
 
+/// The multiple-choice and free-recall question tool.
+pub const QUIZ_TOOL: &str = "quiz";
+
 /// The answer record as the model sees it: only what is new information, in this key order.
 pub fn compact_answer_for_model(ad: &Json) -> Json {
 	let mut out = Obj::new();

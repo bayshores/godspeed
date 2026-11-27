@@ -1,12 +1,11 @@
-//! One record message flattened for an outside reader: its role, its text and its tool calls.
+//! One record message flattened to its role, its text and its tool calls.
 
-use gs_json::{Json, Obj, json};
+use gs_json::{Json, Obj};
 
 use crate::messages::role::Role;
 
-/// Text with each image as "[image N]", the image itself going to `images` as
-/// `{data, mimeType}`. Without a collector (fingerprints) an image is "[image]".
-fn text_of(content: &Json, mut images: Option<&mut Vec<Json>>) -> String {
+/// Text with each image as "[image]".
+fn text_of(content: &Json) -> String {
 	let blocks = match content {
 		Json::Str(s) => return s.clone(),
 		Json::Arr(blocks) => blocks,
@@ -16,13 +15,7 @@ fn text_of(content: &Json, mut images: Option<&mut Vec<Json>>) -> String {
 		.iter()
 		.map(|c| match c["type"].as_str() {
 			Some("text") => c["text"].str_or_empty().to_owned(),
-			Some("image") => match (images.as_deref_mut(), c["data"].as_str(), c["mimeType"].as_str()) {
-				(Some(images), Some(data), Some(mime_type)) => {
-					images.push(json!({ "data": data, "mimeType": mime_type }));
-					format!("[image {}]", images.len())
-				}
-				_ => "[image]".to_owned(),
-			},
+			Some("image") => "[image]".to_owned(),
 			_ => String::new(),
 		})
 		.filter(|p| !p.is_empty())
@@ -36,12 +29,12 @@ fn put(obj: &mut Obj, key: &str, value: Option<&Json>) {
 	}
 }
 
-/// One message flattened for an outside reader; none for a system message without text.
-pub fn render_message(m: &Json, images: Option<&mut Vec<Json>>) -> Option<Json> {
+/// One message flattened; none for a system message without text or a role with no flat form.
+pub(super) fn render_message(m: &Json) -> Option<Json> {
 	let mut out = Obj::new();
 	match Role::of(m) {
 		Some(Role::System) => {
-			let mut parts = vec![text_of(&m["content"], None)];
+			let mut parts = vec![text_of(&m["content"])];
 			parts.extend(m["sections"].as_obj().into_iter().flat_map(|s| s.values()).filter_map(|v| v.as_str().map(str::to_owned)));
 			parts.retain(|p| !p.is_empty());
 			if parts.is_empty() {
@@ -52,7 +45,7 @@ pub fn render_message(m: &Json, images: Option<&mut Vec<Json>>) -> Option<Json> 
 		}
 		Some(Role::User) => {
 			out.insert("role", Role::User.as_str());
-			out.insert("text", text_of(&m["content"], images));
+			out.insert("text", text_of(&m["content"]));
 		}
 		Some(Role::Assistant) => {
 			let blocks = m["content"].items();
@@ -82,10 +75,9 @@ pub fn render_message(m: &Json, images: Option<&mut Vec<Json>>) -> Option<Json> 
 			for key in ["toolCallId", "toolName", "isError"] {
 				put(&mut out, key, m.get(key));
 			}
-			out.insert("text", text_of(&m["content"], images));
+			out.insert("text", text_of(&m["content"]));
 		}
-		// The TS returns undefined, which JSON writes as null.
-		_ => return Some(Json::Null),
+		_ => return None,
 	}
 	Some(Json::Obj(out))
 }

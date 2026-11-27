@@ -8,7 +8,30 @@ use gs_json::{Json, Obj, json};
 
 use gs_json::js_text::{field_text, js_string};
 use crate::messages::role::Role;
-use crate::session::lesson_steps::base_name;
+use crate::contracts::space::base_name;
+
+/// The background job kinds; the job tool of each kind has the kind's name. A record of a kind
+/// that no longer runs (the old figure job) has none.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum JobKind {
+	Research,
+	Demo,
+	Pdf,
+}
+
+impl JobKind {
+	pub const fn name(self) -> &'static str {
+		match self {
+			JobKind::Research => "research",
+			JobKind::Demo => "demo",
+			JobKind::Pdf => "pdf",
+		}
+	}
+
+	pub fn of(name: &str) -> Option<JobKind> {
+		[JobKind::Research, JobKind::Demo, JobKind::Pdf].into_iter().find(|kind| kind.name() == name)
+	}
+}
 
 fn number(v: &Json, key: &str) -> Option<f64> {
 	v.get(key).and_then(Json::as_f64)
@@ -89,7 +112,7 @@ pub fn set_steer_ui_inverted(messages: &[Json], message_id: &str, inverted: bool
 		.iter()
 		.map(|m| {
 			let details = &m["details"];
-			if m["id"].as_str() != Some(message_id) || details["kind"].as_str() != Some("demo") {
+			if m["id"].as_str() != Some(message_id) || details["kind"].as_str() != Some(JobKind::Demo.name()) {
 				return m.clone();
 			}
 			let mut ui = details["ui"].as_obj().cloned().unwrap_or_default();
@@ -109,10 +132,11 @@ pub fn is_subagent_failure(kind: &str, result: &Json) -> bool {
 	static PDF_FAILED: LazyLock<Re> = LazyLock::new(|| Re::new("^PDF failed:", "i"));
 	let failed_brief = |prefix: &Re| prefix.test(&field_text(result, "brief"));
 	let empty = |key: &str| result[key].as_str().is_none_or(str::is_empty);
-	match kind {
-		"research" => result["sources"].as_arr().is_some_and(Vec::is_empty) && failed_brief(&RESEARCH_FAILED),
-		"pdf" => failed_brief(&PDF_FAILED),
-		_ => empty("html"),
+	match JobKind::of(kind) {
+		Some(JobKind::Research) => result["sources"].as_arr().is_some_and(Vec::is_empty) && failed_brief(&RESEARCH_FAILED),
+		Some(JobKind::Pdf) => failed_brief(&PDF_FAILED),
+		// A removed kind's record is judged like a demo.
+		Some(JobKind::Demo) | None => empty("html"),
 	}
 }
 
@@ -132,27 +156,28 @@ fn notes_text(result: &Json, fallback: &str) -> String {
 /// The model-facing text of a steer: what the result is and what to do with it.
 fn steer_text(kind: &str, result: &Json) -> String {
 	let brief = field_text(result, "brief");
+	let known = JobKind::of(kind);
 	if is_subagent_failure(kind, result) {
-		return match kind {
-			"research" => format!("{brief}\n\nContinue with what you can establish and flag the uncertainty to the learner."),
-			"pdf" => format!("{brief}\n\nContinue with what you can establish from the session and flag the gap to the learner."),
-			_ => format!("The demo \"{}\" could not be built: {}. Fall back to explaining in prose; if the brief was the problem, re-call demo with a tighter one.", field_text(result, "title"), notes_text(result, "unknown reason")),
+		return match known {
+			Some(JobKind::Research) => format!("{brief}\n\nContinue with what you can establish and flag the uncertainty to the learner."),
+			Some(JobKind::Pdf) => format!("{brief}\n\nContinue with what you can establish from the session and flag the gap to the learner."),
+			Some(JobKind::Demo) | None => format!("The demo \"{}\" could not be built: {}. Fall back to explaining in prose; if the brief was the problem, re-call demo with a tighter one.", field_text(result, "title"), notes_text(result, "unknown reason")),
 		};
 	}
-	match kind {
-		"research" => format!("Research complete \u{2014} the researcher's full brief follows. Weave it into the lesson and cite its sources when you use its findings:\n\n{brief}"),
-		"pdf" => format!("PDF reading complete \u{2014} the reader's brief on \"{}\" follows. Weave it into the lesson, and copy its page citations exactly as they are written when you use it:\n\n{brief}", base_name(&field_text(result, "path"))),
-		_ => format!("The demo \"{}\" is built, headlessly tested, and rendered in the lesson. Builder notes: {}.\nTeach with it \u{2014} reference its controls by name and point the learner at what to try.", field_text(result, "title"), notes_text(result, "(none)")),
+	match known {
+		Some(JobKind::Research) => format!("Research complete \u{2014} the researcher's full brief follows. Weave it into the lesson and cite its sources when you use its findings:\n\n{brief}"),
+		Some(JobKind::Pdf) => format!("PDF reading complete \u{2014} the reader's brief on \"{}\" follows. Weave it into the lesson, and copy its page citations exactly as they are written when you use it:\n\n{brief}", base_name(&field_text(result, "path"))),
+		Some(JobKind::Demo) | None => format!("The demo \"{}\" is built, headlessly tested, and rendered in the lesson. Builder notes: {}.\nTeach with it \u{2014} reference its controls by name and point the learner at what to try.", field_text(result, "title"), notes_text(result, "(none)")),
 	}
 }
 
 /// What the teacher reads when the learner aborted a job.
 fn abort_text(kind: &str) -> &'static str {
-	match kind {
-		"research" => "Research aborted \u{2014} the learner aborted the research job, so no brief is coming. Acknowledge it in one line and continue teaching without it (or offer to re-dispatch it).",
-		"demo" => "The demo job was aborted by the learner \u{2014} no demo is coming. Acknowledge it in one line and teach the topic in prose instead (a re-dispatch is fine if the learner wants it).",
-		"pdf" => "The PDF reading job was aborted by the learner \u{2014} no brief is coming. Acknowledge it in one line and continue without it (a re-dispatch is fine if the learner wants it).",
-		_ => "The figure job was aborted by the learner \u{2014} no figure is coming. Acknowledge it in one line and teach without it (a re-dispatch is fine if the learner wants it).",
+	match JobKind::of(kind) {
+		Some(JobKind::Research) => "Research aborted \u{2014} the learner aborted the research job, so no brief is coming. Acknowledge it in one line and continue teaching without it (or offer to re-dispatch it).",
+		Some(JobKind::Demo) => "The demo job was aborted by the learner \u{2014} no demo is coming. Acknowledge it in one line and teach the topic in prose instead (a re-dispatch is fine if the learner wants it).",
+		Some(JobKind::Pdf) => "The PDF reading job was aborted by the learner \u{2014} no brief is coming. Acknowledge it in one line and continue without it (a re-dispatch is fine if the learner wants it).",
+		None => "The figure job was aborted by the learner \u{2014} no figure is coming. Acknowledge it in one line and teach without it (a re-dispatch is fine if the learner wants it).",
 	}
 }
 

@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 
 use gs_base::{clock, fsx, time};
 use gs_core::records::teacher_chats::parse_teacher_chats;
+use gs_core::spaces::agent_folder::FolderAgent;
 use gs_json::{Json, json};
 use parking_lot::Mutex;
 
@@ -35,10 +36,10 @@ pub(super) fn carry_over(app: &App) {
 	let folder = agent_folder(app);
 	let carried: Vec<String> = app.stores.chats.list_talk_chats().iter().filter_map(|chat| chat["terminalChat"].as_str().map(str::to_owned)).collect();
 	let mut chats = parse_teacher_chats(&saved);
-	chats.retain(|chat| chat.agent == "claude" && chat.used && chat.folder == folder && !carried.contains(&chat.id));
+	chats.retain(|chat| chat.agent == FolderAgent::Claude && chat.used && chat.folder == folder && !carried.contains(&chat.id));
 	chats.sort_by_key(|chat| chat.at);
 	for chat in chats {
-		let fields = json!({ "agentSession": { "agent": "claude", "id": chat.id.as_str(), "promptHash": null, "seen": null }, "terminalChat": chat.id.as_str() });
+		let fields = json!({ "agentSession": { "agent": FolderAgent::Claude.name(), "id": chat.id.as_str(), "promptHash": null, "seen": null }, "terminalChat": chat.id.as_str() });
 		if let Err(err) = app.stores.chats.import_talk_chat(chat.name.as_deref().unwrap_or(UNNAMED), &time::iso(chat.at), &fields) {
 			// The file stays, so the next read tries again; chats already carried over are skipped.
 			eprintln!("[talk] carrying over the terminal chat {} failed: {err}", chat.id);

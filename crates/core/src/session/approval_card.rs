@@ -2,15 +2,19 @@
 //! teacher's name, and what it is about (the command, the file, the site, the search, the tool or
 //! the question) as its own object, which the window draws beside the sentence. Pure.
 
+use gs_base::text;
 use gs_json::{Json, json};
 
-use super::lesson_steps::base_name;
+use crate::contracts::space::base_name;
+
+/// Claude Code's tools that change files.
+pub(super) const CHANGE_TOOLS: [&str; 4] = ["Edit", "MultiEdit", "Write", "NotebookEdit"];
 
 /// What a card's subject is, by name, in `Subject` order (the window's `APPROVAL_SUBJECTS`).
 pub const APPROVAL_SUBJECTS: [&str; 6] = ["command", "file", "site", "search", "tool", "words"];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Subject {
+pub(super) enum Subject {
 	/// A command to run, in the agent's own type.
 	Command,
 	/// A file's name.
@@ -21,8 +25,22 @@ enum Subject {
 	Search,
 	/// One of the agent's own tools, by its name.
 	Tool,
-	/// What the agent asks, in its own words.
+	/// What the agent asks, in its own words; or a search's plain words.
 	Words,
+}
+
+/// What one of Claude Code's own tools works on, in the words the learner knows it by: a file's
+/// name (for a read or a change), a site's name, the web search's words, or a search's words when
+/// they are plain. No folder, page address, query or command shows. None when the call names none.
+pub(super) fn own_tool_subject(name: &str, input: &Json) -> Option<(Subject, String)> {
+	let field = |key: &str| input[key].as_str().map(text::trim).filter(|v| !v.is_empty());
+	match name {
+		"Read" | "Edit" | "MultiEdit" | "Write" | "NotebookEdit" => field("file_path").or_else(|| field("notebook_path")).map(|path| (Subject::File, base_name(path).to_owned())),
+		"WebFetch" => url::Url::parse(field("url")?).ok()?.host_str().map(|site| (Subject::Site, site.to_owned())),
+		"WebSearch" => field("query").map(|query| (Subject::Search, query.to_owned())),
+		"Grep" if input["pattern"].str_or_empty().chars().all(|c| c.is_alphanumeric() || c == ' ') => field("pattern").map(|words| (Subject::Words, words.to_owned())),
+		_ => None,
+	}
 }
 
 /// The card's sentence, and its subject when it has one.
@@ -31,30 +49,20 @@ fn card(text: String, subject: Option<(Subject, &str)>) -> Json {
 	json!({ "text": text, "subject": subject })
 }
 
-fn site_of(url: &str) -> Option<String> {
-	url::Url::parse(url).ok()?.host_str().map(str::to_owned)
-}
-
 /// One of Claude Code's own tools, by what it does to the learner's computer.
 fn tool_card(teacher: &str, name: &str, input: &Json) -> Json {
 	let field = |key: &str| input[key].as_str().map(str::trim).filter(|v| !v.is_empty());
-	let file = field("file_path").or_else(|| field("notebook_path")).map(base_name);
-	let file_card = |verb: &str| match file {
-		Some(name) => card(format!("{teacher} wants to {verb} this file."), Some((Subject::File, name))),
-		None => card(format!("{teacher} wants to {verb} a file."), None),
+	let subject = own_tool_subject(name, input);
+	let with_subject = |named: String, unnamed: String| match &subject {
+		Some((kind, words)) => card(named, Some((*kind, words))),
+		None => card(unnamed, None),
 	};
 	match name {
 		"Bash" => card(format!("{teacher} wants to run this command."), field("command").map(|c| (Subject::Command, c))),
-		"Edit" | "MultiEdit" | "Write" | "NotebookEdit" => file_card("change"),
-		"Read" => file_card("read"),
-		"WebFetch" => match field("url").and_then(site_of) {
-			Some(site) => card(format!("{teacher} wants to open a page on this site."), Some((Subject::Site, &site))),
-			None => card(format!("{teacher} wants to open a web page."), None),
-		},
-		"WebSearch" => match field("query") {
-			Some(query) => card(format!("{teacher} wants to search the web for this."), Some((Subject::Search, query))),
-			None => card(format!("{teacher} wants to search the web."), None),
-		},
+		_ if CHANGE_TOOLS.contains(&name) => with_subject(format!("{teacher} wants to change this file."), format!("{teacher} wants to change a file.")),
+		"Read" => with_subject(format!("{teacher} wants to read this file."), format!("{teacher} wants to read a file.")),
+		"WebFetch" => with_subject(format!("{teacher} wants to open a page on this site."), format!("{teacher} wants to open a web page.")),
+		"WebSearch" => with_subject(format!("{teacher} wants to search the web for this."), format!("{teacher} wants to search the web.")),
 		_ => card(format!("{teacher} wants to use this tool."), Some((Subject::Tool, name))),
 	}
 }

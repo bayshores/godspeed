@@ -6,7 +6,7 @@ use gs_base::events::EventKind;
 use gs_base::locks::{Guard, LockKey};
 use gs_base::time;
 use gs_core::records::agent_rules::{rule_for, same_where, where_label};
-use gs_core::records::teaching_areas::{RULE_MAX_CHARS, RULES_MAX, one_line};
+use gs_core::records::teaching_areas::{RULE_MAX_CHARS, RULES_MAX, clean_line};
 use gs_json::{Json, json};
 
 use super::settings_record::record_or_new;
@@ -113,7 +113,7 @@ fn outcome(app: &App, place: &Json, rule: &str) -> Json {
 }
 
 fn save(app: &App, text: &str, place: &Json, agent: Option<&str>) -> Result<Json, RuleFailure> {
-	let rule = one_line(text, RULE_MAX_CHARS);
+	let rule = clean_line(text, RULE_MAX_CHARS);
 	if rule.is_empty() {
 		return Err(too_long());
 	}
@@ -163,7 +163,7 @@ pub fn remove_rule(app: &App, place: &Json, text: &str) -> Result<bool, String> 
 
 /// Rewrite a rule in place. It becomes the learner's, so the mark goes.
 pub fn edit_rule(app: &App, place: &Json, text: &str, new_text: &str) -> Result<Json, RuleFailure> {
-	let rule = one_line(new_text, RULE_MAX_CHARS);
+	let rule = clean_line(new_text, RULE_MAX_CHARS);
 	if rule.is_empty() {
 		return Err(too_long());
 	}

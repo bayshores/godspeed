@@ -5,7 +5,8 @@
 use std::collections::HashSet;
 
 use gs_agent::fs_tools::fs_shared::resolve_source_path;
-use gs_core::session::lesson_steps::{StepFile, base_name, desk_kind, step_file};
+use gs_core::contracts::space::base_name;
+use gs_core::session::lesson_steps::{StepFile, desk_kind, step_file};
 use gs_json::{Json, json};
 use gs_search::index::PassageRef;
 

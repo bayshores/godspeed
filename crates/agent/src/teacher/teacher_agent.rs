@@ -10,7 +10,8 @@ use gs_base::text::trim;
 use gs_core::contracts::chat::TOPIC_DONE_TOOL;
 use gs_core::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
 use gs_core::messages::pending::is_question_tool;
-use gs_core::session::tool_switches::{TOGGLEABLE_TOOLS, switched_off_tools_note};
+use gs_core::session::jobs::JobKind;
+use gs_core::session::tool_switches::{TOGGLEABLE_TOOLS, VISUAL_TOOL, switched_off_tools_note};
 use gs_engine::turn::tool_host::BeforeToolCallFn;
 use gs_engine::turn::tool::Tool;
 use gs_engine::turn::tool_host::ToolHost;
@@ -30,12 +31,15 @@ const SEPARATOR: &str = "\n\n---\n\n";
 
 const SIDE_TURN_REFUSAL: &str = "A question is already waiting for the learner. Answer the side question in text instead.";
 
+const PROBER_SWITCHES: [&str; 2] = [JobKind::Research.name(), JobKind::Pdf.name()];
+const PRACTICE_SWITCHES: [&str; 3] = [JobKind::Research.name(), VISUAL_TOOL, JobKind::Pdf.name()];
+
 /// The switchable tools each agent's registry carries: demos are teacher-only, and the prober
 /// draws nothing.
 fn switches(kind: AgentKind) -> &'static [&'static str] {
 	match kind {
-		AgentKind::Prober => &["research", "pdf"],
-		AgentKind::Practice | AgentKind::Homework => &["research", "visual", "pdf"],
+		AgentKind::Prober => &PROBER_SWITCHES,
+		AgentKind::Practice | AgentKind::Homework => &PRACTICE_SWITCHES,
 		AgentKind::Teacher | AgentKind::Study | AgentKind::StudyFiles => &TOGGLEABLE_TOOLS,
 	}
 }

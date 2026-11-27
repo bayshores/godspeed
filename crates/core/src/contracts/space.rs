@@ -159,6 +159,11 @@ pub fn supported_space_file_extensions() -> impl Iterator<Item = &'static str> {
 	plain_text_extensions().chain(DOCUMENT_EXTENSIONS).chain(TRANSCRIPT_EXTENSIONS).chain(RECORDING_EXTENSIONS)
 }
 
+/// A path's last part ("Week 7.md"), on any computer's separators.
+pub fn base_name(path: &str) -> &str {
+	path.trim_end_matches(['/', '\\']).rsplit(['/', '\\']).next().filter(|n| !n.is_empty()).unwrap_or(path)
+}
+
 /// The lowercase extension with its dot, or "" (none, after the last slash, or not 1-10 letters
 /// and digits).
 pub fn extension_of(name: &str) -> String {

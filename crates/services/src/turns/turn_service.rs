@@ -5,6 +5,7 @@ use std::sync::Arc;
 use gs_base::clock;
 use gs_base::locks::LockKey;
 use gs_base::tasks::detach;
+use gs_core::contracts::chat::ChatKind;
 use gs_core::messages::role::is_ok_tool_result;
 use gs_core::graph::coverage::coverage_of;
 use gs_core::messages::citations::{CiteMark, replace_cite_marks};
@@ -57,7 +58,7 @@ fn save_turn(app: &App, chat_id: &str, base_count: usize, turn_messages: &[Json]
 	let transcript: Vec<Json> = messages.iter().chain(&stamped).cloned().collect();
 	let tree = record.get("tree").filter(|t| !t.is_null());
 	// Only a Study quiz takes a keep; one sent to another lesson's quiz is ignored.
-	let study = record["kind"].as_str() == Some("study");
+	let study = ChatKind::of(&record) == ChatKind::Study;
 	let verdicts: Vec<Json> = if study { keep_verdicts(&transcript, first_topic(tree), &|source| passage_mark(app, source)) } else { Vec::new() };
 	let verdicts = verdicts.into_iter().map(new_keep_check_marker);
 	let all: Vec<Json> = transcript.into_iter().chain(verdicts).collect();

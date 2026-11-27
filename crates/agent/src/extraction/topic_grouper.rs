@@ -172,13 +172,15 @@ pub async fn group_topics(agent: &dyn JobAgent, input: TopicGrouperInput) -> Res
 	}
 	let mut opts = SubmitAgentOptions::new("submit_topics", what, submit_schema(every), instructions, Json::from(prompt), "the topic grouper never submitted topics");
 	opts.lookups = lookups;
-	opts.max_calls = max_calls;
-	opts.label = format!("Topic grouping: {}", input.space_name);
+	if let Some(max_calls) = max_calls {
+		opts.run.max_calls = max_calls;
+	}
+	opts.run.label = format!("Topic grouping: {}", input.space_name);
 	opts.validate = Some(Box::new(|value| {
 		let problem = grouping_problem(value);
 		Box::pin(async move { problem })
 	}));
-	opts.abort = input.abort;
+	opts.run.abort_signal = input.abort;
 	let submitted = run_submit_agent(agent, opts).await?;
 	let fact_ids: Vec<String> = input.facts.iter().map(|f| f["id"].str_or_empty().to_owned()).collect();
 	let submitted = drafts(&submitted);

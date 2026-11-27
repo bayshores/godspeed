@@ -16,6 +16,7 @@ use super::native_messages::{
 use super::app_notes::opener_answer_text;
 use super::lesson_markers::new_opener_answer_marker;
 use super::pending::answer_takes_files;
+use crate::contracts::chat::ChatKind;
 use crate::spaces::problem_list::lesson_list_owner;
 use crate::study::topic_end::shown_openers;
 
@@ -262,7 +263,7 @@ pub fn input_appends(record: &Json, input: &ChatInput, attachments: &[Json]) -> 
 			Ok(vec![new_side_question(text, attachments)])
 		}
 		ChatInput::Next => {
-			if !matches!(record["kind"].as_str(), Some("practice" | "study" | "homework")) {
+			if !matches!(ChatKind::of(record), ChatKind::Practice | ChatKind::Study | ChatKind::Homework) {
 				return refuse("next input is a practice, study or homework session affordance");
 			}
 			if active_problem_of(messages).is_some() {

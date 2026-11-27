@@ -325,10 +325,10 @@ impl Extraction {
 			}
 		};
 		opts.notice = Some(duplicate_check(self.0.clone(), scope.map(str::to_owned), Arc::new(graph.nodes)));
-		opts.abort = Some(abort);
-		opts.label = self.task_label(key);
+		opts.run.abort_signal = Some(abort);
+		opts.run.label = self.task_label(key);
 		let (host, step_key) = (self.0.clone(), key.to_owned());
-		opts.on_step = Some(Arc::new(move |usage, model| host.state().runs.record_step(&step_key, CallUsage::from_model_usage(usage).to_json(), model)));
+		opts.run.on_usage = Some(Arc::new(move |usage, model| host.state().runs.record_step(&step_key, CallUsage::from_model_usage(usage).to_json(), model)));
 		Ok(run_submit_agent(self.0.job_agent().as_ref(), opts).await?)
 	}
 

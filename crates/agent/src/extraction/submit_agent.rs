@@ -3,22 +3,20 @@
 //! captured where the host runs a schema-valid call; `fill`, `validate` and `notice` apply there.
 //! The final valid submit ends the job's turn; a turn that ends without one gets one reminder.
 
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use futures_util::future::BoxFuture;
 use gs_core::session::argument_heal::heal_encoded_arguments;
-use gs_engine::turn::abort::Abort;
-use gs_engine::turn::job_session::{Approve, RunError};
+use gs_engine::turn::job_session::RunError;
 use gs_engine::turn::tool::{Tool, ToolContext};
 use gs_engine::turn::tool_execute::{invalid_input_result, to_tool_result};
 use gs_json::Json;
 use gs_runtime::Part;
 use parking_lot::Mutex;
 
-use crate::subagents::job_agent::{JobAgent, Priority};
-use crate::subagents::pi_run::{OnUsage, SubagentRunOptions, run_subagent};
+use crate::subagents::job_agent::JobAgent;
+use crate::subagents::pi_run::{SubagentRunOptions, run_subagent};
 
 /// Defaults for omitted optional fields, applied to the schema-valid input.
 pub type Fill = Box<dyn Fn(Json) -> Json + Send + Sync>;
@@ -38,25 +36,13 @@ pub struct SubmitAgentOptions {
 	pub fill: Option<Fill>,
 	pub validate: Option<Validate>,
 	pub notice: Option<Notice>,
-	pub system_prompt: String,
-	/// Text, or content parts.
-	pub prompt: Json,
-	pub abort: Option<Abort>,
-	/// Each model call's usage and `provider:model`.
-	pub on_step: Option<OnUsage>,
 	/// The error when the model never makes a valid submit.
 	pub never_submitted: String,
-	/// Names the job in the log.
-	pub label: String,
-	pub priority: Priority,
 	/// Tools to look things up before submitting.
 	pub lookups: Vec<Arc<dyn Tool>>,
-	/// Model calls allowed; the default (4) only leaves room for retries.
-	pub max_calls: Option<usize>,
-	/// The folder the agent works in; None is a folder of the job's own.
-	pub cwd: Option<PathBuf>,
-	/// The learner's answer to the agent's permission questions; None refuses them.
-	pub approve: Option<Approve>,
+	/// The run's prompt, label, priority, folder and the rest; its `max_calls` default (4) only
+	/// leaves room for retries.
+	pub run: SubagentRunOptions,
 }
 
 impl SubmitAgentOptions {
@@ -68,17 +54,9 @@ impl SubmitAgentOptions {
 			fill: None,
 			validate: None,
 			notice: None,
-			system_prompt,
-			prompt,
-			abort: None,
-			on_step: None,
 			never_submitted: never_submitted.to_owned(),
-			label: tool_name.to_owned(),
-			priority: Priority::Own,
 			lookups: Vec::new(),
-			max_calls: None,
-			cwd: None,
-			approve: None,
+			run: SubagentRunOptions::new(tool_name.to_owned(), &system_prompt, prompt, 4),
 		}
 	}
 }
@@ -143,18 +121,14 @@ fn reminder(tool_name: &str) -> String {
 pub async fn run_submit_agent(agent: &dyn JobAgent, opts: SubmitAgentOptions) -> Result<Json, RunError> {
 	let submitted = Arc::new(Mutex::new(None));
 	let noticed = Arc::new(AtomicBool::new(false));
-	let ceiling = opts.max_calls.unwrap_or(4) + usize::from(opts.notice.is_some());
+	let notice_call = usize::from(opts.notice.is_some());
 	let reminder = reminder(&opts.tool_name);
 	let submit = SubmitTool { name: opts.tool_name, description: opts.tool_description, parameters: opts.parameters, fill: opts.fill, validate: opts.validate, notice: opts.notice, noticed, submitted: submitted.clone() };
 	let mut tools = opts.lookups;
 	tools.push(Arc::new(submit));
 
-	let mut run = SubagentRunOptions::new(opts.label, &opts.system_prompt, opts.prompt, ceiling);
-	run.abort_signal = opts.abort;
-	run.priority = opts.priority;
-	run.on_usage = opts.on_step;
-	run.cwd = opts.cwd;
-	run.approve = opts.approve;
+	let mut run = opts.run;
+	run.max_calls += notice_call;
 	run.follow_up = Some(Box::new({
 		let submitted = submitted.clone();
 		move |_: &str| submitted.lock().is_none().then(|| vec![Part::Text(reminder)])

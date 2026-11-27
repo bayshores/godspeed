@@ -1,5 +1,7 @@
 //! Lesson record constants and model-facing marker texts (src/shared/core/contracts/chat.ts).
 
+use gs_json::Json;
+
 /// Every lesson id starts with this.
 pub const CHAT_ID_PREFIX: &str = "chat_";
 /// The fixed id of the Talk chat older builds kept (only read now).
@@ -8,6 +10,40 @@ pub const TALK_CHAT_ID: &str = "chat_talk";
 /// v3: no field changes, but new markers (keep-going, opener-answer, app-note) and stops in result
 /// details, which an older build would send to the agent as empty messages.
 pub const CURRENT_CHAT_VERSION: i64 = 3;
+
+/// What a chat record is. A record with no kind, or one this build does not know, is a teach lesson.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ChatKind {
+	Teach,
+	Study,
+	Practice,
+	Homework,
+	Talk,
+}
+
+impl ChatKind {
+	/// The kind a record or a list summary carries.
+	pub fn of(record: &Json) -> ChatKind {
+		match record["kind"].as_str() {
+			Some("study") => ChatKind::Study,
+			Some("practice") => ChatKind::Practice,
+			Some("homework") => ChatKind::Homework,
+			Some("talk") => ChatKind::Talk,
+			_ => ChatKind::Teach,
+		}
+	}
+
+	/// The word saved in the record's `kind`.
+	pub const fn name(self) -> &'static str {
+		match self {
+			ChatKind::Teach => "teach",
+			ChatKind::Study => "study",
+			ChatKind::Practice => "practice",
+			ChatKind::Homework => "homework",
+			ChatKind::Talk => "talk",
+		}
+	}
+}
 
 /// Whether a session's teaching is saved to the graph: teach (absent kind) and study lessons.
 pub fn extracts_facts(kind: Option<&str>) -> bool {

@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use gs_base::locks::LockKey;
+use gs_core::contracts::chat::ChatKind;
 use gs_core::contracts::graph::title_from_prompt;
 use gs_core::contracts::space::display_name;
 use gs_core::graph::chains::{chains_for_selection, format_chain_line};
@@ -126,7 +127,7 @@ pub fn create_lesson(app: &Arc<App>, input: CreateLessonInput) -> Result<Result<
 		LessonStart::Files(ids) => ids.as_slice(),
 		_ => &[],
 	};
-	let chat = app.stores.chats.create_chat(&title_from_prompt(&start.title), Some("study"), space_id, deadline_id, file_ids)?;
+	let chat = app.stores.chats.create_chat(&title_from_prompt(&start.title), Some(ChatKind::Study.name()), space_id, deadline_id, file_ids)?;
 	let chat_id = chat["id"].str_or_empty().to_owned();
 	let mut messages = Vec::new();
 	if let Some(cls) = &cls {

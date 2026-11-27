@@ -6,6 +6,7 @@
 //! through; the wall once a learner input, logged with what came next. What was raised lives in
 //! memory; after a restart a topic or input may get one more.
 
+use gs_core::contracts::chat::ChatKind;
 use gs_core::messages::native_messages::active_problem_of;
 use gs_core::session::plot::PLOT_TOOL;
 use gs_core::study::reply_nudges::{LAST_REPLY_LEAD, Nudge, OPEN_PROBLEM_NOTE, WALL_WORDS, curve_refusal, prose_words, reply_nudges, short_reply_input, wall_note};
@@ -23,7 +24,7 @@ pub(super) struct Wall {
 }
 
 fn study_lesson(app: &App, chat_id: &str) -> Option<Json> {
-	app.stores.chats.get_chat(chat_id).filter(|c| c["kind"].as_str() == Some("study"))
+	app.stores.chats.get_chat(chat_id).filter(|c| ChatKind::of(c) == ChatKind::Study)
 }
 
 fn plots(reply: &Json) -> bool {

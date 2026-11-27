@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use gs_core::session::jobs::JobKind;
 use gs_json::Json;
 
 use super::fn_tool::FnTool;
@@ -33,8 +34,9 @@ fn dispatch(ctx: &JobToolContext, kind: &str, tool_call_id: &str, ack: &str, inp
 
 const FIRE_AND_FORGET: &str = "This call is fire-and-forget: continue your turn and keep teaching \u{2014} do not wait, poll, or mention waiting. ";
 
-fn job_tool(ctx: &JobToolContext, kind: &'static str, description: &str, parameters: Json, ack: String) -> FnTool {
+fn job_tool(ctx: &JobToolContext, kind: JobKind, description: &str, parameters: Json, ack: String) -> FnTool {
 	let ctx = ctx.clone();
+	let kind = kind.name();
 	FnTool::server(kind, description, parameters, move |args, call| {
 		let (ctx, ack) = (ctx.clone(), ack.clone());
 		async move { dispatch(&ctx, kind, &call.tool_call_id, &ack, &args) }
@@ -44,7 +46,7 @@ fn job_tool(ctx: &JobToolContext, kind: &'static str, description: &str, paramet
 pub fn research_tool(ctx: &JobToolContext) -> FnTool {
 	job_tool(
 		ctx,
-		"research",
+		JobKind::Research,
 		"Dispatch a background web-research agent: fact verification, current data, or niche specifics you are not certain about. \
 		The call is ASYNC and fire-and-forget \u{2014} it resolves immediately and your turn continues; the research brief arrives later \
 		as a new message and the lesson resumes from it. Cite the brief's sources when you use them. \
@@ -63,7 +65,7 @@ pub fn research_tool(ctx: &JobToolContext) -> FnTool {
 pub fn demo_tool(ctx: &JobToolContext) -> FnTool {
 	job_tool(
 		ctx,
-		"demo",
+		JobKind::Demo,
 		"Dispatch a background sub-agent that BUILDS and headlessly TESTS an interactive teaching instrument \u{2014} a single-file HTML \
 		demo (parameter sweep, simulation, animation, sampling) rendered live in the lesson. Use it when the concept is DYNAMIC: \
 		something to sweep, animate, or sample is better experienced than described. \
@@ -89,7 +91,7 @@ pub fn demo_tool(ctx: &JobToolContext) -> FnTool {
 pub fn pdf_tool(ctx: &JobToolContext) -> FnTool {
 	job_tool(
 		ctx,
-		"pdf",
+		JobKind::Pdf,
 		"Dispatch a background sub-agent that READS a PDF on your behalf (triage, targeted extraction, visual page reading for \
 		equations and diagrams) and returns a brief with page citations. Use it when you need a PDF's CONTENT for the lesson: a space \
 		file, a page whose formulas read broken, or a PDF the learner gives you. The call is ASYNC and fire-and-forget \u{2014} it resolves immediately and your turn \

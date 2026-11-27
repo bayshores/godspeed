@@ -12,6 +12,7 @@ mod setup;
 mod talk_tests;
 pub mod tools;
 
+use gs_core::contracts::chat::ChatKind;
 use gs_base::text::{one_line, trim};
 use gs_json::Json;
 
@@ -24,10 +25,6 @@ pub use setup::{talk_opening, talk_setup};
 const NAME_MAX: usize = 60;
 /// What a chat whose first message has no words (a picture alone) is called.
 const UNNAMED: &str = "A chat";
-
-pub fn is_talk(record: &Json) -> bool {
-	record["kind"].as_str() == Some("talk")
-}
 
 /// GET /api/chats?kind=talk: every talk chat, newest first (`{id, title, createdAt, updatedAt,
 /// kind, model, agent, running}`), `model` being the one its next reply runs on (None: the agent's
@@ -54,7 +51,7 @@ pub fn create_talk_chat(app: &App, text: &str, model: Option<&str>) -> Result<Js
 		return Err(MODEL_REFUSED.to_owned());
 	}
 	let first = text.lines().map(trim).find(|line| !line.is_empty()).map(|line| one_line(line, NAME_MAX));
-	let made = app.stores.chats.create_chat(first.as_deref().unwrap_or(UNNAMED), Some("talk"), None, None, &[])?;
+	let made = app.stores.chats.create_chat(first.as_deref().unwrap_or(UNNAMED), Some(ChatKind::Talk.name()), None, None, &[])?;
 	if let Some(model) = model {
 		app.stores.chats.set_chat_model(made["id"].str_or_empty(), model)?;
 	}
@@ -68,7 +65,7 @@ pub fn set_talk_model(app: &App, chat_id: &str, model: &str) -> Result<(), Strin
 	if !usable_model(model) {
 		return Err(MODEL_REFUSED.to_owned());
 	}
-	if !app.stores.chats.get_chat(chat_id).is_some_and(|chat| is_talk(&chat)) {
+	if !app.stores.chats.get_chat(chat_id).is_some_and(|chat| ChatKind::of(&chat) == ChatKind::Talk) {
 		return Err("no such talk chat".to_owned());
 	}
 	app.stores.chats.set_chat_model(chat_id, model)

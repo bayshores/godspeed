@@ -128,10 +128,10 @@ pub async fn write_mock_questions(agent: &dyn JobAgent, input: MockRequest, form
 			std::future::ready(problem).boxed()
 		}
 	}));
-	opts.label = format!("{}: questions", input.label);
+	opts.run.label = format!("{}: questions", input.label);
 	// The learner asked for it.
-	opts.priority = Priority::Waited;
-	opts.abort = Some(input.signal);
+	opts.run.priority = Priority::Waited;
+	opts.run.abort_signal = Some(input.signal);
 	run_submit_agent(agent, opts).await?;
 	Ok(std::mem::take(&mut *taken.lock()))
 }
@@ -161,10 +161,10 @@ pub async fn grade_mock(agent: &dyn JobAgent, input: MockRequest, mock: &Json) -
 			std::future::ready(problem).boxed()
 		}
 	}));
-	opts.label = format!("{}: grading", input.label);
+	opts.run.label = format!("{}: grading", input.label);
 	// The learner asked for it.
-	opts.priority = Priority::Waited;
-	opts.abort = Some(input.signal);
+	opts.run.priority = Priority::Waited;
+	opts.run.abort_signal = Some(input.signal);
 	run_submit_agent(agent, opts).await?;
 	let graded = graded.lock().clone();
 	Ok(graded)

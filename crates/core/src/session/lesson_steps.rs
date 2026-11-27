@@ -4,12 +4,17 @@
 //! tools and the PDF reader's progress have their own words. Pure: names come from the caller,
 //! and the caller finds a read file on the computer.
 
-use gs_base::text;
+use gs_base::text::{self, one_line};
 use gs_json::{Json, json};
 
 use super::teacher_steps::{RoundCall, StepNames, TeacherStep, quoted, round_call};
-use crate::contracts::space::{extension_of, is_recording_file};
-use crate::records::agent_actions::short_label;
+use crate::contracts::space::{base_name, extension_of, is_recording_file};
+use crate::contracts::chat::TOPIC_DONE_TOOL;
+use crate::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
+use crate::records::agent_actions::LABEL_MAX;
+use super::plot::PLOT_TOOL;
+use super::question_core::QUIZ_TOOL;
+use super::tool_switches::VISUAL_TOOL;
 
 /// What one tool call in a lesson reply is for the desk.
 #[derive(Debug, PartialEq)]
@@ -32,19 +37,19 @@ pub enum StepFile {
 
 /// The tools a lesson reply sends that the lesson text shows by itself.
 const QUIET_TOOLS: [&str; 22] = [
-	"quiz",
+	QUIZ_TOOL,
 	"probe",
 	"ask_user_question",
 	"explain",
 	"recall",
 	"write_code",
-	"problem",
-	"conclude",
+	PRACTICE_PROBLEM_TOOL,
+	PRACTICE_CONCLUDE_TOOL,
 	"part",
 	"post_problems",
-	"plot",
-	"visual",
-	"topic_done",
+	PLOT_TOOL,
+	VISUAL_TOOL,
+	TOPIC_DONE_TOOL,
 	"plan_init",
 	"probe_done",
 	"set_space_note",
@@ -61,7 +66,7 @@ const QUIET_TOOLS: [&str; 22] = [
 /// services holds every lesson tool to a decision.
 pub fn lesson_call(tool: &str, args: &Json, space_id: Option<&str>, names: &dyn StepNames) -> Option<LessonCall> {
 	let path = path_arg(args).map(base_name);
-	let step = |words: String| Some(LessonCall::Step(TeacherStep { text: short_label(&words), link: None }));
+	let step = |words: String| Some(LessonCall::Step(TeacherStep { text: one_line(&words, LABEL_MAX), link: None }));
 	match tool {
 		"work_plan" => Some(plan_of(args).map_or(LessonCall::Quiet, LessonCall::Plan)),
 		"read" => match (path, step_file(tool, args)) {
@@ -159,7 +164,7 @@ pub fn pdf_progress(line: &str, name: &str) -> Option<(TeacherStep, Option<u64>)
 		}
 		_ => return None,
 	};
-	Some((TeacherStep { text: short_label(&words), link: None }, page))
+	Some((TeacherStep { text: one_line(&words, LABEL_MAX), link: None }, page))
 }
 
 /// A page spec ("3", "3-5", "1,3,7") as its first and last page; "all" or anything else is None.
@@ -179,11 +184,6 @@ pub fn desk_kind(name: &str) -> Option<&'static str> {
 		_ if is_recording_file(name) => None,
 		_ => Some("text"),
 	}
-}
-
-/// A path's last part ("Week 7.md").
-pub fn base_name(path: &str) -> &str {
-	path.trim_end_matches(['/', '\\']).rsplit(['/', '\\']).next().filter(|n| !n.is_empty()).unwrap_or(path)
 }
 
 #[cfg(test)]

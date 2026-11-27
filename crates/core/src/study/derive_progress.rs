@@ -16,6 +16,7 @@ use super::path_progress::path_progress;
 use super::progress::{days_between, ramp_color, topic_status};
 use super::topic_links::{TopicLink, topic_columns, topic_links};
 use super::work_on_next::{TopicView, status_counts, work_on_next};
+use crate::contracts::chat::ChatKind;
 use crate::contracts::space::compare_deadlines;
 use crate::graph::session_clusters::birth_session_of;
 use crate::graph::topics::{MIN_FACTS_FOR_TOPICS, resolve_topics};
@@ -275,7 +276,7 @@ fn file_work(input: &Json, rows: &[Json]) -> Vec<Json> {
 fn is_unfinished(lesson: &Json, tally: &Tally, input: &Json, deadlines: &HashMap<&str, &Json>, problems: Option<&Json>) -> bool {
 	let all_done = problems.is_some_and(|p| p["done"] == p["total"]);
 	if let Some(deadline_id) = lesson["deadlineId"].as_str()
-		&& lesson["kind"].as_str() == Some("homework")
+		&& ChatKind::of(lesson) == ChatKind::Homework
 	{
 		// No problems posted yet is not every problem done.
 		let open = deadlines.get(deadline_id).is_some_and(|d| !d["done"].truthy() && !all_done);

@@ -7,7 +7,7 @@ use std::sync::LazyLock;
 use gs_base::re::Re;
 use gs_core::records::changelog::is_version;
 use gs_core::records::plugin_settings::is_plugin_id;
-use gs_core::records::teaching_areas::one_line;
+use gs_core::records::teaching_areas::clean_line;
 use gs_json::{Json, Obj, json};
 
 pub const MANIFEST_FILE: &str = "manifest.json";
@@ -37,7 +37,7 @@ fn problem(field: &str, rule: &str) -> String {
 /// A one-line string of 1 to `max` characters.
 fn short_text(raw: &Json, field: &str, max: usize) -> Checked {
 	let Some(text) = raw.as_str() else { return Err(problem(field, "must be text")) };
-	let line = one_line(text, max);
+	let line = clean_line(text, max);
 	if line.is_empty() {
 		return Err(problem(field, "is empty"));
 	}
@@ -109,7 +109,7 @@ fn setting(raw: &Json, at: usize) -> Checked {
 		}
 		"choice" => {
 			let options = string_list(&raw["options"], &field("options"), OPTIONS_MAX)?;
-			if options.len() < 2 || options.iter().any(|o| one_line(o, NAME_MAX) != *o || o.is_empty()) {
+			if options.len() < 2 || options.iter().any(|o| clean_line(o, NAME_MAX) != *o || o.is_empty()) {
 				return Err(problem(&field("options"), &format!("must be 2 to {OPTIONS_MAX} different one-line names")));
 			}
 			if !default.as_str().is_some_and(|d| options.contains(&d)) {

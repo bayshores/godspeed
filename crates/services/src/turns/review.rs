@@ -10,6 +10,7 @@ use std::collections::HashSet;
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::{clock, time};
+use gs_core::contracts::chat::ChatKind;
 use gs_core::messages::role::is_custom;
 use gs_core::messages::input_events::stamped_quiz_answer;
 use gs_core::messages::lesson_markers::new_review_marker;
@@ -73,7 +74,7 @@ pub fn askable(app: &App, chat_id: &str, record: &Json, of: &Json) -> Result<Opt
 
 /// The questions from earlier this sitting may ask, the next one first.
 fn sitting_picks(app: &App, chat_id: &str, record: &Json) -> Result<Vec<Json>, String> {
-	let Some(space_id) = record["spaceId"].as_str().filter(|_| record["kind"].as_str() == Some("study")) else { return Ok(Vec::new()) };
+	let Some(space_id) = record["spaceId"].as_str().filter(|_| ChatKind::of(record) == ChatKind::Study) else { return Ok(Vec::new()) };
 	let Some(progress) = progress_for(app, space_id, None)? else { return Ok(Vec::new()) };
 	let order = space_order_for(app, space_id, &progress);
 	let rank = |t: &Json| t["members"].items().iter().filter_map(|m| m.as_str().and_then(|id| order.get(id))).min().copied().unwrap_or(usize::MAX);

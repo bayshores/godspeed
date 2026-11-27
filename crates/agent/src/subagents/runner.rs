@@ -17,7 +17,7 @@ use gs_base::ids;
 use gs_base::re::Re;
 use gs_base::text::{slice16, trim};
 use gs_core::messages::role::Role;
-use gs_core::session::jobs::{accumulate_job_usage, build_subagent_steer, is_subagent_failure, notes_or, pi_usage_to_step};
+use gs_core::session::jobs::{JobKind, accumulate_job_usage, build_subagent_steer, is_subagent_failure, notes_or, pi_usage_to_step};
 use gs_engine::turn::abort::Abort;
 use gs_engine::turn::job_session::{Approve, OnToolStart, RunError};
 use gs_json::{Json, json};
@@ -81,9 +81,6 @@ pub fn create_job_runner(host: Arc<dyn JobHost>) -> Arc<JobRunner> {
 	Arc::new(JobRunner { host, usage_totals: Mutex::new(HashMap::new()) })
 }
 
-/// The job kinds the runner runs.
-const KINDS: [&str; 3] = ["research", "demo", "pdf"];
-
 /// One job loop's kill switch and usage tap.
 struct LoopContext {
 	/// Fired by the abort endpoint; it rides into every model call.
@@ -139,8 +136,7 @@ impl JobRunner {
 		if job["status"] != Json::from("running") {
 			return;
 		}
-		let kind = job["kind"].str_or_empty().to_owned();
-		if !KINDS.contains(&kind.as_str()) {
+		let Some(kind) = JobKind::of(job["kind"].str_or_empty()) else {
 			// `${job.kind}`.
 			let shown = match job.get("kind") {
 				None => "undefined".to_owned(),
@@ -150,12 +146,12 @@ impl JobRunner {
 			eprintln!("[job {job_id}] unknown kind: {shown}");
 			self.update(&job_id, json!({ "status": "error", "error": format!("unknown kind {shown}"), "activity": "failed" }));
 			return;
-		}
+		};
 		let ctx = self.loop_context(&job_id);
-		match kind.as_str() {
-			"research" => self.run_research_job(&job_id, input, &ctx).await,
-			"demo" => self.run_demo_job(&job_id, input, &ctx).await,
-			_ => self.run_pdf_job(&job_id, input, &ctx).await,
+		match kind {
+			JobKind::Research => self.run_research_job(&job_id, input, &ctx).await,
+			JobKind::Demo => self.run_demo_job(&job_id, input, &ctx).await,
+			JobKind::Pdf => self.run_pdf_job(&job_id, input, &ctx).await,
 		}
 		self.host.job_aborts().unregister_job_abort(&job_id);
 		// The last usage write may have raced the loop's end: save what was folded (a merge
@@ -248,7 +244,7 @@ impl JobRunner {
 	}
 
 	/// The usual end of a failed run: unwind quietly when aborted, else record and steer.
-	fn fail(&self, job_id: &str, kind: &str, input: Option<&Json>, reason: &str, ctx: &LoopContext) {
+	fn fail(&self, job_id: &str, kind: JobKind, input: Option<&Json>, reason: &str, ctx: &LoopContext) {
 		if ctx.abort.is_aborted() {
 			return;
 		}
@@ -322,7 +318,7 @@ impl JobRunner {
 				let sources = parse_sources(brief, &fetched.lock());
 				self.finish_job(job_id, json!({ "brief": brief, "sources": sources }));
 			}
-			Err(e) => self.fail(job_id, "research", input.as_ref(), &e.to_string(), ctx),
+			Err(e) => self.fail(job_id, JobKind::Research, input.as_ref(), &e.to_string(), ctx),
 		}
 		let _ = std::fs::remove_dir_all(&pdf_dir);
 	}
@@ -363,15 +359,15 @@ impl JobRunner {
 }
 
 /// Each kind's failure shape, built from whatever input the job has.
-fn failure_result(kind: &str, input: Option<&Json>, reason: &str) -> Json {
+fn failure_result(kind: JobKind, input: Option<&Json>, reason: &str) -> Json {
 	let input = input.unwrap_or(&Json::Null);
 	match kind {
-		"research" => json!({ "brief": format!("Research failed: {reason}"), "sources": [] }),
-		"demo" => {
+		JobKind::Research => json!({ "brief": format!("Research failed: {reason}"), "sources": [] }),
+		JobKind::Demo => {
 			let title = input["title"].as_str().filter(|t| !trim(t).is_empty()).unwrap_or("Interactive demo");
 			json!({ "title": title, "html": "", "tested": true, "notes": format!("FAILED: {reason}") })
 		}
-		_ => json!({
+		JobKind::Pdf => json!({
 			"path": input["path"].as_str().map(trim).unwrap_or_default(),
 			"question": input["question"].str_or_empty(),
 			"brief": format!("PDF failed: {reason}"),

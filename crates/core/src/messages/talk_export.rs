@@ -8,6 +8,7 @@ use gs_base::hash::sha256_hex;
 use gs_base::text::{slice16, trim};
 use gs_json::Json;
 
+use crate::contracts::space::base_name;
 use crate::messages::role::Role;
 use super::attachments::pdf_note_of;
 use crate::spaces::today_note::{day_label, local_day};
@@ -93,7 +94,7 @@ fn learner_lines(content: &Json, files: &str, pictures: &mut Vec<Picture>) -> Ve
 			Some("text") => {
 				let Some(text) = shown(&part["text"]) else { continue };
 				lines.push(match pdf_note_of(&text) {
-					Some((name, path)) => format!("[PDF: {name}](<{files}/{}>)", file_name(&path)),
+					Some((name, path)) => format!("[PDF: {name}](<{files}/{}>)", base_name(&path)),
 					None => text,
 				});
 			}
@@ -109,11 +110,6 @@ fn learner_lines(content: &Json, files: &str, pictures: &mut Vec<Picture>) -> Ve
 		}
 	}
 	lines
-}
-
-/// The last part of a saved path, on any computer's separators.
-fn file_name(path: &str) -> &str {
-	path.rsplit(['/', '\\']).next().unwrap_or(path)
 }
 
 fn extension(mime: Option<&str>) -> &'static str {

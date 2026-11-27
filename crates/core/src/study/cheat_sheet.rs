@@ -14,7 +14,7 @@ use gs_base::{num, re::Re, time};
 use gs_json::{Json, Obj, js_number, json};
 
 use crate::spaces::space_shortcuts::safe_entry_name;
-use crate::records::teaching_areas::{RULE_MAX_CHARS, RULES_MAX, one_line};
+use crate::records::teaching_areas::{RULE_MAX_CHARS, RULES_MAX, clean_line};
 
 pub use super::sheet_cards::sheet_cards;
 pub use super::sheet_parse::{ParsedSheet, parse_cheat_sheet, sheet_region_of};
@@ -66,7 +66,7 @@ pub fn with_rules(sheet: &Json, texts: &[String], at: &str) -> (Json, Vec<String
 	let kept = sheet["rules"].items().len();
 	let mut added: Vec<String> = Vec::new();
 	for raw in texts {
-		let text = one_line(raw, RULE_MAX_CHARS);
+		let text = clean_line(raw, RULE_MAX_CHARS);
 		if text.is_empty() || have.contains(&text.to_lowercase()) || kept + added.len() >= RULES_MAX {
 			continue;
 		}

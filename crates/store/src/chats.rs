@@ -16,7 +16,7 @@ use gs_base::config::Paths;
 use gs_base::events::{EventKind, Events};
 use gs_base::locks::{LockKey, Locks};
 use gs_base::{fsx, ids, text, time};
-use gs_core::contracts::chat::{CURRENT_CHAT_VERSION, TALK_CHAT_ID};
+use gs_core::contracts::chat::{CURRENT_CHAT_VERSION, ChatKind, TALK_CHAT_ID};
 use gs_core::graph::ports::ChatListing;
 use gs_core::records::newer_first;
 use gs_core::messages::native_messages::{active_problem_of, dangling_question_of, summary_folds_throw};
@@ -140,13 +140,13 @@ impl ChatStore {
 
 	/// Every lesson's summary, newest activity first. A talk chat is not a lesson and never shows.
 	pub fn list_chats(&self) -> Vec<Json> {
-		self.summaries_where(|summary| summary["kind"].as_str() != Some("talk"))
+		self.summaries_where(|summary| ChatKind::of(summary) != ChatKind::Talk)
 	}
 
 	/// Every talk chat's summary (`{id, title, createdAt, updatedAt, kind, agent, model}`), newest
 	/// activity first. The old Talk chat is not one.
 	pub fn list_talk_chats(&self) -> Vec<Json> {
-		self.summaries_where(|summary| summary["kind"].as_str() == Some("talk") && !is_old_talk(summary["id"].str_or_empty()))
+		self.summaries_where(|summary| ChatKind::of(summary) == ChatKind::Talk && !is_old_talk(summary["id"].str_or_empty()))
 	}
 
 	fn summaries_where(&self, keep: impl Fn(&Json) -> bool) -> Vec<Json> {
@@ -205,7 +205,7 @@ impl ChatStore {
 		record.insert("createdAt", at);
 		record.insert("updatedAt", at);
 		record.insert("messages", Json::Arr(vec![]));
-		record.insert("kind", "talk");
+		record.insert("kind", ChatKind::Talk.name());
 		for (key, value) in fields.as_obj().into_iter().flatten() {
 			record.insert(key.as_str(), value.clone());
 		}
@@ -327,7 +327,7 @@ impl ChatStore {
 /// Liveness is not here; the route adds it. None for a record whose messages the folds cannot
 /// read (Node's folds throw there, and the lesson stays out of the list rather than blanking it).
 fn summarize(id: &str, record: &Json) -> Option<Json> {
-	if record["kind"].as_str() == Some("talk") {
+	if ChatKind::of(record) == ChatKind::Talk {
 		return Some(talk_summary(record));
 	}
 	let messages = record["messages"].items();
@@ -338,7 +338,7 @@ fn summarize(id: &str, record: &Json) -> Option<Json> {
 	}
 	let mut summary: Obj = record.as_obj()?.iter().filter(|(key, _)| !matches!(key.as_str(), "messages" | "tree" | "turns" | "extractions")).map(|(key, value)| (key.clone(), value.clone())).collect();
 	if summary.get("kind").is_none_or(Json::is_null) {
-		summary.insert("kind", "teach");
+		summary.insert("kind", ChatKind::Teach.name());
 	}
 	summary.insert("messageCount", messages.len());
 	summary.insert("phase", phase_at3_lh(messages, start).as_str());

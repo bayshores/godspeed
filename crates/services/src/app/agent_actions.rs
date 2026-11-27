@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 use gs_base::events::EventKind;
 use gs_base::re::Re;
 use gs_base::{clock, ids, text, time};
-use gs_core::records::agent_actions::short_label;
+use gs_core::records::agent_actions::LABEL_MAX;
 use gs_json::{Json, Obj, json};
 
 use crate::App;
@@ -67,7 +67,7 @@ fn update_newest(app: &App, list: &mut [Json], label: Option<&str>, now: i64) ->
 /// removal or an open: asked twice, the window opens twice. `input` has `label`, `spaceId`,
 /// `target`, `page` and optionally `removed`, `open` and `background`.
 fn record_agent_action(app: &App, agent: Option<&str>, input: &Json, now: i64) -> Json {
-	let label = short_label(input["label"].str_or_empty());
+	let label = text::one_line(input["label"].str_or_empty(), LABEL_MAX);
 	let agent = agent.map(text::trim).filter(|a| !a.is_empty()).unwrap_or("Your agent");
 	let removed = input["removed"].truthy();
 	with_list(app, |list| {
@@ -207,7 +207,6 @@ pub fn recent_agent_actions(app: &App) -> Vec<Json> {
 
 #[cfg(test)]
 mod tests {
-	use gs_core::records::agent_actions::LABEL_MAX;
 	use gs_json::stringify;
 
 	use super::*;

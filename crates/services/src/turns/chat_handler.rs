@@ -13,7 +13,7 @@ use std::sync::{Arc, Weak};
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::{ids, time};
-use gs_core::contracts::chat::{TALK_CHAT_ID, extracts_facts};
+use gs_core::contracts::chat::{ChatKind, TALK_CHAT_ID, extracts_facts};
 use gs_core::messages::app_notes::app_note_for;
 use gs_core::messages::attachments::{ChatAttachment, PdfReader};
 use gs_core::messages::input_events::{About, ChatInput, ChatInputError, TurnInput, input_appends};
@@ -55,7 +55,7 @@ use crate::app::today_note::today_note_for;
 use crate::graph::progress::lesson_ended;
 use crate::spaces::citations::{check_cites, mark_notes};
 use crate::spaces::space_actions::SendFirstMessage;
-use crate::talk::{is_talk, talk_opening, talk_setup};
+use crate::talk::{talk_opening, talk_setup};
 use crate::jobs::{note_steers_durable, reconcile_user_steers, register_live_agent, settle_steers, unregister_live_agent};
 
 /// The live update window of a turn's stream.
@@ -154,7 +154,7 @@ async fn run(app: &Arc<App>, chat_id: &str, input: TurnInput) -> ChatReply {
 	}
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return ChatReply::error(404, "Unknown chat") };
 	let talks = matches!(input, TurnInput::Steers(_) | TurnInput::Chat(ChatInput::Text { about: None, .. } | ChatInput::Continue));
-	if is_talk(&record) && !talks {
+	if ChatKind::of(&record) == ChatKind::Talk && !talks {
 		return ChatReply::error(400, TALK_TAKES_TEXT);
 	}
 
@@ -164,7 +164,7 @@ async fn run(app: &Arc<App>, chat_id: &str, input: TurnInput) -> ChatReply {
 	if let Some(files) = input_files(&input) {
 		let mut save = |name: &str, bytes: &[u8]| app.stores.chats.save_attachment(chat_id, name, bytes).map(|p| p.to_string_lossy().into_owned());
 		// The panel's chat has no pdf tool of godspeed's.
-		let reader = if is_talk(&record) { PdfReader::OwnTools } else { PdfReader::PdfTool };
+		let reader = if ChatKind::of(&record) == ChatKind::Talk { PdfReader::OwnTools } else { PdfReader::PdfTool };
 		match store_attachments(files, reader, &mut save) {
 			Ok(parts) => attachments = parts,
 			Err(AttachmentError::Input(err)) => return ChatReply::error(400, &err.0),
@@ -293,7 +293,7 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 		eprintln!("[chat {chat_id}] turn already in flight — request rejected");
 		return Err(ChatReply::error(409, "A turn is already running for this session"));
 	}
-	turn_work::begin(app, chat_id, if is_talk(&record) { TurnCause::Talk } else { turn_cause(input, &messages) });
+	turn_work::begin(app, chat_id, if ChatKind::of(&record) == ChatKind::Talk { TurnCause::Talk } else { turn_cause(input, &messages) });
 	if let Err(err) = app.stores.chats.save_messages(chat_id, &merged) {
 		eprintln!("[chat {chat_id}] write-ahead persist failed: {err}");
 		// The begun turn is announced and settled, as Node's begin and end did.
@@ -332,7 +332,7 @@ fn cites_check(app: &Arc<App>, chat_id: &str) -> TextCheck {
 /// Builds the turn on the chat's agent session and starts it as a background object.
 fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json, accepted: Accepted) -> Result<(), String> {
 	let Accepted { record, appends, merged } = accepted;
-	let talk = is_talk(&record);
+	let talk = ChatKind::of(&record) == ChatKind::Talk;
 	// Try again runs again from before a failed or stopped reply, on a new session.
 	let fresh = matches!(input, TurnInput::Chat(ChatInput::Continue));
 	let context: Vec<Json> = if fresh { retry_context(&merged).to_vec() } else { merged.clone() };

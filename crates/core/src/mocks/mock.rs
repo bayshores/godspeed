@@ -20,7 +20,7 @@ use gs_base::re::Re;
 use gs_base::{num, text, time};
 use gs_json::{Json, Obj, js_number, json, parse, quote};
 
-use crate::records::teaching_areas::one_line;
+use crate::records::teaching_areas::clean_line;
 
 /// The languages a code question can be answered (and run) in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -253,7 +253,7 @@ pub fn take_questions(written: &[Json], format: &Json, fact_ids: &HashSet<String
 	let mut out = Vec::new();
 	for (i, w) in written.iter().enumerate() {
 		let at = format!("Question {}", i + 1);
-		let title = one_line(w["title"].str_or_empty(), TITLE_MAX);
+		let title = clean_line(w["title"].str_or_empty(), TITLE_MAX);
 		let statement = text::slice16(text::trim(w["statement"].str_or_empty()), 0, Some(STATEMENT_MAX));
 		if title.is_empty() {
 			return Err(format!("{at}: title is empty."));

@@ -68,38 +68,43 @@ pub fn step_position(statuses: &[&str]) -> usize {
 	statuses.iter().position(|s| *s == "current").map_or_else(|| statuses.iter().filter(|s| **s == "visited").count(), |i| i + 1)
 }
 
-/// `planPositionLh`: `{done, total}` over the native record. A shown opener's question moves it,
-/// as it does in the window.
-pub fn plan_position_lh(tree: &Json, messages: &[Json]) -> Json {
-	let derived = derive_plan_statuses_lh(tree, messages, &opener_nodes(messages));
-	let statuses: Vec<&str> = ordered_plan_ids(tree).into_iter().map(|id| derived_node_status(&derived, id)).collect();
-	let mut out = Obj::new();
-	out.insert("done", step_position(&statuses) as f64);
-	out.insert("total", statuses.len() as f64);
-	Json::Obj(out)
+/// What the step bar shows: the steps it ticks, how many steps there are, the current step's
+/// number and its title.
+pub struct StepBar {
+	pub done: usize,
+	pub total: usize,
+	pub step: usize,
+	/// None before the first tagged call or when the current step has no title.
+	pub current_title: Option<Json>,
 }
 
-/// How many steps the step bar ticks: the visited ones, and the current one when it is `finished`
-/// (the topic of the stop the lesson waits at or ended on). A shown opener's question counts, as
-/// in `plan_position_lh`.
-pub fn steps_done_lh(tree: &Json, messages: &[Json], finished: Option<&str>) -> usize {
+/// The step bar over the native record, from one derivation of the plan's statuses. A shown
+/// opener's question moves it, as it does in the window. It ticks the visited steps, and the
+/// current one when it is `finished` (the topic of the stop the lesson waits at or ended on).
+pub fn step_bar(tree: &Json, messages: &[Json], finished: Option<&str>) -> StepBar {
 	let derived = derive_plan_statuses_lh(tree, messages, &opener_nodes(messages));
-	ordered_plan_ids(tree)
-		.into_iter()
-		.filter(|id| match derived_node_status(&derived, id) {
+	let order = ordered_plan_ids(tree);
+	let statuses: Vec<&str> = order.iter().map(|id| derived_node_status(&derived, id)).collect();
+	let done = order
+		.iter()
+		.zip(&statuses)
+		.filter(|(id, status)| match **status {
 			"visited" => true,
-			"current" => finished == Some(*id),
+			"current" => finished == Some(**id),
 			_ => false,
 		})
-		.count()
+		.count();
+	let current = derived.current.as_deref().and_then(|current| tree["nodes"].as_arr()?.iter().find(|n| id_of(n) == current));
+	StepBar { done, total: statuses.len(), step: step_position(&statuses), current_title: current.and_then(|node| node["title"].as_str().filter(|t| !t.is_empty())).map(Json::from) }
 }
 
-/// The current step's title, a shown opener's question moving it as in `plan_position_lh`; none
-/// before the first tagged call or when that step has no title.
-pub fn current_step_title(tree: &Json, messages: &[Json]) -> Option<Json> {
-	let current = current_step_id(tree, messages)?;
-	let node = tree["nodes"].as_arr()?.iter().find(|n| id_of(n) == current)?;
-	node["title"].as_str().filter(|t| !t.is_empty()).map(Json::from)
+/// `planPositionLh`: `{done, total}` over the native record.
+pub fn plan_position_lh(tree: &Json, messages: &[Json]) -> Json {
+	let bar = step_bar(tree, messages, None);
+	let mut out = Obj::new();
+	out.insert("done", bar.step as f64);
+	out.insert("total", bar.total as f64);
+	Json::Obj(out)
 }
 
 /// The current step's node id, which is its topic's id.
@@ -136,11 +141,12 @@ mod tests {
 	#[test]
 	fn the_ticked_count_is_the_visited_steps_and_the_current_one_once_finished() {
 		let tree = json!({ "nodes": [{ "id": "a" }, { "id": "b" }, { "id": "c" }], "edges": [] });
-		assert_eq!(steps_done_lh(&tree, &[], None), 0);
-		assert_eq!(steps_done_lh(&tree, &[call("a"), call("c")], None), 1, "c is under way");
-		assert_eq!(steps_done_lh(&tree, &[call("a"), call("c")], Some("c")), 2, "c's topic stopped");
-		assert_eq!(steps_done_lh(&tree, &[call("a"), call("c")], Some("a")), 1, "only the current step finishes this way");
-		assert_eq!(steps_done_lh(&tree, &[call("c"), call("a")], None), 1, "a step behind the current one in learning order still counts");
+		let done = |messages: &[Json], finished: Option<&str>| step_bar(&tree, messages, finished).done;
+		assert_eq!(done(&[], None), 0);
+		assert_eq!(done(&[call("a"), call("c")], None), 1, "c is under way");
+		assert_eq!(done(&[call("a"), call("c")], Some("c")), 2, "c's topic stopped");
+		assert_eq!(done(&[call("a"), call("c")], Some("a")), 1, "only the current step finishes this way");
+		assert_eq!(done(&[call("c"), call("a")], None), 1, "a step behind the current one in learning order still counts");
 	}
 
 	#[test]
@@ -157,10 +163,11 @@ mod tests {
 	#[test]
 	fn the_current_step_title_needs_a_tagged_call_and_a_title() {
 		let tree = json!({ "nodes": [{ "id": "a", "title": "Regularization" }, { "id": "b", "title": "" }], "edges": [] });
-		assert_eq!(current_step_title(&tree, &[]), None);
-		assert_eq!(current_step_title(&tree, &[call("a")]), Some(json!("Regularization")));
-		assert_eq!(current_step_title(&tree, &[call("a"), call("b")]), None);
-		assert_eq!(current_step_title(&tree, &[call("zz")]), None);
+		let title = |messages: &[Json]| step_bar(&tree, messages, None).current_title;
+		assert_eq!(title(&[]), None);
+		assert_eq!(title(&[call("a")]), Some(json!("Regularization")));
+		assert_eq!(title(&[call("a"), call("b")]), None);
+		assert_eq!(title(&[call("zz")]), None);
 		assert_eq!(current_step_id(&tree, &[call("b")]).as_deref(), Some("b"));
 	}
 }

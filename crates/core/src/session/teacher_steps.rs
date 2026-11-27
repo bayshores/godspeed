@@ -6,10 +6,13 @@
 
 use std::collections::VecDeque;
 
-use gs_base::{ids, text, time};
+use gs_base::text::{self, one_line};
+use gs_base::{ids, time};
 use gs_json::{Json, Obj};
 
-use crate::records::agent_actions::short_label;
+use super::approval_card::{CHANGE_TOOLS, own_tool_subject};
+use crate::contracts::space::base_name;
+use crate::records::agent_actions::LABEL_MAX;
 
 /// What one tool call is for the teacher's round of work.
 #[derive(Debug, PartialEq)]
@@ -80,51 +83,34 @@ pub fn round_call(tool: &str, args: &Json, names: &dyn StepNames) -> Option<Roun
 		"save_rule" => "Saving a teaching rule".to_owned(),
 		_ => return None,
 	};
-	Some(RoundCall::Step(TeacherStep { text: short_label(&words), link: None }))
+	Some(RoundCall::Step(TeacherStep { text: one_line(&words, LABEL_MAX), link: None }))
 }
 
-/// One of the agent's own tools, by Claude Code's name for it (Codex's commands and patches come
-/// as Bash and apply_patch), with the subject kept (a file's or a site's name, the web search's
-/// words, a search's plain words). None for a tool with no words here.
-fn own_tool_step(tool: &str, subject: Option<&str>) -> Option<TeacherStep> {
-	let subject = subject.map(text::trim).filter(|s| !s.is_empty());
+/// One of the agent's own tools as its session names it: Claude Code's tool and input, or Codex's
+/// item type and item (its commands and patches come as Bash and apply_patch). Only the subject
+/// shows. None for a tool with no words here.
+pub fn own_tool_input_step(name: &str, input: &Json) -> Option<TeacherStep> {
+	let tool = match name {
+		"commandExecution" => "Bash",
+		"fileChange" => "apply_patch",
+		"webSearch" => "WebSearch",
+		other => other,
+	};
+	let subject = own_tool_subject(tool, input).map(|(_, words)| words);
 	let words = match (tool, subject) {
-		("WebSearch", Some(query)) => format!("Searching the web for {}", quoted(query)),
+		("WebSearch", Some(query)) => format!("Searching the web for {}", quoted(&query)),
 		("WebSearch", None) => "Searching the web".to_owned(),
 		("WebFetch" | "Read", Some(name)) => format!("Reading {name}"),
 		("WebFetch", None) => "Reading a web page".to_owned(),
 		("Read", None) => "Reading a file".to_owned(),
-		("Grep", Some(words)) => format!("Searching files for {}", quoted(words)),
+		("Grep", Some(words)) => format!("Searching files for {}", quoted(&words)),
 		("Grep", None) => "Searching files".to_owned(),
 		("Glob", _) => "Looking for files".to_owned(),
 		("Bash", _) => "Running a command".to_owned(),
-		("Edit" | "Write" | "NotebookEdit" | "apply_patch", _) => "Changing files".to_owned(),
+		(tool, _) if CHANGE_TOOLS.contains(&tool) || tool == "apply_patch" => "Changing files".to_owned(),
 		_ => return None,
 	};
-	Some(TeacherStep { text: short_label(&words), link: None })
-}
-
-/// A subject is cut to this many characters.
-const SUBJECT_MAX: usize = 80;
-
-/// One of the agent's own tools as its session names it: Claude Code's tool and input, or Codex's
-/// item type and item. The subject is cut so no folder, page address, query or command shows: a
-/// file's name, a site's name, the web search's words, or a search's words when they are plain.
-pub fn own_tool_input_step(name: &str, input: &Json) -> Option<TeacherStep> {
-	let field = |key: &str| input[key].str_or_empty();
-	let (tool, subject) = match name {
-		"WebSearch" => ("WebSearch", field("query").to_owned()),
-		"Read" => ("Read", field("file_path").rsplit(['/', '\\']).next().unwrap_or_default().to_owned()),
-		"Grep" if field("pattern").chars().all(|c| c.is_alphanumeric() || c == ' ') => ("Grep", field("pattern").to_owned()),
-		"WebFetch" => ("WebFetch", url::Url::parse(field("url")).ok().and_then(|u| u.host_str().map(str::to_owned)).unwrap_or_default()),
-		"commandExecution" => ("Bash", String::new()),
-		"fileChange" => ("apply_patch", String::new()),
-		"webSearch" => ("WebSearch", field("query").to_owned()),
-		other => (other, String::new()),
-	};
-	let one = subject.split_whitespace().collect::<Vec<_>>().join(" ");
-	let cut: String = one.chars().take(SUBJECT_MAX).collect();
-	own_tool_step(tool, Some(&cut))
+	Some(TeacherStep { text: one_line(&words, LABEL_MAX), link: None })
 }
 
 /// A list of steps keeps this many; the oldest go first.
@@ -154,7 +140,7 @@ pub(crate) fn quoted(words: &str) -> String {
 
 /// A note's name from its path in the notes folder: the file's name without ".md".
 fn note_name(path: &str) -> String {
-	let file = path.rsplit(['/', '\\']).next().unwrap_or(path);
+	let file = base_name(path);
 	text::trim(file.strip_suffix(".md").unwrap_or(file)).to_owned()
 }
 
@@ -193,7 +179,7 @@ fn read_passage(args: &Json, names: &dyn StepNames) -> TeacherStep {
 		link.insert(key, value);
 		Json::Obj(link)
 	});
-	TeacherStep { text: short_label(&words), link }
+	TeacherStep { text: one_line(&words, LABEL_MAX), link }
 }
 
 #[cfg(test)]
@@ -201,7 +187,6 @@ mod tests {
 	use gs_json::json;
 
 	use super::*;
-	use crate::records::agent_actions::LABEL_MAX;
 
 	struct Names {
 		obsidian: bool,
@@ -299,29 +284,29 @@ mod tests {
 
 	#[test]
 	fn the_agent_s_own_tools_say_what_they_look_at_and_nothing_else() {
-		let own = |tool: &str, subject: Option<&str>| own_tool_step(tool, subject).map(|step| (step.text, step.link));
-		let words = |tool: &str, subject: Option<&str>| own(tool, subject).map(|(text, _)| text);
-		assert_eq!(words("WebSearch", Some(" cse 21 hw7 ")).as_deref(), Some("Searching the web for “cse 21 hw7”"));
-		assert_eq!(words("WebFetch", Some("cse29.site")).as_deref(), Some("Reading cse29.site"));
-		assert_eq!(words("Read", Some("syllabus.pdf")).as_deref(), Some("Reading syllabus.pdf"));
-		assert_eq!(words("Grep", Some("due")).as_deref(), Some("Searching files for “due”"));
-		assert_eq!(words("Grep", None).as_deref(), Some("Searching files"));
-		assert_eq!(words("Grep", Some("  ")).as_deref(), Some("Searching files"));
-		assert_eq!(words("WebSearch", None).as_deref(), Some("Searching the web"));
-		assert_eq!(words("WebFetch", None).as_deref(), Some("Reading a web page"));
-		assert_eq!(words("Read", None).as_deref(), Some("Reading a file"));
-		assert_eq!(words("Glob", Some("x")).as_deref(), Some("Looking for files"), "a glob's pattern is never shown");
-		assert_eq!(words("Bash", Some("rm -rf ~")).as_deref(), Some("Running a command"), "a command is never shown");
-		for tool in ["Edit", "Write", "NotebookEdit", "apply_patch"] {
-			assert_eq!(words(tool, Some("notes.md")).as_deref(), Some("Changing files"), "{tool}");
+		let own = |tool: &str, input: Json| own_tool_input_step(tool, &input).map(|step| (step.text, step.link));
+		let words = |tool: &str, input: Json| own(tool, input).map(|(text, _)| text);
+		assert_eq!(words("WebSearch", json!({ "query": " cse 21 hw7 " })).as_deref(), Some("Searching the web for “cse 21 hw7”"));
+		assert_eq!(words("WebFetch", json!({ "url": "https://cse29.site" })).as_deref(), Some("Reading cse29.site"));
+		assert_eq!(words("Read", json!({ "file_path": "syllabus.pdf" })).as_deref(), Some("Reading syllabus.pdf"));
+		assert_eq!(words("Grep", json!({ "pattern": "due" })).as_deref(), Some("Searching files for “due”"));
+		assert_eq!(words("Grep", json!({})).as_deref(), Some("Searching files"));
+		assert_eq!(words("Grep", json!({ "pattern": "  " })).as_deref(), Some("Searching files"));
+		assert_eq!(words("WebSearch", json!({})).as_deref(), Some("Searching the web"));
+		assert_eq!(words("WebFetch", json!({})).as_deref(), Some("Reading a web page"));
+		assert_eq!(words("Read", json!({})).as_deref(), Some("Reading a file"));
+		assert_eq!(words("Glob", json!({ "pattern": "x" })).as_deref(), Some("Looking for files"), "a glob's pattern is never shown");
+		assert_eq!(words("Bash", json!({ "command": "rm -rf ~" })).as_deref(), Some("Running a command"), "a command is never shown");
+		for tool in ["Edit", "MultiEdit", "Write", "NotebookEdit", "apply_patch"] {
+			assert_eq!(words(tool, json!({ "file_path": "notes.md" })).as_deref(), Some("Changing files"), "{tool}");
 		}
-		for tool in ["WebSearch", "WebFetch", "Read", "Grep", "Glob", "Bash", "Edit", "Write", "NotebookEdit", "apply_patch"] {
-			assert_eq!(own(tool, Some("x")).map(|(_, link)| link), Some(None), "{tool}: a step, with nothing to open");
+		for tool in ["WebSearch", "WebFetch", "Read", "Grep", "Glob", "Bash", "Edit", "MultiEdit", "Write", "NotebookEdit", "apply_patch"] {
+			assert_eq!(own(tool, json!({ "query": "x" })).map(|(_, link)| link), Some(None), "{tool}: a step, with nothing to open");
 		}
-		for tool in ["Agent", "TodoWrite", "mcp__godspeed__read_space", "read_space", "webSearch"] {
-			assert_eq!(own_tool_step(tool, None), None, "{tool}");
+		for tool in ["Agent", "TodoWrite", "mcp__godspeed__read_space", "read_space"] {
+			assert_eq!(own_tool_input_step(tool, &json!({})), None, "{tool}");
 		}
-		let long = words("WebSearch", Some(&"how to find the inverse of a matrix ".repeat(4))).unwrap_or_default();
+		let long = words("WebSearch", json!({ "query": "how to find the inverse of a matrix ".repeat(4) })).unwrap_or_default();
 		assert_eq!(text::len16(&long), LABEL_MAX);
 	}
 

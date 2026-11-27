@@ -57,7 +57,7 @@ pub fn turn_input(messages: &[Json], seen: Option<&str>) -> Vec<Json> {
 	let made: HashSet<&str> = seen_at.map_or_else(HashSet::new, |at| messages[..=at].iter().filter(|m| Role::Assistant.is(m)).flat_map(tool_calls).filter_map(|c| c["id"].as_str()).collect());
 	let answered: HashSet<&str> = messages.iter().filter(|m| Role::ToolResult.is(m)).filter_map(|m| m["toolCallId"].as_str()).collect();
 	let held = side_held_questions(messages);
-	let flat = |m: &Json| render_message(m, None).filter(|flat| !flat.is_null()).map(|flat| text_part(stringify(&flat)));
+	let flat = |m: &Json| render_message(m).map(|flat| text_part(stringify(&flat)));
 	for m in &messages[from..] {
 		match Role::of(m) {
 			Some(Role::System) => {}

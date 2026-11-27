@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use gs_base::clock;
 use gs_base::locks::LockKey;
+use gs_core::contracts::chat::ChatKind;
 use gs_core::messages::native_messages::{new_space_context_message, new_study_context_message};
 use gs_core::spaces::problem_list::problem_list;
 use gs_core::study::homework::{due_today_line, has_problems, homework_context_text};
@@ -28,7 +29,7 @@ pub(super) fn file_of<'a>(space: &'a Json, deadline: &Json) -> Option<&'a Json> 
 /// The clock a homework lesson's turns end with on the day its deadline is due
 /// (`due_today_line`); None for any other lesson.
 pub fn due_today_line_for(app: &App, lesson: &Json) -> Option<String> {
-	if lesson["kind"].as_str() != Some("homework") {
+	if ChatKind::of(lesson) != ChatKind::Homework {
 		return None;
 	}
 	let space = app.stores.spaces.get_space(lesson["spaceId"].as_str()?)?;
@@ -49,7 +50,7 @@ pub fn create_homework(app: &Arc<App>, space_id: &str, deadline_id: &str) -> Res
 	let assignment = file_of(&space, deadline).map_or(Json::Null, |file| json!({ "id": file["id"], "name": file["name"], "path": space_file_path(app, &space, file) }));
 	let title = format!("Work on {}", deadline["name"].str_or_empty());
 	let space_id = space["id"].str_or_empty();
-	let chat = app.stores.chats.create_chat(&title, Some("homework"), Some(space_id), deadline["id"].as_str(), &[])?;
+	let chat = app.stores.chats.create_chat(&title, Some(ChatKind::Homework.name()), Some(space_id), deadline["id"].as_str(), &[])?;
 	let chat_id = chat["id"].str_or_empty().to_owned();
 	let problems = problem_list(&space, deadline);
 	let topics = deadline_topics_for(app, space_id, deadline_id)?;

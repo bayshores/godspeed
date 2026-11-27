@@ -10,7 +10,7 @@ use gs_json::{Json, Obj, json};
 
 use super::changelog::is_version;
 use super::plugin_settings::sanitize_plugin_settings;
-use super::teaching_areas::{one_line, sanitize_area_rules};
+use super::teaching_areas::{clean_line, sanitize_area_rules};
 use crate::contracts::space::is_space_id;
 
 pub const CURRENT_SETTINGS_VERSION: i64 = 3;
@@ -53,7 +53,7 @@ pub fn factory_settings() -> Json {
 
 /// A teacher name made safe to show. "" = use the default.
 pub fn sanitize_teacher_name(raw: &str) -> String {
-	one_line(raw, TEACHER_NAME_MAX)
+	clean_line(raw, TEACHER_NAME_MAX)
 }
 
 /// #rgb / #rrggbb (case-insensitive): the only color format accepted.

@@ -6,6 +6,8 @@ use std::cmp::Ordering;
 
 use gs_json::lone;
 
+use crate::re::collapse_spaces;
+
 /// UTF-16 units of one char: 2 above U+FFFF, 1 for a stand-in (it is one lone unit).
 fn units(c: char) -> usize {
 	if lone::unit_of(c).is_some() { 1 } else { c.len_utf16() }
@@ -100,13 +102,11 @@ pub fn from_utf8_lossy(bytes: &[u8]) -> String {
 	String::from_utf8_lossy(bytes).into_owned()
 }
 
-/// `text` on one line, cut to at most `max` characters with "…".
-pub fn one_line(text: &str, max: usize) -> String {
-	let line = text.split_whitespace().collect::<Vec<_>>().join(" ");
-	if line.chars().count() <= max {
-		return line;
-	}
-	format!("{}…", line.chars().take(max - 1).collect::<String>().trim_end())
+/// `raw` on one line, cut to at most `max` UTF-16 units with "…".
+pub fn one_line(raw: &str, max: usize) -> String {
+	let spaced = collapse_spaces(raw);
+	let line = trim(&spaced);
+	if len16(line) <= max { line.to_owned() } else { format!("{}…", trim_end(&slice16(line, 0, Some(max as i64 - 1)))) }
 }
 
 #[cfg(test)]

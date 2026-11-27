@@ -4,12 +4,13 @@
 use gs_base::ids::is_uuid;
 use gs_json::Json;
 
+use crate::spaces::agent_folder::FolderAgent;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct TeacherChat {
 	/// The agent's own session id (a UUID).
 	pub id: String,
-	/// "claude" or "codex".
-	pub agent: String,
+	pub agent: FolderAgent,
 	/// The folder it ran in: an agent keeps its chats per folder.
 	pub folder: String,
 	pub name: Option<String>,
@@ -22,10 +23,10 @@ pub struct TeacherChat {
 impl TeacherChat {
 	fn from_json(chat: &Json) -> Option<TeacherChat> {
 		let id = chat["id"].as_str().filter(|id| is_uuid(id))?;
-		let agent = chat["agent"].as_str().filter(|a| matches!(*a, "claude" | "codex"))?;
+		let agent = FolderAgent::from_name(chat["agent"].as_str()?)?;
 		Some(TeacherChat {
 			id: id.to_owned(),
-			agent: agent.to_owned(),
+			agent,
 			folder: chat["folder"].as_str()?.to_owned(),
 			name: chat["name"].as_str().map(str::to_owned),
 			used: chat["used"] == Json::Bool(true),
@@ -54,7 +55,7 @@ mod tests {
 			{ "id": "nope", "agent": "claude", "folder": "/f", "at": 1 },
 			{ "id": A, "agent": "gemini", "folder": "/f", "at": 1 },
 		] });
-		assert_eq!(parse_teacher_chats(&file), [TeacherChat { id: A.to_owned(), agent: "claude".to_owned(), folder: "/f".to_owned(), name: Some("Limits proof".to_owned()), used: true, at: 4 }]);
+		assert_eq!(parse_teacher_chats(&file), [TeacherChat { id: A.to_owned(), agent: FolderAgent::Claude, folder: "/f".to_owned(), name: Some("Limits proof".to_owned()), used: true, at: 4 }]);
 		assert!(parse_teacher_chats(&Json::Null).is_empty());
 	}
 }

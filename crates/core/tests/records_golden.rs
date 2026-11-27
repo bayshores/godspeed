@@ -7,7 +7,7 @@ use gs_core::records::changelog::{changelog, compare_versions, entries_since, en
 use gs_core::records::prompt_segments::is_valid_segment_path;
 use gs_core::records::settings::{is_hex_color, sanitize_teacher_name, sanitize_user_settings};
 use gs_core::records::settings_resolution::{graph_tools_enabled, resolve_settings};
-use gs_core::records::teaching_areas::{learner_rules_section, one_line, sanitize_area_rules, sanitize_rules};
+use gs_core::records::teaching_areas::{learner_rules_section, clean_line, sanitize_area_rules, sanitize_rules};
 use gs_json::{Json, json, parse, stringify};
 
 fn case(name: &str) -> Json {
@@ -61,7 +61,7 @@ fn names_colors_and_rules_match_node() {
 		assert_eq!(is_hex_color(row["input"].as_str().unwrap()), row["output"].as_bool().unwrap(), "{}", stringify(&row["input"]));
 	}
 	for row in rows("oneLine") {
-		let got = one_line(row["input"].as_str().unwrap(), row["max"].as_i64().unwrap() as usize);
+		let got = clean_line(row["input"].as_str().unwrap(), row["max"].as_i64().unwrap() as usize);
 		assert_eq!(got, row["output"].as_str().unwrap(), "{} {}", stringify(&row["input"]), stringify(&row["max"]));
 	}
 	for row in rows("sanitizeRules") {

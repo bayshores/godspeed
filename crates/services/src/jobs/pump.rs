@@ -9,7 +9,7 @@ use gs_base::locks::LockKey;
 use gs_base::tasks::detach;
 use gs_core::messages::role::is_custom;
 use gs_core::messages::native_messages::{dangling_question_of, open_question_held};
-use gs_core::session::jobs::steer_delivered;
+use gs_core::session::jobs::{JobKind, steer_delivered};
 use gs_json::{Json, json};
 
 use super::wake::{QueuedSteer, Wake, complete_entry, hand_off_eligible, held_by, is_probe_handoff, job_id_of, live_agent, note_steers_durable, steer_id};
@@ -219,7 +219,7 @@ async fn wait_for_idle(app: &Arc<App>, chat_id: &str) {
 
 /// A finished demo's result marker (not its abort notice): what the window draws.
 fn is_artifact(steer: &Json) -> bool {
-	is_custom(steer, "subagent-steer") && steer["details"]["kind"].as_str() == Some("demo")
+	is_custom(steer, "subagent-steer") && steer["details"]["kind"].as_str() == Some(JobKind::Demo.name())
 }
 
 /// Writes the waiting demos into the lesson with no turn while a side question holds
