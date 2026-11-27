@@ -1,8 +1,8 @@
 //! The teacher's round of work, for Follow's slip: the steps a teacher panel chat's turn took
 //! since it began, as its desk shows them. A step is a read or a note; changes are left out, since
 //! the activity log has them. In memory only, so a restart loses it, and an ended round keeps
-//! nothing. Its start, each step and its end go out as "teacher-work". The chat code reaches it
-//! only through `chat_turn_began`, `chat_step` and `chat_turn_ended`.
+//! nothing. Its start, each step and its end go out as "teacher-work". Only the chat's turn work
+//! (`turns/turn_work.rs`) feeds it.
 
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -14,7 +14,6 @@ use gs_core::session::teacher_steps::{TeacherStep, keep_step, step_head};
 use gs_json::{Json, json};
 use parking_lot::Mutex;
 
-use crate::App;
 
 /// A round with no step for this long has ended, though nothing said so.
 pub const ROUND_STALE_MS: i64 = 5 * 60_000;
@@ -139,16 +138,4 @@ impl TeacherRound {
 			None => json!({ "live": false, "since": null, "steps": [] }),
 		}
 	}
-}
-
-pub(crate) fn chat_turn_began(app: &App, chat_id: &str, now: i64) {
-	app.teacher_round.began(chat_id, now);
-}
-
-pub(crate) fn chat_step(app: &App, chat_id: &str, step: TeacherStep, now: i64) {
-	app.teacher_round.step(chat_id, step, now);
-}
-
-pub(crate) fn chat_turn_ended(app: &App, chat_id: &str) {
-	app.teacher_round.ended(chat_id);
 }

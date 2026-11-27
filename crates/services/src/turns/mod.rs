@@ -31,6 +31,7 @@ pub mod turn_service;
 pub mod turn_work;
 
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::AtomicU64;
 
 use gs_core::messages::input_events::DismissInput;
 use gs_core::study::reply_nudges::Nudge;
@@ -42,11 +43,10 @@ pub use agent_catch_up::catch_up;
 pub use attachments::{AttachmentError, store_attachments};
 pub use chat_handler::{ChatReply, handle_chat_input, send_first_message};
 pub use chats::{Refusal, quiesce_chat_for_rewrite, running_work_blocker};
-pub use homework::due_today_line_for;
 pub use lesson_setup::every_turn_rules_for;
 pub use lessons::create_lesson;
 pub use turn_liveness::is_turn_running;
-pub use turn_runs::{abort_turn, answer_approval, clear_turn_failure};
+pub use turn_runs::answer_approval;
 
 /// The turn registries inside `App`.
 #[derive(Default)]
@@ -86,4 +86,9 @@ pub struct TurnsState {
 	notes: Mutex<HashMap<String, Vec<String>>>,
 	/// Each lesson's open agent session (lesson-session).
 	sessions: Mutex<HashMap<String, lesson_session::Kept>>,
+	/// Numbers each use of an open session, so an idle timer can tell whether its session was used since.
+	session_uses: AtomicU64,
+	/// One carry-over of the terminal's old chats at a time, so two reads of the list at once
+	/// never carry a chat over twice.
+	pub(crate) carrying_talk: Mutex<()>,
 }

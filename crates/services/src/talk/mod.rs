@@ -17,7 +17,7 @@ use gs_base::text::{one_line, trim};
 use gs_json::Json;
 
 use crate::App;
-use crate::app::agent_folder::{chat_model, folder_agent, usable_model};
+use crate::app::agent_folder::{chat_model, folder_agent, start_model, usable_model};
 use crate::turns::turn_liveness::is_turn_running;
 pub use setup::{talk_opening, talk_setup};
 
@@ -32,10 +32,11 @@ const UNNAMED: &str = "A chat";
 pub fn talk_chats(app: &App) -> Vec<Json> {
 	old_chats::carry_over(app);
 	let agent = folder_agent(app);
+	let start = start_model(app, agent);
 	let mut chats = app.stores.chats.list_talk_chats();
 	for chat in &mut chats {
 		let running = is_turn_running(app, chat["id"].str_or_empty());
-		let model = chat_model(app, chat, agent);
+		let model = chat_model(chat, agent, start.clone());
 		if let Some(fields) = chat.as_obj_mut() {
 			fields.insert("running", running);
 			fields.insert("model", model.map_or(Json::Null, Json::from));

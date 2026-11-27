@@ -26,7 +26,6 @@ use super::desk_files::{desk_files, path_reading, step_reading};
 use super::step_names::AppStepNames;
 use crate::App;
 use crate::app::settings_record::teacher_name;
-use crate::app::teacher_round::{chat_step, chat_turn_began, chat_turn_ended};
 use crate::jobs::asks::{AskedOn, asks_on};
 
 pub(super) struct TurnWork {
@@ -59,7 +58,7 @@ pub(super) fn begin(app: &App, chat_id: &str, cause: TurnCause) {
 	app.turns.work.lock().insert(chat_id.to_owned(), TurnWork { cause, plan: None, steps: VecDeque::new(), approvals: Vec::new() });
 	lesson_work_changed(app, chat_id);
 	if cause == TurnCause::Talk {
-		chat_turn_began(app, chat_id, clock::now_ms());
+		app.teacher_round.began(chat_id, clock::now_ms());
 	}
 }
 
@@ -68,7 +67,7 @@ pub(super) fn end(app: &App, chat_id: &str) {
 	let Some(work) = app.turns.work.lock().remove(chat_id) else { return };
 	lesson_work_changed(app, chat_id);
 	if work.cause == TurnCause::Talk {
-		chat_turn_ended(app, chat_id);
+		app.teacher_round.ended(chat_id);
 	}
 }
 
@@ -85,7 +84,7 @@ pub fn note_step(app: &App, chat_id: &str, step: TeacherStep, call: Option<&str>
 		true
 	});
 	if talk {
-		chat_step(app, chat_id, step, now);
+		app.teacher_round.step(chat_id, step, now);
 	}
 }
 
@@ -161,7 +160,7 @@ pub(super) fn job_activity(app: &App, job_id: &str, line: &str) {
 /// GET /api/chats/{id}/work: `{live, cause, plan, steps, approvals, files}`; the files and
 /// the lesson's jobs' permission questions go out with no turn too. None for an unknown lesson.
 pub fn lesson_work(app: &App, chat_id: &str) -> Option<Json> {
-	let lesson = app.stores.chats.get_chat(chat_id)?;
+	let lesson = app.stores.chats.chat_summary(chat_id)?;
 	let files = desk_files(app, &lesson);
 	let job_asks = asks_on(app, &AskedOn::Lesson(chat_id.to_owned()));
 	let turns = app.turns.work.lock();

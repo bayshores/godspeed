@@ -68,20 +68,14 @@ pub fn write_folder(folder: &str) -> Result<(), String> {
 	// Older godspeeds wrote the setup steps as a skill (/setup-classes, then /setup-spaces).
 	for name in ["setup-classes", "setup-spaces"] {
 		let old_skill = root.join(".claude").join("skills").join(name);
-		match std::fs::remove_dir_all(&old_skill) {
-			Err(err) if err.kind() != std::io::ErrorKind::NotFound => return Err(fsx::node_error_message(&err, "rm", &old_skill)),
-			_ => {}
-		}
+		fsx::remove_dir_if_present(&old_skill)?;
 	}
 	let dot = root.join(".godspeed");
 	for name in old_files() {
 		fsx::remove_if_present(&dot.join(name), "rm")?;
 	}
 	let images = dot.join("images");
-	match std::fs::remove_dir_all(&images) {
-		Err(err) if err.kind() != std::io::ErrorKind::NotFound => Err(fsx::node_error_message(&err, "rm", &images)),
-		_ => Ok(()),
-	}
+	fsx::remove_dir_if_present(&images)
 }
 
 #[cfg(test)]

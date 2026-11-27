@@ -5,7 +5,7 @@ use gs_core::spaces::file_state::FileStatus;
 use gs_json::{Json, Obj, json};
 
 use crate::spaces::files::file_in;
-use crate::spaces::gaps::open_gaps;
+use crate::spaces::gaps::open_gap_of;
 use crate::spaces::space_card::{space_file_path, space_topics};
 use super::{SpaceActions, given, local_now};
 
@@ -46,7 +46,7 @@ impl SpaceActions {
 		if let Some(name) = record["waitingDeadline"]["name"].as_str() {
 			view.insert("waitingDeadline", format!("{name}: an interview with no date yet. The next interview you add becomes it."));
 		}
-		if let Some(gap) = open_gaps(app, clock::now_ms()).into_iter().find(|g| g.space_id == space_id) {
+		if let Some(gap) = open_gap_of(app, &record, clock::now_ms()) {
 			view.insert("outOfDate", gap.agent_line);
 		}
 		if with_files {

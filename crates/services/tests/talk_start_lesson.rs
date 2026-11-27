@@ -11,6 +11,7 @@ use gs_runtime::fake::FakeAgent;
 use gs_services::App;
 use gs_services::app::agent_actions::recent_agent_actions;
 use gs_services::app::agents::use_runtime;
+use gs_services::talk::tools::reply::failure;
 use gs_services::talk::tools::{ToolCall, checked_arguments, run_tool};
 
 fn app() -> Arc<App> {
@@ -27,7 +28,7 @@ fn app() -> Arc<App> {
 /// The tool's answer text, as the agent reads it.
 async fn call(app: &Arc<App>, tool: &str, args: Json) -> String {
 	let answer = match checked_arguments(tool, &args) {
-		Err(refused) => refused,
+		Err(refused) => failure(&refused),
 		Ok(args) => run_tool(&ToolCall { app, caller: Some("Claude Code") }, tool, &args).await,
 	};
 	answer["content"][0]["text"].str_or_empty().to_owned()

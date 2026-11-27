@@ -3,6 +3,7 @@
 
 use gs_core::spaces::space_gaps::{Gap, space_gap};
 use gs_core::spaces::today_note::local_day;
+use gs_json::Json;
 
 use super::deadline_requests::{change_record, read_record};
 use crate::App;
@@ -10,9 +11,19 @@ use crate::outcome::{Outcome, refuse};
 
 /// Each open space's gap at `now` (ms), at most one per space, leaving out the answered ones.
 pub fn open_gaps(app: &App, now: i64) -> Vec<Gap> {
+	gaps_in(app, &app.stores.spaces.list_space_records(), now)
+}
+
+/// `open_gaps` for the space records already read.
+pub fn gaps_in(app: &App, records: &[Json], now: i64) -> Vec<Gap> {
 	let today = local_day(now);
 	let answered = read_record(app).gap_asked;
-	app.stores.spaces.list_space_records().iter().filter_map(|space| space_gap(space, &today)).filter(|gap| !answered.contains(&gap.key)).collect()
+	records.iter().filter_map(|space| space_gap(space, &today)).filter(|gap| !answered.contains(&gap.key)).collect()
+}
+
+/// The gap of one space record at `now`, unless the learner waved it off.
+pub fn open_gap_of(app: &App, space: &Json, now: i64) -> Option<Gap> {
+	space_gap(space, &local_day(now)).filter(|gap| !read_record(app).gap_asked.contains(&gap.key))
 }
 
 /// The learner waved off the space's gap with this key: it is not asked again.

@@ -3,9 +3,10 @@
 use gs_core::records::newer_first;
 use gs_core::session::session_markdown::session_markdown;
 use gs_core::session::work_pages::{WORK_PAGE_BYTES, split_pages};
+use gs_engine::turn::messages::text_block;
 use gs_json::{Json, Obj, json};
 
-use super::reply::{failure, result, text_block};
+use super::reply::{failure, result};
 use super::{ToolCall, space_arg};
 
 pub fn list_lessons(call: &ToolCall<'_>, args: &Json) -> Json {

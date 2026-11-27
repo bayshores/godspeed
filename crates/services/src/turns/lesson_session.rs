@@ -9,7 +9,7 @@
 
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::Ordering;
 
 use gs_base::hash::sha256_text;
 use gs_base::{clock, tasks};
@@ -31,8 +31,6 @@ pub(super) struct Kept {
 	model: Option<String>,
 	used: u64,
 }
-
-static USES: AtomicU64 = AtomicU64::new(0);
 
 /// What a chat's turn opens its session with and sends it.
 pub(super) struct SessionPlan {
@@ -127,7 +125,7 @@ impl SessionPlan {
 fn kept(app: &App, chat_id: &str, id: &str, model: Option<&str>) -> Option<Arc<Session>> {
 	let mut sessions = app.turns.sessions.lock();
 	let kept = sessions.get_mut(chat_id).filter(|k| k.session.native_id() == id)?;
-	kept.used = USES.fetch_add(1, Ordering::SeqCst);
+	kept.used = app.turns.session_uses.fetch_add(1, Ordering::SeqCst);
 	if let Some(model) = model.filter(|model| kept.model.as_deref() != Some(model)) {
 		match kept.session.set_model(model) {
 			Ok(()) => kept.model = Some(model.to_owned()),
@@ -138,7 +136,7 @@ fn kept(app: &App, chat_id: &str, id: &str, model: Option<&str>) -> Option<Arc<S
 }
 
 fn keep(app: &App, plan: &SessionPlan, session: &Arc<Session>) {
-	let used = USES.fetch_add(1, Ordering::SeqCst);
+	let used = app.turns.session_uses.fetch_add(1, Ordering::SeqCst);
 	let kept = Kept { session: session.clone(), agent: plan.runtime.agent(), model: plan.model.clone(), used };
 	app.turns.sessions.lock().insert(plan.chat_id.clone(), kept);
 }

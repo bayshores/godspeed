@@ -153,13 +153,13 @@ impl ChatStore {
 		let names = crate::json_ids_in(&self.dir);
 		let present: HashSet<&String> = names.iter().collect();
 		self.summaries.lock().retain(|cached, _| present.contains(cached));
-		let mut summaries: Vec<Json> = names.iter().filter_map(|id| self.summary_of(id)).filter(|summary| keep(summary)).collect();
+		let mut summaries: Vec<Json> = names.iter().filter_map(|id| self.chat_summary(id)).filter(|summary| keep(summary)).collect();
 		summaries.sort_by(newer_first);
 		summaries
 	}
 
 	/// One record's summary through the cache; None for an unreadable record or an invalid id.
-	fn summary_of(&self, id: &str) -> Option<Json> {
+	pub fn chat_summary(&self, id: &str) -> Option<Json> {
 		let version = self.chat_version(id)?;
 		if let Some((cached, summary)) = self.summaries.lock().get(id)
 			&& *cached == version

@@ -13,7 +13,6 @@ use gs_json::{Json, json};
 use gs_runtime::Update;
 use parking_lot::Mutex;
 
-use super::agent_folder::folder_agent;
 use super::agent_health::check_health;
 use super::agents::runtime;
 use crate::App;
@@ -88,11 +87,12 @@ pub(super) fn passed_update(app: &App) {
 /// learner's own command, or no agent found).
 pub async fn start_update(app: &Arc<App>) -> Result<Json, String> {
 	let _starting = app.agents.update.starting.lock().await;
-	let agent = folder_agent(app);
+	let runtime = runtime(app);
+	let agent = runtime.agent();
 	if let Some(running) = app.agents.update.run.lock().as_ref().filter(|run| run.agent == agent && run.stage == Stage::Running) {
 		return Ok(running.view());
 	}
-	let (stage, command, running) = match runtime(app).update().await {
+	let (stage, command, running) = match runtime.update().await {
 		Ok(Update::Running { command, lines, ended }) => (Stage::Running, command, Some((lines, ended))),
 		Ok(Update::Unknown { command }) => (Stage::Failed, command, None),
 		Err(reason) => {

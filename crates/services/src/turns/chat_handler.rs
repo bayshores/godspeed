@@ -49,7 +49,7 @@ use super::turn_service::{persist_turn, trigger_extraction};
 use super::turn_work;
 use crate::App;
 use crate::app::agent_actions::record_answer;
-use crate::app::agent_folder::{chat_model, working_folder};
+use crate::app::agent_folder::{chat_model, start_model, working_folder};
 use crate::app::agents;
 use crate::app::today_note::today_note_for;
 use crate::graph::progress::lesson_ended;
@@ -332,7 +332,9 @@ fn cites_check(app: &Arc<App>, chat_id: &str) -> TextCheck {
 /// Builds the turn on the chat's agent session and starts it as a background object.
 fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json, accepted: Accepted) -> Result<(), String> {
 	let Accepted { record, appends, merged } = accepted;
-	let talk = ChatKind::of(&record) == ChatKind::Talk;
+	let kind = ChatKind::of(&record);
+	let talk = kind == ChatKind::Talk;
+	let study = kind == ChatKind::Study;
 	// Try again runs again from before a failed or stopped reply, on a new session.
 	let fresh = matches!(input, TurnInput::Chat(ChatInput::Continue));
 	let context: Vec<Json> = if fresh { retry_context(&merged).to_vec() } else { merged.clone() };
@@ -345,14 +347,14 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 		talk_setup(app, agent)
 	} else {
 		let teaching = has_probe_done(&merged);
-		lesson_setup(app, &record, effective, LessonTurn { chat_id: chat_id.to_owned(), teaching, side_turn, call_check: Some(study_call_check(app, chat_id)) })
+		lesson_setup(app, &record, effective, LessonTurn { chat_id: chat_id.to_owned(), teaching, side_turn, call_check: study.then(|| study_call_check(app, chat_id)) })
 	};
 	let plan = SessionPlan {
 		chat_id: chat_id.to_owned(),
 		runtime,
 		cwd: working_folder(app)?,
 		attachments: app.stores.chats.attachments_dir(chat_id)?,
-		model: chat_model(app, &record, agent),
+		model: chat_model(&record, agent, start_model(app, agent)),
 		tools: setup.host.specs(),
 		prompt: setup.prompt,
 		stored: record["agentSession"].clone(),
@@ -384,8 +386,8 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 			sink.lock().push(CallUsage::from_model_usage(&message["usage"]).to_json());
 		}
 		let text: String = message["content"].items().iter().filter(|b| b["type"].as_str() == Some("text")).map(|b| b["text"].str_or_empty()).collect();
-		// The prose checks are a lesson's.
-		if let Some(app) = notes_app.upgrade().filter(|_| !talk && !text.trim().is_empty()) {
+		// The prose checks are a Study lesson's.
+		if let Some(app) = notes_app.upgrade().filter(|_| study && !text.trim().is_empty()) {
 			add_notes(&app, &notes_chat, reply_notes(&app, &notes_chat, message, &text));
 		}
 	}));

@@ -140,6 +140,7 @@ Locks outside `LockKey`, each guarding one piece of memory or one task:
 | `McpTokenStore::writing` | the token file's read-then-write | Alone |
 | `SpacesState::shortcut_sync` | one shortcut sync at a time (it rewrites the manifest) | Never while a `LockKey` is held; the sync reads spaces inside it, which takes `LockKey::Space` briefly |
 | `ExtractionState::graph_lock` | one graph extraction at a time (async mutex) | Never while a `LockKey` is held (a guard cannot cross an `.await`); the extraction takes graph and chat locks inside it |
+| `TurnsState::carrying_talk` | one carry-over of the terminal's old chats at a time, so two reads of the talk list never carry a chat over twice | Before any chat lock, never while a `LockKey` is held; the carry-over writes chat records inside it |
 | `ONE_AT_A_TIME` in `reindex_kept_pages` | one kept-page re-index at a time (async mutex) | Never while a `LockKey` is held; the index reads spaces inside it |
 
 ### Holding a lock

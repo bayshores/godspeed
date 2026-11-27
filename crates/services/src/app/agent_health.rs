@@ -13,7 +13,7 @@ use gs_json::{Json, Obj, json};
 use gs_runtime::{AgentHealth, Check, Outcome, Problem};
 use parking_lot::Mutex;
 
-use super::agent_folder::{folder_agent, start_command};
+use super::agent_folder::start_command;
 use super::agent_login::{login_view, passed_login};
 use super::agent_update::{passed_update, update_view};
 use super::agents::runtime;
@@ -30,6 +30,11 @@ struct Checks {
 	again: bool,
 }
 
+/// Tells the window a check started, ended or changed what the card shows.
+pub(super) fn told(app: &App) {
+	app.events.emit(EventKind::AgentHealth, json!({}));
+}
+
 /// Checks the picked agent, now or right after the check that runs.
 pub fn check_health(app: &Arc<App>) {
 	{
@@ -40,7 +45,7 @@ pub fn check_health(app: &Arc<App>) {
 		}
 		checks.running = true;
 	}
-	app.events.emit(EventKind::AgentHealth, json!({}));
+	told(app);
 	let app = Arc::downgrade(app);
 	tasks::detach("agent health", async move {
 		loop {
@@ -60,7 +65,7 @@ pub fn check_health(app: &Arc<App>) {
 			if up_to_date {
 				passed_update(&app);
 			}
-			app.events.emit(EventKind::AgentHealth, json!({}));
+			told(&app);
 			if !again {
 				return;
 			}
@@ -84,7 +89,7 @@ fn failure(check: Check, problem: Option<&Problem>, agent: FolderAgent) -> Obj {
 /// needs and the link to the page that fixes it, where there is one), its sign-in and its update.
 /// Before a check of this agent has ended its rows are unchecked; one starts if none runs.
 pub fn health_view(app: &Arc<App>) -> Json {
-	let agent = folder_agent(app);
+	let agent = runtime(app).agent();
 	let own_command = start_command(app, agent).is_some();
 	let (last, checking) = {
 		let checks = app.agents.health.0.lock();

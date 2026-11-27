@@ -6,6 +6,7 @@ use gs_base::config::Paths;
 use gs_base::ids;
 use gs_json::{Json, parse};
 use gs_services::App;
+use gs_services::talk::tools::reply::failure;
 use gs_services::talk::tools::{ToolCall, checked_arguments, run_tool};
 
 const GOLDEN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/talk_tool_arguments.json");
@@ -21,7 +22,7 @@ async fn bad_arguments_are_refused_like_the_ts_handler() {
 	for case in golden.as_arr().unwrap() {
 		let (name, tool) = (case["name"].str_or_empty(), case["tool"].str_or_empty());
 		let answer = match checked_arguments(tool, &case["arguments"]) {
-			Err(refused) => refused,
+			Err(refused) => failure(&refused),
 			Ok(args) => run_tool(&ToolCall { app: &app, caller: None }, tool, &args).await,
 		};
 		assert_eq!(answer["isError"], Json::Bool(true), "{name}: refused");

@@ -1,6 +1,7 @@
 //! Tool results as MCP's CallToolResult: `{content, isError?}`.
 
 use gs_core::spaces::space_tools::ToolOutcome;
+use gs_engine::turn::messages::text_block;
 use gs_json::{Json, json, stringify};
 
 /// Compact JSON (indentation costs the agent tokens and tells it nothing); a string as is.
@@ -10,10 +11,6 @@ pub fn result(value: &Json) -> Json {
 		other => stringify(other),
 	};
 	json!({ "content": [text_block(&text)] })
-}
-
-pub fn text_block(text: &str) -> Json {
-	json!({ "type": "text", "text": text })
 }
 
 pub fn failure(message: &str) -> Json {

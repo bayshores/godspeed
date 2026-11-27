@@ -79,7 +79,7 @@ pub(crate) fn usable_model(model: &str) -> bool {
 /// The saved model of each agent that has one, by agent name.
 fn saved_models(raw: &Json) -> Obj {
 	let mut models = Obj::new();
-	for agent in [FolderAgent::Claude, FolderAgent::Codex] {
+	for agent in FolderAgent::ALL {
 		if let Some(model) = raw[agent.name()].as_str().filter(|model| usable_model(model)) {
 			models.insert(agent.name(), model);
 		}
@@ -95,23 +95,30 @@ fn folder_of(state: &Obj) -> Option<String> {
 	state.get("folder").and_then(Json::as_str).map(str::to_owned)
 }
 
-fn start_commands(app: &App) -> StartCommands {
-	saved_start_commands(&read_state(app).get("startCommands").cloned().unwrap_or(Json::Null))
+fn start_commands_in(state: &Obj) -> StartCommands {
+	saved_start_commands(state.get("startCommands").unwrap_or(&Json::Null))
 }
 
 /// The learner's own start command for `agent`, if they set one.
 pub(crate) fn start_command(app: &App, agent: FolderAgent) -> Option<String> {
-	start_commands(app).get(agent).map(str::to_owned)
+	start_commands_in(&read_state(app)).get(agent).map(str::to_owned)
 }
 
 /// The agent the learner picked to run the lessons, if they picked one.
-fn picked_agent(app: &App) -> Option<FolderAgent> {
-	read_state(app).get("agent").and_then(Json::as_str).and_then(FolderAgent::from_name)
+fn picked_in(state: &Obj) -> Option<FolderAgent> {
+	state.get("agent").and_then(Json::as_str).and_then(FolderAgent::from_name)
 }
 
 /// The agent that runs the lessons: Claude Code until the learner picks Codex.
 pub fn folder_agent(app: &App) -> FolderAgent {
-	picked_agent(app).unwrap_or(FolderAgent::Claude)
+	picked_in(&read_state(app)).unwrap_or(FolderAgent::Claude)
+}
+
+/// The agent that runs the lessons and the learner's own start command for it, from one read.
+pub(crate) fn agent_with_command(app: &App) -> (FolderAgent, Option<String>) {
+	let state = read_state(app);
+	let agent = picked_in(&state).unwrap_or(FolderAgent::Claude);
+	(agent, start_commands_in(&state).get(agent).map(str::to_owned))
 }
 
 /// The learner picked the agent that runs the lessons and jobs, which is checked at once; the
@@ -135,12 +142,12 @@ pub(crate) fn start_model(app: &App, agent: FolderAgent) -> Option<String> {
 }
 
 /// The model a chat's next reply runs on: its own pick while its session is on `agent` (a pick
-/// made on the other agent names a model this one would refuse), else `agent`'s start model;
-/// None is the agent's own default.
-pub(crate) fn chat_model(app: &App, record: &Json, agent: FolderAgent) -> Option<String> {
+/// made on the other agent names a model this one would refuse), else `start`, `agent`'s start
+/// model; None is the agent's own default.
+pub(crate) fn chat_model(record: &Json, agent: FolderAgent, start: Option<String>) -> Option<String> {
 	let session = record["agentSession"]["agent"].as_str().or_else(|| record["agent"].as_str());
 	let own = record["model"].as_str().filter(|_| session.is_none_or(|on| on == agent.name()));
-	own.map(str::to_owned).or_else(|| start_model(app, agent))
+	own.map(str::to_owned).or(start)
 }
 
 /// PATCH /api/agent-folder `{model: {claude?, codex?}}`: each agent named gets its model, and
@@ -181,8 +188,12 @@ pub fn set_agent_models(app: &App, models: &Json) -> Result<Json, SetUpError> {
 
 const MODEL_SHAPE: &str = "model must name \"claude\" or \"codex\", each with a model's name or null";
 
+fn folder_in(app: &App, state: &Obj) -> String {
+	folder_of(state).unwrap_or_else(|| app.paths.default_agent_folder.to_string_lossy().into_owned())
+}
+
 pub(crate) fn agent_folder(app: &App) -> String {
-	folder_of(&read_state(app)).unwrap_or_else(|| app.paths.default_agent_folder.to_string_lossy().into_owned())
+	folder_in(app, &read_state(app))
 }
 
 /// Set up: the space-setup steps godspeed writes are there.
@@ -225,7 +236,7 @@ pub fn space_shortcut_dir(app: &App, space_id: &str) -> Option<String> {
 
 /// Where the folder is and whether it's set up. `oldSetup` is the old setup still left once the
 /// folder is set up (the first-time notice covers people without one).
-fn view_of(app: &App, folder: &str) -> Json {
+fn view_of(app: &App, state: &Obj, folder: &str) -> Json {
 	let home = home_text(app);
 	let exists = is_set_up(folder);
 	let old = if exists { old_setup(app) } else { OldSetup { plugin: false, codex: false } };
@@ -233,16 +244,17 @@ fn view_of(app: &App, folder: &str) -> Json {
 		"folder": folder,
 		"short": short_folder(folder, &home),
 		"exists": exists,
-		"startCommands": start_commands(app).to_json(),
+		"startCommands": state.get("startCommands").cloned().unwrap_or_else(|| Json::Obj(Obj::new())),
 		"oldSetup": old.to_json(),
 		// Null until the learner picks one: the window starts no agent by itself before that.
-		"agent": picked_agent(app).map(FolderAgent::name),
-		"model": read_state(app).get("model").cloned().unwrap_or_else(|| Json::Obj(Obj::new())),
+		"agent": picked_in(state).map(FolderAgent::name),
+		"model": state.get("model").cloned().unwrap_or_else(|| Json::Obj(Obj::new())),
 	})
 }
 
 pub fn agent_folder_view(app: &App) -> Json {
-	view_of(app, &agent_folder(app))
+	let state = read_state(app);
+	view_of(app, &state, &folder_in(app, &state))
 }
 
 /// write_folder, and a failure in words for the learner.
@@ -280,7 +292,7 @@ pub fn set_up_agent_folder(app: &Arc<App>, folder: Option<&str>) -> Result<Json,
 	if let Err(err) = remove_old_setup(app) {
 		eprintln!("[agent-folder] removing the old setup failed: {err}");
 	}
-	Ok(view_of(app, &folder))
+	Ok(view_of(app, &read_state(app), &folder))
 }
 
 /// Start an agent with the learner's own command (empty: the usual one again). The agent is

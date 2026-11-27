@@ -172,6 +172,15 @@ pub fn remove_if_present(file: &Path, syscall: &str) -> Result<(), String> {
 	}
 }
 
+/// Deletes a folder and all it holds; one that is not there counts as done. Other failures read
+/// like Node's `fs.rmSync` (`syscall` "rm").
+pub fn remove_dir_if_present(dir: &Path) -> Result<(), String> {
+	match std::fs::remove_dir_all(dir) {
+		Err(err) if err.kind() != io::ErrorKind::NotFound => Err(node_error_message(&err, "rm", dir)),
+		_ => Ok(()),
+	}
+}
+
 /// Renames a file that is not valid JSON to `<file>.corrupt-<Date.now()>`, so the next save
 /// cannot overwrite it. Never fails: the read still answers empty.
 pub fn set_aside_corrupt(file: &Path) {

@@ -6,7 +6,6 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use gs_base::events::EventKind;
 use gs_base::tasks;
 use gs_core::spaces::agent_folder::FolderAgent;
 use gs_json::{Json, json};
@@ -14,7 +13,7 @@ use gs_runtime::{Login, LoginControl};
 use parking_lot::Mutex;
 
 use super::agent_folder::{folder_agent, start_command};
-use super::agent_health::check_health;
+use super::agent_health::{check_health, told};
 use super::agents::runtime;
 use crate::App;
 
@@ -62,8 +61,15 @@ impl LoginError {
 	}
 }
 
-fn told(app: &App) {
-	app.events.emit(EventKind::AgentHealth, json!({}));
+/// The running sign-in's control, taking it out; any other state stays as it was.
+fn take_running(signing: &mut Signing) -> Option<LoginControl> {
+	match std::mem::take(signing) {
+		Signing::Running { control, .. } => Some(control),
+		other => {
+			*signing = other;
+			None
+		}
+	}
 }
 
 /// The health view's `login`: the picked agent's sign-in running (its page, and whether it takes
@@ -88,7 +94,8 @@ pub(super) fn passed_login(app: &App) {
 /// runs, its page; one left from the other agent is cancelled first.
 pub async fn start_login(app: &Arc<App>) -> Result<String, LoginError> {
 	let _starting = app.agents.login.starting.lock().await;
-	let agent = folder_agent(app);
+	let runtime = runtime(app);
+	let agent = runtime.agent();
 	let left = {
 		let mut signing = app.agents.login.signing.lock();
 		if let Signing::Running { agent: running, url, .. } = &*signing
@@ -96,13 +103,7 @@ pub async fn start_login(app: &Arc<App>) -> Result<String, LoginError> {
 		{
 			return Ok(url.clone());
 		}
-		match std::mem::take(&mut *signing) {
-			Signing::Running { control, .. } => Some(control),
-			other => {
-				*signing = other;
-				None
-			}
-		}
+		take_running(&mut signing)
 	};
 	if let Some(left) = left
 		&& let Err(err) = left.cancel().await
@@ -110,7 +111,7 @@ pub async fn start_login(app: &Arc<App>) -> Result<String, LoginError> {
 		eprintln!("[agent login] cancelling the other agent's sign-in failed: {err}");
 	}
 	let own_command = start_command(app, agent).is_some();
-	let Login { url, takes_code, ended, control } = match runtime(app).login().await {
+	let Login { url, takes_code, ended, control } = match runtime.login().await {
 		Ok(login) => login,
 		Err(reason) if own_command => return Err(LoginError::Refused(reason)),
 		Err(reason) => {
@@ -161,16 +162,7 @@ pub async fn send_login_code(app: &Arc<App>, code: &str) -> Result<(), LoginErro
 
 /// POST /api/agent/login/cancel: ends the running sign-in; the card shows Log in again.
 pub async fn cancel_login(app: &Arc<App>) -> Result<(), LoginError> {
-	let control = {
-		let mut signing = app.agents.login.signing.lock();
-		match std::mem::take(&mut *signing) {
-			Signing::Running { control, .. } => control,
-			other => {
-				*signing = other;
-				return Err(LoginError::NoLogin);
-			}
-		}
-	};
+	let Some(control) = take_running(&mut app.agents.login.signing.lock()) else { return Err(LoginError::NoLogin) };
 	told(app);
 	control.cancel().await.map_err(LoginError::Failed)
 }

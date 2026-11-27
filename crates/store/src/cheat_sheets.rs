@@ -3,8 +3,7 @@
 //! `<deadline id>-versions/v<n>.pdf` the sheets the agent made. A space's delete takes the whole
 //! folder with it.
 
-use std::io;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::LazyLock;
 
 use gs_base::config::Paths;
@@ -125,20 +124,8 @@ impl CheatSheetStore {
 		let sheet = self.sheet_file(space_id, deadline_id)?;
 		fsx::remove_if_present(&sheet, "rm")?;
 		fsx::remove_leftover_temps(&sheet);
-		remove_dir(&self.files_dir(space_id, deadline_id)?)?;
-		remove_dir(&self.versions_dir(space_id, deadline_id)?)
-	}
-}
-
-/// `fs.rmSync(path, { recursive: true, force: true })`.
-fn remove_dir(dir: &Path) -> Result<(), String> {
-	ignore_missing(std::fs::remove_dir_all(dir)).map_err(|err| fsx::node_error_message(&err, "rm", dir))
-}
-
-fn ignore_missing(result: io::Result<()>) -> io::Result<()> {
-	match result {
-		Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(()),
-		other => other,
+		fsx::remove_dir_if_present(&self.files_dir(space_id, deadline_id)?)?;
+		fsx::remove_dir_if_present(&self.versions_dir(space_id, deadline_id)?)
 	}
 }
 

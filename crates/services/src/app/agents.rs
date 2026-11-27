@@ -11,7 +11,9 @@ use gs_runtime::Runtime;
 use gs_runtime::process::AgentEnv;
 use parking_lot::Mutex;
 
-use super::agent_folder::{folder_agent, start_command};
+use super::agent_folder::agent_with_command;
+#[cfg(any(test, feature = "stand-in"))]
+use super::agent_folder::start_command;
 use super::agent_health::{HealthState, check_health};
 use super::agent_login::LoginState;
 use super::agent_update::UpdateState;
@@ -33,8 +35,7 @@ pub struct AgentsState {
 /// The runtime of the agent picked now. A new pick or start command makes a new one; a session
 /// opened on the old one keeps it until the session closes.
 pub fn runtime(app: &Arc<App>) -> Arc<Runtime> {
-	let agent = folder_agent(app);
-	let own = start_command(app, agent);
+	let (agent, own) = agent_with_command(app);
 	let mut held = app.agents.runtime.lock();
 	if let Some((made_for, command, runtime)) = held.as_ref()
 		&& *made_for == agent

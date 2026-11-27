@@ -52,10 +52,10 @@ pub fn space_arg(app: &App, space_id: Option<&str>) -> Result<Option<String>, St
 	Ok(scope)
 }
 
-/// A listed tool's raw arguments, checked against its schema; Err is the failed result.
-pub fn checked_arguments(name: &str, args: &Json) -> Result<Json, Json> {
-	let Some(schema) = input_schema(name) else { return Err(failure(&format!("Tool {name} not found"))) };
-	check_arguments(name, schema, args).map_err(|error| failure(&error))
+/// A listed tool's raw arguments, checked against its schema; Err is the refusal text.
+pub fn checked_arguments(name: &str, args: &Json) -> Result<Json, String> {
+	let Some(schema) = input_schema(name) else { return Err(format!("Tool {name} not found")) };
+	check_arguments(name, schema, args)
 }
 
 /// Runs a listed tool on arguments `checked_arguments` passed.

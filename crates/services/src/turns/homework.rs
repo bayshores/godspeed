@@ -28,7 +28,7 @@ pub(super) fn file_of<'a>(space: &'a Json, deadline: &Json) -> Option<&'a Json> 
 
 /// The clock a homework lesson's turns end with on the day its deadline is due
 /// (`due_today_line`); None for any other lesson.
-pub fn due_today_line_for(app: &App, lesson: &Json) -> Option<String> {
+pub(crate) fn due_today_line_for(app: &App, lesson: &Json) -> Option<String> {
 	if ChatKind::of(lesson) != ChatKind::Homework {
 		return None;
 	}

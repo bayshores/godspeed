@@ -11,7 +11,6 @@ use gs_base::{clock, fsx, time};
 use gs_core::records::teacher_chats::parse_teacher_chats;
 use gs_core::spaces::agent_folder::FolderAgent;
 use gs_json::{Json, json};
-use parking_lot::Mutex;
 
 use crate::App;
 use crate::app::agent_folder::agent_folder;
@@ -20,10 +19,6 @@ const FILE: &str = "teacher-chats.json";
 /// What a carried-over chat with no name of its own is called.
 const UNNAMED: &str = "A chat";
 
-/// One carry-over at a time, so two reads of the list at once never carry a chat over twice. It
-/// is not one of the app's ranked locks, since it is held while chat records are written.
-static CARRYING: Mutex<()> = Mutex::new(());
-
 /// Carries the old chats over once, if the old file is still there. A file that is not valid
 /// JSON is kept aside unread; one that is read is kept aside after its chats are carried over.
 pub(super) fn carry_over(app: &App) {
@@ -31,7 +26,7 @@ pub(super) fn carry_over(app: &App) {
 	if !file.exists() {
 		return;
 	}
-	let _carrying = CARRYING.lock();
+	let _carrying = app.turns.carrying_talk.lock();
 	let Some(saved) = fsx::read_json_or_set_aside(&file) else { return };
 	let folder = agent_folder(app);
 	let carried: Vec<String> = app.stores.chats.list_talk_chats().iter().filter_map(|chat| chat["terminalChat"].as_str().map(str::to_owned)).collect();
