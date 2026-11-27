@@ -113,7 +113,8 @@ export function TeacherPanel({
 			{!whole && <ResizeHandle paneKey="teacher" width={width} bounds={PANEL_WIDTH} onWidth={setWanted} label={`Resize ${name}'s panel`} />}
 			<PanelHead
 				name={name}
-				working={!!doing?.working || !!chat.row?.running}
+				// Activity alone lists every chat writing a reply, so the square breathes for any of them.
+				working={!!doing?.working || (chatShown ? !!chat.row?.running : !!teacher?.talk.chats?.some((c) => c.running))}
 				elsewhere={!!teacher?.elsewhere}
 				list={chatShown ? { open: list, onOpen: onList } : null}
 				popOut={chatShown && popOut ? () => void popOut().then(setPopError) : null}

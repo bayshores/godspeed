@@ -70,6 +70,8 @@ let onHome = false;
 let needAtStart = false;
 /** The page the host stands for has its own box for the teacher. */
 let ownBox = false;
+/** The panel's chats as the host's teacher lists them. */
+let chats: TeacherApi["talk"]["chats"] = [];
 
 /** The teacher's panel as the provider holds it; the "need" keys stand for a card in its chat. */
 function PanelHost({ children }: { children?: React.ReactNode }) {
@@ -90,7 +92,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 		panelOpen: panel.open,
 		setPanelOpen: panel.setOpen,
 		showChat: () => panel.showChat(),
-		talk: { chats: [], chatId: null },
+		talk: { chats, chatId: null },
 		waiting: { lessons: [], talk: null },
 		canAsk: !chatWindow.popped,
 		ask: (l) => {
@@ -262,6 +264,21 @@ describe("on a page with its own box for the teacher", () => {
 		} finally {
 			ownBox = false;
 			shell.remove();
+		}
+	});
+
+	it("a panel chat writing a reply is a row in Activity with its Stop, and the head's square breathes", async () => {
+		ownBox = true;
+		chats = [{ id: "chat_1", title: "Set up Physics", updatedAt: "2026-11-01T10:00:00.000Z", agent: "claude", model: null, running: true }];
+		try {
+			await mounted(async () => {
+				await click("open-panel");
+				assert.match(text("activity-chat") ?? "", /^Set up PhysicsChatStop$/);
+				assert.ok(q("teacher-panel-agent")?.querySelector(".ob-pulse"), "the teacher works");
+			});
+		} finally {
+			ownBox = false;
+			chats = [];
 		}
 	});
 
