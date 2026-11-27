@@ -3,11 +3,15 @@ import { EASE_OUT, prefersReducedMotion } from "@/frontend/components/presence";
 import { glideMs, type Box } from "./sheet-glide-model";
 
 const boxOf = (el: HTMLElement): Box => ({ width: el.offsetWidth, height: el.offsetHeight });
-/** The window a sheet is laid out in: the app's, and whether the lesson's "Your turn" is pinned under the lesson's own window (that
- *  window is laid out for a pinned one a moment after that one left). */
-const roomOf = (el: HTMLElement) => `${window.innerWidth} ${window.innerHeight} ${el.closest(".lh-lesson-window")?.classList.contains("lh-lesson-pinned") ?? ""}`;
-/** The height of the lesson's own window, for a sheet that scrolls in it. */
-const windowOf = (el: HTMLElement) => el.closest(".lh-lesson-window")?.clientHeight ?? null;
+/** The window a sheet is laid out in. `key` changes when that window is laid out anew; `windowHeight` is the height of a
+ *  window of the page's own a sheet scrolls in (a page that has one), which a sheet in it is carried along by. */
+export interface SheetRoom {
+	key: (el: HTMLElement) => string;
+	windowHeight: (el: HTMLElement) => number | null;
+}
+
+/** The app's window alone. */
+export const APP_ROOM: SheetRoom = { key: () => `${window.innerWidth} ${window.innerHeight}`, windowHeight: () => null };
 
 /** The sheets being watched, each with its glide's reading of them. */
 const watched = new WeakMap<Element, () => void>();
@@ -28,7 +32,7 @@ export function glideSheetAround(el: Element): void {
  * `early` also reads a sheet as soon as what it holds changes, before the frame is drawn: WebKit draws a size the resize watch
  * reports first and a glide started there only from the next frame, so a sheet whose content is swapped whole would snap.
  */
-function sheetGlide(early: boolean): { ref: RefCallback<HTMLElement>; hold: (still: boolean) => void } {
+function sheetGlide(early: boolean, room: SheetRoom): { ref: RefCallback<HTMLElement>; hold: (still: boolean) => void } {
 	// Null until a sheet's size is first seen: where it stood before the page was laid out around it is no size to glide from.
 	const seen = new Map<HTMLElement, { box: Box; room: string; window: number | null } | null>();
 	const gliding = new Map<HTMLElement, Animation>();
@@ -51,7 +55,7 @@ function sheetGlide(early: boolean): { ref: RefCallback<HTMLElement>; hold: (sti
 		for (const [el, was] of seen) {
 			// The sizes a glide passes through are its own.
 			if (gliding.has(el)) continue;
-			const now = { box: boxOf(el), room: roomOf(el), window: windowOf(el) };
+			const now = { box: boxOf(el), room: room.key(el), window: room.windowHeight(el) };
 			seen.set(el, now);
 			if (!was) continue;
 			if (was.room !== now.room) laidOutAnew();
@@ -105,8 +109,8 @@ function sheetGlide(early: boolean): { ref: RefCallback<HTMLElement>; hold: (sti
  * uncovers or covers it. While the book's pages are on their way (`still`) the sheets take their
  * sizes at once: that move lays them out itself. With reduced motion nothing glides.
  */
-export function useSheetGlide(still: boolean, early = false): RefCallback<HTMLElement> {
-	const [glide] = useState(() => sheetGlide(early));
+export function useSheetGlide(still: boolean, early = false, room: SheetRoom = APP_ROOM): RefCallback<HTMLElement> {
+	const [glide] = useState(() => sheetGlide(early, room));
 	// Before the sizes of this render are seen.
 	useLayoutEffect(() => glide.hold(still), [glide, still]);
 	return glide.ref;

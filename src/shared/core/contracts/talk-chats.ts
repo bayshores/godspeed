@@ -3,7 +3,7 @@
  * line), when it was last used, the agent whose session it holds and the model it runs on.
  */
 import { isFolderAgent, type FolderAgent } from "../agent-folder.ts";
-import { isRecord } from "../is-record.ts";
+import { isRecord, isText } from "../is-record.ts";
 
 export interface TalkChat {
 	id: string;
@@ -18,14 +18,12 @@ export interface TalkChat {
 	running: boolean;
 }
 
-const str = (v: unknown): v is string => typeof v === "string" && v !== "";
-
 /** The answer made safe to use: rows that are not chats are left out. */
 export function readTalkChats(raw: unknown): TalkChat[] {
 	const chats = isRecord(raw) && Array.isArray(raw.chats) ? raw.chats : [];
 	return chats.flatMap((c): TalkChat[] =>
-		isRecord(c) && str(c.id) && str(c.title) && str(c.updatedAt)
-			? [{ id: c.id, title: c.title, updatedAt: c.updatedAt, agent: isFolderAgent(c.agent) ? c.agent : null, model: str(c.model) ? c.model : null, running: c.running === true }]
+		isRecord(c) && isText(c.id) && isText(c.title) && isText(c.updatedAt)
+			? [{ id: c.id, title: c.title, updatedAt: c.updatedAt, agent: isFolderAgent(c.agent) ? c.agent : null, model: isText(c.model) ? c.model : null, running: c.running === true }]
 			: [],
 	);
 }

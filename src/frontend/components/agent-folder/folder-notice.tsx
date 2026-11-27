@@ -40,15 +40,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 	};
 	// Lessons and chats run in the folder by themselves: nothing to start.
 	const setUp = async () => {
-		const made = await action.run(async () => {
-			try {
-				if (view?.agent !== agent) await pick(agent);
-				await post({ action: "setup" });
-				return null;
-			} catch (err) {
-				return (err as Error).message;
-			}
-		});
+		const made = await action.run(async () => (view?.agent !== agent ? await pick(agent) : null) ?? (await post({ action: "setup" })));
 		if (made) setOpen(false);
 	};
 	const name = AGENT_LABEL[agent];

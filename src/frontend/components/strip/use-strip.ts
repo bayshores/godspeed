@@ -40,11 +40,9 @@ export function useStrip() {
 	const requests = useMemo(() => (feed.requests ?? []).map((r) => r.title), [feed.requests]);
 	const work = useMemo(() => workProgress({ spaces, extractions: feed.extractions, jobs: feed.jobs, requests }), [spaces, feed.extractions, feed.jobs, requests]);
 	const waiting = teacher?.waiting ?? null;
-	// A reply in the panel's chat is work too, though its thread shows it there.
-	const talkWorking = !!teacher?.talk.chats?.some((c) => c.running);
 	const view = useMemo(
-		() => stripView({ talkWaits: !!waiting?.talk, working: !!doing?.working || talkWorking, work, ready, asking: waiting?.lessons ?? [], panelOpen }),
-		[waiting, doing, talkWorking, work, ready, panelOpen],
+		() => stripView({ talkWaits: !!waiting?.talk, working: !!teacher?.working, work, ready, asking: waiting?.lessons ?? [], panelOpen }),
+		[waiting, teacher?.working, work, ready, panelOpen],
 	);
 	// While the agent can't run the peek says why, quietly: a skipped setup is not nagged about.
 	const { health, update } = useAgentSetup();

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
 import { ResultTag } from "@/frontend/components/result-tag";
 import { cn } from "@/frontend/lib/utils";
@@ -16,9 +17,11 @@ import type { ArtifactPartProps, VisualResult } from "@/shared/core";
 function Figure({ svg }: { svg: string }) {
 	const { figureInks } = useAppearance();
 	const overlay = useSessionMermaid();
-	const themed = themedFigure(svg, figureInks);
-	const shown = themed ?? svg;
-	const size = figureSize(shown);
+	const { themed, shown, size } = useMemo(() => {
+		const themed = themedFigure(svg, figureInks);
+		const shown = themed ?? svg;
+		return { themed, shown, size: figureSize(shown) };
+	}, [svg, figureInks]);
 	const key = cn(SMALL_BTN, "opacity-0 focus-visible:opacity-100 group-hover/md:opacity-100");
 	return (
 		<div className="group/md relative my-4" data-testid="visual-card">

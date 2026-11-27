@@ -44,7 +44,7 @@ export function WritingRow({ name, noBox, box, focus, busy, error, ideas, made, 
 	const hasFiles = box.files.files.length > 0;
 	const canSend = (hasText || hasFiles) && !(busy && hasFiles);
 	// Stop comes once the desk has opened, and never for a reply that lands before.
-	const stop = usePresence(useHeld(busy && !!onStop, AFTER_GLIDE_MS));
+	const stop = usePresence(useAfter(busy && !!onStop, AFTER_GLIDE_MS));
 	// Ideas fades in when it comes; in a chat opened with it, it is there at rest.
 	const [ideasAtRest] = useState(!!ideas && !made);
 	// The row fades only when it swaps with the boxless one, never as it is first drawn.
@@ -110,7 +110,7 @@ export function WritingRow({ name, noBox, box, focus, busy, error, ideas, made, 
 }
 
 /** True once `on` has held for `ms`; false as soon as it ends. */
-function useHeld(on: boolean, ms: number): boolean {
+function useAfter(on: boolean, ms: number): boolean {
 	const [held, setHeld] = useState(false);
 	if (!on && held) setHeld(false);
 	useEffect(() => {

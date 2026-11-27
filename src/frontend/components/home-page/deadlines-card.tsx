@@ -1,5 +1,6 @@
 import { DEFAULT_TEACHER_NAME, type RhythmGap, type SpaceSummary } from "@/shared/core";
 import { LoadFailed } from "@/frontend/components/load-failed";
+import type { Leaving } from "@/frontend/components/presence";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { Pane } from "@/frontend/components/ui/pane";
 import { AddDeadline } from "./add-deadline";
@@ -26,7 +27,7 @@ export function DeadlinesCard({
 	/** Null when the deadlines failed to load. */
 	lists: HomeLists | null;
 	/** The open spaces' outlines, held while one leaves. */
-	outlines: readonly { item: RhythmGap; leaving: boolean }[];
+	outlines: readonly Leaving<RhythmGap>[];
 	nowMs: number;
 	/** What the card above shows. */
 	picked: WeekPick | null;

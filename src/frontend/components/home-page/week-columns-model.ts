@@ -1,7 +1,8 @@
 /** Home's week: seven day columns from today, each with what is due that day and the outlines expected on it, then Later. Pure. */
 import { localDay, monthDay, type RhythmGap } from "@/shared/core";
-import { dueAtMs } from "@/frontend/components/countdown-model";
+import { dueAtMs, gapDueMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
+import type { Leaving } from "@/frontend/components/presence";
 import { clockLabel } from "@/frontend/components/space-deadlines-model";
 import { dueThisWeek, dueWords, type HomeLists } from "./home-page-model";
 
@@ -56,12 +57,12 @@ function item(d: OpenDeadline, nowMs: number, late: boolean, done: boolean, late
 	};
 }
 
-function outline({ item: gap, leaving }: { item: RhythmGap; leaving: boolean }, later: boolean): WeekItem {
+function outline({ item: gap, leaving }: Leaving<RhythmGap>, later: boolean): WeekItem {
 	return { kind: "gap", gap, leaving, key: gap.key, spaceId: gap.spaceId, name: gap.label, late: false, done: false, detail: later ? monthDay(gap.day) : null, label: `${gap.title} ${gap.line}` };
 }
 
-/** The due moment each sorts by: an outline is due at its day's end, as a deadline with no time. */
-const dueOf = (i: WeekItem) => (i.kind === "deadline" ? dueAtMs(i.deadline) : dueAtMs({ date: i.gap.day }));
+/** The due moment each sorts by. */
+const dueOf = (i: WeekItem) => (i.kind === "deadline" ? dueAtMs(i.deadline) : gapDueMs(i.gap));
 /** Soonest first; on the same moment an outline before a deadline (the sort keeps their order), so
  *  the deadline added for an outline takes its place once the outline has faded. */
 const byTime = (items: WeekItem[]) => items.sort((a, b) => dueOf(a) - dueOf(b));
@@ -71,7 +72,7 @@ const byTime = (items: WeekItem[]) => items.sort((a, b) => dueOf(a) - dueOf(b));
  *  what is still due today by time, then what was ticked done today; the
  *  other days hold what is due that day by time, and Later all the rest by
  *  date. An outline sits on its day, or in Later, as a deadline with no time. */
-export function weekColumns(lists: HomeLists, outlines: readonly { item: RhythmGap; leaving: boolean }[], nowMs: number): WeekColumn[] {
+export function weekColumns(lists: HomeLists, outlines: readonly Leaving<RhythmGap>[], nowMs: number): WeekColumn[] {
 	const now = new Date(nowMs);
 	const byDue = [...lists.today].sort((a, b) => dueAtMs(a) - dueAtMs(b));
 	const soon = outlines.filter((o) => dueThisWeek({ date: o.item.day }, nowMs));

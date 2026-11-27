@@ -18,6 +18,9 @@ import { useEffect, useMemo, useState } from "react";
 /** Matches --lh-dur-fast in src/frontend/globals.css. */
 const EXIT_MS = 110;
 
+/** Matches --lh-dur in src/frontend/globals.css, for animations and waits run from code. */
+export const DUR_MS = 160;
+
 /** The --lh-ease-out and --lh-ease-in curves in globals.css, for animations run from code. */
 export const EASE_OUT = "cubic-bezier(0.2, 0, 0, 1)";
 export const EASE_IN = "cubic-bezier(0.4, 0, 1, 1)";
@@ -50,9 +53,12 @@ export function usePresence(open: boolean, exitMs: number = EXIT_MS): { mounted:
 	return { mounted: open || mounted, state: open ? "open" : "closed" };
 }
 
+/** An item of a list held while it leaves. */
+export type Leaving<T> = { item: T; leaving: boolean };
+
 /** usePresence for a list: what leaves `items` stays `exitMs` more, after them, marked `leaving`,
  *  so its exit plays (.lh-fade with data-state="closed"). With reduced motion it goes at once. */
-export function useLeavingList<T extends { key: string }>(items: readonly T[], exitMs: number = EXIT_MS): { item: T; leaving: boolean }[] {
+export function useLeavingList<T extends { key: string }>(items: readonly T[], exitMs: number = EXIT_MS): Leaving<T>[] {
 	const [last, setLast] = useState(items);
 	const [gone, setGone] = useState<readonly T[]>([]);
 	// Read in the render that drops it, so the leaving one is never missing for a frame.

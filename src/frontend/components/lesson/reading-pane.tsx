@@ -85,7 +85,8 @@ export function ReadingPane({
 	const last = messages.length - 1;
 	const { wrote, desk: shownDesk, closing } = useDesk(messages, busy, work, useTeacher()?.name ?? DEFAULT_TEACHER_NAME);
 	const deskUp = shownDesk !== null;
-	const deskPage = shownDesk !== null && !problemSheet && deskPaper(shownDesk.work) !== null;
+	const paper = shownDesk && !problemSheet ? deskPaper(shownDesk.work) : null;
+	const deskPage = paper !== null;
 	useLayoutEffect(() => onDesk(deskUp, deskPage), [deskUp, deskPage, onDesk]);
 	const room = useContext(DeskRoomContext);
 	const foot = (busy || closing) && <QueuedSteersBody steers={queuedSteers} />;
@@ -156,7 +157,7 @@ export function ReadingPane({
 			{shownDesk && (
 				<ArrivalRow live={arrivalsLive} className={cn("flex flex-col", sheets.at(-1)?.rows.length ? "-mt-6" : "-mt-10", !problemSheet && "flex-1")}>
 					<div ref={desk} data-state={closing ? "closed" : "open"} data-desk-closing={closing || undefined} inert={closing} className={cn("flex flex-1 flex-col", closing && "lh-fade")}>
-						<AgentAtWork chatId={actions?.chatId ?? ""} head={shownDesk.head} writing={shownDesk.writing} work={shownDesk.work} paper={!problemSheet} room={problemSheet ? null : room} closing={closing} arrive={arrive} foot={foot} />
+						<AgentAtWork chatId={actions?.chatId ?? ""} head={shownDesk.head} writing={shownDesk.writing} work={shownDesk.work} paper={paper} room={problemSheet ? null : room} closing={closing} arrive={arrive} foot={foot} />
 					</div>
 				</ArrivalRow>
 			)}

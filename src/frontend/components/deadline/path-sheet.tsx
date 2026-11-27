@@ -1,4 +1,3 @@
-import { JobFailure } from "@/frontend/components/agent-setup/agent-card";
 import type { ReactNode } from "react";
 import { nothingMorePlannedLine, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
@@ -6,6 +5,7 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import type { Material, TopicTally } from "./deadline-model";
 import { RampRow } from "./ramp-row";
+import { RequestLine } from "./request-line";
 
 /**
  * THE PATH TO A DEADLINE: the topics that need work, weakest first, one
@@ -60,13 +60,7 @@ export function PathSheet({
 					<span className="min-w-0 truncate">Ask {teacherName} for a study guide</span>
 				</button>
 			)}
-			{needsGuide && guideLine && (
-				<JobFailure>
-					<p role="alert" data-testid="deadline-request-line" className="text-[15px] text-ink">
-						{guideLine}
-					</p>
-				</JobFailure>
-			)}
+			{needsGuide && guideLine && <RequestLine line={guideLine} />}
 			{ahead && plan.length > 0 && (
 				<>
 					<ol className="flex flex-col">

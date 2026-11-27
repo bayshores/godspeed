@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 /** Two display-only repairs for inputs the old HTML embedding accepted.
  * Do not rewrite stored artifacts/downloads or attempt general XML repair.
  * Comments, CDATA and processing instructions are copied verbatim. */
@@ -49,5 +51,7 @@ export function SvgImage({
 	width?: number;
 	height?: number;
 }) {
-	return <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgImageSource(svg))}`} alt={svgAltText(svg)} className={className} width={width} height={height} draggable={false} />;
+	const src = useMemo(() => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgImageSource(svg))}`, [svg]);
+	const alt = useMemo(() => svgAltText(svg), [svg]);
+	return <img src={src} alt={alt} className={className} width={width} height={height} draggable={false} />;
 }

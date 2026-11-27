@@ -4,6 +4,7 @@ import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { SHOWN_CHAT_KEY } from "./dock-model";
 import { PanelHead } from "./panel-head";
 import { TalkChatView } from "./talk-chat";
+import { putBackChat } from "./use-chat-window";
 import { useTalkChats } from "./use-talk-chats";
 
 /**
@@ -12,10 +13,6 @@ import { useTalkChats } from "./use-talk-chats";
  * made here is the one the panel shows when it is put back. On the Mac the head is the window's
  * title bar: it drags the window and leaves the traffic lights their gutter.
  */
-/** Closing the window puts the chat back in the main window's panel. A window already gone is what
- *  this wanted. */
-const putBack = () => void window.lh?.chatWindow?.close().catch(() => {/* it is gone already */});
-
 export function ChatWindow() {
 	const name = useSettings().teacherName;
 	const chats = useTalkChats();
@@ -29,7 +26,7 @@ export function ChatWindow() {
 		// The teacher panel's colors on a whole window: no pop-up corners, no edge line.
 		<main data-testid="chat-window" style={{ borderRadius: 0, boxShadow: "none" }} className="lh-popup flex h-dvh min-w-0 flex-col overflow-hidden font-ui">
 			<div className="lh-drag lh-lights-gutter shrink-0 select-none">
-				<PanelHead name={name} working={!!row?.running} elsewhere={false} list={null} popOut={null} putBack={putBack} blocked={false} />
+				<PanelHead name={name} working={!!row?.running} elsewhere={false} list={null} popOut={null} putBack={putBackChat} blocked={false} />
 			</div>
 			<div className="lh-desk lh-page-colors flex min-h-0 flex-1 flex-col">
 				<TalkChatView chatId={chatId} chat={row} onChat={show} name={name} noBox={false} ask={null} focus />

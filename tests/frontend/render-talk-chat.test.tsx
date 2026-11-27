@@ -153,7 +153,14 @@ async function show(node: React.ReactNode, path = "/", connect: () => object = n
 }
 
 type ChatProps = React.ComponentProps<typeof TalkChatView>;
-const chat = (over: Partial<ChatProps> = {}) => <TalkChatView chatId={null} chat={null} onChat={() => {}} name="Ada" noBox={false} ask={null} focus={false} {...over} />;
+/** The chat with the folder and the agent's setup, which hold the model list. */
+const chat = (over: Partial<ChatProps> = {}) => (
+	<AgentFolderProvider>
+		<AgentSetupProvider>
+			<TalkChatView chatId={null} chat={null} onChat={() => {}} name="Ada" noBox={false} ask={null} focus={false} {...over} />
+		</AgentSetupProvider>
+	</AgentFolderProvider>
+);
 
 /** The box's words are kept for the whole run, so a test that types leaves it empty. */
 const typed = async (words: string) => {
@@ -259,16 +266,11 @@ describe("a new chat", () => {
 });
 
 describe("while the agent can't run", () => {
-	const withSetup = () => (
-		<AgentFolderProvider>
-			<AgentSetupProvider>{chat()}</AgentSetupProvider>
-		</AgentFolderProvider>
-	);
 	const off = (testid: string) => q(testid)?.closest("[inert]") !== null;
 
 	it("the box's place says why, with the key that fixes it and the other agent; Try asking waits", async () => {
 		health = SIGNED_OUT;
-		await show(withSetup(), "/", events);
+		await show(chat(), "/", events);
 		assert.match(q("panel-setup")?.textContent ?? "", /^Claude Code isn't logged in\.Log in/);
 		assert.match(q("panel-setup")!.querySelector('[data-testid="agent-key"]')!.className, /lh-btn-main/, "Log in is the one main key");
 		assert.equal(q("panel-setup-other")?.textContent, "Use Codex");
@@ -279,7 +281,7 @@ describe("while the agent can't run", () => {
 
 	it("once the agent can run, the line folds away and the box takes its place", async () => {
 		health = SIGNED_OUT;
-		await show(withSetup(), "/", events);
+		await show(chat(), "/", events);
 		health = READY;
 		await fire("agent-health");
 		await act(() => new Promise((r) => setTimeout(r, 200)));
@@ -289,7 +291,7 @@ describe("while the agent can't run", () => {
 
 	it("before the first check answers, neither the line nor the box shows", async () => {
 		health = { ...READY, checking: true, checks: READY.checks.map((c) => ({ ...c, state: "unchecked", fact: null })) };
-		await show(withSetup(), "/", events);
+		await show(chat(), "/", events);
 		assert.equal(q("panel-setup"), null);
 		assert.ok(off("talk-writing"));
 	});
@@ -420,6 +422,7 @@ describe("the Chats list", () => {
 		asking: null,
 		recent: [],
 		doing: null,
+		working: false,
 		elsewhere: false,
 		setLesson() {},
 		go() {},

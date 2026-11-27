@@ -4,11 +4,11 @@
  */
 
 import { useState } from "react";
-import { DEFAULT_TEACHER_NAME, type FolderAgent, type UserSettings } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, type UserSettings } from "@/shared/core";
 import { useAgentFolder } from "@/frontend/components/agent-folder/use-agent-folder";
 import { StartCommandField } from "@/frontend/components/agent-folder/start-command-field";
 import { AgentCard } from "@/frontend/components/agent-setup/agent-card";
-import { useAgentSetup } from "@/frontend/components/agent-setup/agent-setup-context";
+import { usePickedAgent } from "@/frontend/components/agent-setup/agent-setup-context";
 import type { GeneralPatch } from "@/frontend/components/settings-context";
 import { useFold } from "@/frontend/components/use-fold";
 import { CommitInput, QUIET_KEY, SettingsRow } from "./controls.tsx";
@@ -45,7 +45,7 @@ export function TeacherSection({ record, onGeneralChange }: { record: UserSettin
 /** "Folder" with its path and Change folder, and "Start command" with the command and Change. */
 function FolderRows() {
 	const { view, change, setStartCommand } = useAgentFolder();
-	const agent: FolderAgent = useAgentSetup().health?.agent ?? view?.agent ?? "claude";
+	const agent = usePickedAgent();
 	const [changing, setChanging] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const field = useFold(changing);

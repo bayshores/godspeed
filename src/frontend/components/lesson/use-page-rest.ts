@@ -3,7 +3,7 @@ import type { GetTargetScrollTop, StickToBottomContext } from "use-stick-to-bott
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { holdPageHeight } from "./lesson-scroll-hold";
 import { type Pads, restingTop, wholeLineTop } from "./lesson-scroll-model";
-import { useBookMove } from "./use-book-move";
+import { TEXT, useBookMove } from "./use-book-move";
 import { useFiledCardHold } from "./use-filed-card-hold";
 
 /** What the learner last sent, or the mark of his go-ahead: the start of the teacher's reply to it. */
@@ -120,10 +120,9 @@ export function usePageRest({
 		const sheetBox = sheetEl?.getBoundingClientRect();
 		const partBox = contentElement.querySelector("[data-part-current]")?.getBoundingClientRect();
 		// With nothing waiting, a reply is read from its start from its first words on; before them, the desk shows.
+		const text = contentElement.querySelector(TEXT);
 		const reply =
-			replyRef.current && (sheetEl || !busyRef.current || contentElement.querySelector("[data-turn-wrote]"))
-				? ([...contentElement.querySelectorAll(LEARNER)].at(-1) ?? contentElement.querySelector("[data-testid=lesson-reading]"))
-				: null;
+			replyRef.current && (sheetEl || !busyRef.current || contentElement.querySelector("[data-turn-wrote]")) ? ([...contentElement.querySelectorAll(LEARNER)].at(-1) ?? text) : null;
 		const rest = restingTop(end, {
 			view: scrollElement.clientHeight,
 			pads: padsOf(columnRef.current),
@@ -131,7 +130,6 @@ export function usePageRest({
 			part: sheetBox && partBox ? partBox.top - sheetBox.top : null,
 			reply: reply ? reply.getBoundingClientRect().top - origin : null,
 		});
-		const text = contentElement.querySelector("[data-testid=lesson-reading]");
 		const lined = busyRef.current || !text ? rest : wholeLineTop(rest, linesAt(text, rest, origin));
 		const floor = askFloor.current;
 		// A scroll position is a whole number: a rest with parts of a point would be reached, then left again.

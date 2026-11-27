@@ -1,8 +1,7 @@
 import type { RhythmGap, SpaceColor } from "@/shared/core";
-import { dueAtMs } from "@/frontend/components/countdown-model";
+import { gapDueMs } from "@/frontend/components/countdown-model";
 import { countLeft } from "@/frontend/components/home-page/home-page-model";
-import { useGuardedAction } from "@/frontend/components/use-guarded-action";
-import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
+import { useAnswerGap } from "@/frontend/components/use-open-deadlines";
 import { OutlineRow } from "./outline-row";
 
 /**
@@ -11,13 +10,12 @@ import { OutlineRow } from "./outline-row";
  * off. The tab's head asks the teacher, so the row does not.
  */
 export function GapRow({ gap, color, nowMs, onAdd }: { gap: RhythmGap; color: SpaceColor; nowMs: number; onAdd: () => void }) {
-	const { answerGap } = useOpenDeadlines();
-	const answering = useGuardedAction();
+	const answering = useAnswerGap(gap);
 	return (
 		<OutlineRow
 			testid="gap-row"
 			color={color}
-			count={countLeft(dueAtMs({ date: gap.day }), nowMs)}
+			count={countLeft(gapDueMs(gap), nowMs)}
 			name={gap.label}
 			line={
 				answering.error ? (
@@ -30,7 +28,7 @@ export function GapRow({ gap, color, nowMs, onAdd }: { gap: RhythmGap; color: Sp
 			}
 			keys={
 				<>
-					<button type="button" data-testid="gap-row-answer" disabled={answering.busy} onClick={() => void answering.run(() => answerGap(gap.spaceId, gap.key))} className="lh-btn lh-btn-small lh-btn-quiet">
+					<button type="button" data-testid="gap-row-answer" disabled={answering.busy} onClick={answering.answer} className="lh-btn lh-btn-small lh-btn-quiet">
 						{gap.answer}
 					</button>
 					<button type="button" data-testid="gap-row-add" disabled={answering.busy} onClick={onAdd} className="lh-btn lh-btn-small">

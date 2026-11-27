@@ -3,7 +3,7 @@
  * lesson or of the teacher panel's chat: why the turn runs, whether an agent took it, its plan, its steps in the server's words,
  * what it waits for the learner to allow, and the files on the desk.
  */
-import { isRecord } from "../is-record.ts";
+import { isRecord, isText, oneOf } from "../is-record.ts";
 
 /** Why a turn runs. The server decides it from the turn's input; the window words it. */
 const TURN_CAUSES = ["first", "answer", "problem", "ask", "next", "retry", "open_problem", "job", "talk"] as const;
@@ -11,7 +11,8 @@ type TurnCause = (typeof TURN_CAUSES)[number];
 
 /** How the desk draws a file: pages of text, PDF pages, or no pages to show (Word, PowerPoint,
  *  EPUB). */
-type DeskFileKind = "text" | "pdf" | "other";
+const FILE_KINDS = ["text", "pdf", "other"] as const;
+type DeskFileKind = (typeof FILE_KINDS)[number];
 
 /** A file the teacher works from. `path` is where it is on the computer, which the paper reads. */
 interface DeskFile {
@@ -71,14 +72,12 @@ export interface LessonWork {
 
 export const NO_LESSON_WORK: LessonWork = { live: false, cause: null, plan: null, steps: [], approvals: [], files: [] };
 
-const str = (v: unknown): v is string => typeof v === "string" && v !== "";
 const count = (v: unknown): number | null => (typeof v === "number" && Number.isInteger(v) && v > 0 ? v : null);
-const isKind = (v: unknown): v is DeskFileKind => v === "text" || v === "pdf" || v === "other";
-const isCause = (v: unknown): v is TurnCause => TURN_CAUSES.includes(v as TurnCause);
 
 function readFile(raw: unknown): DeskFile | null {
-	if (!isRecord(raw) || !str(raw.name) || !str(raw.path) || !isKind(raw.kind)) return null;
-	return { name: raw.name, path: raw.path, kind: raw.kind };
+	const kind = isRecord(raw) ? oneOf(FILE_KINDS, raw.kind) : null;
+	if (!isRecord(raw) || !isText(raw.name) || !isText(raw.path) || !kind) return null;
+	return { name: raw.name, path: raw.path, kind };
 }
 
 function readReading(raw: unknown): DeskReading | null {
@@ -88,15 +87,14 @@ function readReading(raw: unknown): DeskReading | null {
 }
 
 function readPlan(raw: unknown): WorkPlan | null {
-	if (!isRecord(raw) || !Array.isArray(raw.items) || !raw.items.every(str) || typeof raw.done !== "number") return null;
+	if (!isRecord(raw) || !Array.isArray(raw.items) || !raw.items.every(isText) || typeof raw.done !== "number") return null;
 	return { items: raw.items, done: Math.max(0, Math.min(Math.trunc(raw.done), raw.items.length)) };
 }
 
-const isSubjectKind = (v: unknown): v is ApprovalSubjectKind => APPROVAL_SUBJECTS.includes(v as ApprovalSubjectKind);
-
 function readApproval(raw: unknown): WorkApproval | null {
-	if (!isRecord(raw) || !str(raw.id) || !str(raw.text)) return null;
-	const subject = isRecord(raw.subject) && isSubjectKind(raw.subject.kind) && str(raw.subject.text) ? { kind: raw.subject.kind, text: raw.subject.text } : null;
+	if (!isRecord(raw) || !isText(raw.id) || !isText(raw.text)) return null;
+	const kind = isRecord(raw.subject) ? oneOf(APPROVAL_SUBJECTS, raw.subject.kind) : null;
+	const subject = isRecord(raw.subject) && kind && isText(raw.subject.text) ? { kind, text: raw.subject.text } : null;
 	return { id: raw.id, text: raw.text, subject };
 }
 
@@ -106,8 +104,8 @@ export function readLessonWork(raw: unknown): LessonWork {
 	const files = Array.isArray(raw.files) ? raw.files.flatMap((f) => readFile(f) ?? []) : [];
 	if (raw.live !== true) return { ...NO_LESSON_WORK, files };
 	const steps = Array.isArray(raw.steps)
-		? raw.steps.flatMap((s): DeskStep[] => (isRecord(s) && str(s.id) && str(s.at) && str(s.text) ? [{ id: s.id, at: s.at, text: s.text, call: str(s.call) ? s.call : null, reads: readReading(s.reads) }] : []))
+		? raw.steps.flatMap((s): DeskStep[] => (isRecord(s) && isText(s.id) && isText(s.at) && isText(s.text) ? [{ id: s.id, at: s.at, text: s.text, call: isText(s.call) ? s.call : null, reads: readReading(s.reads) }] : []))
 		: [];
 	const approvals = Array.isArray(raw.approvals) ? raw.approvals.flatMap((a) => readApproval(a) ?? []) : [];
-	return { live: true, cause: isCause(raw.cause) ? raw.cause : null, plan: readPlan(raw.plan), steps, approvals, files };
+	return { live: true, cause: oneOf(TURN_CAUSES, raw.cause), plan: readPlan(raw.plan), steps, approvals, files };
 }

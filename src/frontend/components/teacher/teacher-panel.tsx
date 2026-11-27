@@ -66,7 +66,6 @@ export function TeacherPanel({
 	onBeside: (width: number | null) => void;
 }) {
 	const teacher = useTeacher();
-	const doing = teacher?.doing ?? null;
 	const blocked = useAskable() !== true;
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
 	const [{ width, whole }, setLayout] = useState({ width: wanted, whole: false });
@@ -113,8 +112,7 @@ export function TeacherPanel({
 			{!whole && <ResizeHandle paneKey="teacher" width={width} bounds={PANEL_WIDTH} onWidth={setWanted} label={`Resize ${name}'s panel`} />}
 			<PanelHead
 				name={name}
-				// Activity alone lists every chat writing a reply, so the square breathes for any of them.
-				working={!!doing?.working || (chatShown ? !!chat.row?.running : !!teacher?.talk.chats?.some((c) => c.running))}
+				working={!!teacher?.working}
 				elsewhere={!!teacher?.elsewhere}
 				list={chatShown ? { open: list, onOpen: onList } : null}
 				popOut={chatShown && popOut ? () => void popOut().then(setPopError) : null}

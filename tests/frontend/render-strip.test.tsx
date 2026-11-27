@@ -458,6 +458,7 @@ describe("The strip", () => {
 		asking: null,
 		recent: [],
 		doing: null,
+		working: false,
 		elsewhere: false,
 		setLesson: () => {},
 		go: () => {},

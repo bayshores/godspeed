@@ -158,9 +158,8 @@ function DraftChip({ file, onRemove }: { file: ChatAttachment; onRemove: () => v
 	);
 }
 
-/** "Add pictures or PDFs": opens the file picker. A quiet word with a
- *  plus; `outlined` where it sits in a row of outlined buttons. */
-export function AttachButton({ draft, outlined, glyph }: { draft: AttachmentDraft; outlined?: boolean; glyph?: boolean }) {
+/** "Add pictures or PDFs": opens the file picker. A plus glyph in the writing row (`glyph`), else the word as a plate. */
+export function AttachButton({ draft, glyph }: { draft: AttachmentDraft; glyph?: boolean }) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	return (
 		<>
@@ -181,8 +180,7 @@ export function AttachButton({ draft, outlined, glyph }: { draft: AttachmentDraf
 					<PixelIcon name="plus" />
 				</button>
 			) : (
-				<button type="button" data-testid="attach-button" onClick={() => inputRef.current?.click()} className={cn("lh-btn shrink-0", !outlined && "lh-btn-quiet")}>
-					{!outlined && <PixelIcon name="plus" />}
+				<button type="button" data-testid="attach-button" onClick={() => inputRef.current?.click()} className="lh-btn shrink-0">
 					Add pictures or PDFs
 				</button>
 			)}

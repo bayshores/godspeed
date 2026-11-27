@@ -67,7 +67,7 @@ const UNDRAWN: ReadonlySet<string> = new Set(["data-graph-context", "data-space-
  * which is drawn there only.
  */
 export function messageShows(m: LhViewMessage, echo: boolean, inTurn: string | null): boolean {
-	if (m.role !== "user") return m.parts.some((p) => partShows(p, null) && (inTurn === null || p.toolCallId !== inTurn));
+	if (m.role !== "user") return m.parts.some((p) => partShows(p, null, inTurn));
 	if (m.parts.every((p) => UNDRAWN.has(p.type))) return false;
 	return !(echo && m.parts.every((p) => p.type === "text"));
 }
@@ -119,7 +119,7 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, echo
 	// its anchors alone.
 	const anchors = new Set(firstSourceTextParts([m]).values());
 	// A task "Your turn" still shows is not drawn here, so it leaves no room either.
-	const separators = drawnSeparators(m.parts, (part) => partShows(part, hiddenCalls) && (inTurn === null || part.toolCallId !== inTurn));
+	const separators = drawnSeparators(m.parts, (part) => partShows(part, hiddenCalls, inTurn));
 	const pages = excerptParts(m.parts, pageMarks);
 	return (
 		<Fragment>
@@ -137,6 +137,7 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, echo
 						page={pages.get(pi)}
 						streaming={streamingLast && pi === m.parts.length - 1}
 						hiddenCalls={hiddenCalls}
+						inTurn={inTurn}
 						arrive={arrive}
 					/>
 				))}
@@ -174,8 +175,9 @@ function MarkerPart({ part }: { part: LhViewPart }) {
 /** The desk shows this tool call as one of its steps. */
 const onDesk = (part: LhViewPart, hiddenCalls: ReadonlySet<string> | null): boolean => !!hiddenCalls && !!part.toolCallId && hiddenCalls.has(part.toolCallId);
 
-/** Whether AssistantPart draws anything for this part (kept in step with it). */
-function partShows(part: LhViewPart, hiddenCalls: ReadonlySet<string> | null): boolean {
+/** Whether AssistantPart draws anything for this part (kept in step with it); the task "Your turn" shows (`inTurn`) is drawn there only. */
+function partShows(part: LhViewPart, hiddenCalls: ReadonlySet<string> | null, inTurn: string | null): boolean {
+	if (inTurn !== null && part.toolCallId === inTurn) return false;
 	if (part.type === "text" || part.type === "reasoning") return true;
 	if (!part.type.startsWith("tool-")) return false;
 	const tool = part.type.slice("tool-".length);
@@ -194,6 +196,7 @@ function AssistantPart({
 	page,
 	streaming,
 	hiddenCalls,
+	inTurn,
 	arrive,
 }: {
 	part: LhViewPart;
@@ -206,9 +209,10 @@ function AssistantPart({
 	page?: string;
 	streaming: boolean;
 	hiddenCalls: ReadonlySet<string> | null;
+	/** The call of the task "Your turn" shows. */
+	inTurn: string | null;
 	arrive: Arrive;
 }) {
-	const inTurn = useContext(ChatActionsContext)?.inTurn ?? null;
 	if (onDesk(part, hiddenCalls)) return null;
 	// A tool call that errored back to the agent is the agent's own work: it
 	// reads the error and tries again, so the lesson shows nothing for it.

@@ -11,7 +11,7 @@
  * Times are the computer's wall clock: a deadline with no time is due at
  * 23:59 that day.
  */
-import { deadlineDueAt } from "@/shared/core";
+import { deadlineDueAt, type RhythmGap } from "@/shared/core";
 
 export const SECOND = 1000;
 export const MINUTE = 60 * SECOND;
@@ -30,6 +30,9 @@ export function dueAtMs(d: { date: string; time?: string }): number {
 	const [h, min] = due.time.split(":").map(Number) as [number, number];
 	return new Date(y, m - 1, day, h, min).getTime();
 }
+
+/** An outline is due at its day's end, as a deadline with no time. */
+export const gapDueMs = (gap: RhythmGap): number => dueAtMs({ date: gap.day });
 
 type CountdownMode = "days" | "clock" | "fine" | "overdue";
 

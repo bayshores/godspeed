@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { AGENT_LABEL } from "@/frontend/components/agent-folder/agent-folder-model";
 import { useAgentFolderView } from "@/frontend/components/agent-folder/agent-folder-context";
 import { AgentCompact, useReadySound } from "@/frontend/components/agent-setup/agent-card";
@@ -14,11 +14,7 @@ import { cn } from "@/frontend/lib/utils";
  * the other agent never shows the box for a moment; at the window's start it is null.
  */
 export function useAskable(): boolean | null {
-	const { health } = useAgentSetup();
-	const [was, setWas] = useState<boolean | null>(null);
-	const now = answered(health) ? !cantRun(health) : was;
-	if (now !== was) setWas(now);
-	return now;
+	return useAgentSetup().askable;
 }
 
 /**
@@ -75,7 +71,7 @@ function OtherAgent() {
 				type="button"
 				data-testid="panel-setup-other"
 				disabled={action.busy}
-				onClick={() => void action.run(() => pick(other).then(() => null, (err: Error) => err.message))}
+				onClick={() => void action.run(() => pick(other))}
 				className="lh-btn lh-btn-quiet shrink-0"
 			>
 				Use {AGENT_LABEL[other]}

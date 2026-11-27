@@ -42,6 +42,7 @@ import { lessonError, retryAction } from "@/frontend/components/lesson/lesson-er
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { useSheetGlide } from "@/frontend/components/use-sheet-glide";
+import { LESSON_ROOM } from "@/frontend/components/lesson/lesson-room";
 import { answerAnchorSelector } from "@/frontend/components/lesson/card-anchors";
 import { practiceProgress } from "@/frontend/components/lesson/practice-progress";
 import { useLessonServer, type LessonStats } from "@/frontend/components/lesson/use-lesson-server";
@@ -84,6 +85,10 @@ import { useStableValue } from "@/frontend/lib/use-stable-value";
 
 /** A lesson with no topic pages. */
 const NO_PAGES: ReadonlyMap<string, string> = new Map();
+
+/** The ?prompt topic is in the address and its first send is still owed. */
+const startOwed = (messages: readonly { role: string }[], prompt: string | undefined): boolean =>
+	initialPromptOwed(messages, prompt) && new URLSearchParams(window.location.search).has("prompt");
 
 /**
  * THE LESSON: its title and words in the top bar (LessonBar), then one page that scrolls (LessonScroll):
@@ -152,7 +157,7 @@ export function Chat({
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
 	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, keepGoing, dropKept, status, error, clearError, resumeStream } = session;
-	const { turnInFlight, jobs, turns, pricing, summarizeAt, adoptAppendOnly } = useLessonServer({
+	const { turnInFlight, stopTurn, jobs, turns, pricing, summarizeAt, adoptAppendOnly } = useLessonServer({
 		chatId,
 		session,
 		initiallyInFlight: initiallyInFlight ?? false,
@@ -165,7 +170,7 @@ export function Chat({
 	const scrollContextRef = useRef<StickToBottomContext | null>(null);
 	// A lesson that sends its first message as it opens draws that turn's desk at rest, as part of
 	// its opening: arrivals start once the desk is up, or the send has failed.
-	const [opened, setOpened] = useState(() => !(initialPromptOwed(initialMessages, initialPrompt) && new URLSearchParams(window.location.search).has("prompt")));
+	const [opened, setOpened] = useState(() => !startOwed(initialMessages, initialPrompt));
 	const arrive = useArrivals(opened);
 	const [arrivalsLive, setArrivalsLive] = useState(false);
 	useEffect(() => setArrivalsLive(opened), [opened]);
@@ -176,8 +181,7 @@ export function Chat({
 	// reload) checks, so it can't send it again.
 	const sentInitial = useRef(false);
 	useEffect(() => {
-		const inAddress = new URLSearchParams(window.location.search).has("prompt");
-		if (!sentInitial.current && inAddress && initialPromptOwed(initialMessages, initialPrompt)) {
+		if (!sentInitial.current && startOwed(initialMessages, initialPrompt)) {
 			sentInitial.current = true;
 			const files = takeStartFiles(chatId);
 			void send({ type: "text", text: initialPrompt!, ...(files.length > 0 ? { attachments: [...files] } : {}) });
@@ -228,9 +232,9 @@ export function Chat({
 	pendingRef.current = pending;
 
 	const overlays = useLessonOverlays();
-	const { abortInFlightTurn, abortAsk, setAbortAsk, confirmAbort } = useLessonAbort({
-		chatId,
+	const { abortAsk, setAbortAsk, confirmAbort } = useLessonAbort({
 		session,
+		stopTurn,
 		pendingRef,
 		activeProblemRef,
 		busyRef,
@@ -525,7 +529,7 @@ export function Chat({
 	}, [deskUp, error]);
 	const book = useBook(opens, heldTurn, busy, deskUp);
 	const { open } = book;
-	const sheetGlide = useSheetGlide(book.turning);
+	const sheetGlide = useSheetGlide(book.turning, false, LESSON_ROOM);
 	// While it is shut and the teacher works, a task that streams in waits for the reply to land.
 	const turnPending = open || pending?.appPosed?.kind === "review" ? pending : null;
 	const turnProblem = open ? problem : null;
@@ -649,7 +653,7 @@ export function Chat({
 												kept={kept}
 												onNext={onNext}
 												busy={busy}
-												onStop={busy ? abortInFlightTurn : null}
+												onStop={busy ? stopTurn : null}
 												boxRef={workBoxRef}
 												value={text}
 												onChange={editText}

@@ -1,10 +1,7 @@
-import { useMemo } from "react";
-import { readAgentModels, type AgentModels } from "@/shared/core";
-import { useServerResource } from "@/frontend/components/use-server-resource";
+import type { AgentModels } from "@/shared/core";
+import { useAgentSetup } from "@/frontend/components/agent-setup/agent-setup-context";
 
-/** The models the picked agent offers, read again each time the agent is checked. No models until
- *  the agent answers, and while it can't. */
+/** The models the picked agent offers: none until the agent can be asked. */
 export function useAgentModels(): AgentModels {
-	const { value } = useServerResource<unknown>("/api/agent/models", { on: { "agent-health": true } });
-	return useMemo(() => readAgentModels(value), [value]);
+	return useAgentSetup().models;
 }

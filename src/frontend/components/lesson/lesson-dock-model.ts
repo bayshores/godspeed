@@ -1,4 +1,5 @@
 /** The panel docked beside a lesson: which one is open, what it remembers per lesson and how wide it is. Pure. */
+import { isText } from "@/shared/core";
 
 /** The panels a lesson docks beside its page, one at a time. */
 export type DockPanelKind = "sheet" | "document";
@@ -20,8 +21,6 @@ const SESSION_MIN_W = 1000;
 export function dockStateKey(chatId: string): string {
 	return `lh:sheet-dock:${chatId}`;
 }
-
-const isText = (v: unknown): v is string => typeof v === "string" && v !== "";
 
 /** A saved state; one saved before the Document panel (`open: true`) is the cheat sheet open. */
 export function parseDockState(raw: string | null): DockState {

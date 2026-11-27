@@ -8,6 +8,7 @@
  */
 import type { AgentAction } from "@/shared/core";
 import { plural } from "@/frontend/lib/plural";
+import { hasOwnBox } from "./dock-model";
 import type { FollowPause } from "./follow";
 import type { TimelineRow } from "./timeline-model";
 
@@ -46,7 +47,7 @@ export const slipFits = (beside: number | null): boolean => beside === null || b
 
 /** The pages the slip may show on: not a lesson, a mock or a cheat sheet. */
 export function slipPlace(path: string): boolean {
-	return !path.startsWith("/chat/") && !path.startsWith("/space/mock/") && !/^\/space\/deadline\/[^/]+\/cheat-sheet$/.test(path);
+	return !hasOwnBox(path) && !path.startsWith("/space/mock/");
 }
 
 export function slipView(i: {

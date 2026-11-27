@@ -14,14 +14,10 @@ export function useOldSetup() {
 		if (!view) return;
 		setBusy(true);
 		setError(null);
-		try {
-			await post({ action: "remove-old-setup" });
-			setRemoved(view.oldSetup);
-		} catch (err) {
-			setError((err as Error).message);
-		} finally {
-			setBusy(false);
-		}
+		const failed = await post({ action: "remove-old-setup" });
+		if (failed === null) setRemoved(view.oldSetup);
+		setError(failed);
+		setBusy(false);
 	}, [view, post, setRemoved]);
 
 	return { view, removed, busy, error, remove };

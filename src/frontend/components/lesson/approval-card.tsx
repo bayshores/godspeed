@@ -1,13 +1,10 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { WorkApproval } from "@/shared/core";
-import { useLeavingList } from "@/frontend/components/presence";
+import { DUR_MS, useLeavingList } from "@/frontend/components/presence";
 import { useFold } from "@/frontend/components/use-fold";
 import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { cn } from "@/frontend/lib/utils";
 import type { Arrive } from "./arrivals";
-
-/** The --lh-dur token: a card folds shut in this time, so it stays that long once answered. */
-const FOLD_MS = 160;
 
 /** What the lesson page does when a card comes while the desk is up: glides it into view once. */
 export const AskShownContext = createContext<((card: HTMLElement) => void) | null>(null);
@@ -24,7 +21,7 @@ type AnswerApproval = (id: string, allow: boolean) => Promise<string | null>;
  */
 export function ApprovalCards({ approvals, slot, arrive, answer, className }: { approvals: readonly WorkApproval[]; slot: string; arrive: Arrive; answer: AnswerApproval; className?: string }) {
 	const items = useMemo(() => approvals.map((approval) => ({ key: approval.id, approval })), [approvals]);
-	const shown = useLeavingList(items, FOLD_MS);
+	const shown = useLeavingList(items, DUR_MS);
 	if (shown.length === 0) return null;
 	return (
 		<div data-testid="desk-approvals" className={cn("flex flex-col", className)}>

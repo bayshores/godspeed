@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { AgentModels, ChatInput, LhMessage, TalkChat } from "@/shared/core";
+import type { AgentModels, ChatInput, TalkChat } from "@/shared/core";
 import { useAgentFolderView } from "@/frontend/components/agent-folder/agent-folder-context";
 import { useAgentModels } from "@/frontend/components/agent-folder/use-agent-models";
 import { LoadFailed } from "@/frontend/components/load-failed";
@@ -16,7 +16,9 @@ import { prefersReducedMotion } from "@/frontend/components/presence";
 import { QueuedSteersBody } from "@/frontend/components/queued-steers";
 import { useChatSession } from "@/frontend/components/session";
 import { visibleQueuedSteers } from "@/frontend/components/session-core";
-import { getJson, jsonInit, send } from "@/frontend/lib/api";
+import { useGuardedAction } from "@/frontend/components/use-guarded-action";
+import { useServerResource } from "@/frontend/components/use-server-resource";
+import { jsonInit, send } from "@/frontend/lib/api";
 import { cn } from "@/frontend/lib/utils";
 import { ModelKey } from "./model-key";
 import { SetupFoot, useAskable } from "./setup-foot";
@@ -103,6 +105,30 @@ interface ModelProps {
 
 const sendInput = (text: string, files: AttachmentDraft["files"]): TextInput => ({ type: "text", text, ...(files.length > 0 ? { attachments: files.map((f) => f.attachment) } : {}) });
 
+/** Sends what the box holds and empties it; the words and files come back when `go` says it did
+ *  not take them. */
+function takeBox(box: Box, go: (input: TextInput) => Promise<boolean>): void {
+	const typed = box.text.trim();
+	const files = box.files.files;
+	if (!typed && files.length === 0) return;
+	box.setText("");
+	box.files.clear();
+	void go(sendInput(typed, files)).then((taken) => {
+		if (taken) return;
+		box.setText((now) => restoreUnsent(typed, now));
+		box.files.restore(files);
+	});
+}
+
+/** A line a page key handed the teacher goes now, and is cleared. */
+function useAskLine(ask: Asking, send: (line: string) => void): void {
+	useEffect(() => {
+		if (!ask) return;
+		ask.clear();
+		send(ask.line);
+	});
+}
+
 function NewChat({ name, noBox, box, ask, focus, onMade }: RoomProps & { onMade: (id: string, input: TextInput, model: string | null) => void }) {
 	// A pick for the chat this box makes is kept with the box, across a reload, and goes with its first message.
 	const models = useAgentModels();
@@ -110,49 +136,27 @@ function NewChat({ name, noBox, box, ask, focus, onMade }: RoomProps & { onMade:
 	const pick = (id: string) => {
 		if (models.agent) box.pickNext({ agent: models.agent, model: id });
 	};
-	const facts = useIdeaFacts();
-	const starters = startersFor(facts);
-	const groups = useMemo(() => everything(facts), [facts]);
+	const starters = startersFor(useIdeaFacts());
+	const groups = useIdeaGroups();
 	const off = useAskable() !== true;
-	const [failed, setFailed] = useState<string | null>(null);
-	const sending = useRef(false);
-	const make = async (input: TextInput, restore: () => void) => {
-		if (sending.current) return;
-		sending.current = true;
-		setFailed(null);
-		const made = await send("/api/chats", jsonInit("POST", { kind: "talk", text: input.text, ...(model ? { model } : {}) }));
-		sending.current = false;
-		const id = (made.body as { id?: unknown } | null)?.id;
-		if (made.error || typeof id !== "string") {
-			setFailed("Your message didn't go through.");
-			restore();
-			return;
-		}
-		box.pickNext(null);
-		onMade(id, input, model);
-	};
-	const sendBox = () => {
-		const typed = box.text.trim();
-		const files = box.files.files;
-		if (!typed && files.length === 0) return;
-		box.setText("");
-		box.files.clear();
-		void make(sendInput(typed, files), () => {
-			box.setText((now) => restoreUnsent(typed, now));
-			box.files.restore(files);
+	const action = useGuardedAction();
+	// Whether the chat was made.
+	const make = (input: TextInput): Promise<boolean> =>
+		action.run(async () => {
+			const made = await send("/api/chats", jsonInit("POST", { kind: "talk", text: input.text, ...(model ? { model } : {}) }));
+			const id = (made.body as { id?: unknown } | null)?.id;
+			if (made.error || typeof id !== "string") return "Your message didn't go through.";
+			box.pickNext(null);
+			onMade(id, input, model);
+			return null;
 		});
-	};
-	const sendLine = (line: string) => void make({ type: "text", text: line }, () => {});
-	useEffect(() => {
-		if (!ask) return;
-		ask.clear();
-		sendLine(ask.line);
-	});
+	const sendLine = (line: string) => void make({ type: "text", text: line });
+	useAskLine(ask, sendLine);
 	return (
 		<Room
 			body={<TryAsking starters={starters} groups={groups} off={off} onSend={sendLine} />}
 			foot={
-				<WritingRow name={name} noBox={noBox} box={box} focus={focus} busy={false} error={failed ? { text: failed, onRetry: null } : null} ideas={null} made={false} model={<ModelKeyFor models={models} model={model} onModel={pick} />} onSend={sendBox} onLine={sendLine} onStop={null} />
+				<WritingRow name={name} noBox={noBox} box={box} focus={focus} busy={false} error={action.error ? { text: action.error, onRetry: null } : null} ideas={null} made={false} model={<ModelKeyFor models={models} model={model} onModel={pick} />} onSend={() => takeBox(box, make)} onLine={sendLine} onStop={null} />
 			}
 		/>
 	);
@@ -173,20 +177,8 @@ type Read = Pick<ChatRead, "messages" | "turnInFlight"> & Partial<Pick<ChatRead,
 const MADE: Read = { messages: [], turnInFlight: false };
 
 function ChatRoom({ chatId, first, ...room }: RoomProps & ModelProps & { chatId: string; first: TextInput | null }) {
-	const [read, setRead] = useState<Read | null>(first ? MADE : null);
-	const [failed, setFailed] = useState(false);
-	const load = useCallback(() => {
-		setFailed(false);
-		void getJson<Read & { messages?: LhMessage[] }>(`/api/chats/${encodeURIComponent(chatId)}`).then(({ body }) => {
-			if (body && Array.isArray(body.messages)) setRead(body);
-			else setFailed(true);
-		});
-	}, [chatId]);
-	const wanted = useRef(read === null);
-	useEffect(() => {
-		if (wanted.current) load();
-	}, [load]);
-	if (failed) return <Room body={<LoadFailed message="This chat couldn't be opened." onRetry={load} className="py-10" />} foot={null} />;
+	const { value: read, error, reload } = useServerResource<Read>(`/api/chats/${encodeURIComponent(chatId)}`, { initial: first ? MADE : undefined });
+	if (read ? !Array.isArray(read.messages) : error !== null) return <Room body={<LoadFailed message="This chat couldn't be opened." onRetry={() => void reload()} className="py-10" />} foot={null} />;
 	if (!read) return <Room body={null} foot={null} />;
 	return <Live chatId={chatId} read={read} first={first} {...room} />;
 }
@@ -194,7 +186,7 @@ function ChatRoom({ chatId, first, ...room }: RoomProps & ModelProps & { chatId:
 function Live({ chatId, read, first, name, noBox, box, ask, model, onModel, focus }: RoomProps & ModelProps & { chatId: string; read: Read; first: TextInput | null }) {
 	const models = useAgentModels();
 	const session = useChatSession({ chatId, initialMessages: read.messages, initialError: read.turnError, initiallyInFlight: read.turnInFlight });
-	const { turnInFlight } = useLessonServer({ chatId, session, initiallyInFlight: read.turnInFlight, initialStats: read, initialJobs: [] });
+	const { turnInFlight, stopTurn } = useLessonServer({ chatId, session, initiallyInFlight: read.turnInFlight, initialStats: read, initialJobs: [] });
 	const work = useLessonWork(chatId, undefined);
 	const busy = session.status === "submitted" || session.status === "streaming" || turnInFlight;
 	const { desk, closing } = useDesk(session.messages, busy, work, name);
@@ -208,7 +200,7 @@ function Live({ chatId, read, first, name, noBox, box, ask, model, onModel, focu
 	const steers = visibleQueuedSteers(session.steerQueue, session.nativeMessages);
 	const waiting = (busy || closing) && steers.length > 0 ? <QueuedSteersBody steers={steers} /> : null;
 
-	const { send: sendInputNow, steer, halt, clearError, resumeStream } = session;
+	const { send: sendInputNow, steer, clearError, resumeStream } = session;
 	const go = useCallback((input: TextInput): Promise<boolean> => (busy ? steer(input.text) : sendInputNow(input)), [busy, steer, sendInputNow]);
 	// The first message of a chat made here goes before the chat is first painted, so its plate
 	// takes the room "Try asking" held with no blank frame between.
@@ -218,28 +210,8 @@ function Live({ chatId, read, first, name, noBox, box, ask, model, onModel, focu
 		sentFirst.current = true;
 		void sendInputNow(first);
 	}, [first, sendInputNow]);
-	useEffect(() => {
-		if (!ask) return;
-		ask.clear();
-		void go({ type: "text", text: ask.line });
-	});
-	const sendBox = () => {
-		const typed = box.text.trim();
-		const files = box.files.files;
-		if (!typed && files.length === 0) return;
-		box.setText("");
-		box.files.clear();
-		void go(sendInput(typed, files)).then((taken) => {
-			if (taken) return;
-			box.setText((now) => restoreUnsent(typed, now));
-			box.files.restore(files);
-		});
-	};
-	const stopTurn = () => {
-		halt();
-		// A failed abort is transient: the turn settles on its own.
-		void send("/api/activity/abort", jsonInit("POST", { kind: "turn", id: chatId }));
-	};
+	const sendLine = (line: string) => void go({ type: "text", text: line });
+	useAskLine(ask, sendLine);
 	const failure = session.error && !busy ? talkError(session.error.message) : null;
 	const retry = failure?.retry;
 	const error = failure && {
@@ -262,7 +234,7 @@ function Live({ chatId, read, first, name, noBox, box, ask, model, onModel, focu
 	const deskBlock = desk && (
 		<DeskIn live={drawn} afterSend={talk.at(-1)?.who === "you"}>
 			<div data-state={closing ? "closed" : "open"} inert={closing} className={cn("flex flex-col", closing && "lh-fade")}>
-				<AgentAtWork chatId={chatId} head={desk.head} writing={desk.writing} work={desk.work} arrive={arrive} foot={waiting} paper={false} room={null} closing={closing} />
+				<AgentAtWork chatId={chatId} head={desk.head} writing={desk.writing} work={desk.work} arrive={arrive} foot={waiting} paper={null} room={null} closing={closing} />
 			</div>
 		</DeskIn>
 	);
@@ -274,7 +246,7 @@ function Live({ chatId, read, first, name, noBox, box, ask, model, onModel, focu
 				scroller={scroller}
 				body={<TeacherThread lines={lines} arrive={arrive} exchange={exchange} live={<>{deskBlock}{!desk && waiting}</>} />}
 				over={cardAway && <CardAway text={cardAway.text} onClick={() => glide(cardAway.card)} />}
-				foot={<WritingRow name={name} noBox={noBox} box={box} focus={focus} busy={busy} error={error} ideas={used ? groups : null} made={first !== null} model={<ModelKeyFor models={models} model={model} onModel={onModel} />} onSend={sendBox} onLine={(line) => void go({ type: "text", text: line })} onStop={stopTurn} />}
+				foot={<WritingRow name={name} noBox={noBox} box={box} focus={focus} busy={busy} error={error} ideas={used ? groups : null} made={first !== null} model={<ModelKeyFor models={models} model={model} onModel={onModel} />} onSend={() => takeBox(box, go)} onLine={sendLine} onStop={stopTurn} />}
 			/>
 		</AskShownContext.Provider>
 	);

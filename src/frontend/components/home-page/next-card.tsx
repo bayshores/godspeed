@@ -2,7 +2,7 @@ import { MAIN_KEY } from "@/frontend/components/overview/styles";
 import type { CSSProperties, ReactNode } from "react";
 import { Link } from "react-router";
 import type { DeadlineProgress, RhythmGap, SpaceColor } from "@/shared/core";
-import { dueAtMs } from "@/frontend/components/countdown-model";
+import { dueAtMs, gapDueMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { DoneBlock } from "@/frontend/components/deadline/deadline-block";
@@ -15,9 +15,8 @@ import { updateLine } from "@/frontend/components/teacher/starter-model";
 import { Key } from "@/frontend/components/ui/key";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";
-import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { useOpenInSpace } from "@/frontend/components/use-join-space";
-import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
+import { useAnswerGap } from "@/frontend/components/use-open-deadlines";
 import { cn } from "@/frontend/lib/utils";
 import { countLeft, nextCard } from "./home-page-model";
 import { CHIP } from "./styles";
@@ -114,16 +113,15 @@ export function NextCard({
  */
 export function NextGap({ gap, color, spaceName, nowMs }: { gap: RhythmGap; color: SpaceColor | undefined; spaceName: string; nowMs: number }) {
 	const teacher = useTeacher();
-	const { answerGap } = useOpenDeadlines();
 	const openInSpace = useOpenInSpace();
-	const answering = useGuardedAction();
+	const answering = useAnswerGap(gap);
 	const asks = teacher?.canAsk ? teacher : null;
 	return (
 		<CardFrame
 			testid="today-gap"
 			outlined
 			color={color}
-			block={<CountBlock size="card" color={null} {...countLeft(dueAtMs({ date: gap.day }), nowMs)} className={GAP_BLOCK} />}
+			block={<CountBlock size="card" color={null} {...countLeft(gapDueMs(gap), nowMs)} className={GAP_BLOCK} />}
 			title={gap.label}
 			line={
 				answering.error ? (
@@ -135,7 +133,7 @@ export function NextGap({ gap, color, spaceName, nowMs }: { gap: RhythmGap; colo
 				)
 			}
 		>
-			<Key data-testid="today-gap-answer" busy={answering.busy} onClick={() => void answering.run(() => answerGap(gap.spaceId, gap.key))} className="lh-btn-quiet">
+			<Key data-testid="today-gap-answer" busy={answering.busy} onClick={answering.answer} className="lh-btn-quiet">
 				{gap.answer}
 			</Key>
 			<Key data-testid="today-gap-add" disabled={answering.busy} onClick={() => openInSpace(gap.spaceId, addDeadlineHref(seedFromGap(gap)))} className={asks ? undefined : MAIN_KEY}>

@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { useLitMarker } from "@/frontend/components/lit-marker";
 import { useSpaces } from "@/frontend/components/space-context";
-import { STRIP, useTabStrip, wheelSideways } from "@/frontend/components/tab-strip";
+import { STRIP, useTabStrip } from "@/frontend/components/tab-strip";
 import { SpaceDialog } from "@/frontend/components/space-dialog";
 import { useMinute } from "@/frontend/components/countdown";
 import { isOverdue } from "@/frontend/components/deadlines-model";
@@ -47,7 +47,7 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 			{/* In a page squeezed narrow the tabs stay on their line and scroll, so the page under them never moves down. */}
 			<div ref={tabsRef} className={cn("lh-tabs relative isolate items-center", !activeSpace && "mt-(--lh-head-gap)")}>
 				<div ref={underline} hidden aria-hidden className="lh-lit-marker lh-tab-line" />
-				<nav ref={strip.ref} aria-label={activeSpace?.name ?? "Lessons with no space"} onScroll={strip.measure} onWheel={wheelSideways} className={cn("flex flex-[0_1_auto] gap-x-1.5", STRIP)}>
+				<nav {...strip} aria-label={activeSpace?.name ?? "Lessons with no space"} className={cn("flex flex-[0_1_auto] gap-x-1.5", STRIP)}>
 					{spaceTabs(activeSpace ? "space" : "none", plugins).map((t) => {
 						const selected = t.href === pathname;
 						const count = tabCount(t, counts);

@@ -287,6 +287,7 @@ describe("Follow in the panel's head", () => {
 		asking: null,
 		recent: [],
 		doing: { working: true, text: "Adding Lab 4" } as TeacherApi["doing"],
+		working: true,
 		elsewhere: true,
 		setLesson: () => {},
 		go: () => {},

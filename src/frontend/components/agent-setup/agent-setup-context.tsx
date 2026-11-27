@@ -6,15 +6,17 @@
  * shown, a sign-in that just ended would flash its Log in key. An `agent-update` event carries the
  * update's newest line and state, which stands over the read's own: "done" is only told. While a
  * check fails, the window coming back to the front checks again, since the learner may have just
- * installed the agent or Node.js.
+ * installed the agent or Node.js. The models the agent offers are read here too, once the agent
+ * can be asked.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { readAgentHealth, readAgentUpdate, type AgentHealth, type AgentUpdate } from "@/shared/core";
+import { readAgentHealth, readAgentModels, readAgentUpdate, type AgentHealth, type AgentModels, type AgentUpdate, type FolderAgent } from "@/shared/core";
 import { jsonInit, send, type WriteResult } from "@/frontend/lib/api";
+import { useAgentFolderView } from "@/frontend/components/agent-folder/agent-folder-context";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import { useServerResource } from "@/frontend/components/use-server-resource";
-import { answered } from "./agent-card-model";
+import { answered, cantRun } from "./agent-card-model";
 
 interface AgentSetup {
 	/** null until read. */
@@ -23,6 +25,12 @@ interface AgentSetup {
 	read: boolean;
 	/** The update as last told, else as last read. */
 	update: AgentUpdate | null;
+	/** Whether the teacher can be asked: true once a check found the agent can run, false while one
+	 *  found it can't. While the picked agent's first check runs it stays as it was; at the window's
+	 *  start it is null. */
+	askable: boolean | null;
+	/** The models the picked agent offers; none until it can be asked. */
+	models: AgentModels;
 	/** Checks again now; the answer says a check runs. */
 	checkAgain: () => Promise<WriteResult>;
 }
@@ -37,6 +45,11 @@ export function AgentSetupProvider({ children }: { children: ReactNode }) {
 	const again = !!answer?.checking && answered(answer) && settled?.agent === answer.agent && settled.ownCommand === answer.ownCommand;
 	if (!again && answer !== settled) setSettled(answer);
 	const health = again ? settled : answer;
+	const [wasAskable, setWasAskable] = useState<boolean | null>(null);
+	const askable = answered(health) ? !cantRun(health) : wasAskable;
+	if (askable !== wasAskable) setWasAskable(askable);
+	const { value: rawModels } = useServerResource<unknown>(askable ? "/api/agent/models" : null, { on: { "agent-health": true } });
+	const models = useMemo(() => readAgentModels(rawModels), [rawModels]);
 	// What an `agent-update` event told, for the agent it was told for.
 	const [told, setTold] = useState<{ agent: string; update: AgentUpdate } | null>(null);
 	useServerEvent("agent-update", (payload) => {
@@ -63,7 +76,7 @@ export function AgentSetupProvider({ children }: { children: ReactNode }) {
 		return () => window.removeEventListener("focus", back);
 	}, [failing, checkAgain]);
 
-	const shared = useMemo(() => ({ health, read, update, checkAgain }), [health, read, update, checkAgain]);
+	const shared = useMemo(() => ({ health, read, update, askable, models, checkAgain }), [health, read, update, askable, models, checkAgain]);
 	return <SetupContext.Provider value={shared}>{children}</SetupContext.Provider>;
 }
 
@@ -77,8 +90,15 @@ export function HeldSetup({ hold, children }: { hold: boolean; children: ReactNo
 }
 
 /** Outside a provider (isolated renders): nothing to read. */
-const OUTSIDE: AgentSetup = { health: null, read: true, update: null, checkAgain: async () => null };
+const OUTSIDE: AgentSetup = { health: null, read: true, update: null, askable: null, models: readAgentModels(null), checkAgain: async () => null };
 
 export function useAgentSetup(): AgentSetup {
 	return useContext(SetupContext) ?? OUTSIDE;
+}
+
+/** The agent that is picked: the one the last check was for, else the folder's, else Claude Code. */
+export function usePickedAgent(): FolderAgent {
+	const { health } = useAgentSetup();
+	const { view } = useAgentFolderView();
+	return health?.agent ?? view?.agent ?? "claude";
 }

@@ -17,10 +17,7 @@
  */
 
 import { useEffect, useLayoutEffect, useState } from "react";
-import { prefersReducedMotion } from "@/frontend/components/presence";
-
-/** Matches --lh-dur in src/frontend/globals.css (the .lh-collapse transition). */
-const FOLD_MS = 160;
+import { DUR_MS, prefersReducedMotion } from "@/frontend/components/presence";
 
 export function useFold(open: boolean): { mounted: boolean; state: "open" | "closed" } {
 	const [mounted, setMounted] = useState(open);
@@ -47,7 +44,7 @@ export function useFold(open: boolean): { mounted: boolean; state: "open" | "clo
 			setMounted(false);
 			return;
 		}
-		const timer = setTimeout(() => setMounted(false), FOLD_MS);
+		const timer = setTimeout(() => setMounted(false), DUR_MS);
 		return () => clearTimeout(timer);
 	}, [open, mounted, shown]);
 	return { mounted: open || mounted, state: open && shown ? "open" : "closed" };

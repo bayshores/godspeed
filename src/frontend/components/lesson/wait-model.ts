@@ -118,16 +118,19 @@ export function deskMark(messages: readonly LhViewMessage[]): DeskMark {
  *  words, or its thinking, which counts even while empty. Also when the reply grows the message an
  *  answered question is in. */
 export function wroteSince(messages: readonly LhViewMessage[], mark: DeskMark): boolean {
-	return messages.some((m, i) => {
-		if (m.role !== "assistant" || i < mark.count - 1) return false;
-		return m.parts.some((part, pi) => {
+	for (let i = Math.max(0, mark.count - 1); i < messages.length; i++) {
+		const m = messages[i]!;
+		if (m.role !== "assistant") continue;
+		const wrote = m.parts.some((part, pi) => {
 			const old = i === mark.count - 1 && pi < mark.parts;
 			if (old && !(pi === mark.parts - 1 && mark.text !== null)) return false;
 			const text = part.text ?? "";
 			if (part.type === "reasoning") return true;
 			return part.type === "text" && text.trim() !== "" && (!old || text.length > (mark.text ?? 0));
 		});
-	});
+		if (wrote) return true;
+	}
+	return false;
 }
 
 /** The learner has written and the teacher wrote nothing back: no words, no question and no

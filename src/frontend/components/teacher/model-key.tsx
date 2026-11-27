@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import type { AgentModel } from "@/shared/core";
+import { shownModel, type AgentModel } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
@@ -16,7 +16,7 @@ export function ModelKey({ models, current, onPick }: { models: readonly AgentMo
 	const anchor = useRef<HTMLButtonElement>(null);
 	const close = useCallback(() => setOpen(false), []);
 	useMenuDismiss(open, close, anchor);
-	const shown = models.find((m) => m.id === current) ?? models.find((m) => m.default) ?? null;
+	const shown = shownModel(models, current);
 	if (!shown) return null;
 	return (
 		<>

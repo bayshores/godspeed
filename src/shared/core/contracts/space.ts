@@ -14,6 +14,7 @@
  *
  * Pure types + tiny pure helpers.
  */
+import { isRecord, oneOf } from "../is-record.ts";
 import type { ProblemPiece } from "../problem-piece.ts";
 
 /** "study" files are turned into graph facts by the extraction pipeline;
@@ -123,6 +124,8 @@ export interface RemovedFile {
 
 const DEADLINE_KINDS = ["exam", "homework", "quiz", "project", "interview"] as const;
 export type DeadlineKind = (typeof DEADLINE_KINDS)[number];
+
+export const isDeadlineKind = (v: unknown): v is DeadlineKind => oneOf(DEADLINE_KINDS, v) !== null;
 
 /** One deadline of a space: added by the learner (Edit space) or by an
  *  teacher from the syllabus (add_space_deadline). Its topics are
@@ -322,14 +325,13 @@ export function isRhythmGap(gap: SpaceGap): gap is RhythmGap {
 /** The gaps in a read of GET /api/deadlines; what is not a gap is left out. */
 export function readGaps(value: unknown): SpaceGap[] {
 	if (!Array.isArray(value)) return [];
-	return value.filter((g): g is SpaceGap => {
-		if (typeof g !== "object" || g === null) return false;
-		const gap = g as Record<string, unknown>;
+	return value.filter((gap): gap is SpaceGap => {
+		if (!isRecord(gap)) return false;
 		return (
 			isSpaceId(gap.spaceId) &&
 			[gap.key, gap.title, gap.line, gap.answer].every((word) => typeof word === "string") &&
 			typeof gap.close === "boolean" &&
-			(gap.kind === undefined || DEADLINE_KINDS.some((kind) => kind === gap.kind)) &&
+			(gap.kind === undefined || isDeadlineKind(gap.kind)) &&
 			(gap.day === undefined || isCalendarDate(gap.day)) &&
 			[gap.name, gap.label].every((word) => word === undefined || typeof word === "string")
 		);

@@ -6,13 +6,12 @@ import { dismissedAnswer, findPendingToolCall, toolQuestionKind, type activeProb
 import type { AbortMode } from "@/frontend/components/abort-turn-dialog";
 import type { useChatSession } from "@/frontend/components/session";
 import { escAbortTarget } from "@/frontend/components/lesson/chat-helpers";
-import { jsonInit, send as sendRequest } from "@/frontend/lib/api";
 
-type Session = Pick<ReturnType<typeof useChatSession>, "halt" | "send" | "submitAnswer" | "dismissProblem">;
+type Session = Pick<ReturnType<typeof useChatSession>, "send" | "submitAnswer" | "dismissProblem">;
 
 export function useLessonAbort({
-	chatId,
 	session,
+	stopTurn,
 	pendingRef,
 	activeProblemRef,
 	busyRef,
@@ -20,8 +19,9 @@ export function useLessonAbort({
 	closeMermaid,
 	skipReview,
 }: {
-	chatId: string;
 	session: Session;
+	/** Stops the running turn (from `useLessonServer`). */
+	stopTurn: () => void;
 	pendingRef: RefObject<ReturnType<typeof findPendingToolCall>>;
 	activeProblemRef: RefObject<ReturnType<typeof activeProblemOf>>;
 	busyRef: RefObject<boolean>;
@@ -30,15 +30,7 @@ export function useLessonAbort({
 	closeMermaid: () => void;
 	skipReview: () => void;
 }) {
-	const { halt, send, submitAnswer, dismissProblem } = session;
-
-	// The abort is always the remote kill (turns are server processes); the
-	// view stops first (halt), keeping the partial and sending nothing more.
-	const abortInFlightTurn = useCallback(() => {
-		halt();
-		// A failed abort is transient: the turn settles on its own.
-		void sendRequest("/api/activity/abort", jsonInit("POST", { kind: "turn", id: chatId }));
-	}, [chatId, halt]);
+	const { send, submitAnswer, dismissProblem } = session;
 
 	// THE LAYERED ESC: an open focus claims Esc first (the plan's dialog
 	// takes its own); then the abort chain: a question or problem opens its
@@ -58,12 +50,12 @@ export function useLessonAbort({
 				busy: busyRef.current,
 			});
 			if (target === "question" || target === "problem") setAbortAsk(target);
-			else if (target === "turn") abortInFlightTurn();
+			else if (target === "turn") stopTurn();
 			else if (target === "mermaid") closeMermaid();
 		};
 		window.addEventListener("lh:kbd-abort-turn", onAbort);
 		return () => window.removeEventListener("lh:kbd-abort-turn", onAbort);
-	}, [abortInFlightTurn]);
+	}, [stopTurn]);
 	const confirmAbort = useCallback(
 		() => {
 			setAbortAsk(null);
@@ -76,7 +68,7 @@ export function useLessonAbort({
 			// The opener has no call of its own: its skip is an answer of none,
 			// sent after the running turn is stopped, as the dialog says.
 			if (p?.appPosed?.kind === "opener") {
-				if (busyRef.current) abortInFlightTurn();
+				if (busyRef.current) stopTurn();
 				void send({ type: "opener-answer", topicDoneCallId: p.appPosed.ref, answer: null });
 				return;
 			}
@@ -84,7 +76,7 @@ export function useLessonAbort({
 			// on at once. A running reply stops first; the send waits for it to end.
 			if (p) {
 				const question = (p.input as { question?: string } | null)?.question ?? "";
-				if (busyRef.current) abortInFlightTurn();
+				if (busyRef.current) stopTurn();
 				void submitAnswer(p.toolCallId, dismissedAnswer(toolQuestionKind(p.tool), question), []);
 				return;
 			}
@@ -92,10 +84,10 @@ export function useLessonAbort({
 			const problem = activeProblemRef.current;
 			if (problem) {
 				void dismissProblem(problem.toolCallId);
-				if (busyRef.current) abortInFlightTurn();
+				if (busyRef.current) stopTurn();
 			}
 		},
-		[abortInFlightTurn, submitAnswer, dismissProblem, send, skipReview],
+		[stopTurn, submitAnswer, dismissProblem, send, skipReview],
 	);
-	return { abortInFlightTurn, abortAsk, setAbortAsk, confirmAbort };
+	return { abortAsk, setAbortAsk, confirmAbort };
 }

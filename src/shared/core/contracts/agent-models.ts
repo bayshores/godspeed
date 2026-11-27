@@ -3,7 +3,7 @@
  * the name the agent gives it ("Sonnet 5.5"). `default` marks the agent's own default.
  */
 import { isFolderAgent, type FolderAgent } from "../agent-folder.ts";
-import { isRecord } from "../is-record.ts";
+import { isRecord, isText } from "../is-record.ts";
 
 export interface AgentModel {
 	id: string;
@@ -17,7 +17,10 @@ export interface AgentModels {
 	models: AgentModel[];
 }
 
-const str = (v: unknown): v is string => typeof v === "string" && v !== "";
+/** The model `id` names, else the agent's own default, else none. */
+export function shownModel(models: readonly AgentModel[], id: string | null): AgentModel | null {
+	return models.find((m) => m.id === id) ?? models.find((m) => m.default) ?? null;
+}
 
 /** The answer made safe to use: rows that are not models are left out. */
 export function readAgentModels(raw: unknown): AgentModels {
@@ -25,6 +28,6 @@ export function readAgentModels(raw: unknown): AgentModels {
 	const models = Array.isArray(raw.models) ? raw.models : [];
 	return {
 		agent: isFolderAgent(raw.agent) ? raw.agent : null,
-		models: models.flatMap((m): AgentModel[] => (isRecord(m) && str(m.id) && str(m.name) ? [{ id: m.id, name: m.name, default: m.default === true }] : [])),
+		models: models.flatMap((m): AgentModel[] => (isRecord(m) && isText(m.id) && isText(m.name) ? [{ id: m.id, name: m.name, default: m.default === true }] : [])),
 	};
 }

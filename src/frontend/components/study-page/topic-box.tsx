@@ -80,7 +80,7 @@ export function TopicBox({
 						Clear
 					</button>
 				)}
-				<AttachButton draft={attachments} outlined />
+				<AttachButton draft={attachments} />
 				<span className="flex-1" />
 				<Key type="submit" data-testid="home-start" aria-disabled={empty || busyOn !== null} busy={busyOn === TYPED_START} disabled={busyOn !== null} className="lh-btn-main shrink-0">
 					Study

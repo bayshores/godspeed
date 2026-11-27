@@ -302,7 +302,7 @@ export function YourTurn({
 	);
 
 	const row = (
-		<div data-testid="turn-row" {...stood} className={cn("lh-turn-row flex min-w-0 shrink-0 flex-col gap-3", stand)}>
+		<div data-testid="turn-row" {...stood} className={cn("flex min-w-0 shrink-0 flex-col gap-3", stand)}>
 			{error && (
 				<JobFailure>
 					<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well px-4 py-3 text-base">

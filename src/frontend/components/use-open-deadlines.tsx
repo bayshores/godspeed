@@ -7,7 +7,7 @@
  * edit announces spaces-changed), after the events channel reconnects and
  * when the day changes in an open window (a gap depends on today).
  * `markDone` ticks one done and `undo` unticks it (PUT done); a save that
- * fails says so in a notice. `answerGap` waves a gap off.
+ * fails says so in a notice. `useAnswerGap` waves a gap off.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -15,6 +15,7 @@ import { localDay, readGaps, type SpaceGap } from "@/shared/core";
 import { useMinute } from "@/frontend/components/countdown";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { DoneNotice } from "@/frontend/components/done-notice";
+import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { useServerResource } from "@/frontend/components/use-server-resource";
 import { jsonInit, send, type WriteResult } from "@/frontend/lib/api";
 
@@ -105,7 +106,7 @@ interface OpenDeadlinesState {
 	markDone: (d: DeadlineRef) => Promise<void>;
 	undo: (d: DeadlineRef) => Promise<void>;
 	/** Wave a space's gap off (its key), then read the lists again; the error line, or null. */
-	answerGap: (spaceId: string, key: string) => Promise<WriteResult>;
+	answerGap: (gap: Pick<SpaceGap, "spaceId" | "key">) => Promise<WriteResult>;
 	/** Read the lists again now (Try again). */
 	reload: () => Promise<void>;
 }
@@ -119,7 +120,7 @@ export function useOpenDeadlines(): OpenDeadlinesState {
 	const markDone = useCallback((d: DeadlineRef) => setDone(d, true, "Couldn't mark it done. Try again."), [setDone]);
 	const undo = useCallback((d: DeadlineRef) => setDone(d, false, "Couldn't undo that. Try again."), [setDone]);
 	const answerGap = useCallback(
-		async (spaceId: string, key: string): Promise<WriteResult> => {
+		async ({ spaceId, key }: Pick<SpaceGap, "spaceId" | "key">): Promise<WriteResult> => {
 			const { error: failed } = await send(`/api/deadlines/${encodeURIComponent(spaceId)}/nothing-new`, jsonInit("POST", { key }));
 			if (!failed) await load();
 			return failed;
@@ -127,4 +128,11 @@ export function useOpenDeadlines(): OpenDeadlinesState {
 		[load],
 	);
 	return { deadlines: fetched?.open ?? null, doneToday: fetched?.doneToday ?? NONE, overdueAsked: fetched?.overdueAsked ?? NO_IDS, gaps: fetched?.gaps ?? NO_GAPS, error, markDone, undo, answerGap, reload: load };
+}
+
+/** A gap's quiet key: wave it off once at a time; `error` is the failure line, or null. */
+export function useAnswerGap(gap: Pick<SpaceGap, "spaceId" | "key">) {
+	const { answerGap } = useOpenDeadlines();
+	const { run, busy, error } = useGuardedAction();
+	return { answer: () => void run(() => answerGap(gap)), busy, error };
 }

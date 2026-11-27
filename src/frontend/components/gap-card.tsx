@@ -12,17 +12,15 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { updateLine } from "@/frontend/components/teacher/starter-model";
 import { useCloseSpace } from "@/frontend/components/top-bar/use-close-space";
-import { useGuardedAction } from "@/frontend/components/use-guarded-action";
-import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
+import { useAnswerGap } from "@/frontend/components/use-open-deadlines";
 
 /** `onUpdate`: the learner handed the teacher the update, so the card leaves for this run of the window. */
 export function GapCard({ gap, onUpdate }: { gap: SpaceGap; onUpdate: () => void }) {
 	const { pathname } = useLocation();
 	const { spaces, active } = useSpaces();
 	const teacher = useTeacher();
-	const { answerGap } = useOpenDeadlines();
 	const closer = useCloseSpace();
-	const answering = useGuardedAction();
+	const answering = useAnswerGap(gap);
 	const busy = answering.busy || closer.busy;
 	const error = answering.error ?? closer.error;
 	const update = () => {
@@ -50,7 +48,7 @@ export function GapCard({ gap, onUpdate }: { gap: SpaceGap; onUpdate: () => void
 							</button>
 						)
 					)}
-					<button type="button" data-testid="gap-notice-answer" disabled={busy} onClick={() => void answering.run(() => answerGap(gap.spaceId, gap.key))} className="lh-btn">
+					<button type="button" data-testid="gap-notice-answer" disabled={busy} onClick={answering.answer} className="lh-btn">
 						{gap.answer}
 					</button>
 				</>

@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import type { FolderAgent } from "@/shared/core";
+import { shownModel, type FolderAgent } from "@/shared/core";
 import { AGENT_LABEL } from "@/frontend/components/agent-folder/agent-folder-model";
 import { useAgentFolderView } from "@/frontend/components/agent-folder/agent-folder-context";
 import { useAgentModels } from "@/frontend/components/agent-folder/use-agent-models";
@@ -25,7 +25,7 @@ import { useSheetGlide } from "@/frontend/components/use-sheet-glide";
 import { cn } from "@/frontend/lib/utils";
 import { cantRun, cardRows, compact, ready, type CardRow, type RowKey } from "./agent-card-model";
 import { cancelLogin, sendLoginCode, startLogin, startUpdate } from "./agent-setup-api";
-import { useAgentSetup } from "./agent-setup-context";
+import { useAgentSetup, usePickedAgent } from "./agent-setup-context";
 
 const AGENTS = (["claude", "codex"] as const).map((value) => ({ value, label: AGENT_LABEL[value] }));
 
@@ -36,8 +36,8 @@ export function AgentCard({ foot }: { foot?: ReactNode }) {
 	// The model's row is at rest when the card opens on a ready agent, and steps in when the agent
 	// becomes ready while the card shows.
 	const [readyAtOpen] = useState(() => ready(health));
-	const { view, pick } = useAgentFolderView();
-	const agent: FolderAgent = health?.agent ?? view?.agent ?? "claude";
+	const { pick } = useAgentFolderView();
+	const agent = usePickedAgent();
 	const action = useGuardedAction();
 	const glide = useSheetGlide(false);
 	return (
@@ -48,7 +48,7 @@ export function AgentCard({ foot }: { foot?: ReactNode }) {
 				options={AGENTS}
 				value={agent}
 				disabled={false}
-				onChange={(next) => void action.run(() => pick(next).then(() => null, (err: Error) => err.message))}
+				onChange={(next) => void action.run(() => pick(next))}
 			/>
 			<Rows action={action} />
 			{action.error && (
@@ -292,7 +292,7 @@ function ModelRow({ agent, arrives }: { agent: FolderAgent; arrives: boolean }) 
 	// The agent offers no list: its own default is used, as it is with no pick.
 	if (models?.length === 0) return null;
 	const saved = view?.model[agent] ?? null;
-	const picked = models ? (models.find((m) => m.id === saved) ?? models.find((m) => m.default) ?? models[0]!) : null;
+	const picked = models ? (shownModel(models, saved) ?? models[0]!) : null;
 	return (
 		// It steps in after the two rows that answered with it (40 ms apart).
 		<div
@@ -311,7 +311,7 @@ function ModelRow({ agent, arrives }: { agent: FolderAgent; arrives: boolean }) 
 					onChange={(e) => {
 						const next = models?.find((m) => m.id === e.target.value);
 						// The agent's own default is saved as no pick, so it follows the agent's default.
-						void action.run(() => pickModel(agent, !next || next.default ? null : next.id).then(() => null, (err: Error) => err.message));
+						void action.run(() => pickModel(agent, !next || next.default ? null : next.id));
 					}}
 					className={SELECT}
 				>

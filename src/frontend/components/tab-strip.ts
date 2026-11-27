@@ -7,11 +7,11 @@ const FADE = 24;
 export const STRIP = "lh-cut min-w-0 overflow-x-auto [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden";
 
 /** A mouse wheel only scrolls up and down: over a strip it scrolls the tabs. */
-export function wheelSideways(e: WheelEvent<HTMLElement>): void {
+function wheelSideways(e: WheelEvent<HTMLElement>): void {
 	if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY;
 }
 
-/** A tab strip's scroller: which of its ends cut tabs off (`data-cut`, which globals.css fades), and the lit
+/** A tab strip's scroller, as props to spread on it: which of its ends cut tabs off (`data-cut`, which globals.css fades), and the lit
  *  tab (`lit`, a selector) kept in sight as the room narrows or another tab lights (`key` changes). */
 export function useTabStrip<T extends HTMLElement = HTMLDivElement>(lit: string, key: string) {
 	const ref = useRef<T>(null);
@@ -51,5 +51,5 @@ export function useTabStrip<T extends HTMLElement = HTMLDivElement>(lit: string,
 		for (const tab of el.children) observer.observe(tab);
 		return () => observer.disconnect();
 	}, [lit, key, measure]);
-	return { ref, measure };
+	return { ref, onScroll: measure, onWheel: wheelSideways };
 }

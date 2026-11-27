@@ -85,6 +85,7 @@ const marco: TeacherApi = {
 	asking: null,
 	recent: [],
 	doing: null,
+	working: false,
 	elsewhere: false,
 	setLesson: () => {},
 	go: () => {},

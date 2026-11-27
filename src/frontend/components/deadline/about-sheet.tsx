@@ -1,7 +1,7 @@
-import { JobFailure } from "@/frontend/components/agent-setup/agent-card";
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { LoadingBox } from "@/frontend/components/loading";
 import { Pane } from "@/frontend/components/ui/pane";
+import { RequestLine } from "./request-line";
 import type { About } from "./use-deadline-about";
 
 /** The teacher's Markdown; its headings stay under the sheet's title. */
@@ -50,13 +50,7 @@ export function AboutSheet({
 			<button type="button" data-testid="deadline-about-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-quiet lh-btn-flush self-start">
 				Ask {teacherName} to rewrite
 			</button>
-			{requestLine && (
-				<JobFailure>
-					<p role="alert" data-testid="deadline-request-line" className="text-[15px] text-ink">
-						{requestLine}
-					</p>
-				</JobFailure>
-			)}
+			{requestLine && <RequestLine line={requestLine} />}
 		</Pane>
 	);
 }

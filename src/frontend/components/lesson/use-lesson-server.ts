@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getJson } from "@/frontend/lib/api";
+import { getJson, jsonInit, send } from "@/frontend/lib/api";
 import { useTrailing } from "@/frontend/lib/use-trailing";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import type { useChatSession } from "@/frontend/components/session";
@@ -51,7 +51,7 @@ export function useLessonServer({
 	/** The lesson's jobs as the page's loader read them, so their cards open as they stand; null when that read failed. */
 	initialJobs: JobRecord[] | null;
 }) {
-	const { status, setMessages, continueIfOwed, adoptRecord, resumeStream, clearError, setReattachSettled } = session;
+	const { status, setMessages, continueIfOwed, adoptRecord, resumeStream, clearError, setReattachSettled, halt } = session;
 
 	// A turn running server-side that no live stream of ours holds yet (the
 	// fallback liveness source until the resumed stream attaches).
@@ -249,8 +249,17 @@ export function useLessonServer({
 		void syncFromServer();
 	});
 
+	// The abort is always the remote kill (turns are server processes); the view stops first
+	// (halt), keeping the partial and sending nothing more.
+	const stopTurn = useCallback(() => {
+		halt();
+		// A failed abort is transient: the turn settles on its own.
+		void send("/api/activity/abort", jsonInit("POST", { kind: "turn", id: chatId }));
+	}, [chatId, halt]);
+
 	return {
 		turnInFlight,
+		stopTurn,
 		jobs,
 		turns,
 		pricing,

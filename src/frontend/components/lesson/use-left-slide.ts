@@ -1,12 +1,6 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
-import { EASE_OUT as OUT, prefersReducedMotion } from "@/frontend/components/presence";
-
-/** The sheet and the talk moving sideways, as long as the book's pages slide (useBookMove). */
-const SLIDE_MS = 240;
-/** The right page showing once the sheet has gone (--lh-dur). */
-const SHOW_MS = 160;
-
-const TEXT = "[data-testid=lesson-reading]";
+import { DUR_MS, EASE_OUT as OUT, prefersReducedMotion } from "@/frontend/components/presence";
+import { SLIDE_MS, TEXT } from "./use-book-move";
 
 /** Where the pieces stood before the page was laid out anew. */
 interface Shot {
@@ -103,7 +97,7 @@ export function useLeftSlide({
 			// On the text's easing, so the two travel as one strip and never cross.
 			parts.push(ghost.animate([{ transform: "none" }, { transform: away(ghost) }], { duration: SLIDE_MS, easing: OUT, fill: "forwards" }));
 			const turn = turnRef.current;
-			if (shown(turn)) parts.push(turn.animate([{ opacity: 0 }, { opacity: 1 }], { duration: SHOW_MS, delay: SLIDE_MS / 2, easing: OUT, fill: "backwards" }));
+			if (shown(turn)) parts.push(turn.animate([{ opacity: 0 }, { opacity: 1 }], { duration: DUR_MS, delay: SLIDE_MS / 2, easing: OUT, fill: "backwards" }));
 		}
 		const text = columnRef.current?.querySelector(TEXT);
 		if (was.text !== null && shown(text)) {

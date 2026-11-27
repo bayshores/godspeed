@@ -1,10 +1,15 @@
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 
+/** The markdown renderer's text colors: the full one or the quieter one. */
+function inkVars(quiet: boolean): React.CSSProperties {
+	const ink = quiet ? "var(--muted-foreground)" : "var(--foreground)";
+	return { "--lh-ink-body": ink, "--lh-ink-strong": ink, "--lh-ink-italic": ink } as React.CSSProperties;
+}
+
 /** Lesson prose at a given size (the markdown renderer reads these
  *  variables), in the full text color or the quieter one. */
 export function proseVars(size: number, leading: number, quiet = false): React.CSSProperties {
-	const ink = quiet ? "var(--muted-foreground)" : "var(--foreground)";
-	return { "--lh-prose-size": `${size}px`, "--lh-prose-leading": `${leading / size}`, "--lh-ink-body": ink, "--lh-ink-strong": ink, "--lh-ink-italic": ink } as React.CSSProperties;
+	return { "--lh-prose-size": `${size}px`, "--lh-prose-leading": `${leading / size}`, ...inkVars(quiet) } as React.CSSProperties;
 }
 
 /** Longer than this, a question is a paragraph and is set at the size of one. */
@@ -19,7 +24,7 @@ export function QuestionText({ children, quiet = false, tag = null }: { children
 	const big = children.length <= SHORT_QUESTION;
 	return (
 		<div className="flex flex-col items-start gap-3">
-			<div data-session-find-root="" className={big ? "text-balance" : undefined} style={big ? { ...proseVars(28, 38, quiet), ...HEADLINE } : proseVars(22, 31, quiet)}>
+			<div data-session-find-root="" className={big ? "text-balance" : undefined} style={big ? { ...inkVars(quiet), ...HEADLINE } : proseVars(22, 31, quiet)}>
 				<ToolContentResponse>{children}</ToolContentResponse>
 			</div>
 			{tag && <h2 className="lh-kind">{tag}</h2>}

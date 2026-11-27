@@ -3,8 +3,8 @@ import { EASE_IN as IN, EASE_OUT as OUT, prefersReducedMotion } from "@/frontend
 
 /** The kept task leaving the right page before the book shuts (--lh-dur-fast). */
 const LEAVE_MS = 110;
-/** The two pages sliding apart or together. */
-const SLIDE_MS = 240;
+/** The two pages sliding apart or together, and the sheet and the talk moving sideways with them (useLeftSlide). */
+export const SLIDE_MS = 240;
 /** The right page rising out of the strip, or sinking into it. */
 const RISE_MS = 220;
 
@@ -21,7 +21,8 @@ interface Shot {
 	foot: number;
 }
 
-const TEXT = "[data-testid=lesson-reading]";
+/** The lesson's reading text. */
+export const TEXT = "[data-testid=lesson-reading]";
 const LEARNER = "[data-testid=user-message], [data-testid=go-ahead-mark]";
 const SHEET = "[data-testid=your-turn]";
 const BOX = "[data-testid=composer]";

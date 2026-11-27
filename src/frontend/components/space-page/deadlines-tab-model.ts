@@ -1,9 +1,10 @@
 /** The space's Deadlines tab: which list a deadline goes in, where its outline sits, each row's words and the link that opens Add a deadline. Pure. */
-import { hasProblems, isCalendarDate, longDay, type DeadlineKind, type DeadlineProgress, type RhythmGap } from "@/shared/core";
-import { dueAtMs } from "@/frontend/components/countdown-model";
-import { KIND_OPTIONS, kindLabel, type DeadlineSeed } from "@/frontend/components/space-deadlines-model";
+import { hasProblems, isCalendarDate, isDeadlineKind, longDay, type DeadlineKind, type DeadlineProgress, type RhythmGap } from "@/shared/core";
+import { dueAtMs, gapDueMs } from "@/frontend/components/countdown-model";
+import { kindLabel, type DeadlineSeed } from "@/frontend/components/space-deadlines-model";
 import { byDue, isOverdue } from "@/frontend/components/deadlines-model";
 import { progressNote } from "@/frontend/components/home-page/home-page-model";
+import type { Leaving } from "@/frontend/components/presence";
 
 interface Listed {
 	kind: DeadlineKind;
@@ -31,10 +32,10 @@ export function withoutAddLink(params: URLSearchParams): URLSearchParams {
 
 /** The seed addDeadlineHref put in the address; undefined for a plain "Add a deadline". */
 export function seedFromSearch(params: URLSearchParams): DeadlineSeed | undefined {
-	const kind = KIND_OPTIONS.find((o) => o.kind === params.get("kind"))?.kind;
+	const kind = params.get("kind");
 	const name = params.get("name");
 	const date = params.get("date");
-	if (!kind || name === null) return undefined;
+	if (!isDeadlineKind(kind) || name === null) return undefined;
 	return { kind, name, ...(date !== null && isCalendarDate(date) ? { date } : {}) };
 }
 
@@ -52,11 +53,11 @@ type ComingRow<T> = { kind: "deadline"; deadline: T } | { kind: "gap"; gap: Rhyt
  *  time, so after what is due earlier that day and before a deadline with no time that day.
  *  `coming` is soonest first. An outline that leaves as a deadline `joined` on its day gives way at
  *  once, so the new row takes its place and the rows after it hold still. */
-export function comingRows<T extends Listed>(coming: readonly T[], gaps: readonly { item: RhythmGap; leaving: boolean }[], joined: (d: T) => boolean): ComingRow<T>[] {
+export function comingRows<T extends Listed>(coming: readonly T[], gaps: readonly Leaving<RhythmGap>[], joined: (d: T) => boolean): ComingRow<T>[] {
 	const rows: ComingRow<T>[] = coming.map((deadline) => ({ kind: "deadline", deadline }));
 	for (const { item: gap, leaving } of gaps) {
 		if (leaving && coming.some((d) => d.date === gap.day && joined(d))) continue;
-		const at = dueAtMs({ date: gap.day });
+		const at = gapDueMs(gap);
 		const after = rows.findIndex((row) => row.kind === "deadline" && dueAtMs(row.deadline) >= at);
 		rows.splice(after < 0 ? rows.length : after, 0, { kind: "gap", gap, leaving });
 	}

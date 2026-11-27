@@ -2,8 +2,8 @@
  * The picked agent's setup (GET /api/agent/health): each check the server ran, the first that
  * failed, its sign-in and its update. The server decides every state; the setup card words them.
  */
-import type { FolderAgent } from "../agent-folder.ts";
-import { isRecord } from "../is-record.ts";
+import { isFolderAgent, type FolderAgent } from "../agent-folder.ts";
+import { isRecord, isText, oneOf } from "../is-record.ts";
 
 /** The server's checks, in the card's order. `helper` is godspeed's own part and has no row. */
 const AGENT_CHECKS = ["installed", "node", "upToDate", "loggedIn", "helper"] as const;
@@ -51,8 +51,7 @@ export interface AgentHealth {
 	update: AgentUpdate | null;
 }
 
-const text = (v: unknown): string | null => (typeof v === "string" && v !== "" ? v : null);
-const oneOf = <T extends string>(names: readonly T[], v: unknown): T | null => (names.includes(v as T) ? (v as T) : null);
+const text = (v: unknown): string | null => (isText(v) ? v : null);
 
 /** The `agent-update` event's payload, or the health answer's `update`; null when it is not one. */
 export function readAgentUpdate(raw: unknown): AgentUpdate | null {
@@ -77,7 +76,7 @@ function readFailure(raw: Record<string, unknown>): Failure | null {
 
 /** The answer made safe to use; null when it is not one. */
 export function readAgentHealth(raw: unknown): AgentHealth | null {
-	if (!isRecord(raw) || (raw.agent !== "claude" && raw.agent !== "codex") || !Array.isArray(raw.checks)) return null;
+	if (!isRecord(raw) || !isFolderAgent(raw.agent) || !Array.isArray(raw.checks)) return null;
 	const checks = raw.checks.flatMap((c): AgentHealth["checks"] => {
 		if (!isRecord(c)) return [];
 		const check = oneOf(AGENT_CHECKS, c.check);

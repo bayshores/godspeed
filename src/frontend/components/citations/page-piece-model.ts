@@ -149,12 +149,9 @@ export function pieceSheet(piece: ProblemPiece, part: string | null, whole: bool
 	});
 	const sheet = { ...piece, parts };
 	const { bands, current } = veils(sheet, part);
-	const veiled = parts.map((p, i) => {
-		const [, top, , bottom] = p.crop;
-		const [, ownTop, , ownBottom] = piece.parts[i]!.crop;
-		return joined([...bands[i]!, ...around(top, ownTop, ownBottom, bottom).filter((band) => band !== null)]);
-	});
-	const edges = parts.map((p, i): [Band | null, Band | null] => (whole ? [null, null] : around(p.crop[1], piece.parts[i]!.crop[1], piece.parts[i]!.crop[3], p.crop[3])));
+	const rims = parts.map((p, i) => around(p.crop[1], piece.parts[i]!.crop[1], piece.parts[i]!.crop[3], p.crop[3]));
+	const veiled = parts.map((_, i) => joined([...bands[i]!, ...rims[i]!.filter((band) => band !== null)]));
+	const edges = whole ? parts.map((): [Band | null, Band | null] => [null, null]) : rims;
 	return { piece: sheet, veiled, lit: veiled.map((bands) => (piece.mark ? [] : between(bands))), edges, rest: current ?? (whole ? startOf(piece, parts) : null) };
 }
 

@@ -81,7 +81,6 @@ export function mountCodeEditor(
 		doc: string;
 		language: string;
 		vim: boolean;
-		/** Take the whole height of `parent`. */
 		onChange: (code: string) => void;
 		onVimMode: (label: string) => void;
 	},

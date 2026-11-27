@@ -8,6 +8,10 @@ import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 /** A shell refusal's sentence, or null when it went through. */
 const refusal = (p: Promise<void>): Promise<string | null> => p.then(() => null, (err: unknown) => (typeof err === "string" ? err : null));
 
+/** Closes the chat's window, which has the main window's panel show the chat again. A window
+ *  already gone is what this wanted. */
+export const putBackChat = () => void window.lh?.chatWindow?.close().catch(() => {/* it is gone already */});
+
 export interface ChatWindow {
 	/** The chat is in its own window. */
 	popped: boolean;
@@ -35,8 +39,7 @@ export function useChatWindow(): ChatWindow {
 		});
 	}, [lh]);
 	const popOut = useMemo(() => (lh ? (name: string) => refusal(lh.open(name)) : null), [lh]);
-	// A window closed or not open any more is what these wanted.
+	// A window closed or not open any more is what this wanted.
 	const focusWindow = useCallback(() => void lh?.focus().catch(() => {/* it closed since */}), [lh]);
-	const putBack = useCallback(() => void lh?.close().catch(() => {/* it is gone already */}), [lh]);
-	return useMemo(() => ({ popped, popOut, focusWindow, putBack, putBacks }), [popped, popOut, focusWindow, putBack, putBacks]);
+	return useMemo(() => ({ popped, popOut, focusWindow, putBack: putBackChat, putBacks }), [popped, popOut, focusWindow, putBacks]);
 }

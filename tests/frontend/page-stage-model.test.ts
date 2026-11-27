@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { ROWS_PER_PAGE, textPages } from "../../src/frontend/components/lesson/page-stage-model.ts";
+import { textPages } from "../../src/frontend/components/lesson/page-stage-model.ts";
+
+// One row a line: the second page starts on the first line past a full page.
+const ROWS_PER_PAGE = textPages(Array.from({ length: 200 }, (_, i) => `line ${i + 1}`).join("\n"))[1]!.start - 1;
 
 describe("textPages", () => {
 	it("cuts text into numbered pages", () => {

@@ -102,6 +102,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 		asking: line === null ? null : { line, clear: () => setLine(null) },
 		recent: [],
 		doing: null,
+		working: !!chats?.some((c) => c.running),
 		elsewhere: false,
 		setLesson: () => {},
 		go: () => {},

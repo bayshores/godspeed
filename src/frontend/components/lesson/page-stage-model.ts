@@ -1,7 +1,7 @@
 /** The paper on the lesson's desk, cut into printed pages. Pure. */
 
 /** A page holds this many printed rows; a long line wraps every ROW_CHARS characters. */
-export const ROWS_PER_PAGE = 38;
+const ROWS_PER_PAGE = 38;
 const ROW_CHARS = 64;
 
 /** A text file cut into pages by printed rows; `start` is the first line's number. */

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { LoadFailed } from "@/frontend/components/load-failed";
+import { openOutside } from "@/frontend/lib/open-outside";
 import { askAgent, readSpace, readStored, writeStored } from "@/frontend/lib/plugin-host-api";
 import type { PluginManifest, SettingValue } from "@/frontend/lib/plugins-api";
 import { cn } from "@/frontend/lib/utils";
@@ -83,8 +84,7 @@ export function PluginFrame({
 				openLink: (url) => {
 					// Only while the learner is in the plugin, so a page can't open the browser by itself.
 					if (document.activeElement !== frameRef.current) return false;
-					if (window.lh?.openLink) void window.lh.openLink(url);
-					else window.open(url, "_blank", "noopener,noreferrer");
+					openOutside(url);
 					return true;
 				},
 			},

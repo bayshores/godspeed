@@ -19,7 +19,7 @@ import { deskPaper, deskRows, type DeskRow } from "./wait-model";
  * writes; then one sheet of paper with the page of the file it reads; then a card for each thing it
  * waits for the learner to allow. While its words come (`writing`) the sentence folds away and the
  * steps stay. `foot` rests under it: the lines typed to the teacher that wait for it. With `paper`
- * false the desk lays no paper: in the teacher panel, too narrow for it, and in a lesson whose page
+ * null the desk lays no paper: in the teacher panel, too narrow for it, and in a lesson whose page
  * shows the open problem's own sheet, which is the page the learner reads. With `room` (the lesson
  * page's right part, LessonScroll) the paper alone stays here, under the words, and the rest of the
  * desk rests on the writing row there, fading out there too while it is `closing`.
@@ -31,7 +31,7 @@ export function AgentAtWork({
 	work,
 	arrive,
 	foot,
-	paper: withPaper,
+	paper,
 	room,
 	closing,
 }: {
@@ -41,14 +41,13 @@ export function AgentAtWork({
 	work: LessonWork;
 	arrive: Arrive;
 	foot: ReactNode;
-	paper: boolean;
+	paper: ReturnType<typeof deskPaper>;
 	room: HTMLElement | null;
 	/** The turn has ended and the desk fades out. */
 	closing: boolean;
 }) {
 	// Each desk's own arrival slots, so the next turn's desk steps in again.
 	const slot = useId();
-	const paper = withPaper ? deskPaper(work) : null;
 	// The file the desk opened on lies there at once; one the teacher turns to later steps in.
 	const opened = useRef(paper?.reading.path);
 	const { rows, under } = deskRows(work);

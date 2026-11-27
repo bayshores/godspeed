@@ -4,7 +4,7 @@ import { useLitMarker } from "@/frontend/components/lit-marker";
 import { useSpaces } from "@/frontend/components/space-context";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { SpaceDialog, type SpaceDialogMode } from "@/frontend/components/space-dialog";
-import { STRIP, useTabStrip, wheelSideways } from "@/frontend/components/tab-strip";
+import { STRIP, useTabStrip } from "@/frontend/components/tab-strip";
 import { tabWorkTag } from "@/frontend/components/work/work-model";
 import { cn } from "@/frontend/lib/utils";
 import { BAR_TAB, barTabState } from "./bar-look";
@@ -47,10 +47,8 @@ export function SpaceTabs({ selected }: { selected: string }) {
 			</Link>
 			{/* Too many tabs to fit even squeezed: they scroll, fading out at a cut edge; Home and the + stay put. */}
 			<div
-				ref={strip.ref}
+				{...strip}
 				data-testid="space-tabs-strip"
-				onScroll={strip.measure}
-				onWheel={wheelSideways}
 				className={cn("lh-tab-strip flex shrink-[9999] items-stretch", STRIP)}
 			>
 				{openSpaces.map((c) => {

@@ -1,4 +1,3 @@
-import { JobFailure } from "@/frontend/components/agent-setup/agent-card";
 import { useState } from "react";
 import { LoadingBox, useWaited } from "@/frontend/components/loading";
 import { Link } from "react-router";
@@ -8,6 +7,7 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
 import { materialSummary, type Day, type DayState, type Material } from "./deadline-model";
+import { RequestLine } from "./request-line";
 
 const SMALL = "lh-btn lh-btn-small";
 
@@ -54,11 +54,7 @@ export function CoversSheet({
 				</div>
 				<div data-testid="deadline-no-files" className="flex flex-col items-start gap-4">
 					{requestLine ? (
-						<JobFailure>
-							<p role="alert" data-testid="deadline-request-line" className="text-lg text-ink">
-								{requestLine}
-							</p>
-						</JobFailure>
+						<RequestLine line={requestLine} className="text-lg" />
 					) : (
 						// While a request runs, the work frame says what happens.
 						!requesting && <p className="max-w-(--lh-measure) text-lg text-ink-2">Nothing is linked yet. {teacherName} can work it out from your files, like a practice exam or the syllabus.</p>
@@ -147,13 +143,7 @@ export function CoversSheet({
 							Ask {teacherName} to check
 						</button>
 					</div>
-					{requestLine && (
-						<JobFailure>
-							<p role="alert" data-testid="deadline-request-line" className="text-[15px] text-ink">
-								{requestLine}
-							</p>
-						</JobFailure>
-					)}
+					{requestLine && <RequestLine line={requestLine} />}
 					{showLeftOut && m.leftOut.length > 0 && (
 						<ul data-testid="deadline-left-out">
 							{m.leftOut.map((day) => (

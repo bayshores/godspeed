@@ -169,12 +169,11 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 	// While the slip is up it says what the teacher does, and the other places say only "Working".
 	const round = work?.live ? (slip ? "Working" : (timeline.at(-1)?.text ?? "Working")) : null;
 	const talkTurns = (chats ?? []).filter((c) => c.running).length;
-	const doing = useMemo(() => agentDoing({ turnsRunning, round, lesson, extractions: feed.extractions, jobs: feed.jobs, talkTurns }), [turnsRunning, round, lesson, feed.extractions, feed.jobs, talkTurns]);
+	const inputs = useMemo(() => ({ turnsRunning, round, lesson, extractions: feed.extractions, jobs: feed.jobs, talkTurns }), [turnsRunning, round, lesson, feed.extractions, feed.jobs, talkTurns]);
+	const doing = useMemo(() => agentDoing(inputs), [inputs]);
 	const roundChat = work?.live ? work.chatId : null;
-	const elsewhere = useMemo(
-		() => workElsewhere({ turnsRunning, round, lesson, extractions: feed.extractions, jobs: feed.jobs, talkTurns, roundChat, shown: chatId }),
-		[turnsRunning, round, lesson, feed.extractions, feed.jobs, talkTurns, roundChat, chatId],
-	);
+	const elsewhere = useMemo(() => workElsewhere({ ...inputs, roundChat, shown: chatId }), [inputs, roundChat, chatId]);
+	const working = !!doing?.working || talkTurns > 0;
 
 	useServerEvent("agent-action", (action) => {
 		if (!action || typeof action.id !== "string") return;
@@ -218,6 +217,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 			asking: asked,
 			recent,
 			doing,
+			working,
 			elsewhere,
 			setLesson,
 			go,
@@ -226,7 +226,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 			held: !!held,
 			spaceNameOf,
 		}),
-		[name, followOn, setFollow, panelOpen, setPanelOpen, showChat, chats, chatId, waiting, canAsk, ask, asked, recent, doing, elsewhere, setLesson, go, slip, held, offer, spaceNameOf],
+		[name, followOn, setFollow, panelOpen, setPanelOpen, showChat, chats, chatId, waiting, canAsk, ask, asked, recent, doing, working, elsewhere, setLesson, go, slip, held, offer, spaceNameOf],
 	);
 	const marks = useMemo(() => litRules(lit, CSS.escape), [lit]);
 
