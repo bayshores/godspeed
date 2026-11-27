@@ -2,8 +2,9 @@
  * When the teacher's panel opens and closes by itself (use-teacher-panel.ts).
  * It opens when a need for the learner arises (a card in its chat waits to be
  * allowed), once the learner has paused typing, and closes when that need is
- * settled or when a lesson reply starts. While the chat is in its own window it
- * never opens: the strip lights. It also opens once for a new learner, the first
+ * settled, when a lesson reply starts, or when a page with its own box for the
+ * teacher (a lesson, a cheat sheet) opens. While the chat is in its own window
+ * it never opens: the strip lights. It also opens once for a new learner, the first
  * time Home shows with the teacher on, so they see what the teacher can be asked.
  */
 /** Set when onboarding ends, removed once the panel has opened for it. */
@@ -23,15 +24,18 @@ export interface PanelMemory {
 	need: boolean;
 	/** A lesson reply is running; null while no lesson is open. */
 	replying: boolean | null;
+	/** The page had its own box for the teacher. */
+	ownBox: boolean;
 	/** A need arose and the panel has not opened for it yet. */
 	waiting: boolean;
 }
 
-export const FIRST_LOOK: PanelMemory = { need: false, replying: null, waiting: false };
+export const FIRST_LOOK: PanelMemory = { need: false, replying: null, ownBox: false, waiting: false };
 
 export interface PanelNow {
 	need: boolean;
 	replying: boolean | null;
+	ownBox: boolean;
 }
 
 export interface PanelSeen {
@@ -60,18 +64,21 @@ const NOT_TEXT = new Set(["checkbox", "radio", "button", "submit", "reset", "ran
 /**
  * One look at the world: what to do now, and what to remember. Only a change
  * counts: a need already there, or a reply already running, when the panel
- * was closed by the learner does nothing.
+ * was closed by the learner does nothing. On a page with its own box the
+ * chat shows only for its card, so the panel goes with the card whoever
+ * opened it.
  */
 export function stepPanel(mem: PanelMemory, now: PanelNow, pane: PanelSeen, waitLeft: number): { mem: PanelMemory; act: PanelAct } {
 	const arrived = !mem.need && now.need;
 	const settled = mem.need && !now.need;
 	const replyStarted = mem.replying === false && now.replying === true;
+	const boxPageOpened = !mem.ownBox && now.ownBox;
 
 	// A need that arrives while popped is not held for later: put back, the panel stays as it is.
 	const waiting = (mem.waiting || arrived) && now.need && !pane.open && !pane.popped;
 	const opens = waiting && waitLeft === 0;
-	const closes = pane.open && ((settled && pane.byApp) || (replyStarted && !now.need));
+	const closes = pane.open && ((settled && (pane.byApp || now.ownBox)) || ((replyStarted || boxPageOpened) && !now.need));
 
-	const next: PanelMemory = { need: now.need, replying: now.replying, waiting: waiting && !opens };
+	const next: PanelMemory = { need: now.need, replying: now.replying, ownBox: now.ownBox, waiting: waiting && !opens };
 	return { mem: next, act: opens ? "open" : closes ? "close" : null };
 }

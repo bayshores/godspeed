@@ -4,11 +4,22 @@
  */
 import type { PaneBounds } from "@/frontend/components/ui/pane-width-model";
 
-/** The panel's body: its chat (Activity then hangs from its key in the head), or Activity while the
- *  chat is in a window of its own ("popped": the head then has Follow and Put back). */
-export type PanelView = "chat" | "popped";
+/** The panel's body: its chat (Activity then hangs from its key in the head); Activity alone on a
+ *  page with its own box for the teacher ("activity": the head then has no keys); or Activity while
+ *  the chat is in a window of its own ("popped": the head then has Follow and Put back). */
+export type PanelView = "chat" | "activity" | "popped";
 
-export const panelBody = (popped: boolean): PanelView => (popped ? "popped" : "chat");
+/** A page with its own box for the teacher, a lesson or a cheat sheet: the one place to type there. */
+export function hasOwnBox(path: string): boolean {
+	return /^\/chat\//.test(path) || /^\/space\/deadline\/[^/]+\/cheat-sheet/.test(path);
+}
+
+/** `ownBox`: the page has its own box. `need`: a card in the panel's chat waits to be allowed, which
+ *  only that chat can show. */
+export function panelBody(popped: boolean, ownBox: boolean, need: boolean): PanelView {
+	if (popped) return "popped";
+	return ownBox && !need ? "activity" : "chat";
+}
 
 /** The chat the panel showed when it popped out (an empty value is a new chat), which the popped
  *  window shows, and which the panel shows again when it is put back. */

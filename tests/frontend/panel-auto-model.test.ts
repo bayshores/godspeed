@@ -16,10 +16,12 @@ import {
 const SHUT: PanelSeen = { open: false, byApp: false, popped: false };
 const BY_APP: PanelSeen = { open: true, byApp: true, popped: false };
 const BY_LEARNER: PanelSeen = { open: true, byApp: false, popped: false };
-const calm: PanelMemory = { need: false, replying: false, waiting: false };
+const calm: Loose<PanelMemory> = { need: false, replying: false, waiting: false };
 
-const step = (mem: PanelMemory, now: PanelNow, pane: PanelSeen, waitLeft = 0) => stepPanel(mem, now, pane, waitLeft);
-const act = (mem: PanelMemory, now: PanelNow, pane: PanelSeen, waitLeft = 0): PanelAct => step(mem, now, pane, waitLeft).act;
+/** A page with no box of its own unless the test says so. */
+type Loose<T extends { ownBox: boolean }> = Omit<T, "ownBox"> & { ownBox?: boolean };
+const step = (mem: Loose<PanelMemory>, now: Loose<PanelNow>, pane: PanelSeen, waitLeft = 0) => stepPanel({ ownBox: false, ...mem }, { ownBox: false, ...now }, pane, waitLeft);
+const act = (mem: Loose<PanelMemory>, now: Loose<PanelNow>, pane: PanelSeen, waitLeft = 0): PanelAct => step(mem, now, pane, waitLeft).act;
 
 describe("a need opens the panel", () => {
 	it("opens on the teacher's screen when it needs the learner", () => {
@@ -35,7 +37,7 @@ describe("a need opens the panel", () => {
 	});
 
 	it("is a change only: a need already there when the learner closed the panel does not reopen it", () => {
-		const there: PanelMemory = { need: true, replying: false, waiting: false };
+		const there: Loose<PanelMemory> = { need: true, replying: false, waiting: false };
 		assert.equal(act(there, { need: true, replying: false }, SHUT), null);
 		assert.equal(act(FIRST_LOOK, { need: false, replying: null }, SHUT), null);
 	});
@@ -100,7 +102,7 @@ describe("the learner is typing", () => {
 });
 
 describe("a settled need closes the panel", () => {
-	const needed: PanelMemory = { need: true, replying: false, waiting: false };
+	const needed: Loose<PanelMemory> = { need: true, replying: false, waiting: false };
 
 	it("closes a panel it opened", () => {
 		assert.equal(act(needed, { need: false, replying: false }, BY_APP), "close");
@@ -122,7 +124,7 @@ describe("a lesson reply starting closes the panel", () => {
 	});
 
 	it("does not close while a need is present", () => {
-		const needed: PanelMemory = { need: true, replying: false, waiting: false };
+		const needed: Loose<PanelMemory> = { need: true, replying: false, waiting: false };
 		assert.equal(act(needed, { need: true, replying: true }, BY_APP), null);
 	});
 
@@ -133,6 +135,29 @@ describe("a lesson reply starting closes the panel", () => {
 
 	it("does nothing to a panel that is shut", () => {
 		assert.equal(act(calm, { need: false, replying: true }, SHUT), null);
+	});
+});
+
+describe("a page with its own box for the teacher", () => {
+	const quiet = { need: false, replying: null };
+	const onIt = { ...calm, ownBox: true };
+
+	it("opening it closes the panel, whoever opened it", () => {
+		assert.equal(act(calm, { ...quiet, ownBox: true }, BY_LEARNER), "close");
+		assert.equal(act(calm, { ...quiet, ownBox: true }, BY_APP), "close");
+	});
+
+	it("keeps the panel while a card waits in its chat", () => {
+		assert.equal(act({ ...calm, need: true }, { need: true, replying: null, ownBox: true }, BY_APP), null);
+	});
+
+	it("is a change only: a panel the learner opens there stays, on the next such page too", () => {
+		assert.equal(act(onIt, { ...quiet, ownBox: true }, BY_LEARNER), null);
+		assert.equal(act(onIt, { ...quiet, ownBox: false }, BY_LEARNER), null, "leaving keeps it");
+	});
+
+	it("a settled card closes the panel there even when the learner opened it", () => {
+		assert.equal(act({ ...onIt, need: true }, { need: false, replying: false, ownBox: true }, BY_LEARNER), "close");
 	});
 });
 

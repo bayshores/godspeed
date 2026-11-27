@@ -18,8 +18,9 @@
  *    teacher (talk-chat.tsx), where the learner talks to it outside lessons,
  *    and Activity (teacher-activity.tsx). It stays open across pages,
  *    lessons too. It opens by itself for a card waiting to be allowed and
- *    closes when that is settled or a lesson reply starts. While the chat is
- *    in a window of its own the panel shows Activity instead.
+ *    closes when that is settled, a lesson reply starts or a page with its
+ *    own box for the teacher opens. While the chat is in a window of its
+ *    own, and on a page with its own box, the panel shows Activity instead.
  *  - The chats (use-talk-chats.ts) and the one the panel shows: the newest
  *    when the panel opens, else the one picked under Chats or just made.
  *
@@ -50,7 +51,7 @@ import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from
 import { useChatWindow } from "./use-chat-window";
 import { useTeacherPanel } from "./use-teacher-panel";
 import { useTalkChats } from "./use-talk-chats";
-import { panelBody, SHOWN_CHAT_KEY } from "./dock-model";
+import { hasOwnBox, panelBody, SHOWN_CHAT_KEY } from "./dock-model";
 import { agentDoing, workElsewhere } from "./follow-status";
 import { useFollow } from "./use-follow";
 import { useRecentActions } from "./use-recent-actions";
@@ -103,7 +104,8 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 		return { lessons: asking.filter((id) => !talk.has(id)), talk: asking.find((id) => talk.has(id)) ?? null };
 	}, [chats, asking]);
 	const chatWindow = useChatWindow();
-	const panel = useTeacherPanel(lesson?.working ?? null, pathname === "/", waiting.talk !== null, chats !== null, chatWindow);
+	const ownBox = hasOwnBox(pathname);
+	const panel = useTeacherPanel(lesson?.working ?? null, pathname === "/", ownBox, waiting.talk !== null, chats !== null, chatWindow);
 	const { open: panelOpen, setOpen: setPanelOpen, setList, showChat: showPanel } = panel;
 	// The chat shown: undefined is the newest, null a new chat. The panel opens on the newest again.
 	const [picked, setPicked] = useState<string | null | undefined>(undefined);
@@ -180,7 +182,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 		take(action);
 	});
 
-	const view = panelBody(popped);
+	const view = panelBody(popped, ownBox, waiting.talk !== null);
 	const shown = usePresence(panelOpen);
 
 	// One line a page key handed over; the panel's chat sends it and clears it, or it goes when the panel closes.
@@ -239,6 +241,7 @@ export function TeacherProvider({ children }: { children: ReactNode }) {
 					<TeacherPanel
 						name={name}
 						view={view}
+						ownBox={ownBox}
 						chat={{ id: chatId, row: chats?.find((c) => c.id === chatId) ?? null, show: setPicked }}
 						asking={asked}
 						popOut={popChat}

@@ -15,7 +15,8 @@ import { useTeacher } from "./teacher-context";
  * where the teacher works), Activity and Pop out. Chats and Activity each
  * drop their list over the top of the chat, one at a time. While the chat is
  * in a window of its own, Activity is the panel's body and its key gives way
- * to Put back, which is also the only key in that window's head. While the
+ * to Put back, which is also the only key in that window's head. On a page
+ * with its own box for the teacher the head is the name alone. While the
  * agent can't run (`blocked`) only Activity stays: Chats, Follow and Pop out
  * fade back once it can. The strip beside it names the panel, and the strip
  * that opened it closes it.

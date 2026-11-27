@@ -153,7 +153,7 @@ async function show(node: React.ReactNode, path = "/", connect: () => object = n
 }
 
 type ChatProps = React.ComponentProps<typeof TalkChatView>;
-const chat = (over: Partial<ChatProps> = {}) => <TalkChatView chatId={null} chat={null} onChat={() => {}} name="Ada" page={null} ask={null} focus={false} {...over} />;
+const chat = (over: Partial<ChatProps> = {}) => <TalkChatView chatId={null} chat={null} onChat={() => {}} name="Ada" noBox={false} ask={null} focus={false} {...over} />;
 
 /** The box's words are kept for the whole run, so a test that types leaves it empty. */
 const typed = async (words: string) => {
@@ -296,35 +296,28 @@ describe("while the agent can't run", () => {
 });
 
 describe("on a page with its own box", () => {
-	it("the writing row is drawn at rest, and fades only as it swaps with the line", async () => {
+	it("the writing row is drawn at rest, and fades only as it swaps with the boxless row", async () => {
 		await show(chat());
 		assert.doesNotMatch(q("talk-writing")!.className, /lh-fade/);
-		await show(chat({ page: "lesson" }), "/chat/ses_1");
-		assert.match(q("talk-gives-way")!.className, /lh-fade/);
+		await show(chat({ noBox: true }), "/chat/ses_1");
+		assert.match(q("talk-no-box")!.className, /lh-fade/);
 		await show(chat());
 		assert.match(q("talk-writing")!.className, /lh-fade/);
 	});
 
-	it("the lesson's page: the writing row is one line saying so, with no box and no Send", async () => {
-		await show(chat({ page: "lesson" }), "/chat/ses_1");
-		assert.equal(q("talk-gives-way")?.textContent, "Type in the lesson's box.");
+	it("the chat shown for its card has no box, no Send and no words about where to type", async () => {
+		await show(chat({ chatId: "chat_1", noBox: true }), "/chat/ses_1");
+		assert.ok(q("teacher-thread"), "the chat's thread");
+		assert.equal(q("talk-no-box")?.textContent, "");
 		assert.equal(q("talk-writing"), null);
 		assert.equal(q("talk-send"), null);
 		assert.equal(q("math-box"), null);
-		assert.equal(all("talk-starter").length, 0, "no lines to try: the page asks for itself");
 	});
 
-	it("the cheat sheet's page says so for its box", async () => {
-		await show(chat({ page: "cheat sheet" }), "/space/deadline/ddl_1/cheat-sheet");
-		assert.equal(q("talk-gives-way")?.textContent, "Type in the cheat sheet's box.");
-		assert.equal(q("talk-send"), null);
-		assert.equal(q("math-box"), null);
-	});
-
-	it("the words typed in the panel's box are kept while it gives way, and are back after", async () => {
+	it("the words typed in the panel's box are kept meanwhile, and are back after", async () => {
 		await show(chat());
 		await typed("keep these");
-		await show(chat({ page: "lesson" }), "/chat/ses_1");
+		await show(chat({ noBox: true }), "/chat/ses_1");
 		assert.equal(q("math-box"), null);
 		await show(chat());
 		const box = await mathBoxView(document.body);

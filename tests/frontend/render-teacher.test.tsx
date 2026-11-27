@@ -33,7 +33,7 @@ Object.assign(globalThis, {
 globalThis.fetch = (() => new Promise(() => {})) as typeof fetch;
 
 const { TeacherPanel } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
-const { PANEL_WIDTH, panelLayout, panelBody } = await import("../../src/frontend/components/teacher/dock-model.ts");
+const { PANEL_WIDTH, panelLayout, panelBody, hasOwnBox } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/teacher/teacher-activity.tsx");
 const { PanelHead } = await import("../../src/frontend/components/teacher/panel-head.tsx");
 const { TeacherContext } = await import("../../src/frontend/components/teacher/teacher-context.ts");
@@ -73,6 +73,7 @@ const panel = (over: Partial<PanelProps> = {}) => (
 		<TeacherPanel
 			name="Ada"
 			view="popped"
+			ownBox={false}
 			chat={{ id: null, row: null, show() {} }}
 			asking={null}
 			popOut={null}
@@ -133,8 +134,15 @@ describe("the panel", () => {
 		assert.deepEqual(panelLayout(1400, 700, 900), { width: 900, push: 0 }, "no room for even the narrowest: it covers the page");
 	});
 	it("is its chat, or Activity while the chat is in a window of its own", () => {
-		assert.equal(panelBody(false), "chat");
-		assert.equal(panelBody(true), "popped");
+		assert.equal(panelBody(false, false, false), "chat");
+		assert.equal(panelBody(true, false, false), "popped");
+		assert.equal(panelBody(true, true, true), "popped", "the chat's window shows its card");
+	});
+	it("is Activity alone on a lesson or a cheat sheet, and the chat there only for a card that waits", () => {
+		assert.ok(hasOwnBox("/chat/c1") && hasOwnBox("/space/deadline/d1/cheat-sheet"));
+		assert.ok(!hasOwnBox("/space/deadline/d1") && !hasOwnBox("/"));
+		assert.equal(panelBody(false, true, false), "activity");
+		assert.equal(panelBody(false, true, true), "chat");
 	});
 	it("never dims the page, and has a left edge to drag and no other, unless it takes the whole window", () => {
 		const wasWidth = window.innerWidth;
@@ -162,6 +170,7 @@ describe("the teacher's Activity", () => {
 			recent={ACTIONS}
 			spaceNameOf={names}
 			feed={EMPTY}
+			chats={[]}
 			graph={null}
 			{...over}
 		/>

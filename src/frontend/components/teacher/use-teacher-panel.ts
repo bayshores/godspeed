@@ -1,8 +1,8 @@
 /**
  * The teacher's panel state: open or not, and whether the Activity list
  * hangs from its head. The panel opens by itself when a card in its chat
- * waits to be allowed and closes when that is settled or a lesson reply
- * starts (panel-auto-model.ts); opened that way it leaves the keyboard where
+ * waits to be allowed and closes when that is settled, a lesson reply
+ * starts or a page with its own box opens (panel-auto-model.ts); opened that way it leaves the keyboard where
  * it is. Only a panel the learner opened takes the keyboard. When the chat
  * pops out into its own window the panel closes; while it is there the panel
  * never opens by itself, and asking to show the chat brings the window
@@ -27,9 +27,9 @@ interface PanelState {
 const CLOSED: PanelState = { open: false, list: false, focus: false, byApp: false };
 
 /** `replying`: a reply is running in the open lesson, null with no lesson open. `onHome`: Home is
- *  the page. `need`: a card in the panel's chat waits to be allowed. `loaded`: the chats were read.
+ *  the page. `ownBox`: the page has its own box for the teacher. `need`: a card in the panel's chat waits to be allowed. `loaded`: the chats were read.
  *  `chatWindow`: the window the chat pops out to. */
-export function useTeacherPanel(replying: boolean | null, onHome: boolean, need: boolean, loaded: boolean, chatWindow: ChatWindow) {
+export function useTeacherPanel(replying: boolean | null, onHome: boolean, ownBox: boolean, need: boolean, loaded: boolean, chatWindow: ChatWindow) {
 	const [state, setState] = useState<PanelState>(CLOSED);
 	const showScreen = useCallback(() => setState({ open: true, list: false, focus: true, byApp: false }), []);
 	// Opened by the learner, the panel is on its chat, or on Activity while that is in its own window.
@@ -77,11 +77,11 @@ export function useTeacherPanel(replying: boolean | null, onHome: boolean, need:
 		// What the chats' first read shows is a start, not a change.
 		if (!started.current) {
 			started.current = loaded;
-			seen.current = { need, replying, waiting: false };
+			seen.current = { need, replying, ownBox, waiting: false };
 			return;
 		}
 		const waitLeft = typingWaitLeft(lastKey.current, Date.now());
-		const { mem, act } = stepPanel(seen.current, { need, replying }, { open, byApp, popped }, waitLeft);
+		const { mem, act } = stepPanel(seen.current, { need, replying, ownBox }, { open, byApp, popped }, waitLeft);
 		seen.current = mem;
 		if (act === "close") setState(CLOSED);
 		else if (act === "open") setState({ open: true, list: false, focus: false, byApp: true });
@@ -89,7 +89,7 @@ export function useTeacherPanel(replying: boolean | null, onHome: boolean, need:
 			const timer = setTimeout(pauseEnded, waitLeft);
 			return () => clearTimeout(timer);
 		}
-	}, [need, replying, open, byApp, popped, loaded, pause]);
+	}, [need, replying, ownBox, open, byApp, popped, loaded, pause]);
 
 	return { ...state, setOpen, showChat, setList };
 }

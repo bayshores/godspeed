@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { boxPage, everything, startersFor, type IdeaFacts } from "../../src/frontend/components/teacher/starter-model.ts";
+import { everything, startersFor, type IdeaFacts } from "../../src/frontend/components/teacher/starter-model.ts";
 
 const CSE = { id: "s1", name: "CSE 21", files: 3 };
 const deadline = (id: string, name: string, kind: IdeaFacts["deadlines"][number]["kind"], date: string, spaceId = "s1") => ({ id, name, kind, date, spaceId });
@@ -46,12 +46,6 @@ describe("the lines for a page", () => {
 		assert.equal(on("/", { gaps: two })[0], "Update my spaces");
 		assert.equal(on("/graph", { gaps: two })[0], "Update my spaces");
 		assert.equal(on("/space", { space: null, gaps: two })[0], "Update my spaces", "no space picked");
-		assert.deepEqual(on("/chat/abc", { gaps: two }), [], "a lesson takes its own line");
-	});
-
-	it("none on a lesson or a cheat sheet, where a typed line goes to the page", () => {
-		assert.deepEqual(on("/chat/abc"), []);
-		assert.deepEqual(on("/space/deadline/hw%206/cheat-sheet"), []);
 	});
 
 	it("never more than four, and each one is sent as it reads", () => {
@@ -120,11 +114,3 @@ describe("everything the teacher can be asked", () => {
 	});
 });
 
-describe("pages with their own box", () => {
-	it("a lesson and a cheat sheet, nothing else", () => {
-		assert.equal(boxPage("/chat/c1"), "lesson");
-		assert.equal(boxPage("/space/deadline/d1/cheat-sheet"), "cheat sheet");
-		assert.equal(boxPage("/space/deadline/d1"), null);
-		assert.equal(boxPage("/"), null);
-	});
-});

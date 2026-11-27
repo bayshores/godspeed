@@ -170,7 +170,7 @@ describe("activity dock pure layer", () => {
 
 describe("background jobs render", () => {
 	it("renders nothing while idle", () => {
-		assert.equal(renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} />), "");
+		assert.equal(renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} chats={[]} />), "");
 	});
 
 	it("one row per running job: name, what it is with elapsed, and Stop", () => {
@@ -180,6 +180,7 @@ describe("background jobs render", () => {
 					jobs: [job({ id: "j1", kind: "demo", activity: "building sandbox…", title: "Chain-rule demo" })],
 					extractions: [{ id: "cx", chatId: "cx", kind: "chat", title: "Old lesson", phase: "merging", startedAt: NOW - 60_000 }],
 				}}
+				chats={[]}
 			/>,
 		);
 		assert.match(html, /data-testid="activity-section"/);
@@ -198,10 +199,18 @@ describe("background jobs render", () => {
 	});
 
 
+	it("a panel chat writing a reply is a row by its name with its own Stop", () => {
+		const html = renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} chats={[{ id: "chat_1", title: "Set up Physics" }]} />);
+		assert.match(html, /Running in the background/);
+		assert.match(html, /data-testid="activity-chat"/);
+		assert.match(html, /title="Set up Physics"/);
+		assert.match(html, /data-testid="activity-chat-stop"[^>]*aria-label="Stop the reply in Set up Physics"[^>]*>Stop</);
+	});
+
 	it("a deadline request is a row by its name, oldest first, with no Stop", () => {
 		const feed = { jobs: [], extractions: [], requests: [{ id: "d1", title: "Deadline: Wave Optics Final", startedAt: NOW - 30_000 }] };
 		assert.deepEqual(toBlobs(feed).map((b) => [b.process, b.title]), [["request", "Deadline: Wave Optics Final"]]);
-		const html = renderToStaticMarkup(<BackgroundJobs feed={feed} />);
+		const html = renderToStaticMarkup(<BackgroundJobs feed={feed} chats={[]} />);
 		assert.match(html, /data-testid="activity-blob-request"/);
 		assert.match(html, /Teacher, <span data-testid="activity-blob-elapsed">/);
 		assert.doesNotMatch(html, /activity-abort/);
@@ -226,6 +235,7 @@ describe("background jobs render", () => {
 					],
 					extractions: [],
 				}}
+				chats={[]}
 			/>,
 		);
 		assert.match(html, /activity-total-cost[^>]*>Your agent</);

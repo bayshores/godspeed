@@ -68,18 +68,20 @@ afterEach(() => {
 let onHome = false;
 /** A card in the panel's chat waits to be allowed when the host first shows. */
 let needAtStart = false;
+/** The page the host stands for has its own box for the teacher. */
+let ownBox = false;
 
 /** The teacher's panel as the provider holds it; the "need" keys stand for a card in its chat. */
 function PanelHost({ children }: { children?: React.ReactNode }) {
 	const [need, setNeed] = React.useState(needAtStart);
 	const chatWindow = useChatWindow();
-	const panel = useTeacherPanel(null, onHome, need, true, chatWindow);
+	const panel = useTeacherPanel(null, onHome, ownBox, need, true, chatWindow);
 	const [line, setLine] = React.useState<string | null>(null);
 	// The provider clears a line when the panel closes unsent.
 	React.useEffect(() => {
 		if (!panel.open) setLine(null);
 	}, [panel.open]);
-	const view = panelBody(chatWindow.popped);
+	const view = panelBody(chatWindow.popped, ownBox, need);
 	const popOut = chatWindow.popOut;
 	const api: TeacherApi = {
 		name: "Ada",
@@ -119,6 +121,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 				<TeacherPanel
 					name="Ada"
 					view={view}
+					ownBox={ownBox}
 					chat={{ id: null, row: null, show() {} }}
 					asking={api.asking}
 					popOut={popOut ? () => popOut("Ada") : null}
@@ -234,6 +237,47 @@ describe("opening by itself", () => {
 			});
 		} finally {
 			proto.focus = realFocus;
+		}
+	});
+});
+
+describe("on a page with its own box for the teacher", () => {
+	const KEYS = ["teacher-panel-chats", "teacher-panel-activity", "teacher-panel-pop-out", "teacher-panel-put-back", "follow-start", "follow-stop"];
+
+	it("the panel is Activity alone under the teacher's name; a card of its chat shows the chat with no box, and the panel goes once it is settled", async () => {
+		const shell = fakeShell();
+		ownBox = true;
+		try {
+			await mounted(async () => {
+				await click("open-panel");
+				assert.ok(q("activity-list") !== null && q("talk-chat") === null, "no chat beside the page's own box");
+				assert.equal(text("teacher-panel-agent"), "Ada");
+				for (const gone of KEYS) assert.equal(q(gone), null, gone);
+				await click("need-on");
+				assert.ok(q("talk-chat") !== null && q("activity-list") === null, "the card's chat");
+				assert.ok(q("talk-no-box") !== null && q("talk-send") === null && q("talk-writing") === null, "nowhere to type");
+				await click("need-off");
+				assert.ok(q("teacher-panel") === null, "settled: it goes, though the learner opened it");
+			});
+		} finally {
+			ownBox = false;
+			shell.remove();
+		}
+	});
+
+	it("opening such a page closes the panel the learner had open on its chat", async () => {
+		try {
+			await mounted(async (render) => {
+				await click("open-chat");
+				assert.ok(q("talk-chat") !== null);
+				ownBox = true;
+				await render();
+				assert.ok(q("teacher-panel") === null);
+				await click("open-panel");
+				assert.ok(q("activity-list") !== null, "opened there, it is Activity and stays");
+			});
+		} finally {
+			ownBox = false;
 		}
 	});
 });

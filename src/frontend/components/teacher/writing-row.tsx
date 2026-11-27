@@ -5,7 +5,7 @@ import { usePresence } from "@/frontend/components/presence";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { cn } from "@/frontend/lib/utils";
 import { IdeaList } from "./idea-list";
-import type { BoxPage, IdeaGroup } from "./starter-model";
+import type { IdeaGroup } from "./starter-model";
 import type { Box } from "./use-talk-box";
 import { AFTER_GLIDE_MS } from "./use-thread-scroll";
 
@@ -17,12 +17,12 @@ const PANEL_BOX = (canSend: boolean, busy: boolean): BoxView => ({ placeholder: 
  * then its keys on their own line, so the row never changes height: Ideas once the chat is used,
  * the model key, Stop while a reply runs, and Send, the bright key only while the box holds
  * something to send. A line sent while the teacher works steers it, and a steer carries no files.
- * On a page with its own box the row is one quiet line instead, with Stop while a reply runs; the
- * two fade into each other's place as the learner moves between pages, and stand still otherwise.
+ * On a page with its own box (`noBox`) the chat is there only for its card: the row keeps the error
+ * row and Stop, and the two fade into each other's place as the learner moves between pages.
  */
-export function WritingRow({ name, page, box, focus, busy, error, ideas, made, model, onSend, onLine, onStop }: {
+export function WritingRow({ name, noBox, box, focus, busy, error, ideas, made, model, onSend, onLine, onStop }: {
 	name: string;
-	page: BoxPage | null;
+	noBox: boolean;
 	box: Box;
 	focus: boolean;
 	busy: boolean;
@@ -47,9 +47,9 @@ export function WritingRow({ name, page, box, focus, busy, error, ideas, made, m
 	const stop = usePresence(useHeld(busy && !!onStop, AFTER_GLIDE_MS));
 	// Ideas fades in when it comes; in a chat opened with it, it is there at rest.
 	const [ideasAtRest] = useState(!!ideas && !made);
-	// The row fades only when it swaps with the quiet line, never as it is first drawn.
-	const [shown, setShown] = useState({ page, swapped: false });
-	if (shown.page !== page) setShown({ page, swapped: true });
+	// The row fades only when it swaps with the boxless one, never as it is first drawn.
+	const [shown, setShown] = useState({ noBox, swapped: false });
+	if (shown.noBox !== noBox) setShown({ noBox, swapped: true });
 	const swap = shown.swapped && "lh-fade";
 	const [list, setList] = useState(false);
 	const row = useRef<HTMLDivElement>(null);
@@ -72,14 +72,11 @@ export function WritingRow({ name, page, box, focus, busy, error, ideas, made, m
 			)}
 		</div>
 	);
-	if (page)
+	if (noBox)
 		return (
-			<div key="gives-way" data-testid="talk-gives-way" className={cn("flex shrink-0 flex-col gap-2.5 px-[18px] pt-2.5 pb-[18px]", swap)}>
+			<div key="no-box" data-testid="talk-no-box" className={cn("flex shrink-0 flex-col gap-2.5 px-[18px] pt-2.5 pb-[18px]", swap)}>
 				{errorRow}
-				<div className="flex min-h-10 items-center justify-between gap-3">
-					<p className="text-[15px] text-ink-2">{page === "lesson" ? "Type in the lesson's box." : "Type in the cheat sheet's box."}</p>
-					{stopKey}
-				</div>
+				<div className="flex min-h-10 items-center justify-end">{stopKey}</div>
 			</div>
 		);
 	return (

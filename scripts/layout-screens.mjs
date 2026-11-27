@@ -373,7 +373,7 @@ export const SCREENS = [
 	{ name: "Progress, the next deadline marked done", url: "/space", ready: `${homeworkCard} [data-testid=next-deadline-done]`, setup: `document.querySelector("${homeworkCard} [data-testid=next-deadline-done]").click()`, shows: `${homeworkCard} [data-testid=next-deadline-undo]` },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", before: untickHomework, url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
 	{ name: "Lesson with a written-answer question", url: "/chat/{written}", ready: "[data-testid=question-dock]" },
-	{ name: "Lesson with a written-answer question beside the teacher's panel", url: "/chat/{written}", ready: "[data-testid=question-dock]", setup: openTeacher, shows: "[data-testid=talk-gives-way]" },
+	{ name: "Lesson with a written-answer question beside the teacher's panel", url: "/chat/{written}", ready: "[data-testid=question-dock]", setup: openTeacher, shows: "[data-testid=teacher-panel] [data-testid=activity-list]" },
 	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, shows: "[data-testid=plugin-window] [data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Lesson, its menu", url: "/chat/{lesson}", ready: "[data-testid=lesson-more]", setup: `document.querySelector("[data-testid=lesson-more]").click()`, shows: "[data-testid=lesson-menu][data-state=open]" },
 	{
@@ -444,7 +444,7 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 		shows: "[data-testid=document-pages] [data-testid=document-page]:only-child img",
 	},
 	{ name: "Lesson with two steps, a sheet for each", url: "/chat/{twoSheets}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=sheet-step]" },
-	{ name: "Lesson with two steps beside the teacher's panel", url: "/chat/{twoSheets}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=sheet-step]", setup: openTeacher, shows: "[data-testid=talk-gives-way]" },
+	{ name: "Lesson with two steps beside the teacher's panel", url: "/chat/{twoSheets}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=sheet-step]", setup: openTeacher, shows: "[data-testid=teacher-panel] [data-testid=activity-list]" },
 	{ name: "Lesson with a question of the learner's own before the step's answer", url: "/chat/{askedFirst}", ready: "[data-testid=lesson-sheet] ~ [data-testid=lesson-sheet] [data-testid=user-message]", shows: "[data-testid=question-dock]" },
 	{ name: "Lesson with a question whose choices are code, longer than the window", url: "/chat/{codeChoices}", ready: "[data-testid=question-dock] pre" },
 	{ name: "Lesson with a question answered in the code editor", url: "/chat/{codeWrite}", ready: "[data-testid=code-editor-host] .cm-content" },
@@ -496,8 +496,8 @@ pick.dispatchEvent(new Event("change", { bubbles: true })); ${pause}; localStora
 	{ name: "Home, the strip's peek", url: "/", ready: deadlineCard, setup: peekOut, shows: peekShown },
 	// No chat yet: the panel opens on a new one, with what the teacher can be asked here.
 	{ name: "Teacher chat, a new chat", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=talk-try] [data-testid=talk-starter]" },
-	// A Lab Algebra lesson: the panel's box gives way to the lesson's. Opening it also makes Lab Algebra the active space again for the Progress screens below.
-	{ name: "Teacher's panel beside a lesson", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=talk-gives-way]" },
+	// A Lab Algebra lesson: beside it the panel is Activity alone. Opening it also makes Lab Algebra the active space again for the Progress screens below.
+	{ name: "Teacher's panel beside a lesson", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=teacher-panel] [data-testid=activity-list]" },
 	{ name: "Teacher's Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`, shows: "[data-testid=teacher-panel-list] [data-testid=activity-list] > *" },
 	{
 		name: "Settings, Teacher",
@@ -569,10 +569,10 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 	{ name: "Notes that could not be saved", url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]", setup: notesAre(`{ notes: ${pagesOf(3, { waiting: [0, 1] })} }`, `{ waiting: { names: [topics[0].name, topics[1].name], why: "The disk is full." } }`), shows: "[data-testid=vault-notice] [data-testid=vault-notice-key]" },
 	{ name: "Progress with no notes folder", before: unlinkVault, url: "/space", ready: "[data-testid=lesson-record] [data-testid=lesson-row]" },
 	{ name: "Cheat sheet, not made", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]" },
-	{ name: "Cheat sheet, not made, beside the teacher's panel", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]", setup: openTeacher, shows: "[data-testid=talk-gives-way]" },
+	{ name: "Cheat sheet, not made, beside the teacher's panel", url: sheetPage("{deadline}"), ready: "[data-testid=cheat-sheet-empty]", setup: openTeacher, shows: "[data-testid=teacher-panel] [data-testid=activity-list]" },
 	{ name: "Cheat sheet, made, two pages", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), shows: "[data-testid=sheet-made]" },
 	{ name: "Cheat sheet, made, its rules folded", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), setup: `document.querySelector("[data-testid=sheet-rules-toggle]").click()`, shows: "[data-testid=sheet-rules-toggle][aria-expanded=false]" },
-	{ name: "Cheat sheet, made, beside the teacher's panel", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), setup: openTeacher, shows: "[data-testid=talk-gives-way]" },
+	{ name: "Cheat sheet, made, beside the teacher's panel", url: sheetPage("{sheetMade}"), ready: sheetDrawn(2), setup: openTeacher, shows: "[data-testid=teacher-panel] [data-testid=activity-list]" },
 	{ name: "Cheat sheet, two versions", url: sheetPage("{sheetVersions}"), ready: sheetDrawn(1), shows: "[data-testid=cheat-sheet-version] ~ [data-testid=cheat-sheet-version]" },
 	{ name: "Deadline with a graded mock and a ready one", url: "/space/deadline/{sheetMade}", ready: "[data-testid=deadline-mock-continue]" },
 	{ name: "Mock ready to start", url: mockPage("{mockReady}"), ready: "[data-testid=mock-ready] [data-testid=mock-start]" },
@@ -724,8 +724,8 @@ document.querySelector("[data-testid=instructions-panel] button").click()`,
 		helper: "stream",
 		shows: "[data-testid=talk-thread] [data-testid=thread-teacher] ~ * [data-testid=desk-plan] li",
 	},
-	// The line that gives way on a lesson has Stop while the chat's held reply runs.
-	{ name: "Teacher's panel beside a lesson, Stop while the chat's reply runs", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=talk-gives-way] [data-testid=talk-stop]" },
+	// Beside a lesson the panel is Activity alone: the chat's held reply is a row there, with its Stop.
+	{ name: "Teacher's panel beside a lesson, Stop while the chat's reply runs", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: openTeacher, shows: "[data-testid=teacher-panel] [data-testid=activity-chat] [data-testid=activity-chat-stop]" },
 	// The held reply is stopped: the chats, the one shown "open now".
 	{
 		name: "Teacher's chats under the Chats key",

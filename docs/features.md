@@ -94,12 +94,12 @@ To add a row:
 | Calculator | Any writing box | `menu-shortcuts` | Home, the keyboard shortcuts list | learner | `calculator-keep` |
 | A plugin's lesson word and space tab | Lesson, space tabs | `plugins-add` | Settings, Plugins, Add | learner | `space/plugin/:id` |
 | Teacher's strip | Right edge | `strip` | | learner | |
-| Chat with the teacher outside lessons: its reply written as it comes, its steps and Allow cards in the chat, Stop by Send | Teacher panel | `talk-try` | Teacher chat, a new chat | learner | |
+| Chat with the teacher outside lessons: its reply written as it comes, its steps and Allow cards in the chat, Stop by Send | Teacher panel, on every page but a lesson and a cheat sheet | `talk-try` | Teacher chat, a new chat | learner | |
 | A chat's model, by Send | Teacher panel | `talk-model` | Teacher chat, its model list | learner | |
-| On a lesson or cheat sheet page, the panel says to type in the page's box, with Stop while the teacher writes | Teacher panel | `talk-gives-way` | Teacher's panel beside a lesson | learner | |
-| Chats list | Teacher panel | `teacher-panel-chats` | Teacher's chats under the Chats key | learner | |
+| On a lesson or cheat sheet page, the panel is Activity alone, with Stop for a panel chat still writing; its chat shows there only for an Allow card of its own | Teacher panel | `activity-list` | Teacher's panel beside a lesson | learner | |
+| Chats list | Teacher panel, on every page but a lesson and a cheat sheet | `teacher-panel-chats` | Teacher's chats under the Chats key | learner | |
 | Follow: its slip at the page's foot saying what the teacher does and listing its steps (its own web searches, file reads and commands too), what it changed staying lit, and the teacher opening pages | Teacher panel; the slip on every page but a lesson, a mock and a cheat sheet | `follow-start` | | learner | `open_page` |
-| Pop out the teacher's chat into its own window, and Put back | Teacher panel | `teacher-panel-pop-out` | | learner | `chat-window` |
+| Pop out the teacher's chat into its own window, and Put back | Teacher panel, on every page but a lesson and a cheat sheet | `teacher-panel-pop-out` | | learner | `chat-window` |
 | Try asking | Teacher panel | `talk-try` | | learner | |
 | Everything the teacher can do | Teacher panel | `talk-all-ideas` | | learner | |
 | Activity and graph costs | Teacher panel | `teacher-panel-activity` | Teacher's Activity | learner | |

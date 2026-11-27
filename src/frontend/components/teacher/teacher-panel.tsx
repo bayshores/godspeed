@@ -5,11 +5,13 @@
  * left to make room and covering it where there is none; the learner
  * drags its left edge. One head row (panel-head.tsx), then its chat
  * (talk-chat.tsx), or Activity (teacher-activity.tsx) while the chat is in
- * a window of its own. While the agent can't run, the head keeps only
- * Activity and the chat's foot says what stops the agent (setup-foot.tsx).
+ * a window of its own. On a page with its own box for the teacher (a lesson,
+ * a cheat sheet) it is Activity alone under the teacher's name, and the chat
+ * shows only for a card of its own that waits. While the agent can't run,
+ * the head keeps only Activity and the chat's foot says what stops the agent
+ * (setup-foot.tsx).
  */
 import { useEffect, useLayoutEffect, useState } from "react";
-import { useLocation } from "react-router";
 import { cn } from "@/frontend/lib/utils";
 import type { TalkChat } from "@/shared/core";
 import { BarWindow, observeBar } from "@/frontend/components/ui/bar-window";
@@ -19,7 +21,6 @@ import { useTeacher } from "./teacher-context";
 import { TeacherActivity } from "./teacher-activity";
 import { PanelHead } from "./panel-head";
 import { useAskable } from "./setup-foot";
-import { boxPage } from "./starter-model";
 import { TalkChatView } from "./talk-chat";
 import { PANEL_WIDTH, panelLayout, type PanelView } from "./dock-model";
 
@@ -31,6 +32,7 @@ const WIDTH_VAR = "--lh-dock-width";
 export function TeacherPanel({
 	name,
 	view,
+	ownBox,
 	chat,
 	asking,
 	popOut,
@@ -43,6 +45,8 @@ export function TeacherPanel({
 }: {
 	name: string;
 	view: PanelView;
+	/** The page has its own box for the teacher: a chat shown beside it has none. */
+	ownBox: boolean;
 	/** The chat shown (null: a new chat), its row in the list, and the pick of another. */
 	chat: { id: string | null; row: TalkChat | null; show: (id: string | null) => void };
 	/** A line a page key handed the teacher. */
@@ -62,7 +66,6 @@ export function TeacherPanel({
 	onBeside: (width: number | null) => void;
 }) {
 	const teacher = useTeacher();
-	const { pathname } = useLocation();
 	const doing = teacher?.doing ?? null;
 	const blocked = useAskable() !== true;
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
@@ -98,7 +101,12 @@ export function TeacherPanel({
 		[],
 	);
 	useEffect(() => () => onBeside(null), [onBeside]);
-	const popped = view === "popped";
+	// The body fades only as the chat and Activity swap, never as the panel opens. On its way out
+	// the panel keeps what it showed: the page that closes it would swap it first.
+	const [shown, setShown] = useState({ view, noBox: ownBox, swapped: false });
+	if (state === "open" && (shown.view !== view || shown.noBox !== ownBox)) setShown({ view, noBox: ownBox, swapped: shown.swapped || shown.view !== view });
+	const popped = shown.view === "popped";
+	const chatShown = shown.view === "chat";
 	return (
 		<BarWindow right={stripWidth()} width={width} height={null} state={state} data-teacher-panel="" data-whole={whole || undefined} data-testid="teacher-panel" aria-label={name}>
 			{/* Nothing to drag while it takes the whole window. */}
@@ -107,8 +115,8 @@ export function TeacherPanel({
 				name={name}
 				working={!!doing?.working || !!chat.row?.running}
 				elsewhere={!!teacher?.elsewhere}
-				list={popped ? null : { open: list, onOpen: onList }}
-				popOut={!popped && popOut ? () => void popOut().then(setPopError) : null}
+				list={chatShown ? { open: list, onOpen: onList } : null}
+				popOut={chatShown && popOut ? () => void popOut().then(setPopError) : null}
 				putBack={popped ? putBack : null}
 				blocked={blocked}
 			/>
@@ -118,19 +126,22 @@ export function TeacherPanel({
 				</p>
 			)}
 			<div
+				key={chatShown ? "chat" : "activity"}
 				data-testid="teacher-panel-body"
 				className={cn(
 					"flex min-h-0 flex-1 flex-col motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out) peer-data-[hang]:opacity-40",
+					shown.swapped && "lh-fade",
 					// The chat reads like the page; Activity alone keeps the panel's own colors.
-					!popped && "lh-desk lh-page-colors",
+					chatShown && "lh-desk lh-page-colors",
 				)}
 			>
-				{popped ? (
-					<div className="flex min-h-0 flex-1 flex-col gap-[18px] px-[18px] pt-1.5 pb-[18px]">
-						<TeacherActivity />
-					</div>
+				{chatShown ? (
+					<TalkChatView chatId={chat.id} chat={chat.row} onChat={chat.show} name={name} noBox={shown.noBox} ask={asking} focus={focus} />
 				) : (
-					<TalkChatView chatId={chat.id} chat={chat.row} onChat={chat.show} name={name} page={boxPage(pathname)} ask={asking} focus={focus} />
+					<div className="flex min-h-0 flex-1 flex-col gap-[18px] px-[18px] pt-1.5 pb-[18px]">
+						{/* Popped, the chat's own window shows its reply; on a page with its own box nothing else does. */}
+						<TeacherActivity chats={!popped} />
+					</div>
 				)}
 			</div>
 		</BarWindow>

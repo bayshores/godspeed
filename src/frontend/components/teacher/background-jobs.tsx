@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { DEFAULT_TEACHER_NAME, subscriptionLabel, subscriptionLabels } from "@/shared/core";
 import { useActivity, type ActivityFeed } from "@/frontend/components/activity-dock";
 import { useFold } from "@/frontend/components/use-fold";
+import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { useNow } from "@/frontend/components/use-now";
 import { formatTokens, planCostLabel } from "@/frontend/components/usage-format";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -14,7 +15,8 @@ import { useTeacher } from "./teacher-context";
 /**
  * "Running in the background": jobs that failed lately, then one row per
  * running sub-agent job, fact-building run or deadline request, a Stop button on the first two (POST
- * /api/activity/abort). 404/409 mean it already ended (refresh, no error);
+ * /api/activity/abort), then one row per panel chat writing a reply that no thread on screen shows
+ * (`chats`), with its Stop. 404/409 mean it already ended (refresh, no error);
  * a real failure says so and Stop stays clickable. Clicking a row opens its
  * detail inline (the list scrolls, so a popover would clip). Hidden when
  * there is nothing to show.
@@ -27,7 +29,7 @@ type AbortState = "pending" | "failed";
  *  the state keys on its start too and never carries over. */
 const runKey = (blob: ActivityBlob) => `${blob.id}@${blob.startedAt}`;
 
-export function BackgroundJobs({ feed }: { feed: ActivityFeed }) {
+export function BackgroundJobs({ feed, chats }: { feed: ActivityFeed; chats: readonly RunningChat[] }) {
 	const { refresh } = useActivity();
 	const blobs = useMemo(() => toBlobs(feed), [feed]);
 	const [openBlob, setOpenBlob] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export function BackgroundJobs({ feed }: { feed: ActivityFeed }) {
 	}, []);
 
 	const failed = feed.failed ?? [];
-	if (failed.length === 0 && blobs.length === 0) return null;
+	if (failed.length === 0 && blobs.length === 0 && chats.length === 0) return null;
 	return (
 		<section data-testid="activity-section" className="flex flex-col gap-3">
 			<div className="flex items-baseline gap-2">
@@ -93,8 +95,44 @@ export function BackgroundJobs({ feed }: { feed: ActivityFeed }) {
 						onAbort={() => void abort(blob)}
 					/>
 				))}
+				{chats.map((chat) => (
+					<ChatRow key={chat.id} chat={chat} />
+				))}
 			</div>
 		</section>
+	);
+}
+
+/** A panel chat writing a reply. */
+export interface RunningChat {
+	id: string;
+	title: string;
+}
+
+/** One panel chat writing a reply: its name and Stop. The row goes when the reply ends. */
+function ChatRow({ chat }: { chat: RunningChat }) {
+	const { busy, error, run } = useGuardedAction();
+	const stop = () =>
+		void run(async () => {
+			const { error, status } = await send("/api/activity/abort", jsonInit("POST", { kind: "turn", id: chat.id }));
+			// Not found / not running: it already ended, which is what Stop wants.
+			return status === 404 || status === 409 ? null : error;
+		});
+	return (
+		<div data-testid="activity-chat" className={`lh-rise flex flex-col ${ACTIVITY_ROW}`}>
+			<div className="flex items-center gap-3 py-2.5">
+				<span className="flex min-w-0 flex-1 flex-col gap-0.5">
+					<span className="w-full truncate text-lg text-ink" title={chat.title}>
+						{chat.title}
+					</span>
+					<span className="w-full truncate text-base text-ink-2">Chat</span>
+				</span>
+				<button type="button" data-testid="activity-chat-stop" onClick={stop} disabled={busy} aria-label={`Stop the reply in ${chat.title}`} className="lh-btn lh-btn-small shrink-0">
+					Stop
+				</button>
+			</div>
+			{error && <p className="pb-2.5 text-base text-ans-wrong">Stop didn't go through. Try again.</p>}
+		</div>
 	);
 }
 

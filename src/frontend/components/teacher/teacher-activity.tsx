@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { AgentAction, GraphCostSummary } from "@/shared/core";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useActivity, type ActivityFeed } from "@/frontend/components/activity-dock";
@@ -6,7 +7,7 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { useNow } from "@/frontend/components/use-now";
 import { cn } from "@/frontend/lib/utils";
 import { useTeacher } from "./teacher-context";
-import { BackgroundJobs } from "./background-jobs";
+import { BackgroundJobs, type RunningChat } from "./background-jobs";
 import { GraphCosts } from "./graph-costs";
 import { pastLabel } from "./tour";
 import { ACTIVITY_ROW, ACTIVITY_ROWS } from "./activity-look";
@@ -15,15 +16,20 @@ import { agoLabel, recentRows } from "./activity-model";
 /**
  * The teacher's Activity: the jobs running in the background, its recent
  * changes and what the open space's graph took, a log to read. What it is doing now sits in the
- * panel's head, and Follow beside it. It scrolls inside its parent, which pads it.
+ * panel's head, and Follow beside it. It scrolls inside its parent, which pads it. With `chats`,
+ * the panel's chats writing a reply are jobs too: no thread on screen shows them.
  */
 
-export function TeacherActivity() {
+const NO_CHATS: readonly RunningChat[] = [];
+
+export function TeacherActivity({ chats = false }: { chats?: boolean }) {
 	const teacher = useTeacher();
 	const { feed } = useActivity();
 	const name = teacher?.name ?? DEFAULT_TEACHER_NAME;
 	const { active, spaces } = useSpaces();
 	const costs = useGraphCosts(active);
+	const all = teacher?.talk.chats;
+	const running = useMemo(() => (chats ? (all ?? []).filter((c) => c.running).map(({ id, title }) => ({ id, title })) : NO_CHATS), [chats, all]);
 	return (
 		<ActivityList
 			name={name}
@@ -31,6 +37,7 @@ export function TeacherActivity() {
 			recent={teacher?.recent ?? []}
 			spaceNameOf={teacher?.spaceNameOf ?? (() => null)}
 			feed={feed}
+			chats={running}
 		/>
 	);
 }
@@ -41,19 +48,22 @@ export function ActivityList({
 	recent,
 	spaceNameOf,
 	feed,
+	chats,
 	graph,
 }: {
 	name: string;
 	recent: readonly AgentAction[];
 	spaceNameOf: (id: string | null) => string | null;
 	feed: ActivityFeed;
+	/** The panel's chats writing a reply, where no thread shows them. */
+	chats: readonly RunningChat[];
 	/** The open space's graph costs, once it has a run. */
 	graph: { costs: GraphCostSummary; space: string | null } | null;
 }) {
 	const now = useNow(recent.length > 0); // "2 min" stays true
 	// A space's own row doesn't repeat its name.
 	const rows = recentRows(recent.map((a) => ({ id: a.id, label: pastLabel(a.label), space: a.target?.kind === "space" ? null : spaceNameOf(a.spaceId), at: a.at })));
-	const jobs = feed.jobs.length > 0 || feed.extractions.length > 0 || (feed.failed?.length ?? 0) > 0;
+	const jobs = feed.jobs.length > 0 || feed.extractions.length > 0 || (feed.failed?.length ?? 0) > 0 || chats.length > 0;
 
 	return (
 		<div data-testid="activity-list" className="flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto">
@@ -63,7 +73,7 @@ export function ActivityList({
 				</p>
 			)}
 
-			<BackgroundJobs feed={feed} />
+			<BackgroundJobs feed={feed} chats={chats} />
 
 			{rows.length > 0 && (
 				<section className="flex flex-col gap-3">

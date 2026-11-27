@@ -19,14 +19,6 @@ const UPDATE_ALL = "Update my spaces";
 const ADD_DEADLINE = "Add a deadline";
 const NOTE = "Note this";
 
-/** A page with its own box for the teacher: the panel's box gives way to it. */
-export type BoxPage = "lesson" | "cheat sheet";
-
-/** The page at `path` when it has its own box for the teacher, else null. */
-export function boxPage(path: string): BoxPage | null {
-	if (/^\/chat\//.test(path)) return "lesson";
-	return /^\/space\/deadline\/[^/]+\/cheat-sheet/.test(path) ? "cheat sheet" : null;
-}
 /** A space's own pages. */
 const SPACE_PAGE = /^\/space(\/|$)/;
 /** The Deadlines tab, which has its own key for asking the teacher to update. */
@@ -84,10 +76,9 @@ function updateStarter(f: IdeaFacts): string[] {
 	return [f.gaps.length === 1 ? updateLine(f.gaps[0]!.name) : UPDATE_ALL];
 }
 
-/** The lines for the page at `f.path`, at most four, each one that works now. None on a page with
- *  its own box. What the page shows or has a key for gets no line. */
+/** The lines for the page at `f.path`, at most four, each one that works now. What the page shows
+ *  or has a key for gets no line. */
 export function startersFor(f: IdeaFacts): string[] {
-	if (boxPage(f.path)) return [];
 	return [...updateStarter(f), ...pageStarters(f)].slice(0, 4);
 }
 

@@ -32,7 +32,7 @@ export function ChatWindow() {
 				<PanelHead name={name} working={!!row?.running} elsewhere={false} list={null} popOut={null} putBack={putBack} blocked={false} />
 			</div>
 			<div className="lh-desk lh-page-colors flex min-h-0 flex-1 flex-col">
-				<TalkChatView chatId={chatId} chat={row} onChat={show} name={name} page={null} ask={null} focus />
+				<TalkChatView chatId={chatId} chat={row} onChat={show} name={name} noBox={false} ask={null} focus />
 			</div>
 		</main>
 	);

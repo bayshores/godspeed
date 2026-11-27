@@ -20,7 +20,7 @@ import { getJson, jsonInit, send } from "@/frontend/lib/api";
 import { cn } from "@/frontend/lib/utils";
 import { ModelKey } from "./model-key";
 import { SetupFoot, useAskable } from "./setup-foot";
-import { everything, startersFor, type BoxPage, type IdeaGroup } from "./starter-model";
+import { everything, startersFor, type IdeaGroup } from "./starter-model";
 import { readEarlier, talkError, talkLines } from "./talk-model";
 import { TeacherThread, type ThreadLine } from "./teacher-thread";
 import { TryAsking } from "./try-asking";
@@ -40,18 +40,18 @@ type Asking = { line: string; clear: () => void } | null;
  * screen; the chat record is made on the first send, which names it. A chat shows its thread
  * (TeacherThread), the desk while a reply is written, and the writing row pinned at the foot: the
  * box, then Ideas, the chat's model, Stop and Send on their own line. On a page with its own box
- * (`page`) the writing row gives way to one quiet line, with Stop beside it while a reply runs; the
- * box's words and files are kept. While the agent can't run, the setup line stands in the writing
+ * (`noBox`) the chat shows only for a card that waits: the writing row is Stop alone, and the box's
+ * words and files are kept. While the agent can't run, the setup line stands in the writing
  * row's place (SetupFoot) and "Try asking" waits, dim.
  */
-export function TalkChatView({ chatId, chat, onChat, name, page, ask, focus }: {
+export function TalkChatView({ chatId, chat, onChat, name, noBox, ask, focus }: {
 	chatId: string | null;
 	/** The shown chat's row in the list, for its model; null for a new chat or one not listed yet. */
 	chat: TalkChat | null;
 	/** A new chat was made: it is the one shown now. */
 	onChat: (id: string) => void;
 	name: string;
-	page: BoxPage | null;
+	noBox: boolean;
 	ask: Asking;
 	/** The learner opened it: the box takes the keyboard. */
 	focus: boolean;
@@ -61,7 +61,7 @@ export function TalkChatView({ chatId, chat, onChat, name, page, ask, focus }: {
 	const [first, setFirst] = useState<{ chatId: string; input: TextInput } | null>(null);
 	// A model picked for a chat before the list says so.
 	const [picked, setPicked] = useState<{ chatId: string; model: string } | null>(null);
-	const room = { name, page, box, ask, focus };
+	const room = { name, noBox, box, ask, focus };
 	if (chatId === null)
 		return (
 			<NewChat
@@ -89,7 +89,7 @@ async function setModel(chatId: string, model: string): Promise<void> {
 
 interface RoomProps {
 	name: string;
-	page: BoxPage | null;
+	noBox: boolean;
 	box: Box;
 	ask: Asking;
 	focus: boolean;
@@ -103,7 +103,7 @@ interface ModelProps {
 
 const sendInput = (text: string, files: AttachmentDraft["files"]): TextInput => ({ type: "text", text, ...(files.length > 0 ? { attachments: files.map((f) => f.attachment) } : {}) });
 
-function NewChat({ name, page, box, ask, focus, onMade }: RoomProps & { onMade: (id: string, input: TextInput, model: string | null) => void }) {
+function NewChat({ name, noBox, box, ask, focus, onMade }: RoomProps & { onMade: (id: string, input: TextInput, model: string | null) => void }) {
 	// A pick for the chat this box makes is kept with the box, across a reload, and goes with its first message.
 	const models = useAgentModels();
 	const model = box.nextModel(models.agent);
@@ -152,7 +152,7 @@ function NewChat({ name, page, box, ask, focus, onMade }: RoomProps & { onMade: 
 		<Room
 			body={<TryAsking starters={starters} groups={groups} off={off} onSend={sendLine} />}
 			foot={
-				<WritingRow name={name} page={page} box={box} focus={focus} busy={false} error={failed ? { text: failed, onRetry: null } : null} ideas={null} made={false} model={<ModelKeyFor models={models} model={model} onModel={pick} />} onSend={sendBox} onLine={sendLine} onStop={null} />
+				<WritingRow name={name} noBox={noBox} box={box} focus={focus} busy={false} error={failed ? { text: failed, onRetry: null } : null} ideas={null} made={false} model={<ModelKeyFor models={models} model={model} onModel={pick} />} onSend={sendBox} onLine={sendLine} onStop={null} />
 			}
 		/>
 	);
@@ -191,7 +191,7 @@ function ChatRoom({ chatId, first, ...room }: RoomProps & ModelProps & { chatId:
 	return <Live chatId={chatId} read={read} first={first} {...room} />;
 }
 
-function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus }: RoomProps & ModelProps & { chatId: string; read: Read; first: TextInput | null }) {
+function Live({ chatId, read, first, name, noBox, box, ask, model, onModel, focus }: RoomProps & ModelProps & { chatId: string; read: Read; first: TextInput | null }) {
 	const models = useAgentModels();
 	const session = useChatSession({ chatId, initialMessages: read.messages, initialError: read.turnError, initiallyInFlight: read.turnInFlight });
 	const { turnInFlight } = useLessonServer({ chatId, session, initiallyInFlight: read.turnInFlight, initialStats: read, initialJobs: [] });
@@ -274,7 +274,7 @@ function Live({ chatId, read, first, name, page, box, ask, model, onModel, focus
 				scroller={scroller}
 				body={<TeacherThread lines={lines} arrive={arrive} exchange={exchange} live={<>{deskBlock}{!desk && waiting}</>} />}
 				over={cardAway && <CardAway text={cardAway.text} onClick={() => glide(cardAway.card)} />}
-				foot={<WritingRow name={name} page={page} box={box} focus={focus} busy={busy} error={error} ideas={used ? groups : null} made={first !== null} model={<ModelKeyFor models={models} model={model} onModel={onModel} />} onSend={sendBox} onLine={(line) => void go({ type: "text", text: line })} onStop={stopTurn} />}
+				foot={<WritingRow name={name} noBox={noBox} box={box} focus={focus} busy={busy} error={error} ideas={used ? groups : null} made={first !== null} model={<ModelKeyFor models={models} model={model} onModel={onModel} />} onSend={sendBox} onLine={(line) => void go({ type: "text", text: line })} onStop={stopTurn} />}
 			/>
 		</AskShownContext.Provider>
 	);
