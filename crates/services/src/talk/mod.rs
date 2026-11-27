@@ -54,11 +54,7 @@ pub fn create_talk_chat(app: &App, text: &str, model: Option<&str>) -> Result<Js
 		return Err(MODEL_REFUSED.to_owned());
 	}
 	let first = text.lines().map(trim).find(|line| !line.is_empty()).map(|line| one_line(line, NAME_MAX));
-	let made = app.stores.chats.create_chat(first.as_deref().unwrap_or(UNNAMED), Some("talk"), None, None, &[])?;
-	if let Some(model) = model {
-		app.stores.chats.set_chat_model(made["id"].str_or_empty(), model)?;
-	}
-	Ok(made)
+	app.stores.chats.create_talk_chat(first.as_deref().unwrap_or(UNNAMED), model)
 }
 
 const MODEL_REFUSED: &str = "model must be one line naming one of the agent's models";

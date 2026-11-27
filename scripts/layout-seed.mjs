@@ -47,7 +47,7 @@ import {
 	WAITING_TOPIC,
 	WRITTEN_TOPIC,
 } from "./layout-lessons.mjs";
-import { BACKEND_FILE, DEADLINE, FIXTURES, MIDTERM, QUIZ, SHEET_ASKS, SPRING_EXAM } from "./layout-jobs.mjs";
+import { BACKEND_FILE, DEADLINE, FIXTURES, inDays, MIDTERM, PASSAGE, QUIZ, SHEET_ASKS, sleep, SPRING_EXAM } from "./layout-jobs.mjs";
 
 /** The made-up plugin that shows in a lesson and in a space, installed from this folder. */
 const PLUGIN_FOLDER = path.resolve(import.meta.dirname, "..", "tests", "fixtures", "plugins", "layout");
@@ -63,6 +63,9 @@ const REVIEW_QUIZ = "Review quiz: equations by graphing";
 
 const MOCK_CODE = "function solveLinear(a, b, c) {\n\treturn (c - b) / a;\n}";
 const JSON_BODY = { "content-type": "application/json" };
+
+/** POSTs `body` as JSON from the window, as the page would; answers the status. */
+const post = (page, url, body) => page.fetch(url, { method: "POST", headers: JSON_BODY, body: JSON.stringify(body) });
 
 /** The stand-in agent: each tool call is a message in one teacher panel chat, which the stand-in
  *  helper plays (layout-helper.mjs) by calling the tool and replying with its answer. Each call is
@@ -83,7 +86,7 @@ function standIn(page, log) {
 		const text = `${SEED_CALL}${JSON.stringify({ name, arguments: args })}`;
 		chatId ??= (await page.json("/api/chats", { method: "POST", headers: JSON_BODY, body: JSON.stringify({ kind: "talk", text }) })).id;
 		const before = (await answers()).texts.length;
-		await page.fetch("/api/chat", { method: "POST", headers: JSON_BODY, body: JSON.stringify({ chatId, input: { type: "text", text } }) });
+		await post(page, "/api/chat", { chatId, input: { type: "text", text } });
 		let reply;
 		for (let tries = 0; !reply; tries++) {
 			if (tries > LESSON_POLLS) throw new Error(`${name}: the seed's chat never answered`);
@@ -97,14 +100,6 @@ function standIn(page, log) {
 	};
 	const json = async (name, args) => JSON.parse((await call(name, args))[0]);
 	return { call, json, chat: () => chatId };
-}
-
-const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
-
-/** The day `days` from now on this computer's calendar, as YYYY-MM-DD. */
-function inDays(days) {
-	const day = new Date(Date.now() + days * 86_400_000);
-	return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
 }
 
 /** Two vaults Obsidian lists in the throwaway home, the first holding one note: Settings shows them
@@ -124,7 +119,8 @@ function listVaults(dataDir) {
 /**
  * Writes the made-up data into the running app. `helperDir` is the stand-in helper's folder
  * (LAYOUT_HELPER_DIR), where the passage the lessons cite is left. `page.fetch(path, init)` runs
- * fetch in the window, as the page itself would, and answers the status. `log` keeps a line per
+ * fetch in the window, as the page itself would, and answers the status; `page.json` and `page.jsonAll`
+ * answer what a GET (or several, in one run) returns. `log` keeps a line per
  * step. Answers the ids the screens' addresses use, and the seed's own chat (`seedChat`).
  */
 export async function seed(dataDir, helperDir, page, log) {
@@ -152,14 +148,14 @@ export async function seed(dataDir, helperDir, page, log) {
 		],
 	});
 	await agent.call("add_space_file", { space_id: space.id, kind: "study", name: "Graphing quiz prep.md", text: "# Solving by graphing\n\nTo solve ax + b = c, subtract b from both sides, then divide by a. Graphing y = ax + b and y = c gives the same x where the lines cross." });
-	await page.fetch("/api/plugins", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ from: "folder", folder: PLUGIN_FOLDER }) });
+	await post(page, "/api/plugins", { from: "folder", folder: PLUGIN_FOLDER });
 	fs.writeFileSync(path.join(dataDir, "plugins", "flashcards", ".source.json"), JSON.stringify({ repo: "example/flashcards", tag: "v1.0.0" }));
 
 	// The file's passage, found and read as an agent would before citing it.
 	let passage;
 	for (let tries = 0; !passage; tries++) {
 		if (tries > 30) throw new Error("the made-up file was never indexed for search");
-		passage = /f_[0-9a-f]{12}:\d+/.exec((await agent.call("search_space_files", { space_id: space.id, query: "graphing" })).join("\n"))?.[0];
+		passage = PASSAGE.exec((await agent.call("search_space_files", { space_id: space.id, query: "graphing" })).join("\n"))?.[0];
 		if (!passage) await sleep(300);
 	}
 	await agent.call("read_passage", { space_id: space.id, passage_id: passage });
@@ -171,10 +167,10 @@ export async function seed(dataDir, helperDir, page, log) {
 	const { deadlines: all } = await agent.json("read_space", { space_id: space.id });
 	const deadlineNamed = (name) => all.find((d) => d.name === name).id;
 	const homeworkLesson = async (name) => {
-		await page.fetch("/api/chats", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ homework: true, spaceId: space.id, deadlineId: deadlineNamed(name) }) });
+		await post(page, "/api/chats", { homework: true, spaceId: space.id, deadlineId: deadlineNamed(name) });
 		const { lessons } = await agent.json("list_lessons", { space_id: space.id });
 		const id = lessons.find((lesson) => lesson.title === `Work on ${name}`).id;
-		await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: id, input: { type: "continue" } }) });
+		await post(page, "/api/chat", { chatId: id, input: { type: "continue" } });
 		return id;
 	};
 	// The homework with a problem open has the made-up file as its assignment, so "Your turn" names it.
@@ -223,9 +219,7 @@ export async function seed(dataDir, helperDir, page, log) {
 	const jobsIdle = async () => {
 		for (let tries = 0, quiet = 0; quiet < 8; tries++) {
 			if (tries > LESSON_POLLS) throw new Error("godspeed's jobs never ended");
-			const feed = await page.json("/api/activity");
-			const { mocks } = await page.json(`/api/spaces/${space.id}/mocks`);
-			const sheets = await Promise.all(sheetDeadlines.map((id) => page.json(`/api/spaces/${space.id}/deadlines/${id}/cheat-sheet`)));
+			const [feed, { mocks }, ...sheets] = await page.jsonAll(["/api/activity", `/api/spaces/${space.id}/mocks`, ...sheetDeadlines.map((id) => `/api/spaces/${space.id}/deadlines/${id}/cheat-sheet`)]);
 			const failed = [...mocks, ...sheets].find((made) => made.error);
 			if (failed) throw new Error(`a job failed: ${JSON.stringify(failed.error)}`);
 			const busy = feed.extractions.length > 0 || feed.requests.length > 0 || mocks.some((mock) => mock.working) || sheets.some((sheet) => sheet.running);
@@ -237,7 +231,7 @@ export async function seed(dataDir, helperDir, page, log) {
 	const lessonsIdle = async () => {
 		for (let tries = 0, quiet = 0; quiet < 2; tries++) {
 			if (tries > LESSON_POLLS) throw new Error("a lesson's turn never ended");
-			const chats = await Promise.all(lessonIds.map((id) => page.json(`/api/chats/${id}`)));
+			const chats = await page.jsonAll(lessonIds.map((id) => `/api/chats/${id}`));
 			const failed = chats.find((chat) => chat.turnError);
 			if (failed) throw new Error(`a lesson's turn failed: ${failed.turnError}`);
 			quiet = chats.some((chat) => chat.turnInFlight) ? 0 : quiet + 1;
@@ -251,16 +245,16 @@ export async function seed(dataDir, helperDir, page, log) {
 	};
 	await settle();
 	// The learner says which part they start; the teacher marks it.
-	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkOpen, input: { type: "text", text: "I am starting part (b)." } }) });
-	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkMany, input: { type: "text", text: "They cross at (2, 7)." } }) });
-	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: homeworkPrinted, input: { type: "text", text: "I am starting part (b)." } }) });
-	await page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: filesLesson, input: { type: "text", text: "The slope is 3." } }) });
+	await post(page, "/api/chat", { chatId: homeworkOpen, input: { type: "text", text: "I am starting part (b)." } });
+	await post(page, "/api/chat", { chatId: homeworkMany, input: { type: "text", text: "They cross at (2, 7)." } });
+	await post(page, "/api/chat", { chatId: homeworkPrinted, input: { type: "text", text: "I am starting part (b)." } });
+	await post(page, "/api/chat", { chatId: filesLesson, input: { type: "text", text: "The slope is 3." } });
 	/** The lesson's newest call of the tool `name`. */
 	const lastCall = async (chatId, name) => {
 		const { messages } = await page.json(`/api/chats/${chatId}`);
 		return messages.flatMap((m) => (Array.isArray(m.content) ? m.content : [])).findLast((block) => block.type === "toolCall" && block.name === name);
 	};
-	const say = (chatId, input) => page.fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId, input }) });
+	const say = (chatId, input) => post(page, "/api/chat", { chatId, input });
 	/** The learner picks the right answer of the lesson's open quiz. The answer keeps the choices, as the question box's does, so the answered card shows the pick. */
 	const answerQuiz = async (chatId) => {
 		const quiz = await lastCall(chatId, "quiz");
@@ -275,12 +269,12 @@ export async function seed(dataDir, helperDir, page, log) {
 	await say(turnStates.skipped, { type: "answer", toolCallId: skip.id, answer: { kind: "quiz", questionText: skip.arguments.question, dontKnow: false, answers: [], dismissed: true, answeredAt: new Date().toISOString() } });
 	await answerQuiz(turnStates.lastTopic);
 	const dropped = await lastCall(turnStates.discarded, "problem");
-	await page.fetch(`/api/chats/${turnStates.discarded}/dismiss`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ input: { type: "dismiss-problem", problemCallId: dropped.id } }) });
+	await post(page, `/api/chats/${turnStates.discarded}/dismiss`, { input: { type: "dismiss-problem", problemCallId: dropped.id } });
 	// The learner answers each studied lesson's quiz right, and the teacher closes the lesson. The
 	// sheet lessons' first step is answered too, and their teacher asks about the last.
 	for (const chatId of [...studied, twoSheets, askedFirst]) await answerQuiz(chatId);
 	await settle();
-	const send = (url, body) => page.fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+	const send = (url, body) => post(page, url, body);
 	const midterm = deadlineNamed(MIDTERM);
 	const quiz = deadlineNamed(QUIZ);
 	const reviewQuiz = deadlineNamed(REVIEW_QUIZ);
@@ -320,7 +314,7 @@ export async function seed(dataDir, helperDir, page, log) {
 	await jobsIdle();
 	const ready = await mockOf(midterm, 2);
 	// A lesson made as the window's Study does, whose first message the window sends when it opens: the stand-in helper holds its reply.
-	await page.fetch("/api/chats", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: WAITING_TOPIC, spaceId: space.id }) });
+	await post(page, "/api/chats", { title: WAITING_TOPIC, spaceId: space.id });
 	const pending = (await agent.json("list_lessons", { space_id: space.id })).lessons.find((lesson) => lesson.title === WAITING_TOPIC).id;
 	const covers = (topic) => `Enough ${topic} to get a junior job by spring, with typing practice daily.`;
 	const steps = ["Git and pull requests", "HTTP and APIs", "SQL querying", "Typing in Python", "Caching layers", "Deploying apps", "Logging and paging", "Security group policy"];

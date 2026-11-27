@@ -11,6 +11,5 @@ pub mod session_turn;
 pub mod tool;
 pub mod tool_execute;
 pub mod tool_host;
-pub mod transcript;
 pub mod ui_stream;
 pub mod validate;

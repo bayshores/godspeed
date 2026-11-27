@@ -8,7 +8,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use gs_base::{clock, locale, text, time};
-use gs_engine::turn::messages::agent_model;
+use gs_core::records::settings::OUTSIDE_AGENT_CONTEXT_WINDOW;
+use gs_engine::turn::messages::agent_model_id;
 use gs_json::{Json, Obj, json};
 
 use super::list_all_jobs;
@@ -38,9 +39,8 @@ pub fn activity_feed(app: &Arc<App>) -> Json {
 /// extractions by start, failures newest first. Jobs of unlisted lessons stay out.
 pub fn compose_feed<J: Borrow<Json>>(now: i64, chats: &[Json], all_jobs: &[J], runs: &[Json]) -> Json {
 	// Every job runs on the learner's agent: one context window.
-	let model = agent_model();
-	let agent_window = model["contextWindow"].clone();
-	let agent_model_id = format!("{}:{}", model["provider"].str_or_empty(), model["id"].str_or_empty());
+	let agent_window = Json::from(OUTSIDE_AGENT_CONTEXT_WINDOW as f64);
+	let agent_model = agent_model_id();
 	let mut by_chat: HashMap<&str, Vec<&Json>> = HashMap::new();
 	for job in all_jobs.iter().map(Borrow::borrow) {
 		by_chat.entry(job["chatId"].str_or_empty()).or_default().push(job);
@@ -59,7 +59,7 @@ pub fn compose_feed<J: Borrow<Json>>(now: i64, chats: &[Json], all_jobs: &[J], r
 			if job["status"].as_str() == Some("running") {
 				let mut row = job.as_obj().cloned().unwrap_or_default();
 				row.insert("title", title.clone());
-				let limit = if job["usage"]["model"].as_str() == Some(agent_model_id.as_str()) { agent_window.clone() } else { Json::Null };
+				let limit = if job["usage"]["model"].as_str() == Some(agent_model.as_str()) { agent_window.clone() } else { Json::Null };
 				row.insert("contextLimit", limit);
 				jobs.push(Json::Obj(row));
 			}
