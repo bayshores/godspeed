@@ -7,7 +7,6 @@ import { VaultNotice } from "@/frontend/components/vault/vault-notice";
 import { Travel } from "@/frontend/components/travel/travel";
 import { pagePlace } from "@/frontend/components/travel/travel-model";
 import { useSpaces } from "@/frontend/components/space-context";
-import { OpenDeadlinesProvider } from "@/frontend/components/use-open-deadlines";
 import { ActiveSpaceRecordProvider } from "@/frontend/components/files/space-record";
 import { ProgressProvider } from "@/frontend/components/use-progress";
 import { ActiveSpaceSheetsProvider } from "@/frontend/components/cheat-sheet/space-sheets";
@@ -41,49 +40,47 @@ export function AppShell({
 }) {
 	return (
 		<>
-			<OpenDeadlinesProvider>
-				{/* The active space's record, progress and sheets, read once for every page that shows
-				    them, so a page opens with them drawn. */}
-				<ActiveSpaceRecordProvider>
-					<ProgressProvider>
-						<ActiveSpaceSheetsProvider>
-							{/* Around the welcome screen and the notices too: they say the teacher's name. */}
-							<TeacherProvider>
-								<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
-								{/* The page puts its own words into the top bar. */}
-								<BarSlotsProvider>
-									<a href="#lh-page" className="lh-btn sr-only focus:not-sr-only focus:fixed focus:top-1.5 focus:left-1.5 focus:z-50">
-										Skip to the page
-									</a>
-									<MagnifierProvider>
-										<AppBar />
-										{/* The strip keeps the window's right edge, the teacher's open panel pushes the page further left
-										    (teacher-panel.tsx sets the var), and Follow's slip lifts its foot (follow-slip.tsx). */}
-										<main
-											id="lh-page"
-											tabIndex={-1}
-											className="lh-dots min-h-0 min-w-0 flex-1 pr-[calc(var(--lh-dock-push,0px)+var(--lh-strip))] pb-[var(--lh-follow-push,0px)] motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)"
-										>
-											<MagnifiedPage>
-												<PageTravel>{children}</PageTravel>
-											</MagnifiedPage>
-										</main>
-									</MagnifierProvider>
-								</BarSlotsProvider>
-								<ReadNotice />
-								<SpaceNotice />
-								<RuleNotice />
-								<FilesNotice />
-								<VaultNotice />
-								{/* Outside the page, so a pinch never magnifies it. */}
-								<FollowSlip />
-								{/* Last, so the keyboard goes from it into its peek, which root.tsx draws next. */}
-								<Strip />
-							</TeacherProvider>
-						</ActiveSpaceSheetsProvider>
-					</ProgressProvider>
-				</ActiveSpaceRecordProvider>
-			</OpenDeadlinesProvider>
+			{/* The active space's record, progress and sheets, read once for every page that shows
+			    them, so a page opens with them drawn. */}
+			<ActiveSpaceRecordProvider>
+				<ProgressProvider>
+					<ActiveSpaceSheetsProvider>
+						{/* Around the welcome screen and the notices too: they say the teacher's name. */}
+						<TeacherProvider>
+							<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
+							{/* The page puts its own words into the top bar. */}
+							<BarSlotsProvider>
+								<a href="#lh-page" className="lh-btn sr-only focus:not-sr-only focus:fixed focus:top-1.5 focus:left-1.5 focus:z-50">
+									Skip to the page
+								</a>
+								<MagnifierProvider>
+									<AppBar />
+									{/* The strip keeps the window's right edge, the teacher's open panel pushes the page further left
+									    (teacher-panel.tsx sets the var), and Follow's slip lifts its foot (follow-slip.tsx). */}
+									<main
+										id="lh-page"
+										tabIndex={-1}
+										className="lh-dots min-h-0 min-w-0 flex-1 pr-[calc(var(--lh-dock-push,0px)+var(--lh-strip))] pb-[var(--lh-follow-push,0px)] motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)"
+									>
+										<MagnifiedPage>
+											<PageTravel>{children}</PageTravel>
+										</MagnifiedPage>
+									</main>
+								</MagnifierProvider>
+							</BarSlotsProvider>
+							<ReadNotice />
+							<SpaceNotice />
+							<RuleNotice />
+							<FilesNotice />
+							<VaultNotice />
+							{/* Outside the page, so a pinch never magnifies it. */}
+							<FollowSlip />
+							{/* Last, so the keyboard goes from it into its peek, which root.tsx draws next. */}
+							<Strip />
+						</TeacherProvider>
+					</ActiveSpaceSheetsProvider>
+				</ProgressProvider>
+			</ActiveSpaceRecordProvider>
 			{/* The single document-level keydown listener: window-level, so its
 			    place in the tree only matters for the events it dispatches. */}
 			<KeyboardShortcuts />

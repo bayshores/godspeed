@@ -7,7 +7,7 @@ import { AppProviders } from "./app-providers";
 export function ChatWindowRoute() {
 	const { boot } = useBoot();
 	return (
-		<AppProviders boot={boot} inChatWindow>
+		<AppProviders boot={boot}>
 			<title>godspeed</title>
 			<ChatWindow />
 		</AppProviders>
