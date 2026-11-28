@@ -31,6 +31,23 @@ export function useArrivals(drawn = true): Arrive {
 	}, []);
 }
 
+/**
+ * True for a moment after `on` turned true while this was in sight: a moment (a verdict, a Done
+ * stamp) plays for what just happened, and what was already so at the first drawing stays at rest.
+ * `of` names what it is about, so another one shown in its place is at rest too.
+ */
+export function useTurnedOn(on: boolean, of = ""): boolean {
+	const was = useRef<{ of: string; on: boolean; at: number | null } | null>(null);
+	const read = useCallback((on: boolean, of: string) => {
+		const now = performance.now();
+		const before = was.current;
+		const at = on && before?.of === of ? (before.on ? before.at : now) : null;
+		was.current = { of, on, at };
+		return at !== null && now - at < ARRIVAL_WINDOW_MS;
+	}, []);
+	return read(on, of);
+}
+
 /** A one-off row (the desk) that rises in when it mounts mid-session —
  *  decided once, at mount. */
 export function ArrivalRow({ live, className, children }: { live: boolean; className?: string; children: React.ReactNode }) {

@@ -938,6 +938,7 @@ describe("the turn sheet", () => {
 			assert.equal(picked.length, 1);
 			assert.match(picked[0]!.textContent!, /Venus[\s\S]*Wrong/, "the verdict sits beside the pick");
 			assert.equal(host.querySelectorAll('[data-testid="answer-result"]').length, 1);
+			assert.match(host.querySelector('[data-testid="answer-result"]')!.className, /lh-print/, "given just now: the verdict prints");
 			assert.equal(host.querySelector('[data-testid="composer-send"]')!.textContent, "Send", "the box stays, to steer what the teacher writes");
 			assert.ok(host.querySelector('[data-testid="turn-foot"]') === null, "no help keys while the teacher writes");
 			assert.ok(host.querySelector('[data-testid="turn-next-line"]') === null);
@@ -983,6 +984,16 @@ describe("the turn sheet", () => {
 		});
 	});
 
+	it("a lesson that ends while it is open prints its last line; one opened after it ended is at rest", async () => {
+		const end: TurnNext = { line: "That was the last topic.", key: { label: "Done for today", action: "done-for-today" } };
+		assert.doesNotMatch(renderToStaticMarkup(named(column({ next: end }))), /lh-print/);
+		await mounted(named(column({ busy: true, next: null })), async (host, show) => {
+			await show(named(column({ next: end })));
+			await exitPlays();
+			assert.match(host.querySelector('[data-testid="turn-next-line"]')!.className, /lh-print/);
+		});
+	});
+
 	it("a skipped question says Skipped instead of a pick; I don't know is its verdict alone", () => {
 		const skipped = renderToStaticMarkup(named(column({ busy: true, next: null, kept: keptQuestion({ ...dismissedAnswer("quiz", quizInput.question), answeredAt: "2026-11-19T10:00:00Z" }) })));
 		assert.match(skipped, /data-testid="answered-turn-skipped"[^>]*>Skipped</);
@@ -995,6 +1006,7 @@ describe("the turn sheet", () => {
 	it("a right pick reads Right; a prediction shows the pick with no verdict", () => {
 		const right = renderToStaticMarkup(named(column({ busy: true, next: null, kept: keptQuestion(buildAnswer(quizQD, { values: ["Mercury"] })) })));
 		assert.match(right, /aria-checked="true"[\s\S]*?Mercury[\s\S]*?data-testid="answer-result"[^>]*>Right</);
+		assert.doesNotMatch(right, /lh-print/, "an answer the lesson opened with is at rest");
 		const guess = renderToStaticMarkup(named(column({ busy: true, next: null, kept: keptQuestion(buildAnswer({ ...quizQD, questionType: "predict" }, { values: ["Venus"] })) })));
 		assert.match(guess, /aria-checked="true"/);
 		assert.doesNotMatch(guess, /answer-result/, "a guess is never marked");

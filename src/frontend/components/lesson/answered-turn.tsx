@@ -10,9 +10,9 @@ import { QuestionText } from "./question-parts";
  * turn" while the teacher writes: as it stood when he sent it, quiet and not
  * pressable, with the verdict on his pick. A skip says so instead of a pick;
  * "I don't know" is its verdict alone. The answer is the record the answered
- * card reads.
+ * card reads. One answered just now (`fresh`) prints its verdict.
  */
-export function AnsweredTurn({ answer, tag }: { answer: QuestionAnswerData; tag: string | null }) {
+export function AnsweredTurn({ answer, tag, fresh }: { answer: QuestionAnswerData; tag: string | null; fresh: boolean }) {
 	const picked = new Set(answer.answers.map((a) => a.index));
 	const graded = answer.kind === "quiz" && !isPrediction(answer);
 	const options = answer.options ?? [];
@@ -28,7 +28,7 @@ export function AnsweredTurn({ answer, tag }: { answer: QuestionAnswerData; tag:
 				</p>
 			) : answer.dontKnow ? (
 				<div>
-					<ResultChip answer={answer} />
+					<ResultChip answer={answer} fresh={fresh} />
 				</div>
 			) : (
 				<>
@@ -37,7 +37,7 @@ export function AnsweredTurn({ answer, tag }: { answer: QuestionAnswerData; tag:
 							options={options}
 							selected={new Set(options.flatMap((opt, i) => (picked.has(opt.index) ? [i] : [])))}
 							multi={picked.size > 1}
-							verdict={graded && <ResultChip answer={answer} />}
+							verdict={graded && <ResultChip answer={answer} fresh={fresh} />}
 						/>
 					)}
 					{said && <p className="self-start whitespace-pre-wrap lh-well lh-notch px-4 py-2.5 font-prose text-tab leading-7 text-ink-2">{said}</p>}

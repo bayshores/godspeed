@@ -19,6 +19,7 @@ import { TurnScroll } from "./turn-scroll";
 import { TurnPlaceContext, TurnSlotsContext } from "./turn-place";
 import { TurnSwap } from "./turn-swap";
 import { AnsweredTurn } from "./answered-turn";
+import { useTurnedOn } from "./arrivals";
 import type { NextAction, TurnShown } from "./turn-next-model";
 import { ErrorLine } from "@/frontend/components/error-line";
 
@@ -224,11 +225,14 @@ export function YourTurn({
 		</div>
 	);
 	const nextLine = next?.next.line ?? null;
+	// The two moments of a lesson: an answer given just now, and the lesson ending while it is open.
+	const answeredNow = useTurnedOn(kept?.kind === "question");
+	const endedNow = useTurnedOn(nextKey?.action === "done-for-today");
 	// With nothing asked, no line to say and no notes, the task takes no room.
 	const empty = !pending && !shownProblem && !kept && !nextLine && !notes && !reviewRefused;
 
 	const nextRow = nextLine && (
-		<p data-testid="turn-next-line" className={cn("font-prose text-tab leading-7", next?.dim ? "text-ink-2" : "text-ink")}>
+		<p data-testid="turn-next-line" className={cn("font-prose text-tab leading-7", next?.dim ? "text-ink-2" : "text-ink", endedNow && "lh-print")}>
 			{nextLine}
 		</p>
 	);
@@ -286,7 +290,7 @@ export function YourTurn({
 											)}
 										</div>
 									)}
-									{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} tag={keptTag} />}
+									{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} tag={keptTag} fresh={answeredNow} />}
 									{!kept && nextRow}
 									{notes && <EndNotes notes={notes} />}
 									{notes && <NotesSaved notes={notes} />}

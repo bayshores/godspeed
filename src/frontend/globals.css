@@ -2578,7 +2578,10 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
                        bottom, 30 ms apart, the eighth and later together
                        (a teacher's reply is drawn as it is written);
    - .lh-print         an opened fact's big moon prints its pixel rows top
-                       to bottom, in nine hard steps;
+                       to bottom, in nine hard steps; so do the three
+                       moments: the verdict on an answer just given, the
+                       Done stamp on a deadline just ticked, and the line
+                       that says the lesson is over;
    - .lh-flash-right/-wrong  a checked answer's card flips to inverse green
                        or red for a beat, then settles;
    - the streaming block cursor blinks. */
@@ -2632,8 +2635,13 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 		clip-path: inset(0);
 	}
 }
+/* Not held after its end, so a chip's or a stamp's own cut corners come back. */
 .lh-print {
-	animation: lh-print-rows 180ms steps(9, end) both;
+	animation: lh-print-rows 180ms steps(9, end) backwards;
+}
+/* Inside what rises in, it prints once that has arrived. */
+.lh-rise .lh-print {
+	animation-delay: var(--lh-dur);
 }
 
 /* The Graph picture's reveal: each cluster and its name ink in at --lh-at,

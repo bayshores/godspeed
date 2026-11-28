@@ -46,6 +46,7 @@ const { useLessonStart } = await import("../../src/frontend/components/study-pag
 const { homeLists } = await import("../../src/frontend/components/home-page/home-page-model.ts");
 const { SpaceFacts } = await import("../../src/frontend/components/overview/space-facts.tsx");
 const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../../src/frontend/components/use-open-deadlines.tsx");
+const { SoundProvider } = await import("../../src/frontend/components/sounds.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { PeekSheet } = await import("../../src/frontend/components/strip/peek-sheet.tsx");
 const { MAIN_KEY } = await import("../../src/frontend/components/ui/big-key.ts");
@@ -571,6 +572,36 @@ describe("Picking in the week", () => {
 		await act(async () => root!.render(body(homeLists([LA_OPEN[0]!, LA_OPEN[2]!], [hw4Done], NOW))));
 		assert.equal(cardTitle(el), "Homework 4");
 		assert.ok($(el, "today-undo"));
+	});
+
+	it("one ticked done here prints its stamp and plays the done sound; one already done when it showed is at rest", async () => {
+		const played: string[] = [];
+		const globals = globalThis as { Audio?: unknown };
+		const before = globals.Audio;
+		globals.Audio = class {
+			currentTime = 0;
+			constructor(readonly src: string) {}
+			play() {
+				played.push(this.src);
+				return Promise.resolve();
+			}
+		};
+		try {
+			const sounding = (lists: ReturnType<typeof homeLists>) => <SoundProvider>{body(lists)}</SoundProvider>;
+			const el = await mount(sounding(homeLists(LA_OPEN, [DONE_HW5], NOW)));
+			await act(async () => $(el, "week-item-hw5")!.click());
+			assert.ok($(el, "today-undo"), "the done one is shown");
+			assert.ok($(el, "today-card")!.querySelector(".lh-print") === null, "done before it showed: no print");
+			assert.deepEqual(played, []);
+			await act(async () => $(el, "week-item-hw4")!.click());
+			const hw4Done = { ...LA_OPEN[1]!, done: true, doneAt: new Date(NOW).toISOString() };
+			await act(async () => root!.render(sounding(homeLists([LA_OPEN[0]!, LA_OPEN[2]!], [hw4Done, DONE_HW5], NOW))));
+			assert.equal(cardTitle(el), "Homework 4");
+			assert.match($(el, "today-card")!.querySelector(".lh-print")!.textContent!, /Done/, "the stamp prints");
+			assert.deepEqual(played, ["/sounds/done.mp3"]);
+		} finally {
+			globals.Audio = before;
+		}
 	});
 
 	it("a pick that leaves the lists falls back to the next thing", async () => {

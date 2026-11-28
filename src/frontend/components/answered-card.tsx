@@ -20,11 +20,11 @@ export function proseVars(size: number, leading: number, ink: string): React.CSS
 const kindWords = (label: string) => (label === "Prediction" ? "Your prediction" : label);
 
 /** The verdict tag: Right / Wrong / Didn't know (quiz answers only; a
- *  prediction is never marked). */
-export function ResultChip({ answer }: { answer: QuestionAnswerData }) {
+ *  prediction is never marked). One just given (`fresh`) prints its rows. */
+export function ResultChip({ answer, fresh = false }: { answer: QuestionAnswerData; fresh?: boolean }) {
 	const [tone, word] = answer.dontKnow ? (["plain", "Didn't know"] as const) : answer.correct ? (["right", "Right"] as const) : (["wrong", "Wrong"] as const);
 	return (
-		<span data-testid="answer-result" className={chip(tone, "tag")}>
+		<span data-testid="answer-result" className={cn(chip(tone, "tag"), fresh && "lh-print")}>
 			{word}
 		</span>
 	);

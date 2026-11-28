@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { hasProblems, longDay, studyLabel, type DeadlineProgress } from "@/shared/core";
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import { countLeft } from "@/frontend/components/home-page/home-page-model";
-import { DoneBlock } from "@/frontend/components/deadline/deadline-block";
+import { DoneBlock, useJustDone } from "@/frontend/components/deadline/deadline-block";
 import { DeadlineKeys } from "@/frontend/components/deadline/deadline-keys";
 import { useReplayOnChange } from "@/frontend/components/motion";
 import { Key } from "@/frontend/components/ui/key";
@@ -65,6 +65,7 @@ export const NextDeadline = memo(function NextDeadline({
 	const swap = useRef<HTMLDivElement>(null);
 	// Another deadline, or this one ticked or unticked: the card redraws stepped.
 	useReplayOnChange(swap, d && `${d.id} ${d.done}`, "lh-set");
+	const justDone = useJustDone(d);
 	if (!d && starts) {
 		return (
 			<Pane data-testid="next-deadline-none" className="lh-card">
@@ -90,7 +91,7 @@ export const NextDeadline = memo(function NextDeadline({
 		<Pane data-testid="next-deadline" data-teacher-target={`deadline:${d.id}`} className="@container overflow-hidden">
 			<div ref={swap} className="flex flex-col @[480px]:flex-row">
 				{d.done ? (
-					<DoneBlock className="h-24 @[480px]:h-auto @[480px]:w-[116px]" />
+					<DoneBlock className="h-24 @[480px]:h-auto @[480px]:w-[116px]" fresh={justDone} />
 				) : (
 					<CountBlock size="band" color={color} {...countLeft(dueAtMs(d), nowMs)} className="h-24 w-auto @[480px]:h-auto @[480px]:w-[116px]" />
 				)}
