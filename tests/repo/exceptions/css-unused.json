@@ -23,5 +23,7 @@
 	"--lh-ramp-5": "defined and never read; globals.css is being rewritten on another branch, so it is removed there",
 	"--radius-2xl": "defined and never read; globals.css is being rewritten on another branch, so it is removed there",
 	"--radius-3xl": "defined and never read; globals.css is being rewritten on another branch, so it is removed there",
-	"--radius-4xl": "defined and never read; globals.css is being rewritten on another branch, so it is removed there"
+	"--radius-4xl": "defined and never read; globals.css is being rewritten on another branch, so it is removed there",
+	"--radius-sm": "defined and never read; globals.css is being rewritten on another branch, so it is removed there",
+	"--radius-xs": "defined and never read; globals.css is being rewritten on another branch, so it is removed there"
 }
