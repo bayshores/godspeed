@@ -33,7 +33,6 @@ Data files and API bodies are `gs_json::Json` (`Null | Bool | Num(f64) | Str | A
 
 - Index with `v["key"]`; a missing key is `Null`. Test with `truthy()`, build with `json!({...})`.
 - `stringify`, `stringify_pretty(v, "\t")` and `parse` match `JSON.stringify` and `JSON.parse` exactly, number text included (`js_number`).
-- Use a typed struct only inside one function, via `to_json` and `from_json`.
 
 ### Text is JS text
 
@@ -94,7 +93,7 @@ Where output must equal the original TypeScript's (formatting, ranking, merging,
 
 ## What every module can use
 
-- `gs_json`: `Json`, `Obj`, `json!`, `parse`, `stringify`, `stringify_pretty`, `js_number`, `quote`, `to_json`, `from_json`, `lone`.
+- `gs_json`: `Json`, `Obj`, `json!`, `parse`, `stringify`, `stringify_pretty`, `js_number`, `quote`, `lone`.
 - `gs_base`: `base64`, `clock`, `config` (`Paths`, `GraphFiles`, `resolve`, `VERSION`), `events` (`Events`, `EventKind`, `Event::sse_frame`), `fsx`, `hash`, `ids`, `locale`, `locks`, `num`, `posix`, `re`, `regexp`, `shutdown`, `tasks`, `text`, `time`.
 - `gs_core`: `contracts::{chat, space, graph}` (ids, versions, guards, space icons, deadline sort, scope parsing) and the pure logic above them.
 - `gs_store`: `Stores::new` with every store's constructor.
