@@ -37,11 +37,11 @@ export const SpaceIconField = memo(function SpaceIconField({
 							disabled={disabled}
 							onClick={() => onChange(name)}
 							className={cn(
-								"lh-press flex size-11 items-center justify-center rounded-sm text-ink-2 disabled:opacity-60",
+								"lh-press flex size-11 items-center justify-center lh-notch text-ink-2 disabled:opacity-60",
 								picked ? "bg-highlight text-ink" : "lh-well hover:text-ink",
 							)}
 						>
-							<SpaceIcon icon={name} className="size-[22px]" />
+							<SpaceIcon icon={name} size={22} />
 						</button>
 					);
 				})}

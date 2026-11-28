@@ -1,15 +1,10 @@
 import { useContext, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { glideSheetAround } from "@/frontend/components/use-sheet-glide";
+import { ditherEnds } from "@/frontend/lib/dither";
 import { cn } from "@/frontend/lib/utils";
 import { foldRoom } from "./turn-fold-model";
 import { TurnPlaceContext } from "./turn-place";
-
-const CUT = {
-	end: "[mask-image:linear-gradient(to_bottom,black_calc(100%-24px),transparent)]",
-	start: "[mask-image:linear-gradient(to_top,black_calc(100%-24px),transparent)]",
-	both: "[mask-image:linear-gradient(to_bottom,transparent,black_24px,black_calc(100%-24px),transparent)]",
-};
 
 /** The height the problem gets folded, pinned over the text (foldRoom), read from the page: the room under the step
  *  line, less the task's other parts, the pin's own padding and the writing row. */
@@ -50,8 +45,8 @@ export function restOnPart(start: HTMLElement, moved: boolean) {
 /**
  * The question or problem in the turn's task: beside the lesson text, or
  * pinned over it, it is the one part that shrinks to fit and scrolls in its own box
- * (.lh-turn-scroll). An end that cuts content off fades, as the tab strip's
- * does, so a long problem never looks finished where the box ends. A problem
+ * (.lh-turn-scroll). An end that cuts content off dissolves in the app's
+ * dither, so a long problem never looks finished where the box ends. A problem
  * that can fold (`folded` given) is cut to its folded height while folded,
  * and `onLong` hears whether it is longer than that height. A long problem
  * whose text marks the part being worked on shows that part alone while folded.
@@ -116,10 +111,15 @@ export function TurnScroll({ className, folded, onLong, children }: { className?
 		if (start) restOnPart(start, false);
 	}, [cutFolded]);
 	// A part shown alone is whole, so nothing of it fades.
-	const fade = partRoom !== null ? undefined : cut.start && cut.end ? CUT.both : cut.end ? CUT.end : cut.start ? CUT.start : undefined;
+	const fade = partRoom !== null ? null : cut.start && cut.end ? "both" : cut.end ? "end" : cut.start ? "start" : null;
 	const max = partRoom ?? (folded ? foldedRoom : null);
 	return (
-		<div ref={ref} data-part-alone={partRoom !== null || undefined} style={max !== null ? { maxHeight: max } : undefined} className={cn("lh-turn-scroll flex min-h-0 flex-col gap-7 empty:hidden", fade, className)}>
+		<div
+			ref={ref}
+			data-part-alone={partRoom !== null || undefined}
+			style={{ ...(max !== null && { maxHeight: max }), ...(fade && ditherEnds(fade)) }}
+			className={cn("lh-turn-scroll flex min-h-0 flex-col gap-7 empty:hidden", className)}
+		>
 			{children}
 		</div>
 	);

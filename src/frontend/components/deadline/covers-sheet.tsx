@@ -185,16 +185,16 @@ function DayMark({ state, open }: { state: DayState; open: boolean }) {
 	if (state === "ready")
 		return (
 			<span aria-hidden className={cn(MARK, "bg-ans-right text-on-space")}>
-				<PixelIcon name="check" className="h-2" />
+				<PixelIcon name="check" size={10} />
 			</span>
 		);
 	if (state === "failed")
 		return (
 			<span aria-hidden className={cn(MARK, "bg-ans-wrong text-background")}>
-				<PixelIcon name="close" className="h-2" />
+				<PixelIcon name="close" />
 			</span>
 		);
-	return <span aria-hidden className={cn(MARK, "border-[1.5px] border-ink bg-[linear-gradient(to_right,var(--color-ink)_50%,transparent_50%)]")} />;
+	return <span aria-hidden className={cn(MARK, "border-2 border-ink bg-[linear-gradient(to_right,var(--color-ink)_50%,transparent_50%)]")} />;
 }
 
 const STATE_WORD: Record<DayState, string> = { ready: "read", reading: "being read", failed: "couldn't be read", info: "space info, no facts" };

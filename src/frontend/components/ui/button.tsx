@@ -11,13 +11,11 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
         outline:
-          "border-[1.5px] border-foreground hover:bg-accent",
+          "border-2 border-foreground hover:bg-accent",
         ghost:
           "hover:bg-accent",
       },
       size: {
-        xs: "h-6 gap-1 px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-8 gap-1.5 px-3 has-[>svg]:px-2.5",
         icon: "size-9",
       },
     },

@@ -27,7 +27,7 @@ export function FactFileKey({ born, file, lesson }: { born: string | null; file:
 					onClick={() => onDisk.show(onDisk.opens ? "open" : "folder")}
 					className={KEY}
 				>
-					<PixelIcon name={onDisk.opens ? "pages" : "folder"} className="h-[13px]" />
+					<PixelIcon name={onDisk.opens ? "pages" : "folder"} size={13} />
 					<span className="truncate">{name}</span>
 				</button>
 				{onDisk.error && (
@@ -42,7 +42,7 @@ export function FactFileKey({ born, file, lesson }: { born: string | null; file:
 	return (
 		<div data-testid="fact-source" className="flex min-w-0">
 			<Link to={`/chat/${born}`} data-testid="fact-source-open" title={`Open the lesson ${lesson}`} className={KEY}>
-				<PixelIcon name="pencil" className="h-[13px]" />
+				<PixelIcon name="pencil-small" />
 				<span className="truncate">{lesson}</span>
 			</Link>
 		</div>

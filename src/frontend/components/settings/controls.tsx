@@ -102,15 +102,15 @@ export function Toggle({
 			<span className="text-base font-medium text-ink">{checked ? "On" : "Off"}</span>
 			<span
 				className={cn(
-					"relative h-[22px] w-10 rounded",
+					"relative h-[22px] w-10 lh-notch",
 					// On is a filled track with the knob at the right; off is an
 					// empty track (a 3:1 edge) with the knob at the left.
-					checked ? "bg-ink" : "shadow-[inset_0_0_0_1.5px_var(--lh-edge)] group-hover:shadow-[inset_0_0_0_1.5px_var(--lh-ink-3)]",
+					checked ? "bg-ink" : "shadow-[inset_0_0_0_2px_var(--lh-edge)] group-hover:shadow-[inset_0_0_0_2px_var(--lh-ink-3)]",
 				)}
 			>
 				<span
 					className={cn(
-						"absolute left-0 top-[3px] size-4 rounded-sm transition-[translate,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
+						"absolute left-0 top-[3px] size-4 lh-notch transition-[translate,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
 						checked ? "translate-x-[21px] bg-background" : "translate-x-[3px] bg-ink-2",
 					)}
 				/>
@@ -166,7 +166,7 @@ export function Slider({
 				onKeyUp={commit}
 				onBlur={commit}
 				style={{ "--fill": `${((shown - min) / (max - min)) * 100}%` } as React.CSSProperties}
-				className="lh-press h-4 min-w-0 flex-1 cursor-pointer appearance-none bg-transparent [&::-webkit-slider-runnable-track]:h-0.5 [&::-webkit-slider-runnable-track]:bg-[linear-gradient(to_right,var(--foreground)_var(--fill),var(--lh-edge)_var(--fill))] [&::-webkit-slider-thumb]:-mt-1.5 [&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-xs [&::-webkit-slider-thumb]:bg-ink"
+				className="lh-press h-4 min-w-0 flex-1 cursor-pointer appearance-none bg-transparent [&::-webkit-slider-runnable-track]:h-0.5 [&::-webkit-slider-runnable-track]:bg-[linear-gradient(to_right,var(--foreground)_var(--fill),var(--lh-edge)_var(--fill))] [&::-webkit-slider-thumb]:-mt-1.5 [&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-ink"
 			/>
 			<span className="w-[120px] shrink-0 whitespace-nowrap text-ui tabular-nums text-ink">{label(shown)}</span>
 		</span>
@@ -227,7 +227,7 @@ export function CommitInput({
 					e.currentTarget.blur();
 				}
 			}}
-			className="h-10 w-[200px] lh-well rounded px-3 font-ui text-ui text-ink placeholder:text-ink-3"
+			className="h-10 w-[200px] lh-well lh-notch px-3 font-ui text-ui text-ink placeholder:text-ink-3"
 		/>
 	);
 }

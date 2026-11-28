@@ -4,6 +4,7 @@ import { cn } from "@/frontend/lib/utils";
 import { usePanZoomViewport, ZoomControls } from "@/frontend/components/pan-zoom-viewport";
 import { renderMermaid } from "@/frontend/components/mermaid-render";
 import { MermaidError } from "@/frontend/components/mermaid-error";
+import { LoadingLine } from "@/frontend/components/loading";
 import { SvgImage } from "@/frontend/components/artifacts/svg-image";
 import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
 
@@ -150,7 +151,7 @@ export function MermaidOverlay({
 			<div
 				ref={viewportRef}
 				className={cn(
-					"relative min-h-0 flex-1 touch-none lh-well overflow-hidden rounded select-none",
+					"relative min-h-0 flex-1 touch-none lh-well overflow-hidden lh-notch select-none",
 					atFloor ? "cursor-default" : "cursor-grab",
 				)}
 				onPointerDown={startDrag}
@@ -199,9 +200,8 @@ export function MermaidOverlay({
 						<ZoomControls fitLabel="Fit diagram to view" onStep={stepZoom} onFit={fitView} />
 					</>
 				) : (
-					<div className="flex h-full items-center justify-center gap-2 text-ui text-ink-2">
-						<span className="inline-block size-4 animate-spin motion-reduce:animate-none rounded-full border border-current border-b-2" />
-						Rendering diagram…
+					<div className="flex h-full items-center justify-center text-ui">
+						<LoadingLine>Rendering diagram…</LoadingLine>
 					</div>
 				)}
 			</div>

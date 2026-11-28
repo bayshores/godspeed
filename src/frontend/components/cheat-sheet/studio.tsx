@@ -139,7 +139,7 @@ function Studio({
 					{/* Side by side where both fit; in less room the sheet is over its chat. */}
 					<div className="@container flex h-full flex-col">
 						<div className="flex min-h-0 flex-1 flex-col gap-6 px-8 pt-6 pb-7 @[768px]:flex-row">
-							<div className="lh-well flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded">
+							<div className="lh-well flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lh-notch">
 								{current ? (
 									<SheetCanvas versions={view.sheet.versions} pdfUrl={pdfUrl} labelFor={versionLabel} focus={focus} onPoint={setPointed} paper={pageSizeLabel(current.pages)} />
 								) : (

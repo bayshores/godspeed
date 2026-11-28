@@ -33,4 +33,4 @@ export function QuestionText({ children, quiet = false, tag = null }: { children
 }
 
 /** A row of the answer list. */
-export const ANSWER_ROW = "lh-press flex w-full gap-3 text-left outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out)";
+export const ANSWER_ROW = "lh-press lh-notch flex w-full gap-3 text-left outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out)";

@@ -84,7 +84,7 @@ function FolderBlock({ status }: { status: VaultStatus }) {
 						) : (
 							canOpenNote(status.obsidian) && (
 								<button type="button" data-testid="vault-open" onClick={() => openNote(folder.path, status.obsidian)} className={QUIET_KEY}>
-									{status.obsidian && <PixelIcon name="crystal" className="h-[18px]" />}
+									{status.obsidian && <PixelIcon name="crystal" size={12} />}
 									{openLabel(status.obsidian, browserName())}
 								</button>
 							)

@@ -325,7 +325,7 @@ export function SheetCanvas({
 			{pointing && (
 				<div
 					data-testid="cheat-sheet-pointing"
-					className="absolute top-3.5 left-1/2 flex max-w-[calc(100%-24px)] -translate-x-1/2 items-center gap-4 rounded bg-ink py-2 pr-2.5 pl-[18px] text-ui text-background"
+					className="absolute top-3.5 left-1/2 flex max-w-[calc(100%-24px)] -translate-x-1/2 items-center gap-4 lh-notch bg-ink py-2 pr-2.5 pl-[18px] text-ui text-background"
 					onPointerDown={(e) => e.stopPropagation()}
 				>
 					<span className="min-w-0 truncate">{pointError ?? "Drag a box around the part you mean"}</span>

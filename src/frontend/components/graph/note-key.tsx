@@ -12,7 +12,7 @@ export function NoteKey({ topicId }: { topicId: string }) {
 	if (!path || !canOpenNote(obsidian)) return null;
 	return (
 		<button type="button" data-testid="topic-note-open" onClick={() => openNote(path, obsidian)} className="lh-btn lh-btn-small lh-btn-quiet shrink-0">
-			<PixelIcon name="crystal" className="h-[15px]" />
+			<PixelIcon name="crystal" size={12} />
 			{openLabel(obsidian, browserName())}
 		</button>
 	);

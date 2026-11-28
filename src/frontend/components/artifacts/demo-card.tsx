@@ -194,13 +194,10 @@ function DemoFrame({
 				// the wheel (session scrolling stalls over the demo). With
 				// scrolling disabled the wheel chains straight to the session.
 				scrolling="no"
-				className="w-full border border-border bg-white"
-				// content-box: the bridge reports the CONTENT height — with the
-				// preflight's border-box the 2px border would eat into it and clip
-				// the bottom of the demo.
+				// No edge or padding: the bridge reports the content's height, which is then the frame's.
+				className="w-full bg-white"
 				style={{
 					height: state.height ?? 360,
-					boxSizing: "content-box",
 					filter: inverted ? "invert(1) hue-rotate(180deg)" : undefined,
 				}}
 				data-testid="demo-iframe"
@@ -221,7 +218,7 @@ function DemoErrorChip({
 }) {
 	return (
 		<div
-			className="flex flex-wrap items-center gap-2.5 rounded-sm bg-tone px-3 py-2 text-ui text-ans-wrong"
+			className="flex flex-wrap items-center gap-2.5 lh-notch bg-tone px-3 py-2 text-ui text-ans-wrong"
 			data-testid="demo-error-chip"
 		>
 			<span className="font-medium">This demo threw an error</span>

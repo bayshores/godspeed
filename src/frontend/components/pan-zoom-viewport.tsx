@@ -101,7 +101,7 @@ export function usePanZoomViewport(box: { w: number; h: number }, ready: boolean
 }
 
 const ZOOM_BUTTON =
-	"lh-press pointer-events-auto flex h-7 min-w-7 items-center justify-center rounded border-[1.5px] border-ink bg-panel px-2 text-sm text-ink hover:bg-highlight";
+	"lh-press pointer-events-auto flex h-7 min-w-7 items-center justify-center lh-notch border-2 border-ink bg-panel px-2 text-sm text-ink hover:bg-highlight";
 
 /** The viewport's bottom bar: the pan hint and zoom out / fit / zoom in. */
 export function ZoomControls({

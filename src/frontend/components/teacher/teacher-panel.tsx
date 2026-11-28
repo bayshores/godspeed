@@ -131,7 +131,7 @@ export function TeacherPanel({
 					"flex min-h-0 flex-1 flex-col motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out) peer-data-[hang]:opacity-40",
 					shown.swapped && "lh-fade",
 					// The chat reads like the page; Activity alone keeps the panel's own colors.
-					chatShown && "lh-desk lh-page-colors",
+					chatShown && "lh-page-colors",
 				)}
 			>
 				{chatShown ? (

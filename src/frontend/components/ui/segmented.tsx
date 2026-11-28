@@ -19,7 +19,7 @@ export function Segmented<T extends string>({
 	onChange: (value: T) => void;
 }) {
 	return (
-		<div role="radiogroup" aria-label={label} className="flex shrink-0 self-start lh-well overflow-hidden rounded">
+		<div role="radiogroup" aria-label={label} className="flex shrink-0 self-start lh-well overflow-hidden lh-notch">
 			{options.map((o) => (
 				<button
 					key={o.value}

@@ -77,7 +77,7 @@ const SureButWrongRow = memo(function SureButWrongRow({ q }: { q: SureButWrong }
 					<InlineMath text={q.question} />
 				</span>
 				<span className="shrink-0 text-base text-ink-2">Picked {q.level}</span>
-				<PixelIcon name="chevron" className="h-3.5 text-ink" />
+				<PixelIcon name="chevron" className="text-ink" />
 			</Link>
 		</li>
 	);

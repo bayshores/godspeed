@@ -33,7 +33,7 @@ export function StudyLine({ spaces, busyOn, onStudy }: { spaces: readonly SpaceS
 		<form
 			data-testid="home-study"
 			onSubmit={(e) => e.preventDefault()}
-			className="mt-2 ml-auto flex w-full items-center gap-2 self-center lh-well rounded py-1.5 pr-1.5 pl-4 @[1300px]/page:mt-0 @[1300px]/page:w-[560px]"
+			className="mt-2 ml-auto flex w-full items-center gap-2 self-center lh-well lh-notch py-1.5 pr-1.5 pl-4 @[1300px]/page:mt-0 @[1300px]/page:w-[560px]"
 		>
 			<input
 				ref={inputRef}

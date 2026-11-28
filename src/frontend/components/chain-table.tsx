@@ -129,7 +129,7 @@ export function ChainTableBody({
 										className={cn("lh-btn", on ? "h-auto px-2.5 py-[5px]" : "lh-btn-quiet")}
 									>
 										{label}
-										{on && <PixelIcon name="chevron" className={cn("h-2", sort.dir === 1 ? "-rotate-90" : "rotate-90")} />}
+										{on && <PixelIcon name="chevron" className={sort.dir === 1 ? "-rotate-90" : "rotate-90"} />}
 									</button>
 								);
 							})}
@@ -157,7 +157,7 @@ export function ChainTableBody({
 											<span title={group.label ?? undefined} className={cn("min-w-0 truncate text-lg font-medium", label ? "text-ink" : "text-ink-3")}>
 												{label ?? "unlabeled"}
 											</span>
-											{group.kind === "chat" && <span className="shrink-0 rounded-sm bg-tone-2 px-[7px] py-px text-xs font-medium text-ink">Lesson</span>}
+											{group.kind === "chat" && <span className="shrink-0 lh-notch bg-tone-2 px-[7px] py-px text-xs font-medium text-ink">Lesson</span>}
 											<span className="flex-1" />
 											<span className={TALLY}>{factCount(group.nodeIds.length)}</span>
 											<span className={cn(TALLY, "text-ink-3")}>{group.newestCreatedAt.slice(0, 10)}</span>
@@ -248,7 +248,7 @@ function ChainBlock({
 								) : (
 									<LatexGlyph cmd="\land" testid={`chain-and-${chain.id}-${i}`} className="px-1.5 text-ink" />
 								))}
-							<span data-testid={`prop-chip-${id}`} className="lh-well rounded-sm px-1.5 py-0.5">
+							<span data-testid={`prop-chip-${id}`} className="lh-well lh-notch px-1.5 py-0.5">
 								{nameOf(id)}
 							</span>
 						</span>
@@ -281,9 +281,9 @@ function Expander({ open, onClick, testid, label }: { open: boolean; onClick: ()
 			onClick={onClick}
 			aria-label={label}
 			aria-expanded={open}
-			className="flex size-5 shrink-0 items-center justify-center rounded-sm text-ink hover:bg-tone"
+			className="flex size-5 shrink-0 items-center justify-center lh-notch text-ink hover:bg-tone"
 		>
-			<PixelIcon name="chevron" className={cn("h-2.5 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open && "rotate-90")} />
+			<PixelIcon name="chevron" className={cn("transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open && "rotate-90")} />
 		</button>
 	);
 }

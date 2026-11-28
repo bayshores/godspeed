@@ -5,8 +5,9 @@ import { cn } from "@/frontend/lib/utils"
 
 /**
  * THE TOOLTIP: flat, no blur, no shadow. Two looks:
- * - the box: solid bg-tip with a 1px tone-2 edge, a bold title and small
- *   content under it (<Tip title body>);
+ * - the box: made of the top bar like every pop-up (lh-popup), so it reads
+ *   the same on every background, a bold title and small content under it
+ *   (<Tip title body>);
  * - the tag: white with black text, one short label (<Hint label>, in
  *   src/frontend/components/ui/hint.tsx).
  *
@@ -43,7 +44,7 @@ function TooltipTrigger({
 }
 
 const BOX =
-  "flex w-max max-w-72 flex-col gap-1.5 border border-tone-2 bg-tip px-3 py-2.5 text-left text-xs text-ink-2"
+  "lh-popup flex w-max max-w-72 flex-col gap-1.5 px-3 py-2.5 text-left text-xs text-ink-2"
 const TAG = "w-max max-w-72 bg-ink px-2 py-1 text-(length:--text-sm) font-semibold text-background"
 
 function TooltipContent({

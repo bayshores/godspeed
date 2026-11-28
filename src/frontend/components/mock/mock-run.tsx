@@ -182,12 +182,12 @@ export function MockRun({ view }: { view: MockView }) {
 										title={q.title}
 										onClick={() => go(i)}
 										className={cn(
-											"lh-press flex h-8 min-w-8 items-center justify-center gap-1 rounded-sm border-[1.5px] border-bar-ink px-1.5 font-count text-lg leading-none",
+											"lh-press flex h-8 min-w-8 items-center justify-center gap-1 lh-notch border-2 border-bar-ink px-1.5 font-count text-lg leading-none",
 											i === at ? "bg-bar-ink text-bar" : "text-bar-ink hover:bg-bar-ink/15",
 										)}
 									>
 										{i + 1}
-										{submitted[i] && <PixelIcon name="check" className="h-[7px]" />}
+										{submitted[i] && <PixelIcon name="check" size={10} />}
 									</button>
 								</li>
 							))}
@@ -322,7 +322,7 @@ function QuestionPanel({ question: q, n, teacher }: { question: MockQuestion; n:
 				q.examples.map((e, i) => (
 					<div key={i} className="flex flex-col gap-1">
 						<p className="text-ui text-ink-2">Example {i + 1}</p>
-						<pre className="overflow-x-auto lh-well rounded-sm px-3 py-2 font-mono text-sm leading-relaxed text-ink">
+						<pre className="overflow-x-auto lh-well lh-notch px-3 py-2 font-mono text-sm leading-relaxed text-ink">
 							{exampleCall(q.fn, e.args)}
 							{"\n"}returns {e.expected}
 						</pre>

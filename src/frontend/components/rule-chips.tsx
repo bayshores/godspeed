@@ -36,7 +36,7 @@ export function RuleChips({
 			{rules.length > 0 && (
 				<div className="flex flex-wrap items-center gap-1.5">
 					{rules.map((rule) => (
-						<span key={rule} className="flex max-w-full items-center gap-2.5 lh-well rounded py-1.5 pr-2 pl-3 text-base text-ink">
+						<span key={rule} className="flex max-w-full items-center gap-2.5 lh-well lh-notch py-1.5 pr-2 pl-3 text-base text-ink">
 							<span className="min-w-0 break-words">{rule}</span>
 							{saved[rule] && (
 								<span title={savedDay(saved[rule])} className="shrink-0 text-sm whitespace-nowrap text-ink-2">
@@ -44,7 +44,7 @@ export function RuleChips({
 								</span>
 							)}
 							<button type="button" aria-label={`Remove rule: ${rule}`} className="lh-press shrink-0 p-0.5 text-ink-2 hover:text-ink" onClick={() => onChange(rules.filter((r) => r !== rule))}>
-								<PixelIcon name="close" className="h-[10.5px]" />
+								<PixelIcon name="close" />
 							</button>
 						</span>
 					))}

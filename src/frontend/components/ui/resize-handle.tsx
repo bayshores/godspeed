@@ -90,7 +90,7 @@ export function ResizeHandle({
 		>
 			<span
 				aria-hidden
-				className="absolute inset-y-0 left-0 w-px transition-colors duration-(--lh-dur) group-hover:bg-ink-3 group-focus-visible:bg-ink-2 group-data-[dragging]:bg-ink-2"
+				className="absolute inset-y-0 left-0 w-0.5 transition-colors duration-(--lh-dur) group-hover:bg-ink-3 group-focus-visible:bg-ink-2 group-data-[dragging]:bg-ink-2"
 			/>
 		</div>
 	);

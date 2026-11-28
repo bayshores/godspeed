@@ -157,7 +157,7 @@ document.head.append(fonts);
 | `--color-border-primary` | The border color. See the rules below before drawing a line. |
 | `--color-ring-primary` | The focus ring. |
 | `--font-sans`, `--font-mono` | Font lists. Add `hostContext.styles.css.fonts` as above and `--font-sans` text uses the app's font. |
-| `--border-radius-xs`, `-sm`, `-md`, `-lg` | One corner size for all four. |
+| `--border-radius-xs`, `-sm`, `-md`, `-lg` | One corner size for all four: 0, since the app's boxes are square or cut in pixel steps. |
 
 Variables hold the colors from page start. A theme switch sends no new ones, so a page must be reopened to follow.
 

@@ -8,11 +8,10 @@ import { usePageSrc } from "./use-page-src";
 type Marks = NonNullable<CitedPassage["marks"]>;
 type CodeMarks = Extract<Marks, { kind: "lines" }>;
 
-// The frame is 220 tall with a 1px outline; the page fills its inside, at a
-// slide's width until the page's own shape is known.
+// The frame is 220 tall, on the well like any page drawn in the theme's ink; the page fills it, at
+// a slide's width until the page's own shape is known.
 const FRAME_H = 220;
-const INSIDE_H = FRAME_H - 2;
-const SLIDE_W = INSIDE_H * (16 / 9) + 2;
+const SLIDE_W = FRAME_H * (16 / 9);
 const MARK = "bg-highlight text-inherit";
 
 /** A topic's page under the paragraph that quotes it: his PDF page with the
@@ -23,7 +22,7 @@ const MARK = "bg-highlight text-inherit";
 export function PageExcerpt({ cite, onOpen }: { cite: FileCite; onOpen: () => void }) {
 	const found = useCited(cite);
 	if (found === null)
-		return /\.pdf$/i.test(cite.name) ? <span aria-hidden data-testid="page-excerpt-waiting" className="block max-w-full border border-border" style={{ height: FRAME_H, width: SLIDE_W }} /> : null;
+		return /\.pdf$/i.test(cite.name) ? <span aria-hidden data-testid="page-excerpt-waiting" className="block max-w-full lh-well" style={{ height: FRAME_H, width: SLIDE_W }} /> : null;
 	if (found === "gone") return null;
 	const marks = found.marks ?? null;
 	if (found.page !== null) return <PdfExcerpt cite={cite} page={found.page} boxes={marks?.kind === "page" ? marks.boxes : []} onOpen={onOpen} />;
@@ -72,10 +71,10 @@ function PdfExcerpt({ cite, page, boxes, onOpen }: { cite: FileCite; page: numbe
 			type="button"
 			data-testid="page-excerpt"
 			onClick={onOpen}
-			className="relative block max-w-full overflow-hidden border border-border"
-			style={{ height: FRAME_H, width: band.landscape ? INSIDE_H * band.aspect + 2 : "100%" }}
+			className="relative block max-w-full overflow-hidden lh-well"
+			style={{ height: FRAME_H, width: band.landscape ? FRAME_H * band.aspect : "100%" }}
 		>
-			<span className="absolute inset-x-0 top-0 block" style={{ transform: `translateY(calc(${-band.at} * (100% - ${INSIDE_H}px)))` }}>
+			<span className="absolute inset-x-0 top-0 block" style={{ transform: `translateY(calc(${-band.at} * (100% - ${FRAME_H}px)))` }}>
 				{src && (
 					<img
 						src={src}

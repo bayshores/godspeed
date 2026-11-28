@@ -64,16 +64,15 @@ const STATUS_COLORS: Record<string, string> = {
 	"--lh-ramp-5": "#6f9a7e",
 };
 
-/** The surfaces and text a background implies. Dark: +8 panel, +16 sheet on a +34 lip, +20
- *  tooltip, +22 tone, +47 edge, a top bar
- *  12 below, text by contrast. Paper: picked by hand, with an ink top bar. */
+/** The surfaces and text a background implies. Dark: +8 panel, +16 sheet on a +34 lip, +22
+ *  tone, +47 edge, a top bar 12 below, text by contrast. Paper: picked by hand, with an ink
+ *  top bar. */
 function surfacesOf(background: string) {
 	if (background === PAPER) {
 		return {
 			card: "#d7d5cb",
 			sheet: "#d7d5cb",
 			sheetLip: "#b0aea5",
-			tip: "#dddbd1",
 			accent: "#cfcdc3",
 			border: "#a9a79d",
 			edge: "#6d6b62",
@@ -100,7 +99,6 @@ function surfacesOf(background: string) {
 		card,
 		sheet: at(16),
 		sheetLip: at(34),
-		tip: at(20),
 		accent,
 		border: at(47),
 		edge: inkFor(background, "edge", [card]),
@@ -152,7 +150,6 @@ export function derivedPalette(background: string): Record<string, string> {
 		"--secondary": s.card,
 		"--muted": s.card,
 		"--accent": s.accent,
-		"--lh-tip": s.tip,
 		"--border": s.border,
 		"--input": s.border,
 		"--lh-edge": s.edge,

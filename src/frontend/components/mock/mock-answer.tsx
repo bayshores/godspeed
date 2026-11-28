@@ -57,7 +57,7 @@ export function CodeAnswer({
 						data-testid={`mock-language-${l}`}
 						aria-pressed={l === language}
 						onClick={() => l !== language && onLanguage(l)}
-						className={cn("lh-press rounded-sm px-2 py-0.5 text-(length:--text-sm) text-ink", l === language ? "bg-highlight" : "hover:bg-tone")}
+						className={cn("lh-press lh-notch px-2 py-0.5 text-(length:--text-sm) text-ink", l === language ? "bg-highlight" : "hover:bg-tone")}
 					>
 						{MOCK_LANGUAGES[l]}
 					</button>

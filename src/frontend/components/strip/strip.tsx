@@ -106,7 +106,7 @@ export function Strip() {
 					)}
 					{/* At the page while the panel is closed, back at the edge while it is open. Still in a lesson. */}
 					<span aria-hidden data-beckon={!panelOpen && !strip.inLesson ? "" : undefined} className="lh-strip-arrow flex shrink-0">
-						<PixelIcon name="chevron" className={cn("h-[11px]", !panelOpen && "-scale-x-100")} />
+						<PixelIcon name="chevron" className={cn(!panelOpen && "-scale-x-100")} />
 					</span>
 					<span className="flex-1" />
 					{/* The peek says each of these in its rows. */}

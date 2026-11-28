@@ -146,7 +146,7 @@ export function AttachmentTray({ draft }: { draft: AttachmentDraft }) {
 function DraftChip({ file, onRemove }: { file: ChatAttachment; onRemove: () => void }) {
 	const pdf = isPdfType(file.mimeType);
 	return (
-		<div data-testid={pdf ? "draft-pdf" : "draft-image"} className={cn("flex h-[47px] max-w-72 items-center gap-1.5 overflow-hidden lh-well rounded pr-1.5", pdf && "pl-3")}>
+		<div data-testid={pdf ? "draft-pdf" : "draft-image"} className={cn("flex h-[47px] max-w-72 items-center gap-1.5 overflow-hidden lh-well lh-notch pr-1.5", pdf && "pl-3")}>
 			{!pdf && (
 				<img src={`data:${file.mimeType};base64,${file.data}`} alt="" className="size-11 shrink-0 object-cover" />
 			)}

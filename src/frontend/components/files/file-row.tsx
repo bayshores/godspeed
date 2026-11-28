@@ -143,7 +143,7 @@ export const FileRow = memo(function FileRow({
 				<span
 					aria-hidden
 					className={cn(
-						"flex h-8 w-12 shrink-0 items-center justify-center font-count text-sm transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
+						"flex h-8 w-12 shrink-0 items-center justify-center lh-notch font-count text-sm transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
 						file.kind === "study" ? "bg-ink text-(--background)" : "lh-well text-ink-2",
 						held && "opacity-50",
 					)}
@@ -316,7 +316,7 @@ function InstallLine({ fileId, command }: { fileId: string; command: string }) {
 	return (
 		<span data-testid={`space-file-install-${fileId}`} className="flex basis-full flex-wrap items-center gap-x-2.5 gap-y-1.5 pt-0.5 pb-2 text-base text-ink-2">
 			<span className="min-w-0 flex-1 basis-[240px]">To turn recordings into text, run this in Terminal, then click Retry.</span>
-			<code className="font-count flex h-8 items-center lh-well rounded px-2.5 text-sm text-ink">{command}</code>
+			<code className="font-count flex h-8 items-center lh-well lh-notch px-2.5 text-sm text-ink">{command}</code>
 			<CopyButton text={command} data-testid={`space-file-install-copy-${fileId}`} className={SMALL_BTN} />
 		</span>
 	);
@@ -366,7 +366,7 @@ function RowMenu({
 				title="More"
 				className="lh-press flex size-8 shrink-0 items-center justify-center text-ink-2 hover:bg-tone hover:text-ink aria-expanded:bg-tone aria-expanded:text-ink"
 			>
-				<PixelIcon name="more" className="w-[15px]" />
+				<PixelIcon name="more" size={3} />
 			</button>
 			<MenuShell
 				open={open}

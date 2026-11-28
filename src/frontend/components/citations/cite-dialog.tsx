@@ -36,7 +36,7 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite | PassageCite; sta
 					) : marks?.kind === "lines" ? (
 						<CodeLines name={cite.name} marks={marks} />
 					) : (
-						<div data-testid="cite-text" className="lh-well rounded p-3.5 text-ui whitespace-pre-wrap text-ink">
+						<div data-testid="cite-text" className="lh-well lh-notch p-3.5 text-ui whitespace-pre-wrap text-ink">
 							{marks?.kind === "passage" ? <MarkedText before={found.text.slice(0, marks.start)} marked={found.text.slice(marks.start, marks.end)} after={found.text.slice(marks.end)} /> : found.text}
 						</div>
 					)}
@@ -49,7 +49,7 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite | PassageCite; sta
 function CitePage({ cite, page, marks, onBroken }: { cite: FileCite | PassageCite; page: number; marks: CitedPassage["marks"] | null; onBroken: () => void }) {
 	const [src, frameRef] = usePageSrc<HTMLDivElement>(cite.fileId, page);
 	return (
-		<div ref={frameRef} className="relative shrink-0 border border-line">
+		<div ref={frameRef} className="relative shrink-0 lh-well">
 			{src && (
 				<img
 					data-testid="cite-page"

@@ -113,7 +113,7 @@ export function FontMenuList({
 				}}
 				placeholder="Search fonts…"
 				aria-label="Search fonts"
-				className="mb-1.5 h-9 w-full lh-well rounded px-2.5 text-ui text-ink placeholder:text-ink-3"
+				className="mb-1.5 h-9 w-full lh-well lh-notch px-2.5 text-ui text-ink placeholder:text-ink-3"
 			/>
 			{!families && <LoadingLine className="justify-center px-2 py-3 text-ui">Loading fonts…</LoadingLine>}
 			<ul ref={listRef} data-testid="font-list" className="flex max-h-72 flex-col overflow-y-auto">

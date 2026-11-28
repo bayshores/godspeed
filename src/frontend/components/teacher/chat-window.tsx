@@ -24,11 +24,11 @@ export function ChatWindow() {
 	const row = chats?.find((c) => c.id === chatId) ?? null;
 	return (
 		// The teacher panel's colors on a whole window: no pop-up corners, no edge line.
-		<main data-testid="chat-window" style={{ borderRadius: 0, boxShadow: "none" }} className="lh-popup flex h-dvh min-w-0 flex-col overflow-hidden font-ui">
+		<main data-testid="chat-window" className="lh-popup lh-popup-window flex h-dvh min-w-0 flex-col overflow-hidden font-ui">
 			<div className="lh-drag lh-lights-gutter shrink-0 select-none">
 				<PanelHead name={name} working={!!row?.running} elsewhere={false} list={null} popOut={null} putBack={putBackChat} blocked={false} />
 			</div>
-			<div className="lh-desk lh-page-colors flex min-h-0 flex-1 flex-col">
+			<div className="lh-page-colors flex min-h-0 flex-1 flex-col">
 				<TalkChatView chatId={chatId} chat={row} onChat={show} name={name} noBox={false} ask={null} focus />
 			</div>
 		</main>

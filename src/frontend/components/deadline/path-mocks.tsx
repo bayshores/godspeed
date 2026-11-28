@@ -152,7 +152,7 @@ function MockRow({ spaceId, mock: m, nowMs, onRemove }: { spaceId: string; mock:
 						<span data-testid="deadline-mock-line" className="shrink-0 text-ui text-ink">
 							{mockLine(m, nowMs)}
 						</span>
-						<PixelIcon name="chevron" className="h-3 text-ink" />
+						<PixelIcon name="chevron" className="text-ink" />
 					</Link>
 					<button
 						ref={crossRef}
@@ -163,7 +163,7 @@ function MockRow({ spaceId, mock: m, nowMs, onRemove }: { spaceId: string; mock:
 						onClick={() => setAsking(true)}
 						className="lh-press flex size-8 shrink-0 items-center justify-center text-ink-3 hover:bg-tone hover:text-ink"
 					>
-						<PixelIcon name="close" className="h-[9px]" />
+						<PixelIcon name="close" />
 					</button>
 				</>
 			)}

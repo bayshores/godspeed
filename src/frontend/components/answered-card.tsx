@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
-import { GlyphMark } from "@/frontend/components/ui/glyph-mark";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { ResultTag } from "@/frontend/components/result-tag";
 import { ThinkingBlock } from "@/frontend/components/thinking-block";
@@ -48,15 +47,14 @@ export function QuizWhy({ answer }: { answer: QuestionAnswerData }) {
 							<div
 								key={opt.index}
 								data-testid="answered-option"
-								className={cn("flex items-center gap-2.5 rounded-sm bg-panel px-3 py-2", sel && "ring-1 ring-inset", sel && key && "ring-ans-right", sel && !key && "ring-ans-wrong")}
+								className={cn("flex items-center gap-2.5 lh-notch bg-panel px-3 py-2", sel && "ring-2 ring-inset", sel && key && "ring-ans-right", sel && !key && "ring-ans-wrong")}
 							>
-								{/* The LaTeX \ding check/cross shapes (ui/glyph-mark). */}
 								<span
 									aria-hidden
 									data-mark={key ? "check" : sel ? "x" : undefined}
 									className={cn("flex w-3.5 shrink-0 items-center", key ? "text-ans-right" : "text-ans-wrong")}
 								>
-									{(key || sel) && <GlyphMark kind={key ? "check" : "x"} className="size-3.5" />}
+									{(key || sel) && <PixelIcon name={key ? "check" : "close"} />}
 								</span>
 								<span className={cn(!sel && !key && "text-ink-2")}>
 									<ToolContentResponse>{opt.label}</ToolContentResponse>
@@ -69,7 +67,7 @@ export function QuizWhy({ answer }: { answer: QuestionAnswerData }) {
 			)}
 			{thinking && <ThinkingBlock testId="your-thinking" text={thinking} inCard />}
 			{answer.explanation && (
-				<div data-testid="tucked-explanation" className="rounded-sm bg-panel px-3 py-2 text-ui text-ink-2">
+				<div data-testid="tucked-explanation" className="lh-notch bg-panel px-3 py-2 text-ui text-ink-2">
 					<ToolContentResponse className="[&>p:first-child]:mt-0">{answer.explanation}</ToolContentResponse>
 				</div>
 			)}
@@ -137,7 +135,7 @@ export function AnsweredCard({
 	const toggle = () => setOpen((v) => !v);
 
 	return (
-		<div data-testid="answered-card" className="lh-well text-card-foreground">
+		<div data-testid="answered-card" className="lh-well lh-notch text-card-foreground">
 			{/* The whole line opens the card for the mouse; the key at its end is the one the keyboard and a reader find. */}
 			<div
 				onClick={(e) => {
@@ -181,7 +179,7 @@ export function AnsweredCard({
 					}}
 					className="lh-press grid size-6 shrink-0 place-items-center self-center text-ink-2 outline-none"
 				>
-					<PixelIcon name="chevron" className={cn("h-2.5 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open ? "-rotate-90" : "rotate-90")} />
+					<PixelIcon name="chevron" className={cn("transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open ? "-rotate-90" : "rotate-90")} />
 				</button>
 			</div>
 			{resultLine && (
@@ -219,7 +217,7 @@ export function AnsweredCard({
 										    fold's grid, the renderer's full height would otherwise fill
 										    the row and push the description under the next option. */}
 										{answer.options?.map((opt) => (
-											<div key={opt.index} className="rounded-sm bg-panel px-3 py-2">
+											<div key={opt.index} className="lh-notch bg-panel px-3 py-2">
 												<div style={proseVars(15, 22, selectedIdx.has(opt.index) ? "var(--foreground)" : "var(--muted-foreground)")}>
 													<ToolContentResponse>{opt.label}</ToolContentResponse>
 												</div>
@@ -234,7 +232,7 @@ export function AnsweredCard({
 								)}
 								{thinking && <ThinkingBlock testId="your-thinking" text={thinking} inCard />}
 								{isExplain && answer.committed && (
-									<div data-testid="committed-answer" className="rounded-sm bg-panel px-3 py-2 text-ui text-ink-2">
+									<div data-testid="committed-answer" className="lh-notch bg-panel px-3 py-2 text-ui text-ink-2">
 										<span className="font-medium text-ink">The answer: </span>
 										<ToolContentResponse className="inline [&>p:first-child]:m-0 [&>p:first-child]:inline">{answer.committed}</ToolContentResponse>
 									</div>

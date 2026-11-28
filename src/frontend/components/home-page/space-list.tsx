@@ -68,7 +68,7 @@ function SpaceTile({
 				</Link>
 				{newFiles && (
 					<Link to="/space/files" data-testid="today-space-files" onClick={() => onOpen(s.id)} title={newFiles} className={cn(CHIP, "relative z-10 ml-auto max-w-[60%] shrink hover:underline")}>
-						<PixelIcon name="folder" className="h-[10px] shrink-0" />
+						<PixelIcon name="folder" size={12} />
 						<span className="truncate">{newFiles}</span>
 					</Link>
 				)}

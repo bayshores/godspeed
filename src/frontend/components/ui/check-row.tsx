@@ -28,11 +28,11 @@ export function CheckRow({
 			<span
 				aria-hidden
 				className={cn(
-					"flex size-5 shrink-0 items-center justify-center rounded-sm peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink",
-					checked ? "bg-tint text-background" : "border-[1.5px] border-ink bg-background",
+					"flex size-5 shrink-0 items-center justify-center lh-notch peer-focus-visible:[clip-path:none] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink",
+					checked ? "bg-tint text-background" : "border-2 border-ink bg-background",
 				)}
 			>
-				{checked && <PixelIcon name="check" className="h-[9px]" />}
+				{checked && <PixelIcon name="check" size={10} />}
 			</span>
 			<span title={label} className="min-w-0 flex-1 truncate text-ui text-ink">
 				{label}

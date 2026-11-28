@@ -32,7 +32,7 @@ export function IdeaList({ groups, label, onSend }: { groups: readonly IdeaGroup
 			data-lh-menu=""
 			data-testid="talk-ideas-list"
 			data-state={shown.state}
-			className="lh-fade absolute inset-x-0 bottom-full z-10 grid max-h-[min(420px,60dvh)] grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-x-4 gap-y-4 overflow-y-auto rounded-t-(--lh-round) bg-bar px-[18px] pt-4 pb-3 outline-none"
+			className="lh-fade absolute inset-x-0 bottom-full z-10 grid max-h-[min(420px,60dvh)] grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-x-4 gap-y-4 overflow-y-auto lh-steps lh-steps-top bg-bar px-[18px] pt-4 pb-3 outline-none"
 		>
 			<IdeaGroups groups={last.current} onSend={open ? onSend : null} />
 		</div>

@@ -117,7 +117,7 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 					onDragLeave={() => setOver(false)}
 					onDrop={(e) => void onDrop(e)}
 					className={cn(
-						"lh-press lh-well flex h-[150px] w-full flex-col items-center justify-center gap-1.5 rounded px-6 text-center",
+						"lh-press lh-well flex h-[150px] w-full flex-col items-center justify-center gap-1.5 lh-notch px-6 text-center",
 						over ? "bg-highlight" : "hover:bg-tone",
 					)}
 				>

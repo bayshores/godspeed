@@ -26,7 +26,7 @@ export function SectionToggle({
 }) {
 	return (
 		<button type="button" aria-expanded={!collapsed} data-testid={testid} onClick={onClick} className="lh-press flex min-h-10 w-full items-center gap-3 text-left">
-			<PixelIcon name="chevron" className={cn("h-[10.5px] text-ink transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", !collapsed && "rotate-90")} />
+			<PixelIcon name="chevron" className={cn("text-ink transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", !collapsed && "rotate-90")} />
 			<h2 className="lh-card-title">{label}</h2>
 			<span data-testid={noteTestid} className="font-count text-ui text-ink-2 tabular-nums">
 				{note}

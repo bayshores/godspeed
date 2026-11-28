@@ -19,7 +19,7 @@ export function MiniMap({ cam, room, move }: { cam: Camera; room: Room; move: (t
 		move((c) => centerOn(c, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, room), room);
 	};
 	return (
-		<div data-testid="mini-map" className="lh-fade absolute bottom-4 left-4 z-20 rounded-sm bg-ink p-1.5">
+		<div data-testid="mini-map" className="lh-fade absolute bottom-4 left-4 z-20 lh-notch bg-ink p-1.5">
 			<div
 				ref={map}
 				role="presentation"

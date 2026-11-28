@@ -4,8 +4,8 @@
  * this component set, wired into Streamdown via its `components` prop:
  *
  * - Tables: a plain PROSE table (no box, no card bg, no buttons bar):
- *   hairline row rules + a stronger header underline (globals.css), wide
- *   tables scroll inside the column.
+ *   a line under the head and every second row on the well (globals.css),
+ *   wide tables scroll inside the column.
  * - Mermaid: the bare chart, part of the message — no label, no container,
  *   no zoom pill (zoom/pan lives in the session-scoped focus overlay).
  * - Code: streamdown's CodeBlock skeleton keeps the shiki plumbing, but the
@@ -33,6 +33,7 @@ import {
 import type { ExtraProps } from "streamdown";
 import { MERMAID_FONT_SIZE, renderMermaid } from "@/frontend/components/mermaid-render";
 import { MermaidError } from "@/frontend/components/mermaid-error";
+import { LoadingBox } from "@/frontend/components/loading";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { chartSize, useSessionMermaid } from "@/frontend/components/session-overlay";
@@ -132,9 +133,7 @@ function MermaidInline({ chart }: { chart: string }) {
 
 	if (incomplete || (svg === null && error === null)) {
 		return (
-			<div data-testid="md-mermaid" className="my-4 flex justify-center p-4" aria-busy="true">
-				<span className="inline-block size-4 animate-spin motion-reduce:animate-none rounded-full border border-current border-b-2 text-ink-2" />
-			</div>
+			<LoadingBox data-testid="md-mermaid" className="my-4 p-4" aria-busy="true" />
 		);
 	}
 	if (error !== null) {
@@ -184,7 +183,7 @@ function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 	// Inline code: no data-block (the pre handler stamps block fences only).
 	if (!("data-block" in props)) {
 		return (
-			<code className={cn("rounded-sm bg-tone px-1.5 py-0.5 font-mono text-[0.9em]", className)} data-streamdown="inline-code" {...rest}>
+			<code className={cn("lh-notch bg-tone px-1.5 py-0.5 font-mono text-[0.9em]", className)} data-streamdown="inline-code" {...rest}>
 				{children}
 			</code>
 		);
@@ -276,7 +275,7 @@ export function parseAlertMarker(children: ReactNode): ParsedAlert | null {
 	return { kind, children: restChildren };
 }
 
-/** The key-idea callout: SHARP corners, a white
+/** The key-idea callout: SHARP corners, a 2-point white
  *  stroke, NO background, NO label, NO icon — just the outline. The box
  *  hugs its text (width: fit-content, capped at the column) instead of
  *  stretching full-width into empty space. */
@@ -301,7 +300,7 @@ function MarkdownBlockquote(props: ComponentProps<"blockquote"> & ExtraProps) {
 		<div
 			data-testid="md-callout"
 			data-alert-kind={alert.kind}
-			className="my-4 w-fit max-w-full border border-ink-max px-4 py-3 [&> :first-child]:mt-0 [&> :last-child]:mb-0"
+			className="my-4 w-fit max-w-full border-2 border-ink-max px-4 py-3 [&> :first-child]:mt-0 [&> :last-child]:mb-0"
 		>
 			{alert.children}
 		</div>
@@ -311,8 +310,8 @@ function MarkdownBlockquote(props: ComponentProps<"blockquote"> & ExtraProps) {
 // ─── Tables (the Streamdown `table` override) ────────────────────────────────
 
 /** A plain PROSE table: no wrapper box, no button rows — just the table
- *  (streamdown's inner cells keep their padding/typography; the hairline
- *  rules live in globals.css on the data-streamdown attributes) inside a
+ *  (streamdown's inner cells keep their padding/typography; the head's line
+ *  and the rows' fills live in globals.css on the data-streamdown attributes) inside a
  *  horizontal-scroller for wide ones, with the corner copy. The copy
  *  serializes the REAL DOM table (the library's own extractor → Markdown). */
 function MarkdownTable(props: ComponentProps<"table"> & ExtraProps) {

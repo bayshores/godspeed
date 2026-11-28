@@ -102,7 +102,7 @@ function TextPage({ start, lines, from, to }: { start: number; lines: string[]; 
 		<div className="text-xs leading-normal">
 			{a > 0 && <div className={faded}>{lines.slice(0, a).map(row)}</div>}
 			{b > a && (
-				<div className="lh-read-mark -ml-5 pl-5 text-[#111]">
+				<div className="lh-read-mark -ml-5 pl-5">
 					{lines.slice(a, b).map((line, i) => row(line, a + i))}
 				</div>
 			)}

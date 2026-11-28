@@ -47,7 +47,7 @@ export const SpaceSignatureField = memo(function SpaceSignatureField({
 				/>
 			</div>
 			{trimmed && (
-				<div data-testid="space-signature-preview" className="overflow-hidden lh-well rounded px-3 py-3 text-2xl leading-none text-ink">
+				<div data-testid="space-signature-preview" className="overflow-hidden lh-well lh-notch px-3 py-3 text-2xl leading-none text-ink">
 					<SignatureText signature={{ kind, value: trimmed }} />
 				</div>
 			)}

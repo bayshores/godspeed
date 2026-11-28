@@ -50,7 +50,7 @@ export function StartTiles({ ways, color, wide, onAddDeadline }: { ways: readonl
 		...(asking
 			? [{ way: "path" as const, testid: "space-start-path", icon: "pages" as const, title: `Ask ${asking.name} for a path`, line: "No syllabus? The topics toward your goal, in order.", onClick: () => asking.ask(PATH_LINE) }]
 			: []),
-		{ way: "study", testid: "space-start-study", icon: "pencil", title: "Study something new", line: "One lesson on any topic, right now.", to: "/new" },
+		{ way: "study", testid: "space-start-study", icon: "pencil-small", title: "Study something new", line: "One lesson on any topic, right now.", to: "/new" },
 	];
 	return (
 		<ul className={cn("grid gap-[6px]", wide && "@[900px]:grid-cols-2")}>
@@ -60,7 +60,7 @@ export function StartTiles({ ways, color, wide, onAddDeadline }: { ways: readonl
 					const inside = (
 						<>
 							<span aria-hidden className={cn("flex shrink-0 items-center justify-center text-background", wide ? "size-10" : "size-7")} style={{ background: color }}>
-								<PixelIcon name={t.icon} className={wide ? "h-[13px]" : "h-[11px]"} />
+								<PixelIcon name={t.icon} size={wide ? 13 : 11} />
 							</span>
 							<span className="flex min-w-0 flex-col">
 								<span className={cn("text-ink", wide ? "text-xl" : "text-item")}>{t.title}</span>

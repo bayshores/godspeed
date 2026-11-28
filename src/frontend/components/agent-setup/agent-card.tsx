@@ -85,7 +85,7 @@ export function AgentCompact({ className }: { className?: string }) {
 	if (!said) return null;
 	return (
 		// The code field stands out of the card's well.
-		<div data-testid="agent-compact" className={cn("lh-rise flex flex-col gap-3 lh-well px-4 py-3 text-base [&_input]:bg-background", className)}>
+		<div data-testid="agent-compact" className={cn("lh-rise flex flex-col gap-3 lh-well lh-notch px-4 py-3 text-base [&_input]:bg-background", className)}>
 			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
 				<span className="text-ink">{said.sentence}</span>
 				<RowEnd row={said.row} action={action} main />
@@ -165,7 +165,7 @@ function Mark({ mark }: { mark: CardRow["mark"] }) {
 	return (
 		<span aria-hidden className="flex size-4 shrink-0 items-center justify-center">
 			{mark === "tick" ? (
-				<PixelIcon name="check" className="h-[7px] text-ans-right" />
+				<PixelIcon name="check" size={10} className="text-ans-right" />
 			) : (
 				<span className={cn("size-2.5 transition-colors duration-(--lh-dur)", mark === "none" ? "bg-transparent" : "bg-highlight", mark === "wait" && "ob-pulse")} />
 			)}

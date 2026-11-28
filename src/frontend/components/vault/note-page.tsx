@@ -36,7 +36,7 @@ export function NotePage({ note, obsidian, asked, landing }: { note: VaultNote; 
 					{mark && <span className="group-hover:hidden group-focus-visible:hidden">{mark}</span>}
 					<span className={cn("text-ink underline underline-offset-2", mark ? "hidden group-hover:inline group-focus-visible:inline" : "invisible group-hover:visible group-focus-visible:visible")}>{label}</span>
 				</span>
-				<PixelIcon name="crystal" className="h-[18px] text-ink" />
+				<PixelIcon name="crystal" size={12} className="text-ink" />
 			</span>
 		</>
 	);

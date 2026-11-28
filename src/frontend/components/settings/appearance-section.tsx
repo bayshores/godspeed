@@ -74,13 +74,13 @@ export function AppearanceSection({
 					<label className="lh-press flex cursor-pointer flex-col items-center gap-1.5" data-testid="theme-custom">
 						<span
 							className={cn(
-								"relative flex h-16 w-full items-center justify-center rounded border bg-background",
-								!isPreset ? "border-2 border-ink" : "border-edge",
+								"relative flex h-16 w-full items-center justify-center lh-notch border-2 bg-background",
+								!isPreset ? "border-ink" : "border-edge",
 							)}
 							style={!isPreset && background ? { background: readableBackground(background) } : undefined}
 						>
 							<span className="flex size-[26px] items-center justify-center bg-background text-ink">
-								<PixelIcon name="plus" className="h-3.5" />
+								<PixelIcon name="plus" size={15} />
 							</span>
 							<ColorInput label="Custom background color" value={shownBackground} onCommit={(c) => onSectionChange({ ...appearance, background: c })} />
 						</span>
@@ -146,7 +146,7 @@ function ThemeTile({ name, color, on, onPick }: { name: string; color: string; o
 	return (
 		<button type="button" aria-pressed={on} data-testid={`theme-${name.toLowerCase()}`} onClick={onPick} className="lh-press flex flex-col items-center gap-1.5">
 			<span
-				className={cn("flex h-16 w-full flex-col gap-1.5 rounded p-2.5", on ? "border-2 border-ink" : "border")}
+				className={cn("flex h-16 w-full flex-col gap-1.5 lh-notch border-2 p-2.5", on && "border-ink")}
 				style={{ background: color, borderColor: on ? undefined : p["--border"] }}
 			>
 				<span className="h-[5px] w-10" style={{ background: p["--foreground"] }} />
@@ -261,12 +261,12 @@ function FontPicker({ family, onPick }: { family: string | null; onPick: (family
 				aria-expanded={open}
 				data-testid="font-trigger"
 				onClick={toggle}
-				className="lh-press flex h-10 w-full items-center justify-between gap-2.5 lh-well rounded px-3 text-left text-ui font-medium text-ink hover:bg-tone"
+				className="lh-press flex h-10 w-full items-center justify-between gap-2.5 lh-well lh-notch px-3 text-left text-ui font-medium text-ink hover:bg-tone"
 			>
 				<span className="min-w-0 truncate" style={{ fontFamily: family ? `"${family}"` : undefined }}>
 					{family || DEFAULT_READING_FONT}
 				</span>
-				<PixelIcon name="chevron" className="h-[10.5px] rotate-90" />
+				<PixelIcon name="chevron" className="rotate-90" />
 			</button>
 			<MenuShell
 				open={open}

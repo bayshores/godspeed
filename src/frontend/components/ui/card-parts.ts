@@ -1,5 +1,5 @@
 /** A card in the lesson text (an answered question, a figure, a brief). */
-export const CARD = "lh-well rounded p-4";
+export const CARD = "lh-well lh-notch p-4";
 
 /** A small key on such a card. */
 export const SMALL_BTN = "lh-btn lh-btn-small shrink-0";

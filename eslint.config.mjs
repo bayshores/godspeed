@@ -22,12 +22,12 @@ const FETCH_MESSAGE = "Use `send` or `getJson` from lib/api.ts. If a request can
 const STORAGE_MESSAGE = "Use `readStorage` and `writeStorage` from lib/storage.ts: they never throw in a private window.";
 const CONTEXT_MENU_MESSAGE = "A right-click menu hides its actions. Give each action a visible control (a key, a row's More key) instead.";
 
-// A class that sets a value of its own where globals.css has a name for it (docs/ui-rules.md, "Type" and "Motion and waiting").
+// A class that sets a value of its own where globals.css has a name for it (docs/ui-rules.md, "Shape", "Type" and "Motion and waiting").
 // Text from 30px up is a display size (a count block's numeral, the wordmark) and is set where it is drawn.
 const OWN_VALUES = [
 	["text-\\[(\\d|[12]\\d)(\\.\\d+)?px\\]", "a text size of its own: use a rung of the type ladder (text-sm, text-ui, text-item, ...)"],
 	["leading-\\[", "a line height of its own: use leading-title, leading-ask, leading-ui or a step of the spacing scale (leading-7)"],
-	["rounded(-[a-z]+)?-\\[", "a corner of its own: use rounded, or a class in globals.css for a shape with a reason"],
+	["rounded(?!-full)", "a round corner: a small box takes lh-notch, a pop-up lh-popup (docs/ui-rules.md, \"Shape\")"],
 	["(duration|delay)-(\\d|\\[)", "a timing of its own: use duration-(--lh-dur), (--lh-dur-fast), (--lh-dur-slow) or (--lh-dur-page)"],
 	["ease-(\\[|in|out|linear)", "a curve of its own: use ease-(--lh-ease-out) or ease-(--lh-ease-in)"],
 	["z-\\[", "a layer of its own: use a --lh-z-* name for a layer of the window, or a small step (z-10) inside one box"],

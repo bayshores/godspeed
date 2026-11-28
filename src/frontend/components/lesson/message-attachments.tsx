@@ -26,7 +26,7 @@ export function MessageAttachments({ parts }: { parts: readonly LhViewPart[] }) 
 					const src = `data:${mimeType};base64,${base64}`;
 					return (
 						<button key={part.id} type="button" aria-label="Show picture full size" onClick={() => setOpen(src)} className="lh-press block">
-							<img data-testid="message-image" src={src} alt="" className="block max-h-[220px] w-auto max-w-full rounded border border-border" />
+							<img data-testid="message-image" src={src} alt="" className="block max-h-[220px] w-auto max-w-full lh-notch lh-well p-1" />
 						</button>
 					);
 				}

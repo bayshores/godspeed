@@ -64,7 +64,7 @@ const theme = EditorView.theme(
 		"& .cm-vimCursorLayer .cm-fat-cursor": { background: "var(--lh-ink-max)", color: "var(--background) !important" },
 		"&:not(.cm-focused) .cm-vimCursorLayer .cm-fat-cursor": { background: "none", outline: "solid 1px var(--lh-ink-3)" },
 		".cm-panels": { backgroundColor: "var(--card)", color: "var(--foreground)" },
-		".cm-panels-bottom": { borderTop: "1px solid var(--border)" },
+		".cm-panels-bottom": { borderTop: "2px solid var(--border)" },
 		".cm-vim-panel": { fontFamily: "var(--font-mono)" },
 	},
 	{ dark: true },

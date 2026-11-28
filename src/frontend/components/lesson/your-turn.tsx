@@ -305,7 +305,7 @@ export function YourTurn({
 		<div data-testid="turn-row" {...stood} className={cn("flex min-w-0 shrink-0 flex-col gap-3", stand)}>
 			{error && (
 				<JobFailure>
-					<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well px-4 py-3 text-base">
+					<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well lh-notch px-4 py-3 text-base">
 						<span data-testid="lesson-error" title={error.detail} className="text-ans-wrong">
 							{error.text}
 						</span>

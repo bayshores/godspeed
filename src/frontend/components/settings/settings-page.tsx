@@ -138,7 +138,7 @@ export function SettingsPage({ section }: { section?: string }) {
 					{error && (
 						<p
 							role="alert"
-							className="mb-4 border border-ans-wrong/40 px-3 py-2 text-xs text-ans-wrong"
+							className="mb-4 lh-well px-3 py-2 text-xs text-ans-wrong"
 							data-testid="settings-error"
 						>
 							{error}

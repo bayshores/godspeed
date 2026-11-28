@@ -72,7 +72,7 @@ function QuestionRow({ n, question: q, view, teacher, busyOn, onGoOver }: { n: n
 	const wrote = useFold(wroteOpen);
 	return (
 		<li data-testid={`mock-result-${q.id}`} className="flex gap-3.5 px-1 py-4">
-			<span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-sm border-[1.5px] border-ink font-count text-lg leading-none text-ink">
+			<span aria-hidden className="flex size-8 shrink-0 items-center justify-center lh-notch border-2 border-ink font-count text-lg leading-none text-ink">
 				{n}
 			</span>
 			<div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -96,7 +96,7 @@ function QuestionRow({ n, question: q, view, teacher, busyOn, onGoOver }: { n: n
 						{wrote.mounted && (
 							<div className="lh-collapse" data-state={wrote.state}>
 								<div>
-									<pre className={cn("mt-1.5 overflow-x-auto lh-well rounded-sm px-3 py-2 leading-relaxed whitespace-pre-wrap text-ink", q.kind === "code" ? "font-mono text-(length:--text-sm)" : "font-prose text-ui")}>{answer.text}</pre>
+									<pre className={cn("mt-1.5 overflow-x-auto lh-well lh-notch px-3 py-2 leading-relaxed whitespace-pre-wrap text-ink", q.kind === "code" ? "font-mono text-(length:--text-sm)" : "font-prose text-ui")}>{answer.text}</pre>
 								</div>
 							</div>
 						)}

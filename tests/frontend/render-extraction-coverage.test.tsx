@@ -49,11 +49,12 @@ describe("CoverageMenuBody — the context-menu block", () => {
 		assert.ok(html.includes("disabled"), "nothing to run — the button rests");
 	});
 
-	it("running: the pulse line + 'Adding…' (motion is the state)", () => {
+	it("running: the spinner line + 'Adding…' (motion is the state)", () => {
 		const html = renderToStaticMarkup(
 			<CoverageMenuBody coverage={coverage({ running: true })} extracting={false} onExtract={() => {}} />,
 		);
 		assert.ok(html.includes('data-testid="ctx-coverage-running"'));
+		assert.match(html, /data-testid="braille-spinner"[^>]*aria-label="Adding its facts to the graph"/);
 		assert.match(html, /Adding its facts to the graph…/);
 		assert.ok(html.includes(">Adding…</button>"), "the button reads Adding… while in flight");
 		assert.ok(html.includes("disabled"), "no double-fire");

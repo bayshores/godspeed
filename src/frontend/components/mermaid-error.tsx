@@ -1,5 +1,3 @@
-import { Button } from "@/frontend/components/ui/button";
-
 /**
  * Fallback card for a mermaid chart that fails to render, shown by the chat
  * block (md-blocks.tsx) and the focus overlay (session-overlay.tsx): the
@@ -8,7 +6,7 @@ import { Button } from "@/frontend/components/ui/button";
  */
 export const MermaidError = ({ chart, error, retry }: { chart: string; error: string; retry: () => void }) => (
 	<div
-		className="my-4 border border-destructive/40 bg-destructive/5 p-4"
+		className="my-4 lh-well p-4"
 		data-streamdown="mermaid-error"
 	>
 		<p className="text-sm font-medium text-destructive">
@@ -25,8 +23,8 @@ export const MermaidError = ({ chart, error, retry }: { chart: string; error: st
 				{chart}
 			</pre>
 		</details>
-		<Button className="mt-3" onClick={retry} size="sm" variant="outline">
+		<button type="button" className="lh-btn lh-btn-small mt-3" onClick={retry}>
 			Retry
-		</Button>
+		</button>
 	</div>
 );

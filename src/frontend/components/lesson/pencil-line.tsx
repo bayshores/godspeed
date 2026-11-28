@@ -16,9 +16,9 @@ const SIZE = { "--lh-pencil-w": `${COLUMNS * PIXEL}px`, "--lh-pencil-steps": pen
 export function PencilLine() {
 	return (
 		<span aria-hidden data-testid="pencil-line" className="lh-pencil" style={SIZE}>
-			<PixelGrid rows={INK} className="lh-pencil-ghost h-[18px]" />
-			<PixelGrid rows={INK} className="lh-pencil-ink h-[18px]" />
-			<PixelIcon name="pencil" className="lh-pencil-tip h-[27px]" />
+			<PixelGrid rows={INK} size={INK.length * PIXEL} className="lh-pencil-ghost" />
+			<PixelGrid rows={INK} size={INK.length * PIXEL} className="lh-pencil-ink" />
+			<PixelIcon name="pencil" size={27} className="lh-pencil-tip" />
 		</span>
 	);
 }

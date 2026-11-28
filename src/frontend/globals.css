@@ -34,6 +34,10 @@
 	outline: 2px solid var(--ring);
 	outline-offset: 2px;
 }
+/* A ring lies outside its box, where a cut corner's box would cut it: the cut lifts while the ring shows. */
+:root[data-tab-focus] :is(.lh-notch, .lh-link-chip, [role="menuitem"]):is(:focus-visible, :has(:focus-visible)) {
+	clip-path: none;
+}
 
 /* Palette: Graphite, the default: a dark page with pale text. These are
    exactly derivedPalette(GRAPHITE) in
@@ -64,11 +68,12 @@
 	--lh-measure: 75ch;
 	--lh-title: clamp(34px, (100vw - var(--lh-strip) - var(--lh-dock-push, 0px) - 899px) * 999, 44px);
 	color-scheme: dark;
-	--radius: 2px;
-	/* The round corners: a pop-up's box, a row in it, and a box that hangs from a bar or the strip. */
-	--lh-pop-r: 12px;
-	--lh-pop-row-r: 8px;
-	--lh-round: 14px;
+	/* A corner is cut in pixel steps: two of --lh-step on a sheet and a pop-up, and one of 2px
+	   (--lh-notch) on what is small: a field, a chip, a row of a menu. */
+	--lh-step: 4px;
+	/* The corner a plugin's page is told (plugin-frame-model.ts): square, as no box of the app's is round. */
+	--radius: 0px;
+	--lh-notch: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
 	/* What lies over what in the window, from the lowest: Follow's slip, a cover over the page, the
 	   teacher's panel, the strip, the strip's peek, a dialog or a tooltip, the welcome screen. */
 	--lh-z-slip: 35;
@@ -95,8 +100,6 @@
 	--ring: #a9a9a9;
 	/* Field borders and empty bars: the quietest line that still shows (3:1). */
 	--lh-edge: #6b6b6b;
-	/* A pop-up's box, and a hovered row in it. */
-	--lh-tip: #2a2a2a;
 	/* The top bar and the text on it. */
 	--lh-bar: #0a0a0a;
 	--lh-bar-ink: #e6e6e6;
@@ -236,9 +239,52 @@
 	--lh-tint: var(--lh-bar-ink);
 	--lh-mark-bg: var(--lh-highlight);
 	--lh-well: var(--card);
-	border-radius: var(--lh-pop-r);
-	background-color: var(--lh-bar);
+	/* The rim is the pop-up's own color unless the page under it is as dark as it is. */
+	--lh-pop-rim: var(--lh-bar);
+	--lh-pop-rim-fill: linear-gradient(var(--lh-pop-rim), var(--lh-pop-rim));
+	/* A 2px rim that follows the steps: the rim's color under the fill, and over the fill the cells each cut corner takes from it. */
+	background:
+		var(--lh-pop-rim-fill) left 2px top 2px / var(--lh-tl) calc(2 * var(--lh-tl)),
+		var(--lh-pop-rim-fill) left 2px top 2px / calc(2 * var(--lh-tl)) var(--lh-tl),
+		var(--lh-pop-rim-fill) right 2px top 2px / var(--lh-tr) calc(2 * var(--lh-tr)),
+		var(--lh-pop-rim-fill) right 2px top 2px / calc(2 * var(--lh-tr)) var(--lh-tr),
+		var(--lh-pop-rim-fill) right 2px bottom 2px / var(--lh-br) calc(2 * var(--lh-br)),
+		var(--lh-pop-rim-fill) right 2px bottom 2px / calc(2 * var(--lh-br)) var(--lh-br),
+		var(--lh-pop-rim-fill) left 2px bottom 2px / var(--lh-bl) calc(2 * var(--lh-bl)),
+		var(--lh-pop-rim-fill) left 2px bottom 2px / calc(2 * var(--lh-bl)) var(--lh-bl),
+		linear-gradient(var(--lh-bar), var(--lh-bar)) 2px 2px / calc(100% - 4px) calc(100% - 4px),
+		var(--lh-pop-rim);
+	background-repeat: no-repeat;
 	color: var(--lh-bar-ink);
+}
+/* The cut shape of a pop-up, and of a list that hangs inside one (.lh-steps: one that is not a pop-up itself). */
+.lh-popup,
+.lh-hang-body,
+.lh-steps {
+	/* Each corner's step: 0px squares the corner where the pop-up meets the bar, the strip or the window's edge. */
+	--lh-tl: var(--lh-step);
+	--lh-tr: var(--lh-step);
+	--lh-br: var(--lh-step);
+	--lh-bl: var(--lh-step);
+	/* Cut, not drawn, so what a pop-up holds ends at the same steps. */
+	clip-path: polygon(
+		0 calc(2 * var(--lh-tl)), var(--lh-tl) calc(2 * var(--lh-tl)), var(--lh-tl) var(--lh-tl), calc(2 * var(--lh-tl)) var(--lh-tl), calc(2 * var(--lh-tl)) 0,
+		calc(100% - 2 * var(--lh-tr)) 0, calc(100% - 2 * var(--lh-tr)) var(--lh-tr), calc(100% - var(--lh-tr)) var(--lh-tr), calc(100% - var(--lh-tr)) calc(2 * var(--lh-tr)), 100% calc(2 * var(--lh-tr)),
+		100% calc(100% - 2 * var(--lh-br)), calc(100% - var(--lh-br)) calc(100% - 2 * var(--lh-br)), calc(100% - var(--lh-br)) calc(100% - var(--lh-br)), calc(100% - 2 * var(--lh-br)) calc(100% - var(--lh-br)), calc(100% - 2 * var(--lh-br)) 100%,
+		calc(2 * var(--lh-bl)) 100%, calc(2 * var(--lh-bl)) calc(100% - var(--lh-bl)), var(--lh-bl) calc(100% - var(--lh-bl)), var(--lh-bl) calc(100% - 2 * var(--lh-bl)), 0 calc(100% - 2 * var(--lh-bl))
+	);
+}
+/* A list that rises from the edge under it is square there. */
+.lh-steps-top {
+	--lh-br: 0px;
+	--lh-bl: 0px;
+}
+/* A pop-up that is the whole window has no corner to cut. */
+.lh-popup-window {
+	--lh-tl: 0px;
+	--lh-tr: 0px;
+	--lh-br: 0px;
+	--lh-bl: 0px;
 }
 /* On Paper the page's status colors and highlighter are made for a light
    sheet; a pop-up takes the ones that read on the bar. */
@@ -258,10 +304,9 @@
 	--lh-ramp-4: #a3a984;
 	--lh-ramp-5: #8fb09a;
 }
-/* A dark page is close to the bar's color: a floating pop-up gets a thin
-   line so its edge shows. */
-.dark .lh-popup:not(.lh-hang-body, .lh-follow-slip) {
-	box-shadow: inset 0 0 0 1px var(--border);
+/* A dark page is close to the bar's color: a floating pop-up's rim is lighter, so its edge shows. */
+.dark .lh-popup:not(.lh-hang-body, .lh-follow-slip, .lh-popup-window) {
+	--lh-pop-rim: var(--border);
 }
 /* The teacher panel's chat reads like the page: its body takes the page's colors back from the
    pop-up look around it, under the panel's dark head. */
@@ -292,7 +337,7 @@
 	color: var(--foreground);
 }
 .lh-popup [role="menuitem"] {
-	border-radius: var(--lh-pop-row-r);
+	clip-path: var(--lh-notch);
 }
 
 @theme inline {
@@ -338,17 +383,15 @@
 	--font-weight-bold: 500;
 	--font-weight-extrabold: 500;
 	--font-weight-black: 500;
-	/* Near-square corners everywhere. rounded-full stays round, for real
-	   circles (dots, spinners, switch knobs). */
-	--radius-xs: 2px;
-	--radius-sm: 2px;
-	--radius-md: 2px;
-	--radius-lg: 2px;
-	--radius-xl: 2px;
-	--radius-2xl: 2px;
-	--radius-3xl: 2px;
-	--radius-4xl: 2px;
-	--radius: 2px;
+	/* Square where a library's own markup asks for a round corner: the app's boxes are cut in steps (.lh-notch). */
+	--radius-xs: 0px;
+	--radius-sm: 0px;
+	--radius-md: 0px;
+	--radius-lg: 0px;
+	--radius-xl: 0px;
+	--radius-2xl: 0px;
+	--radius-3xl: 0px;
+	--radius-4xl: 0px;
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);
@@ -366,12 +409,11 @@
 	--color-ring: var(--ring);
 	/* Surface + text tokens. The surfaces read the derived palette, so
 	   Settings, Appearance moves them: bg-panel (sheets), bg-tone (hovered
-	   and active rows), bg-tone-2 (thin lines, empty bars), bg-tip
-	   (pop-ups), bg-bar (the top bar), bg-highlight. */
+	   and active rows), bg-tone-2 (thin lines, empty bars), bg-bar
+	   (the top bar), bg-highlight. */
 	--color-panel: var(--card);
 	--color-tone: var(--accent);
 	--color-tone-2: var(--border);
-	--color-tip: var(--lh-tip);
 	--color-ink: var(--foreground);
 	--color-ink-2: var(--muted-foreground);
 	--color-ink-3: var(--lh-ink-3);
@@ -615,6 +657,10 @@ body {
 	.lh-well {
 		background-color: var(--lh-well);
 	}
+	/* The 2px pixel corners of what is small. Cut, so what it holds ends there too. */
+	.lh-notch {
+		clip-path: var(--lh-notch);
+	}
 }
 
 /* A note as a page: lighter than the sheet it lies on, one corner folded over. A page still being
@@ -669,7 +715,7 @@ body {
 	/* A link to open, in a well with 2px pixel corners: the Graph panel's linked facts and topics. */
 	.lh-link-chip {
 		background: var(--lh-well);
-		clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+		clip-path: var(--lh-notch);
 	}
 	.lh-link-chip:hover {
 		background: var(--color-tone);
@@ -834,7 +880,6 @@ body {
 	display: inline-block;
 	margin-left: 2px;
 	padding: 0 3px;
-	border-radius: 2px;
 	font-family: var(--font-ui);
 	font-size: 0.7em;
 	line-height: 1.3;
@@ -909,11 +954,21 @@ body {
 	}
 }
 
-/* The lesson's window (LessonScroll's scroller): text that scrolls past its top or foot dissolves,
-   so no edge cuts a line through its letters. The page's own padding is as tall as the fade, so
-   at rest nothing is faded. */
+/* The lesson's window (LessonScroll's scroller): text that scrolls past its top or foot dissolves
+   in the app's dither (lib/dither.ts), so no edge cuts a line through its letters. The page's own
+   padding is as tall as the dissolving band, so at rest nothing is dissolved. */
 .lh-lesson-window {
-	mask-image: linear-gradient(to bottom, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+	--lh-window-top: 0px;
+	mask-image: var(--lh-dither-top), linear-gradient(#000, #000), var(--lh-dither-foot);
+	mask-repeat: repeat-x, no-repeat, repeat-x;
+	mask-position:
+		0 var(--lh-window-top),
+		0 calc(var(--lh-window-top) + 24px),
+		0 100%;
+	mask-size:
+		8px 24px,
+		100% calc(100% - 48px - var(--lh-window-top)),
+		8px 24px;
 }
 
 /* The lesson text and the turn side by side (LessonScroll), measured on the page's room: the pair
@@ -1007,7 +1062,7 @@ body {
 /* Under it the problem's foot stays clean: text scrolled up is gone a band before the problem's
    edge and dissolves under that band, and the page at rest starts below both. */
 .lh-turn-top:not([hidden]) ~ * .lh-lesson-window {
-	mask-image: linear-gradient(to bottom, transparent 16px, #000 40px, #000 calc(100% - 24px), transparent);
+	--lh-window-top: 16px;
 }
 .lh-turn-top:not([hidden]) ~ * .lh-lesson-window > * > .lh-page {
 	padding-top: 40px;
@@ -1235,11 +1290,12 @@ body {
  * unlayered author CSS wins regardless of order).
  * ============================================================ */
 
-/* Code blocks: no header bar, one quiet tint a step darker than the page
-   with a thin outline. (md-blocks renders its own hover copy corner.) */
+/* Code blocks: no header bar and no outline, on the well, which differs from what it lies on with
+   every background (the sheet's color on the page, the page's on a sheet), as the code editor
+   does. (md-blocks renders its own hover copy corner.) */
 [data-streamdown="code-block"] {
-	border: 1px solid var(--border);
-	background: color-mix(in oklab, var(--background) 92%, black);
+	border: 0;
+	background: var(--lh-well);
 	padding: 0.375rem;
 	/* Streamdown leaves a block out of sight undrawn, at a guessed height of 200px: the page under
 	   it would change height as the block comes near the window. Its own style is set on the element. */
@@ -1261,7 +1317,6 @@ body {
    turns to ink and the code keeps the page's color under it, so its colors still read. */
 .lh-choice [data-streamdown="code-block"] {
 	margin: 0;
-	border: 0;
 	background: transparent;
 	padding: 0;
 }
@@ -1276,12 +1331,10 @@ body {
 	display: block;
 }
 
-/* Tables: hairline row rules + header underline, and a full outer border
-   — actual RECTANGLES outlined on all four sides. border-collapse merges
-   the outer border with the row rules, so
-   no edge doubles. (md-blocks supplies the wrapper + the copy corner.) */
+/* Tables: no outline and no rules between rows or columns. The head stands on the 2-point line a
+   row of tabs has, the columns are kept apart by the cells' room, and every second row lies on the
+   well, so a row reads across by its fill. (md-blocks supplies the wrapper + the copy corner.) */
 [data-streamdown="table"] {
-	border: 1px solid var(--border);
 	/* Tables HUG their contents: no full-width stretch with dead space
 	   (width:auto would still stretch). fit-content also wraps a table
 	   that is a little too wide to fit, down to its longest words; only a
@@ -1296,18 +1349,20 @@ body {
 [data-streamdown="table"] :where(th, td) {
 	font-size: inherit;
 }
-/* Column separators: a hairline left rule on every cell but the first in
-   its row — border-collapse merges it with the row
-   rules and the outer border, no doubled lines anywhere. */
-[data-streamdown="table"] :where(th, td):not(:first-child) {
-	border-left: 1px solid var(--border);
-}
 [data-streamdown="table-header"] {
 	background: transparent;
-	border-bottom: 1px solid var(--border);
+	border-bottom: 2px solid var(--border);
 }
+/* Streamdown's own row dividers go. */
 [data-streamdown="table-body"] [data-streamdown="table-row"] {
-	border-bottom: 1px solid var(--border);
+	border: 0;
+}
+[data-streamdown="table-body"] [data-streamdown="table-row"]:nth-child(even) {
+	background: var(--lh-well);
+}
+/* A break in the text is that same 2-point line. */
+[data-streamdown="horizontal-rule"] {
+	border-top-width: 2px;
 }
 
 /* The mermaid focus overlay's chart wrapper: the svg fills the wrapper
@@ -1472,7 +1527,6 @@ body:has(.lh-own-bar) .lh-app-bar {
 }
 .lh-source-highlight {
 	background-color: var(--accent);
-	outline: 1px solid var(--border);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -1573,40 +1627,51 @@ body:has(.lh-own-bar) .lh-app-bar {
 }
 
 /* A pop-up that opens from the top bar is part of it: flush under the
-   bar, square where the two meet, with the bar curving out into it on
-   both sides. It grows down out of the bar, and what is inside arrives
-   after it, top first. The body is clipped while it grows, so the two
-   curves sit on .lh-hang, around it. */
+   bar, square where the two meet, with the bar stepping out into it on
+   both sides as a sheet's corner steps. It grows down out of the bar, and
+   what is inside arrives after it, top first. The body is clipped while
+   it grows, so the two steps sit on .lh-hang, around it. */
 .lh-hang {
-	--lh-hang-r: var(--lh-round);
+	--lh-hang-step: var(--lh-step);
 	/* What it hangs from: the top bar, or the teacher panel's head. */
 	--lh-hang-fill: var(--lh-bar);
+}
+/* The inside of a corner where two dark edges meet, stepped: the edge above and the edge on the
+   right (--lh-nook), on the left (--lh-nook-left), or the edge below and on the right (--lh-nook-foot). */
+:root {
+	--lh-nook: polygon(0 0, 100% 0, 100% 100%, 50% 100%, 50% 50%, 0 50%);
+	--lh-nook-left: polygon(0 0, 100% 0, 100% 50%, 50% 50%, 50% 100%, 0 100%);
+	--lh-nook-foot: polygon(50% 0, 100% 0, 100% 100%, 0 100%, 0 50%, 50% 50%);
 }
 .lh-hang::before,
 .lh-hang::after {
 	content: "";
 	position: absolute;
 	top: 0;
-	width: var(--lh-hang-r);
-	height: var(--lh-hang-r);
+	width: calc(2 * var(--lh-hang-step));
+	height: calc(2 * var(--lh-hang-step));
 	pointer-events: none;
+	background: var(--lh-hang-fill);
 	transform-origin: top;
-	animation: lh-curve-in var(--lh-dur-fast) var(--lh-ease-out) both;
+	animation: lh-nook-in var(--lh-dur-fast) var(--lh-ease-out) both;
 }
 .lh-hang::before {
 	right: 100%;
-	background: radial-gradient(circle at 0 100%, transparent calc(var(--lh-hang-r) - 0.5px), var(--lh-hang-fill) var(--lh-hang-r));
+	clip-path: var(--lh-nook);
 }
 .lh-hang::after {
 	left: 100%;
-	background: radial-gradient(circle at 100% 100%, transparent calc(var(--lh-hang-r) - 0.5px), var(--lh-hang-fill) var(--lh-hang-r));
+	clip-path: var(--lh-nook-left);
 }
 .lh-hang[data-state="closed"]::before,
 .lh-hang[data-state="closed"]::after {
-	animation: lh-curve-out var(--lh-dur-fast) var(--lh-ease-in) both;
+	animation: lh-nook-out var(--lh-dur-fast) var(--lh-ease-in) both;
 }
 .lh-hang-body {
-	border-radius: 0 0 var(--lh-hang-r) var(--lh-hang-r);
+	--lh-tl: 0px;
+	--lh-tr: 0px;
+	--lh-br: var(--lh-hang-step);
+	--lh-bl: var(--lh-hang-step);
 	animation: lh-hang-in var(--lh-dur-slow) var(--lh-ease-out) both;
 }
 .lh-hang[data-state="closed"] > .lh-hang-body {
@@ -1634,7 +1699,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 
 /* The strip down the window's right edge (strip/strip.tsx): the teacher's
    panel at its narrowest. It is made of the top bar and meets it square,
-   and the bar curves into it at the page's corner. Every page ends where
+   and the bar steps into it at the page's corner. Every page ends where
    it starts (--lh-strip). Under the pointer it leans out toward the page
    and its arrow steps that way; at rest, outside a lesson, the arrow
    steps at the page once every few seconds. */
@@ -1654,10 +1719,11 @@ body:has(.lh-own-bar) .lh-app-bar {
 	position: absolute;
 	top: 0;
 	right: 100%;
-	width: 14px;
-	height: 14px;
+	width: calc(2 * var(--lh-step));
+	height: calc(2 * var(--lh-step));
 	pointer-events: none;
-	background: radial-gradient(circle at 0 100%, transparent 13.5px, var(--lh-bar) 14px);
+	background: var(--lh-bar);
+	clip-path: var(--lh-nook);
 }
 @media (hover: hover) {
 	.lh-strip:hover:not([data-open], [data-out]) {
@@ -1712,7 +1778,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 
 /* Follow's slip (teacher/follow-slip.tsx): the teacher's dark along the
    page's foot, from the window's left edge to the strip or the docked
-   panel, which curves into it at that corner as the bar curves into the
+   panel, which steps into it at that corner as the bar steps into the
    strip. Over the page, under the panel, the peek, the chain table and
    dialogs. Its right end is the open panel's left edge, whether the panel
    pushes the page or lies over it. */
@@ -1722,17 +1788,19 @@ body:has(.lh-own-bar) .lh-app-bar {
 	right: calc(var(--lh-dock-width, 0px) + var(--lh-strip));
 	bottom: 0;
 	z-index: var(--lh-z-slip);
-	border-radius: 0;
+	/* Square, and not cut: its step into the panel sits above its own box. */
+	clip-path: none;
 }
 .lh-follow-slip::before {
 	content: "";
 	position: absolute;
 	right: 0;
 	bottom: 100%;
-	width: 14px;
-	height: 14px;
+	width: calc(2 * var(--lh-step));
+	height: calc(2 * var(--lh-step));
 	pointer-events: none;
-	background: radial-gradient(circle at 0 0, transparent 13.5px, var(--lh-bar) 14px);
+	background: var(--lh-bar);
+	clip-path: var(--lh-nook-foot);
 }
 @media (prefers-reduced-motion: no-preference) {
 	.lh-follow-slip {
@@ -1741,7 +1809,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 }
 
 /* The strip's peek (strip/peek-sheet.tsx): a sheet that slides out of the
-   strip's top, under the bar, with the bar and the strip curving into it.
+   strip's top, under the bar, with the bar and the strip stepping into it.
    Its rows arrive after it, top first. With no strip (the first steps) it
    floats in the window's top right corner. */
 .lh-peek {
@@ -1749,7 +1817,6 @@ body:has(.lh-own-bar) .lh-app-bar {
 	right: 16px;
 }
 .lh-peek-body {
-	border-radius: var(--lh-round);
 	animation: lh-pop-in var(--lh-dur) var(--lh-ease-out) both;
 }
 .lh-peek[data-state="closed"] > .lh-peek-body {
@@ -1764,10 +1831,11 @@ body:has(.lh-own-bar) .lh-app-bar {
 :root:has(.lh-strip) .lh-peek::after {
 	content: "";
 	position: absolute;
-	width: 14px;
-	height: 14px;
+	width: calc(2 * var(--lh-step));
+	height: calc(2 * var(--lh-step));
 	pointer-events: none;
-	background: radial-gradient(circle at 0 100%, transparent 13.5px, var(--lh-bar) 14px);
+	background: var(--lh-bar);
+	clip-path: var(--lh-nook);
 	animation: lh-fade-in var(--lh-dur) var(--lh-ease-out) both;
 }
 :root:has(.lh-strip) .lh-peek::before {
@@ -1783,8 +1851,10 @@ body:has(.lh-own-bar) .lh-app-bar {
 	animation: lh-fade-out var(--lh-dur-fast) var(--lh-ease-in) both;
 }
 :root:has(.lh-strip) .lh-peek-body {
-	border-radius: 0 0 0 var(--lh-round);
-	box-shadow: none;
+	--lh-tl: 0px;
+	--lh-tr: 0px;
+	--lh-br: 0px;
+	--lh-pop-rim: var(--lh-bar);
 	animation: lh-side-in var(--lh-dur-slow) var(--lh-ease-out) both;
 }
 :root:has(.lh-strip) .lh-peek[data-state="closed"] > .lh-peek-body {
@@ -1810,20 +1880,16 @@ body:has(.lh-own-bar) .lh-app-bar {
 .lh-dock[data-state="closed"] > .lh-hang-body {
 	animation-name: lh-side-out;
 }
+/* A pop-up grows from an edge to its own cut shape. The shut shape has as many points as the open
+   one (five a corner), all on that edge, so the browser can draw every step between the two. */
 @keyframes lh-side-in {
 	from {
-		clip-path: inset(0 0 0 100%);
-	}
-	to {
-		clip-path: inset(0);
+		clip-path: polygon(100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%);
 	}
 }
 @keyframes lh-side-out {
-	from {
-		clip-path: inset(0);
-	}
 	to {
-		clip-path: inset(0 0 0 100%);
+		clip-path: polygon(100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%);
 	}
 }
 @keyframes lh-side-row-in {
@@ -1834,26 +1900,20 @@ body:has(.lh-own-bar) .lh-app-bar {
 }
 @keyframes lh-hang-in {
 	from {
-		clip-path: inset(0 0 100% 0 round 0 0 var(--lh-hang-r) var(--lh-hang-r));
-	}
-	to {
-		clip-path: inset(0 0 0 0 round 0 0 var(--lh-hang-r) var(--lh-hang-r));
+		clip-path: polygon(0 0, 0 0, 0 0, 0 0, 0 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 0 0, 0 0, 0 0, 0 0, 0 0);
 	}
 }
 @keyframes lh-hang-out {
-	from {
-		clip-path: inset(0 0 0 0 round 0 0 var(--lh-hang-r) var(--lh-hang-r));
-	}
 	to {
-		clip-path: inset(0 0 100% 0 round 0 0 var(--lh-hang-r) var(--lh-hang-r));
+		clip-path: polygon(0 0, 0 0, 0 0, 0 0, 0 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0, 0 0, 0 0, 0 0, 0 0, 0 0);
 	}
 }
-@keyframes lh-curve-in {
+@keyframes lh-nook-in {
 	from {
 		transform: scaleY(0);
 	}
 }
-@keyframes lh-curve-out {
+@keyframes lh-nook-out {
 	to {
 		transform: scaleY(0);
 	}
@@ -1867,7 +1927,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 
 /* A dialog is a sheet out of the middle of the top bar, over the dimmed
    page; the bar itself is not dimmed. A screen with no bar (the first
-   steps) shows it in the middle, with every corner round. */
+   steps) shows it in the middle, with every corner cut. */
 .lh-sheet-wrap {
 	position: fixed;
 	inset: 0;
@@ -1900,7 +1960,8 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang::after {
 	display: none;
 }
 body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang > .lh-hang-body {
-	border-radius: var(--lh-hang-r);
+	--lh-tl: var(--lh-hang-step);
+	--lh-tr: var(--lh-hang-step);
 	animation: lh-dialog-in var(--lh-dur-slow) var(--lh-ease-out) both;
 }
 body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="closed"] > .lh-hang-body {
@@ -1995,17 +2056,40 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
 /* The mark of the lit one of a row of tabs (lit-marker.ts): one box under
    the tabs, moved to the lit one. It slides only when another tab lights. */
-/* A tab strip (tab-strip.ts) fades out at an end that cuts tabs off. The top bar's lit tab is never wider
-   than the strip, and while tabs are cut off, the strip less the fades' overhang past its padding
-   (2 × (24 − 16) px), so centered its dot and name are clear of both fades. */
+/* A tab strip (tab-strip.ts) dissolves in the app's dither (lib/dither.ts) at an end that cuts tabs off.
+   The top bar's lit tab is never wider than the strip, and while tabs are cut off, the strip less the
+   bands' overhang past its padding (2 × (24 − 16) px), so centered its dot and name are clear of both. */
 .lh-cut[data-cut="end"] {
-	mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
+	mask-image: linear-gradient(#000, #000), var(--lh-dither-right);
+	mask-repeat: no-repeat, repeat-y;
+	mask-position:
+		0 0,
+		100% 0;
+	mask-size:
+		calc(100% - 24px) 100%,
+		24px 8px;
 }
 .lh-cut[data-cut="start"] {
-	mask-image: linear-gradient(to left, black calc(100% - 24px), transparent);
+	mask-image: var(--lh-dither-left), linear-gradient(#000, #000);
+	mask-repeat: repeat-y, no-repeat;
+	mask-position:
+		0 0,
+		24px 0;
+	mask-size:
+		24px 8px,
+		calc(100% - 24px) 100%;
 }
 .lh-cut[data-cut="both"] {
-	mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+	mask-image: var(--lh-dither-left), linear-gradient(#000, #000), var(--lh-dither-right);
+	mask-repeat: repeat-y, no-repeat, repeat-y;
+	mask-position:
+		0 0,
+		24px 0,
+		100% 0;
+	mask-size:
+		24px 8px,
+		calc(100% - 48px) 100%,
+		24px 8px;
 }
 .lh-tab-strip[data-cut] > [data-lit] {
 	max-width: calc(100% - 16px);
@@ -2283,15 +2367,15 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
    straight and still, so its type stays sharp. The lines being read get the
    lesson's highlighter as a bar in the margin, drawn down once the pages
    stop drifting (data-drifting), and the lines around them fade. On a dark
-   background the paper is dimmed, so it never glares. */
-.lh-desk {
+   background the paper is dimmed, so it never glares. The paper, its lip and its ink are set on
+   the paper itself, so a slip of it reads the same anywhere (an approval's command too). */
+.lh-paper {
 	--lh-paper: #e9e9e7;
 	--lh-paper-lip: #bdbdb8;
-}
-.lh-paper {
+	--lh-paper-ink: #2b2b2b;
 	--lh-sheet: var(--lh-paper);
 	--lh-sheet-lip: var(--lh-paper-lip);
-	color: #2b2b2b;
+	color: var(--lh-paper-ink);
 }
 /* A problem's page as printed (citations/page-piece.tsx): one sheet of the page's own white paper. */
 .lh-printed {

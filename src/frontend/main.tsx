@@ -6,9 +6,12 @@ import "katex/dist/katex.min.css";
 import "./fonts/fonts.css";
 import "./globals.css";
 import { BootProvider, fetchBoot } from "@/frontend/components/boot";
+import { DITHER_VARS } from "@/frontend/lib/dither";
 import { routes } from "./routes/router";
 
 const router = createBrowserRouter(routes);
+
+for (const [name, image] of Object.entries(DITHER_VARS)) document.documentElement.style.setProperty(name, image);
 
 /** The first page load paints only once /api/boot and the page's own data
  *  are in, so the first paint is complete (the welcome screen at launch). */

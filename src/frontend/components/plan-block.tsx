@@ -236,7 +236,7 @@ export function PlanPopup({
 			{tree ? (
 				<div
 					ref={viewportRef}
-					className={cn("relative h-[420px] shrink-0 touch-none lh-well overflow-hidden rounded select-none", atFloor ? "cursor-default" : "cursor-grab")}
+					className={cn("relative h-[420px] shrink-0 touch-none lh-well overflow-hidden lh-notch select-none", atFloor ? "cursor-default" : "cursor-grab")}
 					onPointerDown={startDrag}
 					onPointerMove={moveDrag}
 					onPointerUp={endDrag}

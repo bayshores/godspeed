@@ -1,7 +1,7 @@
 /**
  * The shared tooltip opens on KEYBOARD FOCUS, not only on hover, and
  * Escape closes it — mounted with real React handlers over linkedom.
- * Also pins its two flat looks: the box (tip surface, tone-2 edge, bold
+ * Also pins its two flat looks: the box (the pop-up surface, no edge, bold
  * title) and the white tag (Hint).
  */
 import React, { act } from "react";
@@ -105,15 +105,14 @@ describe("the tooltip's look", () => {
 		assert.equal(TOOLTIP_DELAY_MS, 150);
 	});
 
-	it("the box is flat: solid tip surface, tone-2 edge, no blur, bold title", async () => {
+	it("the box is made of the top bar like every pop-up: no edge, no blur, bold title", async () => {
 		const trigger = await mount();
 		await act(async () => {
 			trigger.dispatchEvent(new dom.window.Event("focusin", { bubbles: true }));
 		});
 		const html = tooltip()!.outerHTML;
-		assert.match(html, /bg-tip/);
-		assert.match(html, /border-tone-2/);
-		assert.doesNotMatch(html, /lh-popup|shadow|rounded/);
+		assert.match(tooltip()!.className, /\blh-popup\b/);
+		assert.doesNotMatch(html, /\bborder\b|shadow|rounded/);
 		assert.match(html, /class="[^"]*font-bold[^"]*" data-slot="tooltip-title">Waiting for your answer</);
 	});
 

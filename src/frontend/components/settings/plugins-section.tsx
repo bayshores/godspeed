@@ -121,7 +121,7 @@ export function PluginsSection() {
 							}}
 							className={cn(ROW, sheetOpen ? "bg-highlight font-medium" : "hover:bg-tone")}
 						>
-							<PixelIcon name="plus" className="h-[9px]" />
+							<PixelIcon name="plus" size={10} />
 							Add
 						</button>
 					)}

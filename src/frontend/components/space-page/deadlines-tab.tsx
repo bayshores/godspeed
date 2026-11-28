@@ -192,7 +192,7 @@ function DeadlineRow({
 						<button type="button" data-testid={d.done ? "deadline-undo" : "deadline-done"} onClick={d.done ? onUndo : onDone} className="lh-btn lh-btn-small lh-btn-quiet relative">
 							{d.done ? "Undo" : "Mark done"}
 						</button>
-						<PixelIcon name="chevron" className="h-3.5 text-ink" />
+						<PixelIcon name="chevron" className="text-ink" />
 					</span>
 				</span>
 			</Pane>

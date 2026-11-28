@@ -131,7 +131,7 @@ export function LinkFolderButton({ disabled, onClick }: { disabled?: boolean; on
 	);
 }
 
-const FIELD = "h-10 min-w-0 flex-1 lh-well rounded px-3 text-ui text-ink placeholder:text-ink-3";
+const FIELD = "h-10 min-w-0 flex-1 lh-well lh-notch px-3 text-ui text-ink placeholder:text-ink-3";
 
 /** The path field (no native folder picker): type a folder, Link. */
 export function LinkFolderField({

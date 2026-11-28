@@ -7,9 +7,9 @@ export function TickMark({ checked, mixed = false, className }: { checked: boole
 	return (
 		<span
 			aria-hidden
-			className={cn("flex size-5 shrink-0 items-center justify-center rounded-sm", checked || mixed ? "bg-tint text-background" : "border-2 border-ink bg-background", className)}
+			className={cn("flex size-5 shrink-0 items-center justify-center lh-notch", checked || mixed ? "bg-tint text-background" : "border-2 border-ink bg-background", className)}
 		>
-			{checked ? <PixelIcon name="check" className="h-[9px]" /> : mixed && <PixelIcon name="minus" className="h-[9px]" />}
+			{checked ? <PixelIcon name="check" size={10} /> : mixed && <PixelIcon name="minus" size={10} />}
 		</span>
 	);
 }

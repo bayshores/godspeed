@@ -599,7 +599,7 @@ describe("FilesPage: picking files to study", () => {
 	it("Pick files to study shows tick boxes and a bar that says none is picked; Cancel leaves", async () => {
 		fakeFetch();
 		await mount();
-		const ticks = () => q("files-page")!.querySelectorAll("[class*='border-ink'][class*='rounded-sm']").length;
+		const ticks = () => q("files-page")!.querySelectorAll("[class*='border-ink'][class*='lh-notch']").length;
 		assert.ok(q("files-pick"), "the key sits in the head");
 		assert.equal(q("files-pick")!.textContent, "Pick files to study");
 		assert.equal(ticks(), 0, "no tick boxes before");

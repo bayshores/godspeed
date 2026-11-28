@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useActivity } from "@/frontend/components/activity-dock";
+import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { getJson, jsonInit, send } from "@/frontend/lib/api";
 
 /**
@@ -123,8 +124,8 @@ export function CoverageMenuBody({
 		<div data-testid="ctx-coverage" className="flex flex-col gap-1 px-2.5 pt-1 pb-2">
 			{busy ? (
 				<span className="flex items-center gap-1.5 text-muted-foreground" data-testid="ctx-coverage-running">
-					<span className="size-1.5 animate-pulse motion-reduce:animate-none rounded-full bg-foreground/70" aria-hidden />
-					Adding its facts to the graph…
+					<BrailleSpinner label="Adding its facts to the graph" className="text-current" />
+					<span aria-hidden>Adding its facts to the graph…</span>
 				</span>
 			) : complete ? (
 				<span className="text-muted-foreground">All its facts are in the graph</span>
@@ -136,7 +137,7 @@ export function CoverageMenuBody({
 				data-testid="ctx-extract"
 				onClick={onExtract}
 				disabled={busy || complete}
-				className="lh-press flex items-center justify-center border px-2 py-1 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+				className="lh-btn lh-btn-small mt-1 self-start"
 			>
 				{busy ? "Adding…" : "Add to graph"}
 			</button>

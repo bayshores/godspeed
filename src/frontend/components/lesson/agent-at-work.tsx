@@ -69,7 +69,7 @@ export function AgentAtWork({
 			<>
 				{sheet}
 				{createPortal(
-					<div data-testid="agent-at-work" data-state={closing ? "closed" : "open"} inert={closing} className={cn("lh-desk flex flex-col gap-6 pb-6", closing && "lh-fade")}>
+					<div data-testid="agent-at-work" data-state={closing ? "closed" : "open"} inert={closing} className={cn("flex flex-col gap-6 pb-6", closing && "lh-fade")}>
 						<div className="flex shrink-0 flex-col">{steps}</div>
 						{cards}
 						{foot}
@@ -79,7 +79,7 @@ export function AgentAtWork({
 			</>
 		);
 	return (
-		<div data-testid="agent-at-work" className={cn("lh-desk flex flex-col gap-6", sheet && "flex-1")}>
+		<div data-testid="agent-at-work" className={cn("flex flex-col gap-6", sheet && "flex-1")}>
 			<div className="flex shrink-0 flex-col">{steps}</div>
 			{sheet}
 			{cards}
@@ -117,7 +117,7 @@ function DeskHead({ head, writing, slot, arrive }: { head: string | null; writin
  *  Out of the flow, so the sheet takes the room its place has and never makes it taller. */
 function DeskSheet({ paper, arrives }: { paper: NonNullable<ReturnType<typeof deskPaper>>; arrives: boolean }) {
 	return (
-		<div className="lh-desk relative min-h-[180px] flex-1">
+		<div className="relative min-h-[180px] flex-1">
 			<div className="absolute inset-0 flex flex-col">
 				<PageStage reading={paper.reading} still={paper.still} arrives={arrives} />
 			</div>
@@ -166,7 +166,7 @@ function Mark({ row }: { row: DeskRow }) {
 			{(row.state === "done" || row.state === "folded") && <PixelIcon name="check" className="text-ink-2" />}
 			{row.state === "now" && (
 				<span aria-hidden className="lh-pencil lh-pencil-mark">
-					<PixelIcon name="pencil" className="lh-pencil-tip h-5" />
+					<PixelIcon name="pencil" size={18} className="lh-pencil-tip" />
 				</span>
 			)}
 			{row.state === "next" && <span className="size-2 bg-tone-2" />}

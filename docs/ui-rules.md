@@ -151,7 +151,7 @@ Every page, the lesson page included, uses one column and one set of spacing, so
 - `npm run layout` reports the lesson's writing row outside the lesson's window at any width, a card whose inset is off, two neighbouring sheets in a page's column at a gap that is not `--lh-gap`, and a page h1 without `.lh-page-title` (a heading in rendered Markdown is its writer's and does not count). What the learner pans is marked `data-pans`, and a part of it out of view is not reported as hidden. One picture drawn on stacked boxes (a cheat sheet page with its zoomed part drawn sharper over it) is marked `data-picture`, and its boxes are not checked against each other.
 - A page works in the narrowest room the teacher's panel leaves it (480 points). No column has a fixed width that starves its neighbour: it gives way, or the columns go one over the other (the cheat sheet over its chat under 768 points; its pages one under another in a canvas under 640; Settings' list of picks over its sheet under 760). A panel beside a lesson (the cheat sheet, the Document panel) covers the lesson where the lesson would keep under 480 points beside it, and Close brings the lesson back as it was.
 - A row of words with keys at its end (a Study page row, Progress's next deadline, the Files head) drops the keys under the words where the words would be squeezed, never shortening a name to make room for a key.
-- A tab row (`.lh-tabs`) stays on one line: too narrow for its tabs, they scroll sideways with the lit tab kept in view and a cut end faded (`tab-strip.ts`), as the top bar's tabs do, so the page under them never moves down.
+- A tab row (`.lh-tabs`) stays on one line: too narrow for its tabs, they scroll sideways with the lit tab kept in view and a cut end dissolved in the dither (`tab-strip.ts`), as the top bar's tabs do, so the page under them never moves down.
 - The teacher's chat can leave the panel for a window of its own: the key is "Pop out", in the panel's head; the way back is "Put back", the panel head's last key and the only key in the window's head. The window holds the chat, no Follow, Chats or Activity, and works down to 400 by 300 points. On the Mac its head is its title bar, one dark sheet with the traffic lights in it. Popping out closes the panel, so the page gets the room; while the window is open the panel is Activity alone and the strip lit with "needs you" means a card in the window's chat waits. "Put back" in either window opens the panel on the chat.
 - A view that fits its content (the cheat sheet canvas) fits it again when its room changes, until the learner moves the view.
 - Before calling a page change finished, look at it at 1512, 1100 and 640 points wide, with the teacher's panel open too.
@@ -190,6 +190,24 @@ The app moves in one register, quick and quiet, like an e-ink page redrawing. Th
 - A page opens at rest: after it first shows, nothing in it moves, arrives or changes size by itself. What the first drawing needs is read before it: server data in the route's loader (the active space's record, progress and sheets are read once for the window, in the app shell), stored state (a draft, an open panel, a dragged width) in the state's initializer, a measured layout in a layout effect. An effect after mount never reads what the first drawing depends on.
 - A wait has the shape of what comes, at the place it will appear, and shows objects (the lesson's desk shows the page of the file the teacher reads as paper), not skeleton bars. It has one live element. A wait for the teacher says in plain words what it does: the lesson's desk has one sentence and the teacher's steps ([7.1](architecture/07.1-while-the-teacher-works.md)), and while it shows, the strip and the teacher's panel say only "Working".
 - Before calling a waiting state finished, reload a lesson mid-wait at 1440, 1100 and 640 points wide: it shows without motion, in place, and nothing jumps as the reply's words come or when the turn ends.
+
+## Shape
+
+Every corner is cut in pixel steps. Nothing is round, and nothing is outlined with a thin line.
+
+| Thing | Class | Corner |
+|---|---|---|
+| A box on the page | `lh-sheet` | Two 4 px steps, on a lip |
+| A pop-up, a menu, a dialog | `lh-popup` | Two 4 px steps (`--lh-step`), cut, so what it holds ends at the same steps |
+| A field, a chip, a tile, a row of a menu | `lh-notch` (with `lh-well` for a field) | One 2 px step |
+| A key | `lh-btn` | One 3 px step |
+
+- A pop-up that meets the top bar, the strip or the window's edge is square there, and the dark edge steps into it at the corner (`--lh-nook`). It sets the corner's step to `0px` (`--lh-tl`, `--lh-tr`, `--lh-br`, `--lh-bl`).
+- On a dark background a floating pop-up has a 2 px rim (`--lh-pop-rim`), since the page is close to its color.
+- No `rounded` class: lint fails every one but `rounded-full`. A new small box takes `lh-notch`.
+- A line is 2 px or it is not there: no 1 px or 1.5 px edge. What a line would hold apart is held apart by a fill (`lh-well`) or by room.
+- An end that cuts content off (a scrolling box, a row of tabs) dissolves in the dither (`lib/dither.ts`: hard 2 px cells that thin toward the edge), never in a soft fade.
+- A cut box cuts what sticks out of it. The cut lifts while keyboard focus is inside, so the focus ring shows whole. A box that holds something that hangs past its edge (the code editor's hints) stays square.
 
 ## Type
 

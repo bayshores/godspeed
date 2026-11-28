@@ -68,7 +68,7 @@ export function RuleEditBox({ api, draft }: { api: SavedRuleApi; draft: string }
 						api.cancel();
 					}
 				}}
-				className="lh-well h-[28px] min-w-0 flex-1 basis-60 rounded px-2 text-(length:--text-sm) text-ink"
+				className="lh-well h-[28px] min-w-0 flex-1 basis-60 lh-notch px-2 text-(length:--text-sm) text-ink"
 			/>
 			<button type="button" data-testid="saved-rule-save" disabled={api.busy || !draft.trim()} onClick={() => api.save(draft)} className="lh-btn">
 				Save

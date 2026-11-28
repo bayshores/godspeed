@@ -40,7 +40,7 @@ export function AnsweredTurn({ answer, tag }: { answer: QuestionAnswerData; tag:
 							verdict={graded && <ResultChip answer={answer} />}
 						/>
 					)}
-					{said && <p className="self-start whitespace-pre-wrap lh-well px-4 py-2.5 font-prose text-tab leading-7 text-ink-2">{said}</p>}
+					{said && <p className="self-start whitespace-pre-wrap lh-well lh-notch px-4 py-2.5 font-prose text-tab leading-7 text-ink-2">{said}</p>}
 					{answer.code && <MessageResponse>{fencedCode(answer.code, answer.language ?? "")}</MessageResponse>}
 				</>
 			)}

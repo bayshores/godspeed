@@ -338,7 +338,7 @@ function FilesPageBody() {
 							</p>
 						)}
 						{finderDrag !== null && (
-							<div data-testid="files-drop" className="flex h-[110px] items-center justify-center lh-well rounded px-4 text-center text-item font-medium text-ink">
+							<div data-testid="files-drop" className="flex h-[110px] items-center justify-center lh-well lh-notch px-4 text-center text-item font-medium text-ink">
 								{dropTitle(finderDrag)}
 							</div>
 						)}

@@ -153,7 +153,7 @@ function ShortcutList() {
 							{a.label}
 							<span className="flex shrink-0 gap-1.5">
 								{bindingKeys(bindingForAction(a.id)).map((key, i) => (
-									<kbd key={i} className="rounded border-[1.5px] border-ink bg-background px-2 py-0.5 font-[inherit] text-sm">
+									<kbd key={i} className="lh-notch border-2 border-ink bg-background px-2 py-0.5 font-[inherit] text-sm">
 										{key}
 									</kbd>
 								))}

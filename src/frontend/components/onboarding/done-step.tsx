@@ -31,8 +31,8 @@ export function DoneStep({
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	return (
 		<div data-testid="onboarding-done" className="ob-step m-auto flex flex-col items-center gap-[30px] px-4 text-center">
-			<span className="flex size-14 items-center justify-center rounded bg-ans-right text-background">
-				<PixelIcon name="check" className="h-5" />
+			<span className="flex size-14 items-center justify-center lh-notch bg-ans-right text-background">
+				<PixelIcon name="check" size={20} />
 			</span>
 			<div className="flex flex-col items-center gap-2.5">
 				<h1 className="text-[40px] leading-tight text-ink">{ready ? "You’re all set." : "You’re almost set."}</h1>

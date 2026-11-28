@@ -316,7 +316,9 @@ async function startApp(port, name) {
 	fs.writeFileSync(ctl, "");
 	fs.writeFileSync(out, "");
 	const log = fs.openSync(path.join(dir, "app.log"), "w");
-	const child = spawn(APP, [], {
+	// A Mac with a mouse plugged in draws scroll bars that take room from the page, and one with a trackpad
+	// draws them over it: the run asks for the second, so its pictures and findings are the same on both.
+	const child = spawn(APP, ["-AppleShowScrollBars", "WhenScrolling"], {
 		stdio: ["ignore", log, log],
 		env: {
 			...process.env,

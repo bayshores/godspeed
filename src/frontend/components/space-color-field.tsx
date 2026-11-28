@@ -31,7 +31,7 @@ export const SpaceColorField = memo(function SpaceColorField({
 							disabled={disabled}
 							onClick={() => onChange(i + 1)}
 							style={{ background: spaceColorVar(i + 1) }}
-							className={cn("lh-press size-8 border-[1.5px] disabled:opacity-60", picked ? "border-ink outline-2 outline-offset-2 outline-ink" : "border-border")}
+							className={cn("lh-press size-8 border-2 disabled:opacity-60", picked ? "border-ink outline-2 outline-offset-2 outline-ink" : "border-border")}
 						/>
 					);
 				})}

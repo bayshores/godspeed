@@ -230,11 +230,12 @@ const theme = EditorView.theme(
 		// at 1.1em a plain formula sits inside the line like a word.
 		".cm-math .katex": { fontSize: "1.1em" },
 		".cm-math:hover": { backgroundColor: "var(--accent)" },
-		".cm-math-editing": { cursor: "text", outline: "1px solid var(--lh-ink-3)", outlineOffset: "1px" },
+		// A formula being edited keeps the hover's fill, which shows its box without an outline.
+		".cm-math-editing": { cursor: "text", backgroundColor: "var(--accent)" },
 		"& math-field": { display: "inline-block", minWidth: "24px", padding: "0", border: "none", background: "transparent", color: "inherit", fontSize: "17.6px", lineHeight: "24px", "--caret-color": "var(--lh-ink-max)", "--selection-background-color": "var(--border)", "--contains-highlight-background-color": "transparent", "--placeholder-color": "var(--lh-ink-3)" },
 		"& math-field::part(menu-toggle), & math-field::part(virtual-keyboard-toggle)": { display: "none" },
 		"& math-field::part(content)": { padding: "0" },
-		".cm-tooltip.cm-tooltip-autocomplete": { backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "0" },
+		".cm-tooltip.cm-tooltip-autocomplete": { backgroundColor: "var(--card)", border: "2px solid var(--border)", borderRadius: "0" },
 		".cm-tooltip.cm-tooltip-autocomplete > ul": { fontFamily: "var(--font-ui)", maxHeight: "220px" },
 		".cm-tooltip.cm-tooltip-autocomplete > ul > li": { display: "flex", alignItems: "baseline", gap: "12px", padding: "6px 12px", color: "var(--foreground)", cursor: "pointer" },
 		".cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected]": { backgroundColor: "var(--border)", color: "var(--foreground)" },

@@ -186,7 +186,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 						/>
 					)}
 					{/* Its own scroll, so Done and Save stay in sight under a long list. */}
-					<div role="group" aria-label="Files this covers" className="flex max-h-[212px] flex-col overflow-y-auto lh-well rounded px-3 py-1.5">
+					<div role="group" aria-label="Files this covers" className="flex max-h-[212px] flex-col overflow-y-auto lh-well lh-notch px-3 py-1.5">
 						{listed.map((f) => (
 							<CheckRow key={f.id} testid={`deadline-file-${f.id}`} label={f.name} note={fileDayLabel(f.name)} checked={draft.fileIds.includes(f.id)} disabled={busy} onToggle={() => change({ fileIds: toggleFile(draft.fileIds, f.id, order) })} />
 						))}

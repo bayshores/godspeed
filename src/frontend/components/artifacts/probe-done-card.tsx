@@ -47,7 +47,7 @@ export function ProbeDoneCard({ part }: { part: { input?: unknown; output?: unkn
 			) : strands ? (
 				<div className="flex flex-col gap-2">
 					{strands.map((s, i) => (
-						<div key={i} className="rounded-sm bg-panel px-3 py-2">
+						<div key={i} className="lh-notch bg-panel px-3 py-2">
 							<div className="text-ui font-medium text-ink">{s.strand}</div>
 							<div className="mt-0.5 font-prose text-(length:--text-lg) text-ink-2">{s.assessment}</div>
 						</div>

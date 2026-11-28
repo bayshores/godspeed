@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { useAppearance } from "@/frontend/components/settings/appearance";
+import { HALF_TONE } from "@/frontend/lib/dither";
 import { useElementWidth } from "@/frontend/lib/use-element-width";
 import { cn } from "@/frontend/lib/utils";
 import type { ProblemPiece } from "@/shared/core";
@@ -75,6 +76,8 @@ export function PagePiece({
 		);
 	}
 	const asked = pieceWidth(widest.current, window.devicePixelRatio || 1);
+	// What the page lies on: the page's own white as printed, else the sheet.
+	const fill = printed ? "bg-white" : "bg-(--lh-sheet)";
 	return (
 		<div ref={boxRef} data-testid="page-piece" data-picture="" className={cn("relative flex w-full flex-col", quiet && "opacity-60", printed && "lh-printed")}>
 			<span className="sr-only">{text}</span>
@@ -96,11 +99,17 @@ export function PagePiece({
 						)}
 						{mark && <PageMarks boxes={[mark]} />}
 						{veiled[i]!.map((band, k) => (
-							<span key={k} aria-hidden data-testid="piece-veil" className={cn("absolute inset-x-0 opacity-55", printed ? "bg-white" : "bg-(--lh-sheet)")} style={{ top: pct(band.top), height: pct(band.height) }} />
+							<span key={k} aria-hidden data-testid="piece-veil" className={cn("absolute inset-x-0 opacity-55", fill)} style={{ top: pct(band.top), height: pct(band.height) }} />
 						))}
 						{edges[i]!.map(
 							(band, k) =>
-								band && <span key={k} aria-hidden data-testid="piece-edge" className={cn("absolute inset-x-0 from-(--lh-edge) from-45% to-transparent", k === 0 ? "bg-linear-to-b" : "bg-linear-to-t", printed ? "[--lh-edge:white]" : "[--lh-edge:var(--lh-sheet)]")} style={{ top: pct(band.top), height: pct(band.height) }} />,
+								band && (
+									// The sheet's edge comes back in steps: whole, half, then the page.
+									<span key={k} aria-hidden data-testid="piece-edge" className={cn("absolute inset-x-0 flex", k === 0 ? "flex-col" : "flex-col-reverse")} style={{ top: pct(band.top), height: pct(band.height) }}>
+										<span className={cn("h-1/3", fill)} />
+										<span className={cn("h-1/3", fill)} style={HALF_TONE} />
+									</span>
+								),
 						)}
 						{lit[i]!.map((band, k) => (
 							<span key={k} aria-hidden data-testid="piece-bar" className="lh-read-mark lh-read-mark-still absolute left-0 w-1.5" style={{ top: pct(band.top), height: pct(band.height) }} />

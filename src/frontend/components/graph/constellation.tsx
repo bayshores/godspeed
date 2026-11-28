@@ -21,13 +21,14 @@ import { makeRouter, toStars } from "./constellation-routes.ts";
 import { NAME_PX, fitPicture, namesHidden } from "./constellation-fit.ts";
 import { NAME_AFTER, RIM_AFTER, frozenDelays, lineDelay, type Reveal } from "./constellation-reveal.ts";
 import { MOON_PITCH, STAR_CAP, camShowing, drawnRect, isNear, nearRamp, pitchOf, project, starPitch, toLayout, viewRect, type Aim, type Bleed, type CameraMemory, type Frame } from "./constellation-camera.ts";
-import { BAND, PictureSvg } from "./constellation-edges.tsx";
+import { PictureSvg } from "./constellation-edges.tsx";
 import { FigureLayer, NameTag, TAG_H, TAG_PX, starHalf, tagLabel, useDrawIn } from "./constellation-figure-layer.tsx";
 import { tagSpot, tipSpot } from "./constellation-tips.ts";
 import { useCamera } from "./use-camera.ts";
 import { useArrival, useDrawnSky, useFigures } from "./use-figure.ts";
 import { useInViewReport, type InView } from "./use-in-view.ts";
 import { prefersReducedMotion } from "@/frontend/components/presence";
+import { DITHER_BAND } from "@/frontend/lib/dither";
 import type { Place } from "./constellation-figure.ts";
 import { DIM, FADE, FAINT } from "./styles.ts";
 
@@ -274,7 +275,7 @@ export function Constellation({
 	const around = zoomed ? drawnRect(cam, frame, bleed, MARGIN) : viewRect(cam, frame, MARGIN);
 	// Zoomed in, the picture is drawn past its box (out to the window's sides) and dissolves at its top and bottom.
 	/** Where a name or the name tag shows whole while zoomed in: the drawn area, short of its dissolving edges. */
-	const clear = zoomed ? { x0: -bleed.left, x1: shownW + bleed.right, y0: BAND - bleed.top, y1: frame.h + bleed.bottom - BAND } : null;
+	const clear = zoomed ? { x0: -bleed.left, x1: shownW + bleed.right, y0: DITHER_BAND - bleed.top, y1: frame.h + bleed.bottom - DITHER_BAND } : null;
 	const nearView = (x: number, y: number) => x >= around.x0 && x <= around.x1 && y >= around.y0 && y <= around.y1;
 
 	// Fixed for each reveal: a re-fit never moves a running animation, and a

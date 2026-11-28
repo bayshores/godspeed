@@ -10,7 +10,7 @@ import { cn } from "@/frontend/lib/utils";
 export function LearnerPlate({ text, over, children, className }: { text: string; over?: ReactNode; children?: ReactNode; className?: string }) {
 	return (
 		<div className={cn("my-2 flex w-full justify-end", className)}>
-			<div data-testid="user-message" className="flex w-fit max-w-[82%] min-w-0 flex-col gap-2 lh-well px-4 py-2.5">
+			<div data-testid="user-message" className="flex w-fit max-w-[82%] min-w-0 flex-col gap-2 lh-well lh-notch px-4 py-2.5">
 				{over}
 				{text && (
 					<div className="whitespace-pre-wrap break-words font-prose text-ink" style={{ fontSize: "var(--lh-prose-size)" }}>

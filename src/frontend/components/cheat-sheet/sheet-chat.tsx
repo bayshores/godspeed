@@ -22,7 +22,7 @@ export function pointedLabel(region: SheetRegion, pages: number): string {
 }
 
 /** A small boxed note in the chat (a version made). */
-const NOTE = "flex items-center gap-2.5 lh-well self-start rounded px-2.5 py-1.5 text-base text-ink";
+const NOTE = "flex items-center gap-2.5 lh-well self-start lh-notch px-2.5 py-1.5 text-base text-ink";
 
 /**
  * THE SHEET'S CHAT: the sheet's rules (each with a remove ✕), then the
@@ -208,9 +208,9 @@ function YouFiles({ message, spaceId, deadlineId }: { message: Extract<SheetMess
 		<div className="flex flex-wrap items-start gap-2">
 			{files.map((f, i) =>
 				f.file && !/\.pdf$/i.test(f.file) ? (
-					<img key={i} data-testid="sheet-picture" src={sheetFilePath(spaceId, deadlineId, f.file)} alt={f.name} className="block max-h-[160px] w-auto max-w-full rounded border border-border" />
+					<img key={i} data-testid="sheet-picture" src={sheetFilePath(spaceId, deadlineId, f.file)} alt={f.name} className="block max-h-[160px] w-auto max-w-full lh-notch lh-well p-1" />
 				) : (
-					<span key={i} data-testid="sheet-file" className="flex h-8 max-w-56 lh-well items-center rounded px-3 text-base text-ink">
+					<span key={i} data-testid="sheet-file" className="flex h-8 max-w-56 lh-well items-center lh-notch px-3 text-base text-ink">
 						<span className="truncate" title={f.name}>
 							{f.name}
 						</span>
@@ -262,13 +262,13 @@ function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[
 					<div>
 						<ul className="flex flex-col items-start gap-1.5">
 							{rules.map((rule) => (
-								<li key={rule.text} data-testid="sheet-rule" className="flex max-w-full items-center lh-well gap-2.5 rounded py-1.5 pr-2 pl-3 text-base text-ink">
+								<li key={rule.text} data-testid="sheet-rule" className="flex max-w-full items-center lh-well gap-2.5 lh-notch py-1.5 pr-2 pl-3 text-base text-ink">
 									<span className="min-w-0 break-words">{rule.text}</span>
 									<span title={savedDay(rule.at)} className="shrink-0 text-sm whitespace-nowrap text-ink-2">
 										Saved by {agentName}
 									</span>
 									<button type="button" aria-label={`Remove rule: ${rule.text}`} onClick={() => onRemove(rule.text)} className="lh-press shrink-0 p-0.5 text-ink-2 hover:text-ink">
-										<PixelIcon name="close" className="h-[10.5px]" />
+										<PixelIcon name="close" />
 									</button>
 								</li>
 							))}
@@ -283,11 +283,11 @@ function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[
 /** The part of the sheet pointed at, waiting to go with the next line. */
 function PointedChip({ pointed, pages, onClear }: { pointed: Pointed; pages: number; onClear: () => void }) {
 	return (
-		<div data-testid="sheet-pointed-chip" className="flex max-w-full items-center gap-2.5 lh-well self-start rounded py-1.5 pr-2 pl-1.5">
-			<img src={`data:${pointed.picture.mimeType};base64,${pointed.picture.data}`} alt="" className="block h-6 w-auto max-w-12 border border-border bg-white object-contain" />
+		<div data-testid="sheet-pointed-chip" className="flex max-w-full items-center gap-2.5 lh-well self-start lh-notch py-1.5 pr-2 pl-1.5">
+			<img src={`data:${pointed.picture.mimeType};base64,${pointed.picture.data}`} alt="" className="block h-6 w-auto max-w-12 bg-white object-contain" />
 			<span className="min-w-0 truncate text-base text-ink">Pointing at {pointedLabel(pointed.region, pages)}</span>
 			<button type="button" aria-label="Don't send the part you pointed at" onClick={onClear} className="lh-press shrink-0 p-0.5 text-ink-2 hover:text-ink">
-				<PixelIcon name="close" className="h-[10.5px]" />
+				<PixelIcon name="close" />
 			</button>
 		</div>
 	);

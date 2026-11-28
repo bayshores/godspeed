@@ -79,7 +79,7 @@ function Results({ onClose }: { onClose: () => void }) {
 				placeholder="Search every lesson"
 				aria-label="Search every lesson"
 				spellCheck={false}
-				className="h-11 w-full lh-well rounded px-3 text-base text-ink outline-none placeholder:text-ink-3"
+				className="h-11 w-full lh-well lh-notch px-3 text-base text-ink outline-none placeholder:text-ink-3"
 			/>
 			{shown === null ? (
 				failed ? (

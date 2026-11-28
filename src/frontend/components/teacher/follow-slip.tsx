@@ -159,7 +159,7 @@ function SlipBody({
 							{view.count}
 						</span>
 					)}
-					{lists && <PixelIcon name="chevron" className={cn("h-[9px] transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open ? "rotate-90" : "-rotate-90")} />}
+					{lists && <PixelIcon name="chevron" className={cn("transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open ? "rotate-90" : "-rotate-90")} />}
 				</button>
 				{key && waiting && (
 					<button type="button" data-testid="follow-slip-go" onClick={() => go(waiting)} className="lh-btn lh-btn-small my-[7px] shrink-0">
@@ -173,7 +173,7 @@ function SlipBody({
 
 /** Before the words: the pencil, which writes while the teacher works and rests while Follow waits, or a check once it is done. */
 function Mark({ mark }: { mark: Slip["view"]["mark"] }) {
-	return mark === "done" ? <PixelIcon name="check" className="h-[9px]" /> : <PixelIcon name="pencil" className={cn("h-[13px]", mark === "live" && "ob-pulse")} />;
+	return mark === "done" ? <PixelIcon name="check" size={10} /> : <PixelIcon name="pencil-small" className={cn(mark === "live" && "ob-pulse")} />;
 }
 
 /** The round's earlier rows, newest at the bottom by the line, eight in view and the rest scrolled up. A change and a
@@ -190,9 +190,9 @@ function RoundList({ rows, open, onPick }: { rows: readonly TimelineRow[]; open:
 				const opens = row.kind === "change" || !!row.link;
 				const inside = (
 					<>
-						<PixelIcon name="check" className="h-[9px]" />
+						<PixelIcon name="check" size={10} />
 						<span className="min-w-0 flex-1 break-words">{row.text}</span>
-						{opens && <PixelIcon name="chevron" className="h-[9px]" />}
+						{opens && <PixelIcon name="chevron" />}
 					</>
 				);
 				return (

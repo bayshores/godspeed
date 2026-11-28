@@ -90,7 +90,7 @@ export function WebSearch() {
 									</p>
 								)}
 								<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-									<PixelIcon name="key" className="h-2.5 text-ink" />
+									<PixelIcon name="key" size={10} className="text-ink" />
 									<span data-testid="web-search-key" className="text-base text-ink">
 										Key ending in {view.keyEnd}
 									</span>
@@ -141,10 +141,10 @@ export function WebSearch() {
 /** One of the two ways to search: the one in use is filled and ticked. */
 function Choice({ testid, name, picked, children }: { testid: string; name: string; picked: boolean; children: ReactNode }) {
 	return (
-		<div data-testid={testid} data-picked={picked || undefined} className="lh-well flex min-w-0 flex-col gap-3 rounded p-4">
+		<div data-testid={testid} data-picked={picked || undefined} className="lh-well flex min-w-0 flex-col gap-3 lh-notch p-4">
 			<div className="flex items-center gap-2.5">
 				<span aria-hidden className={cn("flex size-[18px] shrink-0 items-center justify-center border-2", picked ? "border-ink bg-ink text-background" : "border-edge")}>
-					{picked && <PixelIcon name="check" className="h-2" />}
+					{picked && <PixelIcon name="check" size={10} />}
 				</span>
 				<h3 className={cn("min-w-0 flex-1 text-item leading-tight", picked ? "font-medium text-ink" : "text-ink-2")}>{name}</h3>
 				{picked && <span className="shrink-0 bg-highlight px-2 py-0.5 text-sm text-ink">In use</span>}

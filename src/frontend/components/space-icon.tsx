@@ -22,6 +22,6 @@ const ICONS: Record<SpaceIconName, readonly string[]> = {
 };
 
 /** A space's subject icon; a space without one shows the open book. */
-export function SpaceIcon({ icon, className }: { icon: SpaceIconName | undefined; className?: string }) {
-	return <PixelGrid rows={ICONS[icon ?? "book-open"]} className={className} />;
+export function SpaceIcon({ icon, size }: { icon: SpaceIconName | undefined; size: number }) {
+	return <PixelGrid rows={ICONS[icon ?? "book-open"]} size={size} />;
 }

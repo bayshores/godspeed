@@ -51,7 +51,6 @@ describe("derivedPalette — every surface and text color follows the background
 		assert.equal(p["--background"], "#141414");
 		assert.equal(p["--card"], "#1c1c1c");
 		assert.equal(p["--accent"], "#2a2a2a");
-		assert.equal(p["--lh-tip"], "#282828");
 		assert.equal(p["--border"], "#434343");
 		assert.equal(p["--foreground"], "#e6e6e6");
 		assert.equal(p["--primary-foreground"], "#141414", "primary buttons take the background as their text");
@@ -65,11 +64,10 @@ describe("derivedPalette — every surface and text color follows the background
 		assert.ok(contrast(tint, "#0d1320") >= 7, "and reads as text");
 	});
 
-	it("OLED black derives the redesign's panel / tone / tooltip / tone-2", () => {
+	it("OLED black derives the redesign's panel / tone / tone-2", () => {
 		const p = derivedPalette("#000000");
 		assert.equal(p["--card"], "#080808");
 		assert.equal(p["--accent"], "#161616");
-		assert.equal(p["--lh-tip"], "#141414");
 		assert.equal(p["--border"], "#2f2f2f");
 	});
 
