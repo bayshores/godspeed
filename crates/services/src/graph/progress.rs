@@ -11,7 +11,7 @@ use gs_core::spaces::problem_list::with_problem_lists;
 use gs_core::spaces::today_note::local_day;
 use gs_core::graph::graph::get_graph;
 use gs_core::session::plan_step_bar::step_bar;
-use gs_core::session::practice_outcomes::practice_outcomes;
+use gs_core::session::practice_outcomes::practice_outcomes_with_skipped;
 use gs_core::study::kept::{KeptSentence, kept_comebacks, kept_sentences};
 use gs_core::study::progress::{collect_answers, derive_progress, facts_by_message, facts_for_answer};
 use gs_core::study::review::review_items;
@@ -54,10 +54,14 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 	let record = app.stores.chats.get_chat(chat_id)?;
 	let messages = record["messages"].items();
 	let has_plan = !record["tree"]["nodes"].items().is_empty() && ChatKind::of(&record) != ChatKind::Practice;
+	let (outcomes, skipped) = practice_outcomes_with_skipped(messages);
+	if skipped > 0 {
+		eprintln!("[progress] skipped {skipped} practice results with no time in {chat_id}");
+	}
 	let readout = Arc::new(Readout {
 		version,
 		answers: collect_answers(chat_id, messages),
-		outcomes: practice_outcomes(messages),
+		outcomes,
 		reviews: review_items(chat_id, messages),
 		kept: kept_sentences(chat_id, messages),
 		comebacks: kept_comebacks(messages),

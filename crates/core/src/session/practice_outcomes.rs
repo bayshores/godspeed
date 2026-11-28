@@ -55,8 +55,15 @@ fn targets_of(args: &Json) -> Json {
 /// targets[, nodeId], outcome[, rung], at }` (a study problem names its plan node; `rung` is the
 /// hint rung its conclude named, R0 to R5).
 pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
+	practice_outcomes_with_skipped(messages).0
+}
+
+/// `practice_outcomes`, and how many concluded problems it left out because their result has no
+/// readable time, for the caller to log.
+pub fn practice_outcomes_with_skipped(messages: &[Json]) -> (Vec<Json>, usize) {
 	let mut calls: HashMap<&str, Call> = HashMap::new();
 	let mut out = Vec::new();
+	let mut skipped = 0;
 	let mut open: Option<OpenProblem> = None;
 	for m in messages {
 		if Role::Assistant.is(m) {
@@ -79,7 +86,10 @@ pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 		let Some(problem) = open.take() else { continue };
 		// Stored results always carry a millisecond number; a damaged one without a time cannot be
 		// placed on the record, and the rest of the lesson still counts.
-		let Some(at) = iso_of(m.get("timestamp")) else { continue };
+		let Some(at) = iso_of(m.get("timestamp")) else {
+			skipped += 1;
+			continue;
+		};
 		let mut entry = Obj::new();
 		if let Some(id) = problem.message_id {
 			entry.insert("messageId", id.clone());
@@ -97,7 +107,7 @@ pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 		entry.insert("at", at);
 		out.push(Json::Obj(entry));
 	}
-	out
+	(out, skipped)
 }
 
 #[cfg(test)]
@@ -178,13 +188,13 @@ mod tests {
 	}
 
 	#[test]
-	fn a_result_with_no_readable_time_is_left_out() {
+	fn a_result_with_no_readable_time_is_left_out_and_counted() {
 		let messages = [
 			assistant("m1", json!([{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": {} }, { "type": "toolCall", "id": "c1", "name": "conclude", "arguments": { "outcome": "movedOn" } }])),
 			result("p1", 1, false),
 			json!({ "role": "toolResult", "toolCallId": "c1" }),
 		];
-		assert_eq!(practice_outcomes(&messages), Vec::<Json>::new());
+		assert_eq!(practice_outcomes_with_skipped(&messages), (Vec::<Json>::new(), 1));
 		assert_eq!(iso_of(None), None);
 		assert_eq!(iso_of(Some(&json!("not a date"))), None);
 	}
