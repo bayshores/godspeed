@@ -26,7 +26,7 @@ const dom = parseHTML("<html><body></body></html>");
 (globalThis as Record<string, unknown>).window = dom.window;
 (globalThis as Record<string, unknown>).document = dom.document;
 
-describe("update banner (Wave C)", () => {
+describe("update banner", () => {
 	afterEach(() => {
 		delete (window as { lh?: unknown }).lh;
 	});

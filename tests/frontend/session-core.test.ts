@@ -1,5 +1,5 @@
 /**
- * SESSION MODEL tests (src/frontend/components/session-core.ts — Wave D): the pure state
+ * SESSION MODEL tests (src/frontend/components/session-core.ts): the pure state
  * machine that replaced useChat + the AI-SDK transport. Everything the old
  * transport/merge suites pinned survives here on the native wire:
  *
@@ -523,7 +523,7 @@ describe("send (one input event, verbatim consumption)", () => {
 		await done;
 	});
 
-it("Wave C: markers injected mid-run (custom role, follow-up delivery) append to the tail by id", () => {
+it("markers injected mid-run (custom role, follow-up delivery) append to the tail by id", () => {
 	// A never-settling fetch: the send only needs to flip the model into its
 	// streaming status synchronously — its POST floats (never rejects) while
 	// the injected wire events are asserted.

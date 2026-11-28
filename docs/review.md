@@ -7,10 +7,10 @@ The reviewer is a fresh agent: one that did not write the change and was not tol
 ## Steps
 
 1. Find where the branch left `main`: `git merge-base HEAD origin/main`.
-2. Read the change: `git diff <that commit>..HEAD`. Read each changed file whole where the diff alone does not show what the code around it does.
+2. Read the change: `git diff <that commit>..HEAD`. Read each changed file whole where the diff alone does not show what the code around it does. Over about 40 files, read in this order: new and changed checks, changed behavior, moved code, recorded fixtures.
 3. Read the reasons the branch gave for growing a list of exceptions: `git log --format=%B <that commit>..HEAD | grep '^Ratchet:'`. Judge each one by the table below.
-4. For each kind in the table, look for it in the change. Search the repo before calling something a second copy or a second way (`graphify query "<question>"`, then grep).
-5. Answer in the form under "The answer". Change no file.
+4. For each kind in the table, look for it in the change. Search the repo before calling something a second copy or a second way (`graphify query "<question>"`, then `rg`; `rg` alone when the graph says it is stale).
+5. Answer in the form under "The answer". Change no file. To test a suspicion, one test file may be run (`NODE_ENV=test npx tsx --test tests/repo/<name>.test.ts`); no build and no full check.
 
 ## What to look for
 
@@ -26,11 +26,13 @@ The reviewer is a fresh agent: one that did not write the change and was not tol
 | A failure nobody sees | A result dropped through a local helper or a closure, an error turned into an empty value, a task whose end nobody waits for, a default returned where the data was damaged. The patterns of the dropped-write check miss these. | Who learns that this failed: the learner, the log, or nobody? |
 | A name that drifts | A new word for a thing the app already names, in the UI, a tool, a type or a test. | What does the rest of the app call this? |
 | A comment that is wrong | A comment that names real things and says something false, or tells what the code does and not why. The comment check only knows whether the names exist. | Is it true? Would the code be less clear without it? |
-| A check dodged | A copy changed slightly so the copy check passes. A name added to a list of exceptions, or a `Ratchet:` line, whose reason would fit any change. An `#[expect]` whose reason restates the lint. A test weakened so it passes. | Would the reason still hold for the next agent who wants the same exception? |
+| A check dodged | A copy changed slightly so the copy check passes. A name added to a list of exceptions, or a `Ratchet:` line, whose reason would fit any change, or says it will be fixed elsewhere or later. An `#[expect]` whose reason restates the lint. A test weakened so it passes. | Would the reason still hold for the next agent who wants the same exception? |
+| Merged by force | Two facts that share a value by chance, joined so the copy check passes. A cast or a conversion at the use is a sign. | If one of them changes, should the other? |
+| A check that misses its target | A new or changed check whose reader is fooled by a real case of this repo: a test module near the top of a file, an item with the same name in another file, a phase named by a letter. Or its row in [checks.md](checks.md) says more than it sees. | Which real file would slip past it? Does its own test case cover that file's shape? |
 
 ## Not the reviewer's job
 
-- What a check already enforces (the rows of "What each check stops" in [checks.md](checks.md)).
+- What a check already enforces (the rows of "What each check stops" in [checks.md](checks.md)). A change that adds or changes a check is the exception: the check itself is reviewed.
 - Formatting, and wording that is a matter of taste.
 - The design the owner approved: what the feature does, how it looks, what it is called on screen.
 - Code the change did not touch, unless the change adds a second copy of it.
@@ -39,9 +41,9 @@ The reviewer is a fresh agent: one that did not write the change and was not tol
 
 One block for each finding, the worst first:
 
-- **Where:** `path/to/file:line`.
+- **Where:** `path/to/file:line`, and the second place when two places clash.
 - **Kind:** a name from the table.
-- **What:** one or two sentences on what is wrong, with the other place it clashes with when there is one.
+- **What:** one or two sentences on what is wrong.
 - **Fix:** the smallest change that removes it.
 
 When nothing is found, the answer is the one line "Nothing found", with the number of files read. A finding the reviewer is unsure of is still reported and says so.

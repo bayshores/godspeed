@@ -6,7 +6,7 @@
  *   the Node and library calls a comment cites. Commands, flags and plain words in backticks are
  *   left alone.
  * - A file in backticks (a name with a file extension) leads somewhere, as `leadsTo` judges a path.
- * - None of the history phrases of HISTORY: a ruling, a promise of later, a numbered phase.
+ * - None of the history phrases of HISTORY: a ruling, a promise of later, a numbered or lettered phase.
  */
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -16,7 +16,8 @@ import { EXTENSION, leadsTo, readRepo, type Repo, wordsOf } from "./repo-source.
 
 const root = path.resolve(import.meta.dirname, "../..");
 const LIST = "tests/repo/exceptions/comment-names.json";
-const HISTORY = /\b(?:owner ruling|for now|(?:phase|round|wave) \d+)\b/gi;
+// The letter is a capital alone, so "a round of work" and "round a corner" stay.
+const HISTORY = /\b(?:[Oo]wner ruling|[Ff]or now|(?:[Pp]hase|[Rr]ound|[Ww]ave) (?:\d+|[A-H]))\b/g;
 
 type Known = Pick<Repo, "files" | "folders" | "names" | "words" | "written">;
 
@@ -102,6 +103,6 @@ describe("the comment reader", () => {
 	});
 
 	it("finds history", () => {
-		assert.deepEqual(untrue("// Owner ruling: keep it for now. Phase 2, round 3, wave 1; a round of work stays.", "a.rs", known), ['"Owner ruling"', '"for now"', '"Phase 2"', '"round 3"', '"wave 1"']);
+		assert.deepEqual(untrue("// Owner ruling: keep it for now. Phase 2, round 3, wave 1, Wave D; a round of work goes round a corner.", "a.rs", known), ['"Owner ruling"', '"for now"', '"Phase 2"', '"round 3"', '"wave 1"', '"Wave D"']);
 	});
 });
