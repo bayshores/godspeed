@@ -91,6 +91,7 @@ export function DeadlinePage({
 	const saveDone = useCallback(
 		async (done: boolean) => {
 			setSaving(true);
+			setSaveError(null);
 			await (done ? markDone : undo)({ spaceId, id: deadlineId });
 			await Promise.all([reload(), refresh()]);
 			setSaving(false);

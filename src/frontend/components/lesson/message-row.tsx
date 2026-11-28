@@ -50,6 +50,9 @@ interface MessageRowProps {
 	hiddenCalls: ReadonlySet<string> | null;
 	/** Each Study topic's stored page mark, by the text it sits in (topicPageMarks). */
 	pageMarks: ReadonlyMap<string, string>;
+	/** What came during the session rises in once. Its slots are named by position (message, part), not id: a message
+	 *  sent before the server named it keeps its slot when its id changes, so it does not rise again. The teacher's
+	 *  words are drawn as they are written and need no arrival. */
 	arrive: Arrive;
 	/** The parts this row draws, for a reply that runs over two sheets (stepSheets): `from` up to, not including, `to`. All of them when left out. */
 	from?: number;

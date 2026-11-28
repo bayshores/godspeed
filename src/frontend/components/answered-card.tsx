@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
+import { usePrint } from "@/frontend/components/presence";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { chip } from "@/frontend/components/ui/chip";
 import { ThinkingBlock } from "@/frontend/components/thinking-block";
@@ -20,11 +21,12 @@ export function proseVars(size: number, leading: number, ink: string): React.CSS
 const kindWords = (label: string) => (label === "Prediction" ? "Your prediction" : label);
 
 /** The verdict tag: Right / Wrong / Didn't know (quiz answers only; a
- *  prediction is never marked). One just given (`fresh`) prints its rows. */
+ *  prediction is never marked). One just given (`fresh` as it is first drawn) prints its rows. */
 export function ResultChip({ answer, fresh = false }: { answer: QuestionAnswerData; fresh?: boolean }) {
 	const [tone, word] = answer.dontKnow ? (["plain", "Didn't know"] as const) : answer.correct ? (["right", "Right"] as const) : (["wrong", "Wrong"] as const);
+	const print = usePrint(fresh);
 	return (
-		<span data-testid="answer-result" className={cn(chip(tone, "tag"), fresh && "lh-print")}>
+		<span data-testid="answer-result" onAnimationEnd={print.onAnimationEnd} className={cn(chip(tone, "tag"), print.className)}>
 			{word}
 		</span>
 	);

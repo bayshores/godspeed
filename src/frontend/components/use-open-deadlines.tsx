@@ -7,8 +7,9 @@
  * edit announces spaces-changed), after the events channel reconnects and
  * when the day changes in an open window (a gap depends on today).
  * `markDone` ticks one done and `undo` unticks it (PUT done); a save that
- * fails says so in a notice. One just ticked is named for a moment
- * (`useJustDone`): its Done stamp prints then, and the done sound plays.
+ * fails says so in a notice. One being ticked is named for a moment
+ * (`useDoneMoment`): a Done block first drawn then prints its stamp, and
+ * the done sound plays with it.
  * `useAnswerGap` waves a gap off.
  */
 
@@ -40,15 +41,16 @@ interface SharedDeadlines {
 	/** Why the last read failed; null once one succeeds. */
 	error: string | null;
 	load: () => Promise<void>;
+	/** The id of the deadline being ticked done, from the click until its moment is over. */
+	justDone: string | null;
+	/** True once for each ticked deadline, however many blocks draw it. */
+	claimDoneSound: (id: string) => boolean;
 	/** Save a deadline's done and read the lists again; `failed` is the
 	 *  notice when the save doesn't work. Settles once the lists are read. */
-	/** The id of the deadline ticked done just now, if any. */
-	justDone: string | null;
-	/** Whether it was saved. */
-	setDone: (d: DeadlineRef, done: boolean, failed: string) => Promise<boolean>;
+	setDone: (d: DeadlineRef, done: boolean, failed: string) => Promise<void>;
 }
 
-const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, error: null, load: async () => {}, justDone: null, setDone: async () => false });
+const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, error: null, load: async () => {}, justDone: null, claimDoneSound: () => false, setDone: async () => {} });
 
 export function OpenDeadlinesProvider({ children }: { children: React.ReactNode }) {
 	// A failed read keeps what we have; the error only matters before a first list.
@@ -80,22 +82,37 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 	const [notice, setNotice] = useState<string | null>(null);
 	const clearNotice = useCallback(() => setNotice(null), []);
 	const [justDone, setJustDone] = useJustNow();
+	const sounded = useRef<string | null>(null);
+	useEffect(() => {
+		if (justDone === null) sounded.current = null;
+	}, [justDone]);
+	const claimDoneSound = useCallback((id: string) => {
+		if (sounded.current === id) return false;
+		sounded.current = id;
+		return true;
+	}, []);
+	// The deadlines whose save is out: a second click on the same key sends nothing.
+	const saving = useRef(new Set<string>());
 	const setDone = useCallback(
 		async (d: DeadlineRef, done: boolean, failed: string) => {
+			if (saving.current.has(d.id)) return;
+			saving.current.add(d.id);
 			setNotice(null);
+			// Named before the save, so no read can draw it done before it is named. Three reads hold a
+			// deadline's done (these lists, progress, the space's record) and answer in any order.
+			const unname = (named: string | null) => (named === d.id ? null : named);
+			setJustDone(done ? d.id : unname);
 			const { error } = await send(`/api/spaces/${encodeURIComponent(d.spaceId)}/deadlines/${encodeURIComponent(d.id)}`, jsonInit("PUT", { done }));
 			if (error) {
 				setNotice(failed);
-				return false;
-			}
-			await load();
-			setJustDone(done ? d.id : null);
-			return true;
+				setJustDone(unname);
+			} else await load();
+			saving.current.delete(d.id);
 		},
 		[load, setJustDone],
 	);
 
-	const value = useMemo(() => ({ fetched, error, load, justDone, setDone }), [fetched, error, load, justDone, setDone]);
+	const value = useMemo(() => ({ fetched, error, load, justDone, claimDoneSound, setDone }), [fetched, error, load, justDone, claimDoneSound, setDone]);
 	return (
 		<OpenDeadlinesContext.Provider value={value}>
 			{children}
@@ -115,7 +132,7 @@ interface OpenDeadlinesState {
 	gaps: SpaceGap[];
 	/** Why the last read failed; null once one succeeds. */
 	error: string | null;
-	/** Both settle once the save is read back. A deadline saved as done plays the done sound. */
+	/** Both settle once the save is read back. */
 	markDone: (d: DeadlineRef) => Promise<void>;
 	undo: (d: DeadlineRef) => Promise<void>;
 	/** Wave a space's gap off (its key), then read the lists again; the error line, or null. */
@@ -130,14 +147,8 @@ const NO_GAPS: SpaceGap[] = [];
 
 export function useOpenDeadlines(): OpenDeadlinesState {
 	const { fetched, error, load, setDone } = useContext(OpenDeadlinesContext);
-	const play = useSound();
-	const markDone = useCallback(
-		async (d: DeadlineRef) => {
-			if (await setDone(d, true, "Couldn't mark it done. Try again.")) play("done");
-		},
-		[setDone, play],
-	);
-	const undo = useCallback(async (d: DeadlineRef) => void (await setDone(d, false, "Couldn't undo that. Try again.")), [setDone]);
+	const markDone = useCallback((d: DeadlineRef) => setDone(d, true, "Couldn't mark it done. Try again."), [setDone]);
+	const undo = useCallback((d: DeadlineRef) => setDone(d, false, "Couldn't undo that. Try again."), [setDone]);
 	const answerGap = useCallback(
 		async ({ spaceId, key }: Pick<SpaceGap, "spaceId" | "key">): Promise<WriteResult> => {
 			const { error: failed } = await send(`/api/deadlines/${encodeURIComponent(spaceId)}/nothing-new`, jsonInit("POST", { key }));
@@ -156,8 +167,17 @@ export function useAnswerGap(gap: Pick<SpaceGap, "spaceId" | "key">) {
 	return { answer: () => void run(() => answerGap(gap)), busy, error };
 }
 
-/** Whether this deadline was ticked done just now, wherever it is drawn. */
-export function useJustDone(id: string | null): boolean {
-	const { justDone } = useContext(OpenDeadlinesContext);
-	return id !== null && justDone === id;
+/**
+ * For a Done block, decided when it is first drawn: whether its deadline is the one being ticked.
+ * Then its stamp prints and the done sound plays with it. A block drawn for a deadline done before
+ * is at rest.
+ */
+export function useDoneMoment(id: string): boolean {
+	const { justDone, claimDoneSound } = useContext(OpenDeadlinesContext);
+	const play = useSound();
+	const [fresh] = useState(justDone === id);
+	useEffect(() => {
+		if (fresh && claimDoneSound(id)) play("done");
+	}, [fresh, id, claimDoneSound, play]);
+	return fresh;
 }

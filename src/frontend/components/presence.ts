@@ -13,7 +13,7 @@
  * as-is, so server and static renders match what callers render today.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type AnimationEvent, type Dispatch, type SetStateAction } from "react";
 
 /** The motion tokens of globals.css, for animations and waits run from code: --lh-dur-fast, --lh-dur,
  *  --lh-dur-slow, --lh-dur-page, --lh-ease-out and --lh-ease-in. tests/frontend/motion-times.test.ts
@@ -101,13 +101,9 @@ export function useLeavingList<T extends { key: string }>(items: readonly T[], e
 	return useMemo(() => withGone(items, gone), [items, gone]);
 }
 
-/* ARRIVAL MOTION: a message or card that
- * appears DURING the live session rises in once (.lh-rise). Whatever the
- * first render shows — a reopened lesson — never animates. Slots are keyed
- * by POSITION (message index, part index), not id: an optimistic message
- * that later swaps its local id for the server's keeps its slot, so the
- * remount never replays. The teacher's words are drawn as they are
- * written, so they need no arrival; reasoning is left alone. */
+/* Arrival motion: a slot first seen after the first drawing counts as arrived for
+ * ARRIVAL_WINDOW_MS (it gets "lh-rise", or a yes for a row's own class), and one the first drawing
+ * held never does. The caller names its slots. */
 const ARRIVAL_WINDOW_MS = 400;
 
 export type Arrive = (slot: string) => string | undefined;
@@ -148,17 +144,18 @@ export function useListMotion<T extends { key: string }>(
 	return useMemo(() => held.map(({ item, leaving }) => ({ item, leaving, joined: !leaving && !!arrive(item.key) })), [held, arrive]);
 }
 
-/** How long what just happened counts as just now: time for the page to read it back and for its
- *  mark to print (tests/frontend/motion-times.test.ts holds it no shorter than that). */
+/** How long what just happened counts as just now: time for the page to draw it (a save read back;
+ *  progress is read 400 ms after a change) and for a mark shown by a class to print
+ *  (tests/frontend/motion-times.test.ts holds it no shorter than that print). */
 export const MOMENT_MS = 2 * PAGE_MS;
 
 /**
- * What just happened, by its id, for the moment its mark plays: set it where the thing happens (an
- * answer sent, a deadline saved as done), and it is null again after MOMENT_MS. Whatever is drawn
- * without it having been set is at rest, however it came to be drawn (a page opening, a window
- * resized, a row moved to another list).
+ * What just happened, by its id: set it where the thing happens (an answer sent, a deadline's Mark
+ * done pressed), and it is null again after MOMENT_MS. What is first drawn while it is named plays
+ * its mark; whatever is drawn without it is at rest, however it came to be drawn (a page opening, a
+ * window resized, a row moved to another list).
  */
-export function useJustNow(): [string | null, (id: string | null) => void] {
+export function useJustNow(): [string | null, Dispatch<SetStateAction<string | null>>] {
 	const [id, setId] = useState<string | null>(null);
 	useEffect(() => {
 		if (id === null) return;
@@ -166,4 +163,16 @@ export function useJustNow(): [string | null, (id: string | null) => void] {
 		return () => clearTimeout(timer);
 	}, [id]);
 	return [id, setId];
+}
+
+/**
+ * The print of a mark (`.lh-print`): decided when the mark is first drawn, and over when it has
+ * played, so nothing that redraws, hides or shows the mark later plays it again.
+ */
+export function usePrint(fresh: boolean): { className: string | undefined; onAnimationEnd: (e: AnimationEvent) => void } {
+	const [printing, setPrinting] = useState(fresh);
+	const onAnimationEnd = useCallback((e: AnimationEvent) => {
+		if (e.target === e.currentTarget) setPrinting(false);
+	}, []);
+	return { className: printing ? "lh-print" : undefined, onAnimationEnd };
 }

@@ -6,7 +6,6 @@ import { dueAtMs, gapDueMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { DoneBlock } from "@/frontend/components/deadline/deadline-block";
-import { useJustDone } from "@/frontend/components/use-open-deadlines";
 import { seedFromGap } from "@/frontend/components/space-deadlines-model";
 import { blockColor, spaceLineColor } from "@/frontend/components/space-color";
 import { addDeadlineHref } from "@/frontend/components/space-page/deadlines-tab-model";
@@ -61,14 +60,13 @@ export function NextCard({
 	onUndo: (d: OpenDeadline) => void;
 }) {
 	const words = nextCard(d, progress, nowMs);
-	const justDone = useJustDone(d.id);
 	// The ids its key starts under: the deadline, its homework, or the session it goes on from.
 	const starting = busyOn !== null && [d.id, homeworkStartId(d.id), progress?.continueStudy?.chatId].includes(busyOn);
 	return (
 		<CardFrame
 			testid="today-card"
 			target={`deadline:${d.id}`}
-			block={d.done ? <DoneBlock className={cn("w-[112px] self-stretch py-2", STRIP)} fresh={justDone} /> : <CountBlock size="card" color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} className={STRIP} />}
+			block={d.done ? <DoneBlock id={d.id} className={cn("w-[112px] self-stretch py-2", STRIP)} /> : <CountBlock size="card" color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} className={STRIP} />}
 			struck={d.done}
 			title={
 				<Link to={deadlineHref(d.id)} data-testid="today-card-open" className="hover:underline">
