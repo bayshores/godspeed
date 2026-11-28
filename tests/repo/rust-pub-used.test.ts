@@ -2,8 +2,9 @@
  * rustc reports dead code only for items that are not `pub`: an item a library makes public counts
  * as used. So a top-level `pub` item (fn, struct, enum, trait, const, static, type, union) in a
  * crate's src must be:
- * - named in code the app builds, its own definition aside. Code only tests call is dead code, so a
- *   test's use does not count.
+ * - named in code the app builds, other than where an item is defined (its own definition, or another
+ *   item's with the same name) or re-exported with `pub use`. Code only tests call is dead code, so
+ *   a test's use does not count.
  * - taken by another crate: along a path from this crate (`use gs_core::...`, `gs_core::a::b`), by
  *   the crate's own binary, through a macro it exports, or as part of the signature of an item that
  *   is taken. Tests take too: another crate's test code and the crate's own `tests/` folder can only
@@ -25,13 +26,16 @@ const crateOf = (file: string) => file.split("/")[1]!;
 const isBinary = (file: string) => /^crates\/[^/]+\/src\/(?:main\.rs|bin\/)/.test(file);
 const words = (text: string): string[] => text.match(/[A-Za-z_]\w*/g) ?? [];
 
-/** The top-level `pub` items under `crates/<crate>/src` that no code in `sources` names but their own definition. */
+/** Blanked code without what names a thing and does not use it: a `pub use` statement, and the name after an item's keyword (`const fn` and the like left whole). */
+const usingCode = (code: string) =>
+	code.replace(/\bpub\s+use\b[^;]*;/g, " ").replace(/\b(?:fn|struct|enum|union|trait|type|const|static|mod)\s+(?:mut\s+)?(?!(?:fn|unsafe|async|extern)\b)[A-Za-z_]\w*/g, " ");
+
+/** The top-level `pub` items under `crates/<crate>/src` that no code in `sources` uses: only definitions and `pub use` lines write their names. */
 function unusedPub(sources: Source[]): string[] {
-	const uses = new Map<string, number>();
-	for (const { code } of sources) for (const word of words(code)) uses.set(word, (uses.get(word) ?? 0) + 1);
+	const used = new Set(sources.flatMap(({ code }) => words(usingCode(code))));
 	return sources
 		.filter(({ file }) => /^crates\/[^/]+\/src\//.test(file))
-		.flatMap(({ file, code }) => topLevelPubItems(code).filter(({ name }) => uses.get(name) === 1).map(({ name, line }) => `${file}:${line} ${name}`));
+		.flatMap(({ file, code }) => topLevelPubItems(code).filter(({ name }) => !used.has(name)).map(({ name, line }) => `${file}:${line} ${name}`));
 }
 
 /** What an item hands out with itself: a function's signature, a constant's type, a type's whole text. */
@@ -122,6 +126,12 @@ describe("finding unused pub items", () => {
 			['fn main() { used(); println!("{LABEL}"); }', "// unused() is kept for later", 'const NOTE: &str = "unused";', "#[cfg(test)]", "mod tests {", "\tfn t() { let _ = super::Thing; }", "}"].join("\n"),
 		);
 		assert.deepEqual(unusedPub([defines, dodges]), ["crates/demo/src/lib.rs:2 unused", "crates/demo/src/lib.rs:4 Thing"]);
+	});
+
+	it("is not fooled by an item of the same name in another file or by a re-export", () => {
+		const lib = source("crates/demo/src/lib.rs", ["mod a;", "pub use a::reexported;", "pub fn dead() {}", "pub const fn live() {}"].join("\n"));
+		const other = source("crates/demo/src/a.rs", ["pub fn reexported() {}", "fn dead() { live(); }", "struct S;", "impl S { fn dead(&self) {} }"].join("\n"));
+		assert.deepEqual(unusedPub([lib, other]), ["crates/demo/src/lib.rs:3 dead", "crates/demo/src/a.rs:1 reexported"]);
 	});
 
 	it("checks only the crates' src folders", () => {

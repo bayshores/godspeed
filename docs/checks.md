@@ -46,7 +46,7 @@ The hooks are the files in `.githooks`. `npm install` points git at them for eve
 | A Rust function over 100 lines, a block nested more than 6 deep, a result dropped with `.ok();` | clippy | `Cargo.toml`, `clippy.toml` |
 | An `unwrap` or `expect` in Rust the app runs, other than an `expect` that cannot fail under `#[expect(clippy::expect_used, reason = "...")]` | clippy on the libraries and binaries only | `package.json`, `rust:check` |
 | A bare task spawn, clock read, sleep or file write in Rust | clippy | `clippy.toml` |
-| A Rust `pub` item that nothing but tests uses | `tests/repo/rust-pub-used.test.ts` | the test |
+| A Rust `pub` item whose name the code the app builds writes only where an item is defined or in a `pub use` | `tests/repo/rust-pub-used.test.ts` | the test |
 | A Rust `pub` item that no other crate and no test outside its crate's `src` takes, which rustc cannot report once nothing uses it | `tests/repo/rust-pub-used.test.ts` | `tests/repo/exceptions/rust-pub-wide.json` |
 | A Rust save or delete whose error is thrown away (`let _ =`, `.ok();`) | `tests/repo/ignored-writes.test.ts` | the test |
 | A Rust file over 17,000 characters, about 500 lines | `tests/repo/file-size.test.ts` | `tests/repo/exceptions/file-size.json` |
