@@ -1,14 +1,15 @@
 /**
  * A file too long to hold one job fails. A file's size is what a reader reads: its characters
- * that are not blank and not in a comment, strings included, and for Rust only the code above its
- * first `#[cfg(test)]`. Files that were over the limit when this check came are listed in
- * exceptions/file-size.json with their size, which may only go down.
+ * that are not blank and not in a comment, strings included, and for Rust only the code the app
+ * builds: an item behind a test cfg is left out wherever it sits. Files that were over the limit
+ * when this check came are listed in exceptions/file-size.json with their size, which may only go
+ * down.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { rustFiles, rustSize } from "./rust-source.ts";
+import { appSources, rustSize } from "./rust-source.ts";
 
 /** About 500 lines of this repo's Rust, whose lines hold 34.5 such characters on average. */
 const LIMIT = 17_000;
@@ -16,11 +17,9 @@ const LIST = "tests/repo/exceptions/file-size.json";
 
 type Sized = { file: string; size: number };
 
-/** The files the app builds, by size. Files only tests build are not measured. */
+/** The files the app builds, by size. Files only tests build (see `appSources`) are not measured. */
 function sizes(): Sized[] {
-	return rustFiles()
-		.filter((entry) => !entry.testOnly)
-		.map(({ file, text }) => ({ file, size: rustSize(text) }));
+	return appSources().map(({ file, text }) => ({ file, size: rustSize(text) }));
 }
 
 /** What is wrong with the files' sizes, given the listed ones, each saying how to fix it. */

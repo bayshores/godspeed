@@ -1,7 +1,7 @@
 /** The Rust reader the checks in this folder stand on: a reader that misreads a string hides real findings. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { appSources, beforeTests, discardedResults, exportedMacros, inTraitImpl, namesFromCrate, readAppCode, readRust, rustFiles, rustFunctions, rustSize, rustTokens, topLevelPubItems } from "./rust-source.ts";
+import { appSources, discardedResults, exportedMacros, inTraitImpl, namesFromCrate, readAppCode, readRust, rustFiles, rustFunctions, rustSize, rustTokens, topLevelPubItems } from "./rust-source.ts";
 
 describe("reading Rust source", () => {
 	it("blanks comments and keeps their words apart from the code", () => {
@@ -33,11 +33,6 @@ describe("reading Rust source", () => {
 		const read = readRust('let s = "one\ntwo";\n// after\n');
 		assert.equal(read.code.split("\n").length, 4);
 		assert.deepEqual(read.comments, [{ line: 3, text: "// after" }]);
-	});
-
-	it("cuts a file at its tests", () => {
-		assert.equal(beforeTests("fn run() {}\n#[cfg(test)]\nmod tests {}\n"), "fn run() {}\n");
-		assert.equal(beforeTests("fn run() {}\n"), "fn run() {}\n");
 	});
 });
 
@@ -134,8 +129,9 @@ describe("reading what the app builds", () => {
 		]);
 	});
 
-	it("sizes a file by its code and strings above its tests", () => {
+	it("sizes a file by the code the app builds and its strings, wherever its tests sit", () => {
 		assert.equal(rustSize('// note\nfn a() { b("c d"); }\n#[cfg(test)]\nmod tests {}'), 'fna(){b("cd");}'.length);
+		assert.equal(rustSize('#[cfg(test)]\nmod a_tests;\nfn a() { b("c d"); }\n#[cfg(test)]\nimpl A { fn t() {} }\nfn e() {}'), 'fna(){b("cd");}fne(){}'.length);
 	});
 
 	it("blanks an enum variant, a field or a match arm behind a test cfg up to its comma", () => {

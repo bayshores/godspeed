@@ -108,12 +108,6 @@ export function readRust(text: string): RustText {
 	return { code: out.join(""), comments };
 }
 
-/** The code above a file's first `#[cfg(test)]`: what the app itself runs. */
-export function beforeTests(code: string): string {
-	const tests = code.indexOf("#[cfg(test)]");
-	return tests === -1 ? code : code.slice(0, tests);
-}
-
 /** A piece of Rust code at its offset: a word, a number, a lifetime, a whole string or char as written, or one mark. */
 export type RustToken = { text: string; at: number };
 
@@ -128,8 +122,8 @@ function stringEnd(code: string, at: number): number {
 }
 
 /**
- * The tokens of Rust source, comments left out. `code` is the source as `readRust` gives it, or a cut
- * of it such as `beforeTests`; strings and chars are read whole from `text`.
+ * The tokens of Rust source, comments left out. `code` is the source as `readRust` gives it, or as
+ * `readAppCode` gives it; strings and chars are read whole from `text`.
  */
 export function rustTokens(text: string, code = readRust(text).code): RustToken[] {
 	const tokens: RustToken[] = [];
@@ -449,12 +443,12 @@ export function discardedResults(code: string): { line: number; text: string }[]
 		.sort((a, b) => a.line - b.line);
 }
 
-/** A Rust file's size as the size check counts it: the characters that are not blank and not in a comment, strings included, above the file's first `#[cfg(test)]`. */
+/** A Rust file's size as the size check counts it: the characters of the code the app builds (`readAppCode`) that are not blank, strings included. */
 export function rustSize(text: string): number {
-	const { code } = readRust(text);
+	const { code } = readAppCode(text);
 	const kept = code.split("");
 	for (const [from, to] of stringSpans(code)) for (let i = from; i < to; i++) kept[i] = text[i]!;
-	return kept.slice(0, beforeTests(code).length).join("").replace(/\s/g, "").length;
+	return kept.join("").replace(/\s/g, "").length;
 }
 
 /**
