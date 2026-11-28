@@ -130,8 +130,9 @@ describe("reading what the app builds", () => {
 	});
 
 	it("sizes a file by the code the app builds and its strings, wherever its tests sit", () => {
-		assert.equal(rustSize('// note\nfn a() { b("c d"); }\n#[cfg(test)]\nmod tests {}'), 'fna(){b("cd");}'.length);
-		assert.equal(rustSize('#[cfg(test)]\nmod a_tests;\nfn a() { b("c d"); }\n#[cfg(test)]\nimpl A { fn t() {} }\nfn e() {}'), 'fna(){b("cd");}fne(){}'.length);
+		const size = (text: string) => rustSize(text, readAppCode(text).code);
+		assert.equal(size('// note\nfn a() { b("c d"); }\n#[cfg(test)]\nmod tests {}'), 'fna(){b("cd");}'.length);
+		assert.equal(size('#[cfg(test)]\nmod a_tests;\nfn a() { b("c d"); }\n#[cfg(test)]\nimpl A { fn t() {} }\nfn e() {}'), 'fna(){b("cd");}fne(){}'.length);
 	});
 
 	it("blanks an enum variant, a field or a match arm behind a test cfg up to its comma", () => {

@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { appSources, rustSize } from "./rust-source.ts";
+import { appSources, readAppCode, rustSize } from "./rust-source.ts";
 
 /** About 500 lines of this repo's Rust, whose lines hold 34.5 such characters on average. */
 const LIMIT = 17_000;
@@ -19,7 +19,7 @@ type Sized = { file: string; size: number };
 
 /** The files the app builds, by size. Files only tests build (see `appSources`) are not measured. */
 function sizes(): Sized[] {
-	return appSources().map(({ file, text }) => ({ file, size: rustSize(text) }));
+	return appSources().map(({ file, text, code }) => ({ file, size: rustSize(text, code) }));
 }
 
 /** What is wrong with the files' sizes, given the listed ones, each saying how to fix it. */
@@ -41,14 +41,16 @@ it("no file is over the size limit or past its listed size", () => {
 });
 
 describe("measuring file sizes", () => {
+	const size = (text: string) => rustSize(text, readAppCode(text).code);
+
 	it("counts code and strings, not blanks, comments or the tests", () => {
 		const text = ['// a comment that is long', "fn run() {", '\tsay("hi there"); /* note */', "}", "", "#[cfg(test)]", "mod tests { fn t() {} }"].join("\n");
-		assert.equal(rustSize(text), "fnrun(){say(\"hithere\");}".length);
+		assert.equal(size(text), "fnrun(){say(\"hithere\");}".length);
 	});
 
 	it("is not fooled by a test marker in a comment or a string", () => {
-		assert.equal(rustSize('// #[cfg(test)]\nfn a() {}'), "fna(){}".length);
-		assert.equal(rustSize('const T: &str = "#[cfg(test)]";\nfn a() {}'), 'constT:&str="#[cfg(test)]";fna(){}'.length);
+		assert.equal(size('// #[cfg(test)]\nfn a() {}'), "fna(){}".length);
+		assert.equal(size('const T: &str = "#[cfg(test)]";\nfn a() {}'), 'constT:&str="#[cfg(test)]";fna(){}'.length);
 	});
 
 	it("tells an oversized file, a listed one that grew, shrank, fits or went, and lets the rest through", () => {

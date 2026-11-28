@@ -443,9 +443,8 @@ export function discardedResults(code: string): { line: number; text: string }[]
 		.sort((a, b) => a.line - b.line);
 }
 
-/** A Rust file's size as the size check counts it: the characters of the code the app builds (`readAppCode`) that are not blank, strings included. */
-export function rustSize(text: string): number {
-	const { code } = readAppCode(text);
+/** A Rust file's size as the size check counts it: the characters of the code the app builds that are not blank, strings included. `code` is `text` as `readAppCode` reads it. */
+export function rustSize(text: string, code: string): number {
 	const kept = code.split("");
 	for (const [from, to] of stringSpans(code)) for (let i = from; i < to; i++) kept[i] = text[i]!;
 	return kept.join("").replace(/\s/g, "").length;

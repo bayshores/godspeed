@@ -238,7 +238,7 @@ function itemEnd(tokens: RustToken[], from: number, braced: boolean): number {
 }
 
 /** The functions, constants and types of a Rust file's app code, `code` as `readAppCode` reads it. */
-function rustPieces(file: string, text: string, code = readAppCode(text).code): Piece[] {
+function rustPieces(file: string, text: string, code: string): Piece[] {
 	const tokens = rustTokens(text, code);
 	const traitImpl = inTraitImpl(tokens);
 	const pieces: Piece[] = rustFunctions(tokens)
@@ -326,6 +326,7 @@ it("no helper, constant or type is written in two files", () => {
 });
 
 describe("the copy finder", () => {
+	const readPieces = (file: string, text: string) => rustPieces(file, text, readAppCode(text).code);
 	const keys = (pieces: Piece[]) => copiesOf(pieces).map((copies) => `${copies.key}: ${copies.files.join(", ")}`);
 
 	it("finds a copied helper whose name and variables were renamed", () => {
@@ -335,8 +336,8 @@ describe("the copy finder", () => {
 	});
 
 	it("finds a renamed Rust copy, and leaves out methods a trait gives every type", () => {
-		const first = rustPieces("a.rs", 'fn date_ms(v: &Json) -> f64 {\n\tv.as_str().and_then(time::parse_date).map_or(f64::NAN, |ms| ms as f64)\n}\nimpl Tool for A { fn parameters(&self) -> Json { json!({ "type": "object", "properties": {} }) } }\n');
-		const second = rustPieces("b.rs", 'fn ms_of(value: &Json) -> f64 {\n\t// Parsed the same way.\n\tvalue.as_str().and_then(time::parse_date).map_or(f64::NAN, |t| t as f64)\n}\nimpl Tool for B { fn parameters(&self) -> Json { json!({ "type": "object", "properties": {} }) } }\n#[cfg(test)]\nmod tests { fn date_ms(v: &Json) -> f64 { v.as_str().and_then(time::parse_date).map_or(f64::NAN, |ms| ms as f64) } }\n');
+		const first = readPieces("a.rs", 'fn date_ms(v: &Json) -> f64 {\n\tv.as_str().and_then(time::parse_date).map_or(f64::NAN, |ms| ms as f64)\n}\nimpl Tool for A { fn parameters(&self) -> Json { json!({ "type": "object", "properties": {} }) } }\n');
+		const second = readPieces("b.rs", 'fn ms_of(value: &Json) -> f64 {\n\t// Parsed the same way.\n\tvalue.as_str().and_then(time::parse_date).map_or(f64::NAN, |t| t as f64)\n}\nimpl Tool for B { fn parameters(&self) -> Json { json!({ "type": "object", "properties": {} }) } }\n#[cfg(test)]\nmod tests { fn date_ms(v: &Json) -> f64 { v.as_str().and_then(time::parse_date).map_or(f64::NAN, |ms| ms as f64) } }\n');
 		assert.deepEqual(keys([...first, ...second]), ["function date_ms / ms_of: a.rs, b.rs"]);
 	});
 
@@ -344,7 +345,7 @@ describe("the copy finder", () => {
 		const first = tsPieces("a.ts", "const ignore = () => {};\nconst pct = (n: number) => `${n * 100}%`;\nexport const store = { refresh: () => {} };\nfunction Panel() { const show = () => setOpen(true); }\n");
 		const second = tsPieces("b.ts", "const ignore = () => {};\nconst share = (n: number) => `${n * 100}%`;\nexport const other = { reload: () => {} };\nfunction Menu() { const show = () => setOpen(true); }\n");
 		assert.deepEqual(keys([...first, ...second]), ["function ignore: a.ts, b.ts"]);
-		const rust = [...rustPieces("a.rs", "fn name_of(file: &Json) -> &str { file[0].str() }\nimpl A { fn alive(&self) -> bool { self.reader.alive() } }\n"), ...rustPieces("b.rs", "fn name_of(f: &Json) -> &str { f[0].str() }\nimpl B { fn alive(&self) -> bool { self.reader.alive() } }\n")];
+		const rust = [...readPieces("a.rs", "fn name_of(file: &Json) -> &str { file[0].str() }\nimpl A { fn alive(&self) -> bool { self.reader.alive() } }\n"), ...readPieces("b.rs", "fn name_of(f: &Json) -> &str { f[0].str() }\nimpl B { fn alive(&self) -> bool { self.reader.alive() } }\n")];
 		assert.deepEqual(keys(rust), ["function name_of: a.rs, b.rs"]);
 	});
 
@@ -352,7 +353,7 @@ describe("the copy finder", () => {
 		const first = tsPieces("a.ts", 'const DAY_MS = 86_400_000;\nconst CELL = 2;\nconst RETRY_MS = 5;\nconst WEEKDAYS = ["Sun", "Mon"];\nconst listeners = new Set<() => void>();\nconst NAME = "a";\n');
 		const second = tsPieces("b.ts", 'const HOUR_MS = 60 * 60 * 1000;\nconst DAY_MS = 24 * HOUR_MS;\nconst CELL = 2;\nconst RETRY_MS = 5;\nconst WEEKDAYS = ["Sun", "Mon"];\nconst listeners = new Set<() => void>();\nconst NAME = "b";\n');
 		assert.deepEqual(keys([...first, ...second]), ["constant DAY_MS: a.ts, b.ts", "constant RETRY_MS: a.ts, b.ts", "constant WEEKDAYS: a.ts, b.ts"]);
-		const rust = [...rustPieces("a.rs", "const DAY_MS: i64 = 86_400_000;\nconst NEWLINE: u16 = b'\\n' as u16;\nstatic LOCK: Mutex<()> = Mutex::new(());\n"), ...rustPieces("b.rs", "fn f() { const DAY_MS: i64 = 24 * 60 * 60 * 1000; }\nconst NEWLINE: u16 = b'\\n' as u16;\nstatic LOCK: Mutex<()> = Mutex::new(());\n")];
+		const rust = [...readPieces("a.rs", "const DAY_MS: i64 = 86_400_000;\nconst NEWLINE: u16 = b'\\n' as u16;\nstatic LOCK: Mutex<()> = Mutex::new(());\n"), ...readPieces("b.rs", "fn f() { const DAY_MS: i64 = 24 * 60 * 60 * 1000; }\nconst NEWLINE: u16 = b'\\n' as u16;\nstatic LOCK: Mutex<()> = Mutex::new(());\n")];
 		assert.deepEqual(keys(rust), ["constant DAY_MS: a.rs, b.rs"]);
 	});
 
@@ -360,7 +361,7 @@ describe("the copy finder", () => {
 		const first = tsPieces("a.ts", "type Lesson = { id: string; title: string };\ntype Row = { id: string };\n");
 		const second = tsPieces("b.ts", "interface Lesson { id: string, title: string }\ntype Row = { id: number };\n");
 		assert.deepEqual(keys([...first, ...second]), ["type Lesson: a.ts, b.ts"]);
-		const rust = [...rustPieces("a.rs", "struct Span { from: usize, to: usize }\nimpl Add for Span { type Output = Span; }\n"), ...rustPieces("b.rs", "pub struct Span { from: usize, to: usize }\nimpl Sub for Span { type Output = Span; }\n")];
+		const rust = [...readPieces("a.rs", "struct Span { from: usize, to: usize }\nimpl Add for Span { type Output = Span; }\n"), ...readPieces("b.rs", "pub struct Span { from: usize, to: usize }\nimpl Sub for Span { type Output = Span; }\n")];
 		assert.deepEqual(keys(rust), ["type Span: a.rs, b.rs"]);
 	});
 
