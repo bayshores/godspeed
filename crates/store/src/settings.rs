@@ -68,8 +68,10 @@ impl SettingsStore {
 			return false;
 		}
 		for segment in self.overrides.list_overrides() {
-			if switches.get(&segment).and_then(Json::as_bool) != Some(true) {
-				self.overrides.delete_override(&segment);
+			if switches.get(&segment).and_then(Json::as_bool) != Some(true)
+				&& let Err(err) = self.overrides.delete_override(&segment)
+			{
+				eprintln!("[settings] could not delete the switched-off prompt part {segment}: {err}");
 			}
 		}
 		true

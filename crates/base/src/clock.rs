@@ -117,7 +117,9 @@ async fn watch_clock_file(file: PathBuf) {
 		}
 		advance((total - applied) as i64);
 		applied = total;
-		let _ = std::fs::write(&applied_file, gs_json::js_number(total));
+		if let Err(err) = std::fs::write(&applied_file, gs_json::js_number(total)) {
+			eprintln!("[clock] could not write {}: {err}", applied_file.display());
+		}
 	}
 }
 

@@ -29,7 +29,7 @@ pub fn run(app: &AppHandle) {
 	// let this launch go on.
 	if let Some(paths) = app.try_state::<Paths>() {
 		old_app::remove_pid(&paths.user_data);
-		let _ = std::fs::remove_dir_all(&paths.demo_data);
+		gs_base::fsx::remove_leftover(&paths.demo_data);
 	}
 	update::install_held(app, RESTARTING.load(Ordering::SeqCst));
 }

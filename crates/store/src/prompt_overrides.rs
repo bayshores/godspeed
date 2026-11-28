@@ -69,12 +69,13 @@ impl PromptOverrides {
 	}
 
 	/// Already absent counts as done.
-	pub fn delete_override(&self, segment_path: &str) {
+	pub fn delete_override(&self, segment_path: &str) -> Result<(), String> {
 		if is_valid_segment_path(segment_path) {
 			let file = self.file(segment_path);
-			let _ = std::fs::remove_file(&file);
+			fsx::remove_if_present(&file, "unlink")?;
 			fsx::remove_leftover_temps(&file);
 		}
+		Ok(())
 	}
 }
 

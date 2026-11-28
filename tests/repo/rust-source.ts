@@ -343,3 +343,49 @@ export function topLevelPubItems(code: string): { name: string; line: number }[]
 	});
 	return items;
 }
+
+/** Where the statement around `at` in blanked code begins: after the `;`, `{` or `}` before it at its own depth. */
+function statementStart(code: string, at: number): number {
+	let depth = 0;
+	for (let i = at - 1; i >= 0; i--) {
+		const c = code[i]!;
+		if (")]".includes(c)) depth++;
+		else if ("([".includes(c)) depth--;
+		else if (depth === 0 && ";{}".includes(c)) return i + 1;
+	}
+	return 0;
+}
+
+/** Where the statement that goes on at `from` in blanked code ends: past its `;`, or at the brace that closes its block. */
+function statementEnd(code: string, from: number): number {
+	let depth = 0;
+	for (let i = from; i < code.length; i++) {
+		const c = code[i]!;
+		if ("([{".includes(c)) depth++;
+		else if (")]}".includes(c) && --depth < 0) return i;
+		else if (c === ";" && depth === 0) return i + 1;
+	}
+	return code.length;
+}
+
+/**
+ * The statements of blanked code that throw a result away: `let _ = <expr>;`, `_ = <expr>;` and
+ * `<expr>.ok();` (not `let x = <expr>.ok();`, which keeps it), each with the line it starts on and
+ * its text on one line.
+ */
+export function discardedResults(code: string): { line: number; text: string }[] {
+	const spans: [number, number][] = [];
+	for (const match of code.matchAll(/(?:\blet\s+)?(?<![\w.])_\s*(?::[^=;]*)?=(?![=>])/g)) {
+		spans.push([match.index, statementEnd(code, match.index + match[0].length)]);
+	}
+	for (const match of code.matchAll(/\.ok\(\s*\)\s*;/g)) {
+		const start = statementStart(code, match.index);
+		if (!/^\s*let\b|^[^=]*[^=!<>]=[^=]/.test(code.slice(start, match.index))) spans.push([start, match.index + match[0].length]);
+	}
+	return spans
+		.map(([from, to]) => {
+			const start = from + (code.slice(from).search(/\S/) || 0);
+			return { line: code.slice(0, start).split("\n").length, text: code.slice(start, to).replace(/\s+/g, " ").trim() };
+		})
+		.sort((a, b) => a.line - b.line);
+}

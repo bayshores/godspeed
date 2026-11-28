@@ -63,9 +63,7 @@ pub fn make_temp_dir(tmp: &Path, prefix: &str) -> Result<PathBuf, String> {
 /// `mode` applies to a new file (Unix permissions, e.g. 0o600).
 pub fn write_atomic(file: &Path, data: &[u8], mode: Option<u32>) -> io::Result<()> {
 	let tmp = write_temp(file, mode, |out| out.write_all(data))?;
-	rename_over(&tmp, file).inspect_err(|_| {
-		let _ = std::fs::remove_file(&tmp);
-	})
+	rename_over(&tmp, file).inspect_err(|_| remove_leftover(&tmp))
 }
 
 /// Renames `from` over `to`. Windows refuses while an antivirus scanner or indexer holds the
@@ -101,7 +99,7 @@ pub fn remove_leftover_temps(file: &Path) {
 	for entry in entries.flatten() {
 		let is_temp = entry.file_name().to_string_lossy().strip_prefix(&prefix).is_some_and(|rest| rest.len() == 8 && rest.bytes().all(|b| b.is_ascii_hexdigit()));
 		if is_temp {
-			let _ = std::fs::remove_file(entry.path());
+			remove_leftover(&entry.path());
 		}
 	}
 }
@@ -112,12 +110,10 @@ pub fn remove_leftover_temps(file: &Path) {
 pub fn write_atomic_pair(first: &Path, write_first: impl FnOnce(&mut dyn Write) -> io::Result<()>, second: &Path, write_second: impl FnOnce(&mut dyn Write) -> io::Result<()>) -> io::Result<()> {
 	let first_tmp = write_temp(first, None, write_first)?;
 	let placed = write_temp(second, None, write_second).and_then(|second_tmp| {
-		rename_over(&first_tmp, first).and_then(|()| rename_over(&second_tmp, second)).inspect_err(|_| {
-			let _ = std::fs::remove_file(&second_tmp);
-		})
+		rename_over(&first_tmp, first).and_then(|()| rename_over(&second_tmp, second)).inspect_err(|_| remove_leftover(&second_tmp))
 	});
 	if placed.is_err() {
-		let _ = std::fs::remove_file(&first_tmp);
+		remove_leftover(&first_tmp);
 	}
 	placed
 }
@@ -142,7 +138,7 @@ fn write_temp(file: &Path, mode: Option<u32>, write: impl FnOnce(&mut dyn Write)
 	match write_new(&tmp, mode, write) {
 		Ok(()) => Ok(tmp),
 		Err(err) => {
-			let _ = std::fs::remove_file(&tmp);
+			remove_leftover(&tmp);
 			Err(err)
 		}
 	}
@@ -178,6 +174,19 @@ pub fn remove_dir_if_present(dir: &Path) -> Result<(), String> {
 	match std::fs::remove_dir_all(dir) {
 		Err(err) if err.kind() != io::ErrorKind::NotFound => Err(node_error_message(&err, "rm", dir)),
 		_ => Ok(()),
+	}
+}
+
+/// Removes a file or folder the app made and no longer needs: the temp file of a write that
+/// failed, a cache entry, the folder of a finished run. Nothing reads it again, so a failure is
+/// logged with the caller's place and not passed up; one already gone is no failure.
+#[track_caller]
+pub fn remove_leftover(path: &Path) {
+	let removed = std::fs::symlink_metadata(path).and_then(|meta| if meta.is_dir() { std::fs::remove_dir_all(path) } else { std::fs::remove_file(path) });
+	if let Err(err) = removed
+		&& err.kind() != io::ErrorKind::NotFound
+	{
+		eprintln!("[{}] could not remove {}: {err}", std::panic::Location::caller(), path.display());
 	}
 }
 

@@ -453,7 +453,7 @@ fn drop_gone(app: &Arc<App>, space_id: &str, gone: &[Json], announce: bool) {
 }
 
 /// Deletes a copied file's folder, read-only files included (Windows deletes those as they are).
-fn remove_copy_dir(app: &App, space_id: &str, file_id: &str) {
+pub(super) fn remove_copy_dir(app: &App, space_id: &str, file_id: &str) {
 	let Ok(dir) = app.stores.spaces.files_dir(space_id).map(|d| d.join(file_id)) else { return };
 	#[cfg(unix)]
 	if let Ok(entries) = std::fs::read_dir(&dir) {
@@ -462,7 +462,7 @@ fn remove_copy_dir(app: &App, space_id: &str, file_id: &str) {
 			let _ = std::fs::set_permissions(entry.path(), std::fs::Permissions::from_mode(0o644));
 		}
 	}
-	let _ = std::fs::remove_dir_all(&dir);
+	fsx::remove_leftover(&dir);
 }
 
 #[cfg(test)]

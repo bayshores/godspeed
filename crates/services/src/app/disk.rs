@@ -30,7 +30,7 @@ pub fn write_file_atomic(file: &Path, content: &str) -> Result<(), String> {
 			fsx::rename_over(&temp, file).map_err(|err| format!("{} -> '{}'", fsx::node_error_message(&err, "rename", &temp), file.display()))
 		});
 	if written.is_err() {
-		let _ = std::fs::remove_file(&temp);
+		fsx::remove_leftover(&temp);
 	}
 	written
 }

@@ -94,7 +94,7 @@ async fn download(url: &str, file: &Path) -> Outcome {
 	match saved {
 		Ok(()) => Ok(file.to_owned()),
 		Err(message) => {
-			let _ = std::fs::remove_file(&tmp);
+			fsx::remove_leftover(&tmp);
 			Err(message)
 		}
 	}

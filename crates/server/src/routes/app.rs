@@ -73,9 +73,9 @@ async fn save_prompt(State(app): State<Arc<App>>, Path(segment): Path<String>, b
 	Ok(reply::json(status, &answer))
 }
 
-async fn reset_prompt(State(app): State<Arc<App>>, Path(segment): Path<String>) -> Response {
-	let (status, answer) = reset_prompt_segment(&app, &segment);
-	reply::json(status, &answer)
+async fn reset_prompt(State(app): State<Arc<App>>, Path(segment): Path<String>) -> Result<Response, Unhandled> {
+	let (status, answer) = reset_prompt_segment(&app, &segment)?;
+	Ok(reply::json(status, &answer))
 }
 
 async fn agent_folder(State(app): State<Arc<App>>) -> Response {

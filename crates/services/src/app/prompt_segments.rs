@@ -43,13 +43,14 @@ pub fn save_prompt_segment(app: &App, path: &str, body: &Json) -> Result<(u16, J
 	Ok((200, json!({ "path": path, "text": text })))
 }
 
-/// Reset one segment to the shipped text (already reset counts as done).
-pub fn reset_prompt_segment(app: &App, path: &str) -> (u16, Json) {
+/// Reset one segment to the shipped text (already reset counts as done). Err is a failure the
+/// route does not catch.
+pub fn reset_prompt_segment(app: &App, path: &str) -> Result<(u16, Json), String> {
 	if !is_valid_segment_path(path) {
-		return (400, json!({ "error": "invalid segment path" }));
+		return Ok((400, json!({ "error": "invalid segment path" })));
 	}
-	app.stores.prompt_overrides.delete_override(path);
-	(200, json!({ "path": path, "deleted": true }))
+	app.stores.prompt_overrides.delete_override(path)?;
+	Ok((200, json!({ "path": path, "deleted": true })))
 }
 
 #[cfg(test)]
@@ -86,9 +87,9 @@ mod tests {
 		assert_eq!((status, answer["error"].as_str()), (400, Some("\"teacher/98-gone.md\" is not a current source segment")));
 		assert_eq!(answer["supported"].as_arr().map(Vec::len), Some(27));
 		assert_eq!(save_prompt_segment(&app, "system-prompt.md", &json!({ "text": "" })).unwrap(), (200, json!({ "path": "system-prompt.md", "text": "" })));
-		assert_eq!(reset_prompt_segment(&app, "system-prompt.md"), (200, json!({ "path": "system-prompt.md", "deleted": true })));
-		assert_eq!(reset_prompt_segment(&app, "system-prompt.md").0, 200);
-		assert_eq!(reset_prompt_segment(&app, "teacher/notes.md").0, 400);
+		assert_eq!(reset_prompt_segment(&app, "system-prompt.md"), Ok((200, json!({ "path": "system-prompt.md", "deleted": true }))));
+		assert_eq!(reset_prompt_segment(&app, "system-prompt.md").map(|(status, _)| status), Ok(200));
+		assert_eq!(reset_prompt_segment(&app, "teacher/notes.md").map(|(status, _)| status), Ok(400));
 		assert_eq!(app.stores.prompt_overrides.list_overrides(), Vec::<String>::new());
 	}
 }

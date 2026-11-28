@@ -32,7 +32,7 @@ pub fn write_pid(user_data: &Path) -> io::Result<()> {
 }
 
 pub fn remove_pid(user_data: &Path) {
-	let _ = std::fs::remove_file(user_data.join(PID_FILE));
+	gs_base::fsx::remove_leftover(&user_data.join(PID_FILE));
 }
 
 #[cfg(test)]

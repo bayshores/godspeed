@@ -64,7 +64,7 @@ pub fn sweep(own: &Path) {
 	let Some(entries) = own.parent().and_then(|parent| std::fs::read_dir(parent).ok()) else { return };
 	for entry in entries.flatten() {
 		if entry.file_name().to_string_lossy().starts_with(DEMO_FOLDER_PREFIX) {
-			let _ = std::fs::remove_dir_all(entry.path());
+			gs_base::fsx::remove_leftover(&entry.path());
 		}
 	}
 }

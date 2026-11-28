@@ -17,6 +17,7 @@ use gs_core::graph::graph_deletion::delete_source_traces;
 use gs_files::text::{is_readable_space_file, looks_like_text};
 use gs_json::{Json, Obj, json};
 
+use super::folder::remove_copy_dir;
 use super::space_card::space_file_path;
 use super::pipeline::enqueue_file;
 use super::text_cache::drop_file_texts;
@@ -337,10 +338,8 @@ pub(super) fn drop_file(app: &Arc<App>, record: &Json, file: &Json, listed: bool
 	}
 	drop_file_texts(app, space_id, file_id);
 	drop_from_search(app, space_id, file_id);
-	if file["origin"].str_or_empty() == "copied"
-		&& let Ok(dir) = app.stores.spaces.files_dir(space_id)
-	{
-		let _ = std::fs::remove_dir_all(dir.join(file_id));
+	if file["origin"].str_or_empty() == "copied" {
+		remove_copy_dir(app, space_id, file_id);
 	}
 	let removed = if listed { vec![json!({ "id": file_id, "name": file["name"], "at": time::iso_now() })] } else { Vec::new() };
 	mutate_files(app, space_id, |files| files.into_iter().filter(|f| f["id"].as_str() != Some(file_id)).collect(), &removed);

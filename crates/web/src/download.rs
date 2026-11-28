@@ -48,7 +48,7 @@ pub async fn download_pdf(url: &str, dir: &Path) -> Result<PathBuf, String> {
 
 /// Removes a download the pdf crate could not open, and words the failure.
 pub fn unreadable_download(path: &Path) -> String {
-	let _ = std::fs::remove_file(path);
+	fsx::remove_leftover(path);
 	"The download is not a readable PDF".to_owned()
 }
 

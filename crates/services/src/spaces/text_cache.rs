@@ -57,7 +57,7 @@ fn drop_cached_texts(app: &App, space_id: &str, file_id: &str, keep_fp: Option<&
 	for entry in entries.flatten() {
 		let name = entry.file_name().to_string_lossy().into_owned();
 		if name.starts_with(&prefix) && !kept.as_ref().is_some_and(|kept| name.starts_with(kept.as_str())) {
-			let _ = std::fs::remove_file(entry.path());
+			fsx::remove_leftover(&entry.path());
 		}
 	}
 }
@@ -75,7 +75,7 @@ pub(super) fn write_cached_text(app: &App, space_id: &str, file_id: &str, fp: &s
 /// A recording's transcript and a document's saved text.
 pub(super) fn drop_file_texts(app: &App, space_id: &str, file_id: &str) {
 	if let Some(transcript) = transcript_path_of(app, space_id, file_id) {
-		let _ = std::fs::remove_file(transcript);
+		fsx::remove_leftover(&transcript);
 	}
 	drop_cached_texts(app, space_id, file_id, None);
 }

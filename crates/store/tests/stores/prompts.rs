@@ -12,8 +12,8 @@ fn overrides_are_written_listed_read_and_deleted() {
 	assert_eq!(overrides.list_overrides(), ["shared/10-voice.md", "teacher/20-teaching.md"]);
 	assert_eq!(overrides.read_override("shared/10-voice.md").as_deref(), Some("one\n"));
 	assert_eq!(overrides.read_override("teacher/10-planning.md"), None);
-	overrides.delete_override("shared/10-voice.md");
-	overrides.delete_override("shared/10-voice.md");
+	overrides.delete_override("shared/10-voice.md").unwrap();
+	overrides.delete_override("shared/10-voice.md").unwrap();
 	assert_eq!(overrides.list_overrides(), ["teacher/20-teaching.md"]);
 }
 

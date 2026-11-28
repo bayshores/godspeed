@@ -187,7 +187,9 @@ async fn read_and_import(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path
 	// Removed, or its space deleted, while the text was read: undo what the read wrote back.
 	if !still_there(app, space_id, file_id) {
 		if app.spaces.cancelled.lock().contains(space_id) {
-			let _ = app.stores.spaces.delete_space(space_id);
+			if let Err(err) = app.stores.spaces.delete_space(space_id) {
+				eprintln!("[spaces] could not delete space {space_id} after its file was read: {err}");
+			}
 		} else {
 			drop_file_texts(app, space_id, file_id);
 		}

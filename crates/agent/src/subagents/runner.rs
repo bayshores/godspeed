@@ -320,7 +320,7 @@ impl JobRunner {
 			}
 			Err(e) => self.fail(job_id, JobKind::Research, input.as_ref(), &e.to_string(), ctx),
 		}
-		let _ = std::fs::remove_dir_all(&pdf_dir);
+		gs_base::fsx::remove_leftover(&pdf_dir);
 	}
 
 	/// Builds a demo and stores it. A build that left no HTML also records why on a job still

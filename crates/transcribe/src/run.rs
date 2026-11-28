@@ -80,6 +80,6 @@ impl WorkDir {
 
 impl Drop for WorkDir {
 	fn drop(&mut self) {
-		let _ = std::fs::remove_dir_all(&self.0);
+		fsx::remove_leftover(&self.0);
 	}
 }

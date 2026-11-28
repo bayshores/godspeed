@@ -48,7 +48,7 @@ struct Staging(PathBuf);
 
 impl Drop for Staging {
 	fn drop(&mut self) {
-		let _ = std::fs::remove_dir_all(&self.0);
+		fsx::remove_leftover(&self.0);
 	}
 }
 
@@ -145,24 +145,32 @@ fn finish(app: &App, staged: Staging) -> Outcome<Json> {
 	let old = plugins_root(app).join(format!(".old-{}", ids::uuid()));
 	let io = |e: std::io::Error| Stop::Throw(e.to_string());
 	// On any failure the stored JSON goes back, since the staging folder is deleted.
-	let give_back = || std::fs::rename(staged.0.join(DATA_FOLDER), dir.join(DATA_FOLDER));
+	let give_back = || put_back(&staged.0.join(DATA_FOLDER), &dir.join(DATA_FOLDER));
 	if dir.exists() {
 		if dir.join(DATA_FOLDER).exists() {
 			std::fs::rename(dir.join(DATA_FOLDER), staged.0.join(DATA_FOLDER)).map_err(io)?;
 		}
 		if let Err(err) = std::fs::rename(&dir, &old) {
-			let _ = give_back();
+			give_back();
 			return Err(io(err));
 		}
 	}
 	if let Err(err) = std::fs::rename(&staged.0, &dir) {
-		let _ = std::fs::rename(&old, &dir);
-		let _ = give_back();
+		put_back(&old, &dir);
+		give_back();
 		return Err(io(err));
 	}
-	let _ = std::fs::remove_dir_all(&old);
+	fsx::remove_leftover(&old);
 	drop(held);
 	Ok(plugin_view(app, &manifest)?)
+}
+
+/// Moves a folder back where it was after an install failed. The install's own error is what the
+/// learner sees, so a failure here is logged.
+fn put_back(from: &Path, to: &Path) {
+	if let Err(err) = std::fs::rename(from, to) {
+		eprintln!("[plugins] could not put {} back at {}: {err}", from.display(), to.display());
+	}
 }
 
 /// Installs a copy of the plugin in a local folder (for plugin authors).

@@ -230,7 +230,7 @@ pub async fn run_examples(tmp: &Path, question: &Json, code: &str, language: Moc
 	let dir = make_run_dir(tmp)?;
 	let file = dir.join(run_file(language));
 	if let Err(err) = fsx::write_text_atomic(&file, &runner_source(code, &question["fn"], examples, language, &mark)) {
-		let _ = std::fs::remove_dir_all(&dir);
+		fsx::remove_leftover(&dir);
 		return Err(fsx::node_error_message(&err, "open", &file));
 	}
 	let mut spawn = Command::new(&command[0]);
@@ -241,7 +241,7 @@ pub async fn run_examples(tmp: &Path, question: &Json, code: &str, language: Moc
 	let mut child = match spawn.spawn() {
 		Ok(child) => child,
 		Err(_) => {
-			let _ = std::fs::remove_dir_all(&dir);
+			fsx::remove_leftover(&dir);
 			return Ok(read_run("", "", &mark, examples));
 		}
 	};
