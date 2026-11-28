@@ -1,9 +1,9 @@
 /**
  * A list of known exceptions may only shrink. The lists are the files in tests/repo/exceptions
- * (a name with its reason, or a name with a count) and the numbers in COUNTED. A branch that adds
- * a name or raises a count fails here, unless one of its commits says why in a line of its
- * message: "Ratchet: <list>, <reason>". The last commit is compared with the commit where the
- * branch left origin/main, so a change not yet committed is not judged.
+ * (a name with its reason, or a name with a count) and the numbers in COUNTED. A commit that adds
+ * a name or raises a count fails here, unless its own message says why in a line:
+ * "Ratchet: <list>, <reason>". Every commit since the branch left origin/main is compared with
+ * the commit before it, so a change not yet committed is not judged.
  */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -36,9 +36,16 @@ function grown(before: Counts, after: Counts): string[] {
 	return Object.keys(after).filter((name) => after[name]! > (before[name] ?? 0));
 }
 
-/** The lists a branch's commit messages allow to grow. */
-function allowedBy(messages: string): Set<string> {
-	return new Set([...messages.matchAll(/^Ratchet: ([\w-]+), \S.*$/gm)].map((match) => match[1]!));
+/** Each name's highest count among a commit's parents: a merge may bring in what either side already had. */
+function highest(parents: Counts[]): Counts {
+	const top: Counts = {};
+	for (const counts of parents) for (const [name, count] of Object.entries(counts)) top[name] = Math.max(top[name] ?? 0, count);
+	return top;
+}
+
+/** The lists a commit's message allows to grow. */
+function allowedBy(message: string): Set<string> {
+	return new Set([...message.matchAll(/^Ratchet: ([\w-]+), \S.*$/gm)].map((match) => match[1]!));
 }
 
 function git(...args: string[]): string {
@@ -69,12 +76,15 @@ function branchPoint(): string {
 	}
 }
 
-it("no list of exceptions grew on this branch without a stated reason", () => {
-	const from = branchPoint();
-	const before = listsAt(from);
-	const allowed = allowedBy(git("log", "--format=%B", `${from}..HEAD`));
-	const raised = [...listsAt("HEAD")].flatMap(([list, after]) => (allowed.has(list) ? [] : grown(before.get(list) ?? {}, after).map((name) => `${list}: ${name}`)));
-	assert.deepEqual(raised, [], 'These lists of exceptions grew. Fix the code instead, or give the reason in the commit message, one line for each list: "Ratchet: <list>, <reason>".');
+it("no commit on this branch grew a list of exceptions without a stated reason", () => {
+	const files = [LISTS, ...Object.values(COUNTED).map((counted) => counted.file)];
+	const commits = git("rev-list", `${branchPoint()}..HEAD`, "--", ...files).split("\n").filter(Boolean);
+	const raised = commits.flatMap((commit) => {
+		const parents = git("rev-list", "--parents", "-n", "1", commit).trim().split(" ").slice(1).map(listsAt);
+		const allowed = allowedBy(git("log", "-1", "--format=%B", commit));
+		return [...listsAt(commit)].flatMap(([list, after]) => (allowed.has(list) ? [] : grown(highest(parents.map((lists) => lists.get(list) ?? {})), after).map((name) => `${commit.slice(0, 8)} ${list}: ${name}`)));
+	});
+	assert.deepEqual(raised, [], 'These commits grew a list of exceptions. Fix the code instead, or give the reason in that commit\'s message, one line for each list: "Ratchet: <list>, <reason>".');
 });
 
 describe("the ratchet reads its lists", () => {
@@ -94,6 +104,11 @@ describe("the ratchet reads its lists", () => {
 
 	it("counts the cases of a check that is its own list", () => {
 		assert.deepEqual(COUNTED["rust-twins"]!.counts('describe("x", () => {\n\tit("a", () => {});\n\tit("b", () => {});\n});'), { cases: 2 });
+	});
+
+	it("lets a merge keep the higher count of its two sides", () => {
+		assert.deepEqual(highest([{ a: 1, b: 2 }, { b: 5, c: 1 }]), { a: 1, b: 5, c: 1 });
+		assert.deepEqual(grown(highest([{ a: 1 }, { a: 3 }]), { a: 3 }), []);
 	});
 
 	it("takes a list's name from a commit message only with a reason", () => {
