@@ -1,7 +1,7 @@
 //! Tauri's build step: the config, the boot page, the icons and the permission for each app
 //! command (`allow-<name>` in capabilities/).
 
-fn main() {
+fn main() -> Result<(), String> {
 	let commands = tauri_build::AppManifest::new().commands(&[
 		"show_window",
 		"start_drag",
@@ -28,5 +28,5 @@ fn main() {
 		"drag_paths",
 		"title_bar_double_click",
 	]);
-	tauri_build::try_build(tauri_build::Attributes::new().app_manifest(commands)).expect("tauri build step");
+	tauri_build::try_build(tauri_build::Attributes::new().app_manifest(commands)).map_err(|err| format!("tauri build step: {err:#}"))
 }

@@ -11,6 +11,7 @@
 use crate::{clock, num};
 
 /// `n` random bytes (`crypto.randomBytes(n)`).
+#[expect(clippy::expect_used, reason = "the operating system's random source does not fail on the systems godspeed runs on")]
 pub fn random_bytes(n: usize) -> Vec<u8> {
 	let mut buf = vec![0; n];
 	getrandom::fill(&mut buf).expect("the OS random source works");

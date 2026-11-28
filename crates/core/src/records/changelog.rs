@@ -6,6 +6,7 @@ use std::sync::LazyLock;
 use gs_base::re::{Caps, Re};
 use gs_json::{Json, parse};
 
+#[expect(clippy::expect_used, reason = "the file is compiled into the app and the tests read it, so a broken one fails them first")]
 static ENTRIES: LazyLock<Vec<Json>> = LazyLock::new(|| {
 	let all = parse(include_str!("../../../../src/shared/changelog.json")).expect("changelog.json is valid JSON");
 	all.as_arr().cloned().unwrap_or_default()

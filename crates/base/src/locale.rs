@@ -7,17 +7,18 @@ use std::sync::LazyLock;
 
 use icu_collator::preferences::CollationNumericOrdering;
 use icu_collator::{Collator, CollatorBorrowed, CollatorPreferences};
-use icu_locale_core::Locale;
+use icu_locale_core::{Locale, locale};
 
 fn env_locale() -> Locale {
 	let raw = ["LC_ALL", "LC_MESSAGES", "LANG"].iter().find_map(|k| std::env::var(k).ok().filter(|v| !v.is_empty())).unwrap_or_default();
 	let tag = raw.split(['.', '@']).next().unwrap_or("").replace('_', "-");
 	if tag.is_empty() || tag == "C" || tag == "POSIX" {
-		return "en-US".parse().expect("valid tag");
+		return locale!("en-US");
 	}
-	tag.parse().unwrap_or_else(|_| "en-US".parse().expect("valid tag"))
+	tag.parse().unwrap_or(locale!("en-US"))
 }
 
+#[expect(clippy::expect_used, reason = "the collation data is compiled in, with a root fallback for every locale")]
 fn collator(numeric: bool) -> CollatorBorrowed<'static> {
 	let mut prefs = CollatorPreferences::from(&env_locale());
 	prefs.numeric_ordering = Some(if numeric { CollationNumericOrdering::True } else { CollationNumericOrdering::False });

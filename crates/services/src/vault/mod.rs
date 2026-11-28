@@ -71,11 +71,11 @@ fn with_reader<T>(app: &App, read: impl FnOnce(&mut VaultReader) -> T) -> Result
 	let setting = setup::setting(app).map_err(VaultError::Failed)?;
 	let root = setting.path.ok_or(VaultError::NoVault)?;
 	let mut held = app.vault.reader.lock();
-	if held.as_ref().is_none_or(|reader| reader.root() != Path::new(&root)) {
-		*held = None;
-		*held = Some(VaultReader::open(Path::new(&root)).map_err(|err| VaultError::of(&err))?);
-	}
-	Ok(read(held.as_mut().expect("opened above")))
+	let reader = match held.take() {
+		Some(reader) if reader.root() == Path::new(&root) => reader,
+		_ => VaultReader::open(Path::new(&root)).map_err(|err| VaultError::of(&err))?,
+	};
+	Ok(read(held.insert(reader)))
 }
 
 /// Looks at the vault again. Ok(true) when a note changed.

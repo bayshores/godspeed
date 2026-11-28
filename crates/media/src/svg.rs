@@ -56,7 +56,6 @@ fn tree(svg: &str) -> Result<usvg::Tree, String> {
 		font_family: String::new(),
 		font_size: 12.0,
 		languages: vec!["en".to_owned()],
-		default_size: usvg::Size::from_wh(100.0, 100.0).expect("fixed size"),
 		fontdb: FONTS.clone(),
 		..usvg::Options::default()
 	};

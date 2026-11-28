@@ -126,6 +126,7 @@ fn stored(bits: &mut Bits, out: &mut Vec<u8>, max_out: usize) -> Option<()> {
 	Some(())
 }
 
+#[expect(clippy::expect_used, reason = "the fixed code lengths of RFC 1951 always make complete codes")]
 fn fixed_codes() -> (Code, Code) {
 	let mut lengths = [8u8; 288];
 	lengths[144..256].fill(9);

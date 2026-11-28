@@ -224,8 +224,10 @@ impl Server {
 		let app = app.clone();
 		std::thread::spawn(move || {
 			let was_ready = stdout.is_some_and(|stdout| rpc::read(&app, generation, stdout, ready_tx));
-			let status = wait_exit(&child);
-			log::line(&exit_line(status));
+			match wait_exit(&child) {
+				Ok(status) => log::line(&exit_line(status)),
+				Err(err) => log::line(&format!("server exited (its exit status could not be read: {err})")),
+			}
 			let server = app.state::<Server>();
 			if was_ready && server.is_current(generation) && !server.stopping.load(Ordering::SeqCst) {
 				server.restart(&app);
@@ -369,9 +371,7 @@ fn wait_for_vite(port: u16) -> Result<(), String> {
 
 /// `N` random bytes as hex.
 pub fn random_hex<const N: usize>() -> String {
-	let mut bytes = [0u8; N];
-	getrandom::fill(&mut bytes).expect("the OS random source");
-	bytes.iter().map(|b| format!("{b:02x}")).collect()
+	gs_base::ids::hex(&gs_base::ids::random_bytes(N))
 }
 
 fn forward_stderr(stderr: impl Read) {
@@ -388,12 +388,12 @@ fn forward_stderr(stderr: impl Read) {
 }
 
 /// The child closed its stdout, so it is ending: wait for its exit status.
-fn wait_exit(child: &Mutex<Child>) -> ExitStatus {
+fn wait_exit(child: &Mutex<Child>) -> std::io::Result<ExitStatus> {
 	loop {
 		match lock(child).try_wait() {
-			Ok(Some(status)) => return status,
+			Ok(Some(status)) => return Ok(status),
 			Ok(None) => {}
-			Err(_) => return lock(child).wait().expect("the server's exit status"),
+			Err(_) => return lock(child).wait(),
 		}
 		std::thread::sleep(Duration::from_millis(20));
 	}

@@ -28,9 +28,8 @@ struct OpenProblem<'a> {
 }
 
 /// `new Date(timestamp).toISOString()`: null and booleans read as numbers, text and objects
-/// through `Date.parse`. A missing or unreadable timestamp is an invalid date, which JavaScript
-/// refuses with a RangeError; stored records always carry a millisecond number.
-fn iso_of(timestamp: Option<&Json>) -> String {
+/// through `Date.parse`. None for a missing or unreadable timestamp, an invalid date.
+fn iso_of(timestamp: Option<&Json>) -> Option<String> {
 	let ms = match timestamp {
 		None => None,
 		Some(Json::Null | Json::Bool(false)) => Some(0),
@@ -38,7 +37,7 @@ fn iso_of(timestamp: Option<&Json>) -> String {
 		Some(Json::Num(n)) => Some(*n).filter(|n| n.is_finite() && n.abs() <= 8.64e15).map(|n| n.trunc() as i64),
 		Some(other) => time::parse_date(&js_string(Some(other))),
 	};
-	time::iso(ms.expect("Invalid time value"))
+	ms.map(time::iso)
 }
 
 /// Strings of the `target` list, each once, in first-seen order.
@@ -78,6 +77,9 @@ pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 		}
 		let Some(outcome) = call.args["outcome"].as_str().filter(|o| OUTCOMES.contains(o)) else { continue };
 		let Some(problem) = open.take() else { continue };
+		// Stored results always carry a millisecond number; a damaged one without a time cannot be
+		// placed on the record, and the rest of the lesson still counts.
+		let Some(at) = iso_of(m.get("timestamp")) else { continue };
 		let mut entry = Obj::new();
 		if let Some(id) = problem.message_id {
 			entry.insert("messageId", id.clone());
@@ -92,7 +94,7 @@ pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 		if let Some(rung) = call.args["rung"].as_str() {
 			entry.insert("rung", rung);
 		}
-		entry.insert("at", iso_of(m.get("timestamp")));
+		entry.insert("at", at);
 		out.push(Json::Obj(entry));
 	}
 	out
@@ -169,20 +171,21 @@ mod tests {
 
 	#[test]
 	fn timestamps_read_like_new_date() {
-		assert_eq!(iso_of(Some(&Json::Null)), "1970-01-01T00:00:00.000Z");
-		assert_eq!(iso_of(Some(&Json::Bool(true))), "1970-01-01T00:00:00.001Z");
-		assert_eq!(iso_of(Some(&json!(-1.9))), "1969-12-31T23:59:59.999Z");
-		assert_eq!(iso_of(Some(&json!(["2024-01-01"]))), "2024-01-01T00:00:00.000Z");
+		assert_eq!(iso_of(Some(&Json::Null)).as_deref(), Some("1970-01-01T00:00:00.000Z"));
+		assert_eq!(iso_of(Some(&Json::Bool(true))).as_deref(), Some("1970-01-01T00:00:00.001Z"));
+		assert_eq!(iso_of(Some(&json!(-1.9))).as_deref(), Some("1969-12-31T23:59:59.999Z"));
+		assert_eq!(iso_of(Some(&json!(["2024-01-01"]))).as_deref(), Some("2024-01-01T00:00:00.000Z"));
 	}
 
 	#[test]
-	#[should_panic(expected = "Invalid time value")]
-	fn a_missing_timestamp_is_an_invalid_date() {
+	fn a_result_with_no_readable_time_is_left_out() {
 		let messages = [
 			assistant("m1", json!([{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": {} }, { "type": "toolCall", "id": "c1", "name": "conclude", "arguments": { "outcome": "movedOn" } }])),
 			result("p1", 1, false),
 			json!({ "role": "toolResult", "toolCallId": "c1" }),
 		];
-		practice_outcomes(&messages);
+		assert_eq!(practice_outcomes(&messages), Vec::<Json>::new());
+		assert_eq!(iso_of(None), None);
+		assert_eq!(iso_of(Some(&json!("not a date"))), None);
 	}
 }

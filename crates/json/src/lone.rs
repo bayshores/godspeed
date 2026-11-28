@@ -12,6 +12,7 @@
 pub const STANDIN_BASE: u32 = 0x10_F800;
 
 /// The stand-in char for a lone surrogate unit (0xD800..=0xDFFF).
+#[expect(clippy::expect_used, reason = "STANDIN_BASE plus at most 0x7FF is a code point below 0x10FFFF and not a surrogate")]
 pub fn standin(unit: u16) -> char {
 	debug_assert!((0xD800..=0xDFFF).contains(&unit));
 	char::from_u32(STANDIN_BASE + u32::from(unit - 0xD800)).expect("stand-ins are valid chars")

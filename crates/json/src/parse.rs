@@ -188,11 +188,12 @@ impl Parser<'_> {
 	}
 
 	fn hex4(&mut self) -> Result<u16, ParseError> {
-		let Some(hex) = self.text.get(self.i..self.i + 4).filter(|h| h.bytes().all(|b| b.is_ascii_hexdigit())) else {
+		let hex = self.text.get(self.i..self.i + 4).filter(|h| h.bytes().all(|b| b.is_ascii_hexdigit()));
+		let Some(unit) = hex.and_then(|hex| u16::from_str_radix(hex, 16).ok()) else {
 			return Err(self.err("Bad Unicode escape"));
 		};
 		self.i += 4;
-		Ok(u16::from_str_radix(hex, 16).expect("checked hex digits"))
+		Ok(unit)
 	}
 
 	fn string(&mut self) -> Result<String, ParseError> {
@@ -254,8 +255,10 @@ impl Parser<'_> {
 		if (0xD800..0xDC00).contains(&unit) && self.s[self.i..].starts_with(b"\\u") {
 			let save = self.i;
 			self.i += 2;
-			if let Ok(low @ 0xDC00..=0xDFFF) = self.hex4() {
-				return Ok(char::from_u32(0x10000 + ((u32::from(unit) - 0xD800) << 10) + (u32::from(low) - 0xDC00)).expect("valid pair"));
+			if let Ok(low @ 0xDC00..=0xDFFF) = self.hex4()
+				&& let Some(Ok(pair)) = char::decode_utf16([unit, low]).next()
+			{
+				return Ok(pair);
 			}
 			self.i = save;
 		}

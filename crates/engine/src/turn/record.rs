@@ -112,11 +112,14 @@ impl TranscriptBuilder {
 			self.end_step(emit);
 			emit(AgentEvent::TurnStart);
 		}
-		if self.step.is_none() {
-			self.flush_steered(emit);
-			self.step = Some(Step { message: self.new_message(), shown: false, closed: false, ended: false, results: Vec::new(), open_text: false, from: self.messages.len() });
-		}
-		self.step.as_mut().expect("just made")
+		let step = match self.step.take() {
+			Some(step) => step,
+			None => {
+				self.flush_steered(emit);
+				Step { message: self.new_message(), shown: false, closed: false, ended: false, results: Vec::new(), open_text: false, from: self.messages.len() }
+			}
+		};
+		self.step.insert(step)
 	}
 
 	/// Sends the steered markers as messages of their own, in the order they came.
@@ -136,6 +139,7 @@ impl TranscriptBuilder {
 		emit(event);
 	}
 
+	#[expect(clippy::expect_used, reason = "new_message makes content a list, and nothing replaces it")]
 	fn blocks(step: &mut Step) -> &mut Vec<Json> {
 		step.message.get_mut("content").and_then(Json::as_arr_mut).expect("content is a list")
 	}

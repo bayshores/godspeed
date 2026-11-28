@@ -34,8 +34,9 @@ impl Serialize for Json {
 }
 
 /// A typed value as `Json`.
+#[expect(clippy::expect_used, reason = "serde_json fails only on a map whose keys are not text or on a Serialize that errors, and the app's data types have neither")]
 pub fn to_json<T: Serialize + ?Sized>(value: &T) -> Json {
-	from_value(serde_json::to_value(value).expect("serializing to a JSON value cannot fail for data types"))
+	from_value(serde_json::to_value(value).expect("a data type serializes to a JSON value"))
 }
 
 /// A typed value read from `Json` (fails like a serde_json read on a shape mismatch).

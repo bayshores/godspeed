@@ -96,8 +96,14 @@ fn main() {
 			commands::appkit::title_bar_double_click,
 		])
 		.setup(setup)
-		.build(tauri::generate_context!())
-		.expect("the app could not start");
+		.build(tauri::generate_context!());
+	let app = match app {
+		Ok(app) => app,
+		Err(err) => {
+			log::line(&format!("the app could not start: {err}"));
+			std::process::exit(1);
+		}
+	};
 	#[cfg(all(feature = "screens", target_os = "macos"))]
 	let app = screens::without_dock(app);
 	app.run(|app, event| match event {

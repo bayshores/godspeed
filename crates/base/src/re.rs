@@ -187,7 +187,7 @@ fn substitute(caps: &Caps, replacement: &str) -> String {
 	let mut i = 0;
 	while i < b.len() {
 		if b[i] != b'$' || i + 1 == b.len() {
-			let c = replacement[i..].chars().next().expect("in bounds");
+			let Some(c) = replacement[i..].chars().next() else { break };
 			out.push(c);
 			i += c.len_utf8();
 			continue;

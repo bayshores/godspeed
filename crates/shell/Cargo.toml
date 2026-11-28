@@ -21,7 +21,6 @@ self-test = ["dep:image"]
 [dependencies]
 gs-base.workspace = true
 gs-shell-rpc.workspace = true
-getrandom.workspace = true
 image = { workspace = true, optional = true }
 os_info.workspace = true
 rfd.workspace = true

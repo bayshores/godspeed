@@ -2060,7 +2060,6 @@ dependencies = [
  "block2",
  "cairo-rs",
  "fontdb",
- "getrandom 0.3.4",
  "gs-base",
  "gs-shell-rpc",
  "gtk",

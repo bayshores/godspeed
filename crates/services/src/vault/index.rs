@@ -85,8 +85,8 @@ impl VaultReader {
 				(Some(old), Some(meta)) => old.size == meta.len() && old.modified == meta.modified().ok(),
 				_ => false,
 			};
-			if same {
-				next.insert(rel.clone(), self.notes.remove(&rel).expect("checked above"));
+			if same && let Some(note) = self.notes.remove(&rel) {
+				next.insert(rel, note);
 			} else if let Ok(note) = read_note(&self.root, &rel) {
 				changed = true;
 				next.insert(rel, note);

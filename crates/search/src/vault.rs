@@ -53,6 +53,7 @@ pub fn first_chars(text: &str, n: usize) -> String {
 
 impl VaultIndex {
 	/// The index of `entries`. A later entry with the same path replaces an earlier one.
+	#[expect(clippy::expect_used, reason = "the texts are a map keyed by path, so no path comes twice")]
 	pub fn new(entries: Vec<VaultEntry>) -> VaultIndex {
 		let mut hits = HashMap::with_capacity(entries.len());
 		let mut texts: HashMap<String, String> = HashMap::with_capacity(entries.len());

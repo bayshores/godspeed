@@ -52,11 +52,13 @@ pub fn resize(image: DynamicImage, width: u32, height: u32) -> DynamicImage {
 }
 
 /// 8-bit samples as 16-bit (v * 257), so premultiplying loses little.
+#[expect(clippy::expect_used, reason = "one sample out for each sample in, so the buffer fits the size")]
 fn up<Q: Pixel<Subpixel = u16>>(buf: &ImageBuffer<impl Pixel<Subpixel = u8>, Vec<u8>>) -> ImageBuffer<Q, Vec<u16>> {
 	let raw = buf.as_raw().iter().map(|&v| u16::from(v) * 257).collect();
 	ImageBuffer::from_raw(buf.width(), buf.height(), raw).expect("same sample count")
 }
 
+#[expect(clippy::expect_used, reason = "one sample out for each sample in, so the buffer fits the size")]
 fn down<Q: Pixel<Subpixel = u8>>(buf: &ImageBuffer<impl Pixel<Subpixel = u16>, Vec<u16>>) -> ImageBuffer<Q, Vec<u8>> {
 	let raw = buf.as_raw().iter().map(|&v| ((u32::from(v) + 128) / 257) as u8).collect();
 	ImageBuffer::from_raw(buf.width(), buf.height(), raw).expect("same sample count")

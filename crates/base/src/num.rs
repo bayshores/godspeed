@@ -51,11 +51,10 @@ pub fn base36(mut n: u64) -> String {
 	}
 	let mut out = Vec::new();
 	while n > 0 {
-		out.push(DIGITS[(n % 36) as usize]);
+		out.push(char::from(DIGITS[(n % 36) as usize]));
 		n /= 36;
 	}
-	out.reverse();
-	String::from_utf8(out).expect("ascii digits")
+	out.iter().rev().collect()
 }
 
 #[cfg(test)]

@@ -56,7 +56,7 @@ impl Gap {
 		let mut out = json!({ "spaceId": self.space_id, "key": self.key, "title": self.title, "line": self.line, "answer": self.answer, "close": self.close });
 		for (name, value) in [("kind", &self.kind), ("day", &self.day), ("name", &self.name), ("label", &self.label)] {
 			if let Some(value) = value {
-				out.as_obj_mut().unwrap().insert(name, json!(value));
+				out.set(name, json!(value));
 			}
 		}
 		out
