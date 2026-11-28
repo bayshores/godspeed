@@ -157,7 +157,8 @@ describe("Ticking a deadline done", () => {
 			played.length = 0;
 		});
 		const connect = () => ({ onEvent() {}, onOpen() {}, close() {} });
-		/** A page that draws a deadline's block from a read of its own (`done`), beside the owner's lists. */
+		const TICKABLE = [OPEN[1]!, OPEN[2]!];
+		/** A page that draws deadlines' blocks from a read of its own (`done`: the ids it read as done), beside the owner's lists. */
 		async function page(save: () => Promise<Response>) {
 			globals.Audio = class {
 				currentTime = 0;
@@ -169,16 +170,17 @@ describe("Ticking a deadline done", () => {
 			};
 			let puts = 0;
 			globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
-				if (init?.method !== "PUT") return Response.json({ deadlines: [OPEN[1]], doneToday: [DONE] });
+				if (init?.method !== "PUT") return Response.json({ deadlines: TICKABLE, doneToday: [DONE] });
 				puts++;
 				return save();
 			}) as typeof fetch;
-			function Blocks({ done }: { done: boolean }) {
-				const { markDone } = useOpenDeadlines();
-				tick = () => void markDone(OPEN[1]!);
-				return [DONE, { ...OPEN[1]!, done }].map((d) => <DeadlineBlock key={d.id} deadline={d} color="red" nowMs={Date.parse("2026-10-27T12:00:00")} size="list" />);
+			let markDone!: (d: OpenDeadline) => void;
+			function Blocks({ done }: { done: readonly string[] }) {
+				const owner = useOpenDeadlines();
+				markDone = (d) => void owner.markDone(d);
+				return [DONE, ...TICKABLE.map((d) => ({ ...d, done: done.includes(d.id) }))].map((d) => <DeadlineBlock key={d.id} deadline={d} color="red" nowMs={Date.parse("2026-10-27T12:00:00")} size="list" />);
 			}
-			const tree = (done: boolean) => (
+			const tree = (done: readonly string[]) => (
 				<ServerEventsProvider connect={connect as never}>
 					<MemoryRouter>
 						<PeekSheet>{null}</PeekSheet>
@@ -190,48 +192,82 @@ describe("Ticking a deadline done", () => {
 					</OpenDeadlinesProvider>
 				</ServerEventsProvider>
 			);
-			const el = await mount(tree(false));
+			const el = await mount(tree([]));
 			await settle();
-			return { el, read: (done: boolean) => act(async () => root!.render(tree(done))), puts: () => puts };
+			return { el, tick: (d: OpenDeadline) => act(async () => markDone(d)), read: (...done: string[]) => act(async () => root!.render(tree(done))), puts: () => puts };
 		}
-		const printing = (el: HTMLElement) => [...el.querySelectorAll(".lh-print")].map((stamp) => stamp.textContent);
+		const printing = (el: HTMLElement) => el.querySelectorAll(".lh-print").length;
+		const wait = (ms: number) => act(async () => void (await new Promise((r) => setTimeout(r, ms))));
+		const [A, B] = TICKABLE as [OpenDeadline, OpenDeadline];
 
 		it("one done before is at rest; one ticked prints its stamp and plays the done sound when its page draws it done, after the save", async () => {
-			const { el, read } = await page(async () => Response.json({ ok: true }));
+			const { el, tick, read } = await page(async () => Response.json({ ok: true }));
 			assert.match(el.textContent!, /Done/);
-			assert.deepEqual(printing(el), [], "the one done before shows its stamp at rest");
-			await act(async () => tick());
+			assert.equal(printing(el), 0, "the one done before shows its stamp at rest");
+			await tick(A);
 			await settle();
 			assert.deepEqual(played, [], "no sound before the stamp");
-			await read(true);
-			assert.deepEqual(printing(el), ["Done"]);
+			await read(A.id);
+			assert.equal(printing(el), 1);
 			assert.deepEqual(played, ["/sounds/done.mp3"]);
-			await act(async () => void (await new Promise((r) => setTimeout(r, MOMENT_MS + 50))));
-			assert.deepEqual(printing(el), ["Done"], "the print belongs to the block, so no later redraw cuts it");
-			await read(true);
+			await wait(MOMENT_MS + 50);
+			assert.equal(printing(el), 1, "the print belongs to the block, so no later redraw cuts it");
+			await read(A.id);
 			assert.deepEqual(played, ["/sounds/done.mp3"], "once");
 		});
 
 		it("prints once when the page reads it done before the save has answered, and a second click sends nothing", async () => {
 			let answer!: (r: Response) => void;
-			const { el, read, puts } = await page(() => new Promise((r) => (answer = r)));
-			await act(async () => tick());
-			await act(async () => tick());
+			const { el, tick, read, puts } = await page(() => new Promise((r) => (answer = r)));
+			await tick(A);
+			await tick(A);
 			assert.equal(puts(), 1);
-			await read(true);
-			assert.deepEqual(printing(el), ["Done"]);
+			await read(A.id);
+			assert.equal(printing(el), 1);
 			await act(async () => answer(Response.json({ ok: true })));
 			await settle();
-			assert.deepEqual(printing(el), ["Done"]);
+			assert.equal(printing(el), 1);
 			assert.deepEqual(played, ["/sounds/done.mp3"]);
 		});
 
-		it("a save that fails takes the name back: a block drawn done afterwards is at rest", async () => {
-			const { el, read } = await page(async () => Response.json({ error: "boom" }, { status: 500 }));
-			await act(async () => tick());
+		it("the moment is counted from the save's answer: a save slower than a moment still prints and sounds", async () => {
+			let answer!: (r: Response) => void;
+			const { el, tick, read } = await page(() => new Promise((r) => (answer = r)));
+			await tick(A);
+			await wait(MOMENT_MS + 50);
+			await act(async () => answer(Response.json({ ok: true })));
 			await settle();
-			await read(true);
-			assert.deepEqual(printing(el), []);
+			await read(A.id);
+			assert.equal(printing(el), 1);
+			assert.deepEqual(played, ["/sounds/done.mp3"]);
+		});
+
+		it("two ticked one after the other each have their moment", async () => {
+			const { el, tick, read } = await page(async () => Response.json({ ok: true }));
+			await tick(A);
+			await tick(B);
+			await settle();
+			await read(A.id, B.id);
+			assert.equal(printing(el), 2);
+			assert.deepEqual(played, ["/sounds/done.mp3", "/sounds/done.mp3"]);
+		});
+
+		it("a save that fails takes the name back: a block drawn done afterwards is at rest", async () => {
+			const { el, tick, read } = await page(async () => Response.json({ error: "boom" }, { status: 500 }));
+			await tick(A);
+			await settle();
+			await read(A.id);
+			assert.equal(printing(el), 0);
+			assert.deepEqual(played, []);
+		});
+
+		it("a moment ends: one drawn done long after its save was read back is at rest", async () => {
+			const { el, tick, read } = await page(async () => Response.json({ ok: true }));
+			await tick(A);
+			await settle();
+			await wait(MOMENT_MS + 50);
+			await read(A.id);
+			assert.equal(printing(el), 0);
 			assert.deepEqual(played, []);
 		});
 	});
@@ -673,6 +709,9 @@ describe("Picking in the week", () => {
 		await act(async () => root!.render(body(homeLists(rest, [{ ...first!, done: true, doneAt: new Date(NOW).toISOString() }], NOW), { done })));
 		assert.equal(cardTitle(el), first!.name);
 		assert.ok($(el, "today-undo"));
+		assert.equal($(el, "today-showing")!.textContent, "", "ticking is not picking: nothing is read out");
+		await act(async () => $(el, `week-item-${rest[0]!.id}`)!.click());
+		assert.equal(cardTitle(el), rest[0]!.name, "a pick in the week takes the card");
 	});
 
 	it("a pick that leaves the lists falls back to the next thing", async () => {

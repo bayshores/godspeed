@@ -20,7 +20,7 @@ import { useServerEvents, useServerResync } from "@/frontend/components/server-e
 import { useServerResource } from "@/frontend/components/use-server-resource";
 import type { ReloadOn } from "@/frontend/components/server-resource-model";
 
-const REFRESH_DEBOUNCE_MS = 400;
+export const REFRESH_DEBOUNCE_MS = 400;
 const PROGRESS_EVENTS = ["turn-settled", "activity-changed", "spaces-changed", "chats-changed"] as const satisfies readonly ServerEventType[];
 const RELOAD_ON: ReloadOn = Object.fromEntries(PROGRESS_EVENTS.map((type) => [type, true]));
 

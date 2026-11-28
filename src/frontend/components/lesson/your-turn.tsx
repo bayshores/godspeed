@@ -19,7 +19,7 @@ import { TurnScroll } from "./turn-scroll";
 import { TurnPlaceContext, TurnSlotsContext } from "./turn-place";
 import { TurnSwap } from "./turn-swap";
 import { AnsweredTurn } from "./answered-turn";
-import { useJustNow } from "@/frontend/components/presence";
+import { useJustNow, usePrint } from "@/frontend/components/presence";
 import type { NextAction, TurnShown } from "./turn-next-model";
 import { ErrorLine } from "@/frontend/components/error-line";
 
@@ -225,9 +225,9 @@ export function YourTurn({
 		</div>
 	);
 	const nextLine = next?.next.line ?? null;
-	// The two moments of a lesson. An answer sent from here is one for as long as its verdict takes to print.
+	// The two moments of a lesson. An answer sent from here is one until its verdict is drawn.
 	const [answered, setAnswered] = useJustNow();
-	// The lesson ending while it is open is the other; a lesson opened after it ended is at rest.
+	// The lesson ending while it is open is the other: its last line is drawn anew and prints. A lesson opened after it ended is at rest.
 	const ended = nextKey?.action === "done-for-today";
 	const [wasEnded, setWasEnded] = useState(ended);
 	const [endedNow, setEndedNow] = useJustNow();
@@ -238,11 +238,7 @@ export function YourTurn({
 	// With nothing asked, no line to say and no notes, the task takes no room.
 	const empty = !pending && !shownProblem && !kept && !nextLine && !notes && !reviewRefused;
 
-	const nextRow = nextLine && (
-		<p data-testid="turn-next-line" className={cn("font-prose text-tab leading-7", next?.dim ? "text-ink-2" : "text-ink", endedNow !== null && "lh-print")}>
-			{nextLine}
-		</p>
-	);
+	const nextRow = nextLine && <NextLine key={String(ended)} line={nextLine} dim={!!next?.dim} fresh={endedNow !== null} />;
 	// Beside the text a problem glides in with its sheet (useLeftSlide) instead.
 	const stand = slots.closing ? "lh-fade" : slots.stepIn && place !== "left" && "lh-block-in";
 	const stood = { "data-state": slots.closing ? "closed" : "open", inert: slots.closing, style: { "--lh-block-delay": "240ms", "--lh-pale": pale } as CSSProperties };
@@ -416,5 +412,15 @@ function HelpKeys({ help, questionRef, onHelpLine }: { help: NonNullable<BoxView
 				{HELP_LINES.simpler}
 			</button>
 		</>
+	);
+}
+
+/** The line that says what comes next. The one that says the lesson is over prints when the lesson ends in sight (`fresh` as it is first drawn). */
+function NextLine({ line, dim, fresh }: { line: string; dim: boolean; fresh: boolean }) {
+	const print = usePrint(fresh);
+	return (
+		<p data-testid="turn-next-line" onAnimationEnd={print.onAnimationEnd} className={cn("font-prose text-tab leading-7", dim ? "text-ink-2" : "text-ink", print.className)}>
+			{line}
+		</p>
 	);
 }

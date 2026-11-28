@@ -37,7 +37,7 @@ export function DeadlineBlock({
 	size: keyof typeof BOX;
 	pale?: boolean;
 }) {
-	if (d.done) return <DoneBlock id={d.id} className={BOX[size]} />;
+	if (d.done) return <DoneBlock key={d.id} id={d.id} className={BOX[size]} />;
 	if (isOverdue(d, nowMs)) return <span className={cn(GREY, BOX[size], "font-count text-ui text-ink")}>was due</span>;
 	return <CountBlock size={size} pale={pale} color={color} {...countLeft(dueAtMs(d), nowMs)} />;
 }

@@ -13,7 +13,7 @@
  * as-is, so server and static renders match what callers render today.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type AnimationEvent, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type AnimationEvent } from "react";
 
 /** The motion tokens of globals.css, for animations and waits run from code: --lh-dur-fast, --lh-dur,
  *  --lh-dur-slow, --lh-dur-page, --lh-ease-out and --lh-ease-in. tests/frontend/motion-times.test.ts
@@ -144,18 +144,18 @@ export function useListMotion<T extends { key: string }>(
 	return useMemo(() => held.map(({ item, leaving }) => ({ item, leaving, joined: !leaving && !!arrive(item.key) })), [held, arrive]);
 }
 
-/** How long what just happened counts as just now: time for the page to draw it (a save read back;
- *  progress is read 400 ms after a change) and for a mark shown by a class to print
- *  (tests/frontend/motion-times.test.ts holds it no shorter than that print). */
+/** How long what just happened counts as just now: the time until its mark is first drawn. Your
+ *  turn's old contents leave first, and after a deadline is saved as done, progress is read again
+ *  a wait later (tests/frontend/motion-times.test.ts holds it against both). */
 export const MOMENT_MS = 2 * PAGE_MS;
 
 /**
- * What just happened, by its id: set it where the thing happens (an answer sent, a deadline's Mark
- * done pressed), and it is null again after MOMENT_MS. What is first drawn while it is named plays
- * its mark; whatever is drawn without it is at rest, however it came to be drawn (a page opening, a
- * window resized, a row moved to another list).
+ * What just happened, by its id: set it where the thing happens (an answer sent, the lesson's end
+ * arriving), and it is null again after MOMENT_MS. A mark first drawn while it is named prints
+ * (usePrint); whatever is drawn without it is at rest, however it came to be drawn (a page opening,
+ * a window resized).
  */
-export function useJustNow(): [string | null, Dispatch<SetStateAction<string | null>>] {
+export function useJustNow(): [string | null, (id: string | null) => void] {
 	const [id, setId] = useState<string | null>(null);
 	useEffect(() => {
 		if (id === null) return;

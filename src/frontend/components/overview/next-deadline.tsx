@@ -90,7 +90,7 @@ export const NextDeadline = memo(function NextDeadline({
 		<Pane data-testid="next-deadline" data-teacher-target={`deadline:${d.id}`} className="@container overflow-hidden">
 			<div ref={swap} className="flex flex-col @[480px]:flex-row">
 				{d.done ? (
-					<DoneBlock id={d.id} className="h-24 @[480px]:h-auto @[480px]:w-[116px]" />
+					<DoneBlock key={d.id} id={d.id} className="h-24 @[480px]:h-auto @[480px]:w-[116px]" />
 				) : (
 					<CountBlock size="band" color={color} {...countLeft(dueAtMs(d), nowMs)} className="h-24 w-auto @[480px]:h-auto @[480px]:w-[116px]" />
 				)}

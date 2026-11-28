@@ -168,8 +168,9 @@ export function homeEmpty(lists: HomeLists, outlines: number, teacher: string): 
 	return lists.today.length + lists.done.length + lists.later.length + outlines > 0 ? null : `None yet. ${teacher} can add them from your files.`;
 }
 
-/** The deadline the card shows: the one picked in the week or Later while
- *  it is still there (open or ticked done today), else mainRowId's. */
+/** The deadline the card shows: the one picked in the week or Later, or
+ *  ticked done on the card, while it is still there (open or ticked done
+ *  today), else mainRowId's. */
 export function shownCard(lists: HomeLists, picked: string | null, mainId: string | null): OpenDeadline | null {
 	const all = [...lists.today, ...lists.done, ...lists.later];
 	const find = (id: string | null) => (id === null ? undefined : all.find((d) => d.id === id));

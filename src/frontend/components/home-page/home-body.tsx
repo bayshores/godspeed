@@ -62,13 +62,19 @@ interface HomeBodyProps {
 export function HomeBody(p: HomeBodyProps) {
 	// A pick that leaves the lists falls back to the next thing to do.
 	const [picked, setPicked] = useState<WeekPick | null>(null);
+	// The deadline ticked done on the card stays on it with its stamp and its Undo, as on a space's page, until something is picked.
+	const [ticked, setTicked] = useState<string | null>(null);
+	const pick = (to: WeekPick | null) => {
+		setTicked(null);
+		setPicked(to);
+	};
 	const waited = useWaited(p.ready && p.nowMs !== null);
 	const outlines = useLeavingList(p.outlines);
 	const cardGlide = useSheetGlide(false, true);
 	const gap = picked?.kind === "gap" ? (p.outlines.find((g) => g.key === picked.key) ?? null) : null;
 	// An outline that has gone is let go, so one that comes back is never shown unasked.
 	if (picked?.kind === "gap" && !gap) setPicked(null);
-	const card = !gap && p.lists && p.nowMs !== null ? shownCard(p.lists, picked?.kind === "deadline" ? picked.key : null, mainRowId(p.lists.today, p.deadlineProgress, p.nowMs)) : null;
+	const card = !gap && p.lists && p.nowMs !== null ? shownCard(p.lists, picked?.kind === "deadline" ? picked.key : ticked, mainRowId(p.lists.today, p.deadlineProgress, p.nowMs)) : null;
 	const shown: WeekPick | null = gap ? { kind: "gap", key: gap.key } : card ? { kind: "deadline", key: card.id } : null;
 	const space = (id: string) => p.spaces.find((s) => s.id === id);
 	const color = (d: OpenDeadline) => space(d.spaceId)?.color;
@@ -116,9 +122,8 @@ export function HomeBody(p: HomeBodyProps) {
 											nowMs={p.nowMs}
 											busyOn={p.busyOn}
 											onStart={p.onStart}
-											// One ticked here stays on the card with its stamp and its Undo, as on a space's page.
 											onDone={(d) => {
-												setPicked({ kind: "deadline", key: d.id });
+												setTicked(d.id);
 												p.onDone(d);
 											}}
 											onUndo={p.onUndo}
@@ -126,7 +131,7 @@ export function HomeBody(p: HomeBodyProps) {
 									)}
 								</div>
 							)}
-							<DeadlinesCard spaces={p.spaces} lists={p.lists} outlines={outlines} nowMs={p.nowMs} picked={shown} onPick={setPicked} onRetry={p.onRetry} onAdd={p.onAddDeadline} />
+							<DeadlinesCard spaces={p.spaces} lists={p.lists} outlines={outlines} nowMs={p.nowMs} picked={shown} onPick={pick} onRetry={p.onRetry} onAdd={p.onAddDeadline} />
 							<p aria-live="polite" data-testid="today-showing" className="sr-only">
 								{picked !== null && (gap || card) ? `Showing ${gap?.label ?? card?.name}` : ""}
 							</p>

@@ -66,7 +66,7 @@ export function NextCard({
 		<CardFrame
 			testid="today-card"
 			target={`deadline:${d.id}`}
-			block={d.done ? <DoneBlock id={d.id} className={cn("w-[112px] self-stretch py-2", STRIP)} /> : <CountBlock size="card" color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} className={STRIP} />}
+			block={d.done ? <DoneBlock key={d.id} id={d.id} className={cn("w-[112px] self-stretch py-2", STRIP)} /> : <CountBlock size="card" color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} className={STRIP} />}
 			struck={d.done}
 			title={
 				<Link to={deadlineHref(d.id)} data-testid="today-card-open" className="hover:underline">
