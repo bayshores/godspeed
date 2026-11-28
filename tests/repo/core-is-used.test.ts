@@ -5,24 +5,16 @@
  * users. Names are found by reading the source, with no type check.
  */
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { it } from "node:test";
 import ts from "typescript";
+import { parseTs, tsFiles } from "./ts-source.ts";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const coreDir = path.join(root, "src/shared/core");
 const barrels = ["index.ts", "contracts.ts"].map((name) => path.join(coreDir, name));
 
-function sourceFiles(dir: string): string[] {
-	return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-		const full = path.join(dir, entry.name);
-		if (entry.isDirectory()) return sourceFiles(full);
-		return /\.tsx?$/.test(entry.name) ? [full] : [];
-	});
-}
-
-const parse = (file: string) => ts.createSourceFile(file, readFileSync(file, "utf-8"), ts.ScriptTarget.Latest, true, file.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
 const isExported = (node: ts.Node) => ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 
 /** The names a file exports, each with the file that declares it, following `export *`. */
@@ -30,7 +22,7 @@ function exportsOf(file: string, seen = new Set<string>()): Map<string, string> 
 	const out = new Map<string, string>();
 	if (seen.has(file)) return out;
 	seen.add(file);
-	for (const node of parse(file).statements) {
+	for (const node of parseTs(file).statements) {
 		if (ts.isExportDeclaration(node)) {
 			if (node.moduleSpecifier && !node.exportClause) {
 				const target = path.resolve(path.dirname(file), (node.moduleSpecifier as ts.StringLiteral).text);
@@ -56,7 +48,7 @@ function identifiersOf(file: string): Set<string> {
 		if (ts.isIdentifier(node)) names.add(node.text);
 		ts.forEachChild(node, visit);
 	};
-	visit(parse(file));
+	visit(parseTs(file));
 	return names;
 }
 
@@ -69,7 +61,7 @@ it("every name the core exports is used by the frontend or by another core file"
 	assert.ok(exported.size > 100, "found too few exports; the reader is broken");
 	for (const name of TESTS_REACH_INSIDE.keys()) assert.ok(exported.has(name), `${name} is no longer exported: remove it from tests/repo/exceptions/core-tests-reach-inside.json`);
 
-	const users = [...sourceFiles(path.join(root, "src/frontend")), ...sourceFiles(coreDir).filter((file) => !barrels.includes(file))].map((file) => ({ file, names: identifiersOf(file) }));
+	const users = [...tsFiles(path.join(root, "src/frontend")), ...tsFiles(coreDir).filter((file) => !barrels.includes(file))].map((file) => ({ file, names: identifiersOf(file) }));
 	const unused = [...exported]
 		.filter(([name, from]) => !TESTS_REACH_INSIDE.has(name) && !users.some((user) => user.file !== from && user.names.has(name)))
 		.map(([name, from]) => `${name} (${path.relative(root, from)})`);
