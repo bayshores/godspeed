@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import { useWaited } from "@/frontend/components/loading";
-import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { useLastWhileClosing } from "@/frontend/components/presence";
 import { useSheetGlide } from "@/frontend/components/use-sheet-glide";
 import { cn } from "@/frontend/lib/utils";
 import type { SpaceNote, DeadlineProgress, ProgressPayload } from "@/shared/core";

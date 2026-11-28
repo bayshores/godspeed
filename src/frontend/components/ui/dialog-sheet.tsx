@@ -1,19 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useBackdropDismiss } from "@/frontend/components/backdrop-dismiss";
-import { usePresence } from "@/frontend/components/presence";
 import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 
 type MotionState = "open" | "closed";
-
-/** Keeps a closing dialog on screen with its last `value` while it fades out. */
-export function useLastWhileClosing<T>(value: T | null): { mounted: boolean; state: MotionState; shown: T | null } {
-	const presence = usePresence(value !== null);
-	const [last, setLast] = useState(value);
-	if (value !== null && value !== last) setLast(value);
-	return { mounted: presence.mounted, state: presence.state, shown: value ?? last };
-}
 
 /**
  * A dialog: a sheet out of the top bar, over the dimmed page, with its

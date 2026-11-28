@@ -1,9 +1,8 @@
 import { useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/frontend/components/ai-elements/conversation";
-import { prefersReducedMotion } from "@/frontend/components/presence";
+import { prefersReducedMotion, useLastWhileClosing } from "@/frontend/components/presence";
 import { SessionMessageNavigation } from "@/frontend/components/session-navigation";
-import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { cn } from "@/frontend/lib/utils";
 import { DeskRoomContext, TurnPlaceContext, TurnSlotsContext, type TurnPlace } from "./turn-place";
 import { FilingContext } from "@/frontend/components/filed-card";

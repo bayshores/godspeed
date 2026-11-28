@@ -1,9 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { riseMotion, rowMotion } from "@/frontend/components/motion";
-import { useLeavingList } from "@/frontend/components/presence";
-import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { useLastWhileClosing, useListMotion, type Moves } from "@/frontend/components/presence";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { useArrivals } from "./arrivals";
 import { readBase64 } from "@/frontend/lib/read-base64";
 import { cn } from "@/frontend/lib/utils";
 import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS, attachmentType, isPdfType, pickAttachments, type ChatAttachment } from "@/shared/core";
@@ -132,19 +130,19 @@ export function attachmentInputProps(draft: AttachmentDraft) {
 /** The waiting files above the text, each with "Remove", and the last refusal. A file added steps in,
  *  one removed fades out in its place, and the tray goes once what it held has. */
 export function AttachmentTray({ draft }: { draft: AttachmentDraft }) {
-	const chips = useLeavingList(useMemo(() => draft.files.map((f) => ({ key: f.id, file: f })), [draft.files]));
-	const arrive = useArrivals();
+	const chips = useListMotion(useMemo(() => draft.files.map((f) => ({ key: f.id, file: f })), [draft.files]));
 	const refusal = useLastWhileClosing(draft.error || null);
 	if (chips.length === 0 && !refusal.mounted) return null;
 	return (
 		<div data-testid="attachment-tray" className="flex shrink-0 flex-col gap-2 pt-3">
 			{chips.length > 0 && (
 				<div className="flex flex-wrap gap-2">
-					{chips.map(({ item: { file: f }, leaving }) => (
-						<DraftChip key={f.id} file={f.attachment} leaving={leaving} joined={!!arrive(f.id)} onRemove={() => draft.remove(f.id)} />
+					{chips.map(({ item: { file: f }, ...moves }) => (
+						<DraftChip key={f.id} file={f.attachment} {...moves} onRemove={() => draft.remove(f.id)} />
 					))}
 				</div>
 			)}
+			{/* Not ErrorLine: this line comes in with the box, and ErrorLine keeps words that are there at its first drawing still. */}
 			{refusal.mounted && (
 				<p key={refusal.shown} data-testid="attachment-error" {...riseMotion(refusal.state, "text-ui text-ink-2")}>
 					{refusal.shown}
@@ -155,7 +153,7 @@ export function AttachmentTray({ draft }: { draft: AttachmentDraft }) {
 }
 
 /** One waiting file: a picture's small preview, the file's name, "Remove". */
-function DraftChip({ file, leaving, joined, onRemove }: { file: ChatAttachment; leaving: boolean; joined: boolean; onRemove: () => void }) {
+function DraftChip({ file, leaving, joined, onRemove }: Moves & { file: ChatAttachment; onRemove: () => void }) {
 	const pdf = isPdfType(file.mimeType);
 	return (
 		<div data-testid={pdf ? "draft-pdf" : "draft-image"} {...rowMotion(leaving, joined, cn("flex h-[47px] max-w-72 items-center gap-1.5 overflow-hidden lh-well lh-notch pr-1.5", pdf && "pl-3"))}>

@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import { send, serverError } from "@/frontend/lib/api";
 import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
 import { DeleteFoot, FailureRow } from "@/frontend/components/ui/delete-dialog-parts";
-import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
+import { useLastWhileClosing } from "@/frontend/components/presence";
 import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 
 type Node = { id: string; name: string };

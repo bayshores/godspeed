@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from "react";
 import { riseMotion } from "@/frontend/components/motion";
-import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { useLastWhileClosing } from "@/frontend/components/presence";
 
 /** An error line under a form or a key. It rises in when it comes, and again with new words; cleared,
  *  it keeps its last words while it fades out. Words there at the first drawing are simply there. */

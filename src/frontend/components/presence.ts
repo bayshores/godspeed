@@ -1,7 +1,7 @@
 /**
  * usePresence: keeps an element mounted
  * long enough to play its exit animation. Pair the returned `state` with
- * the motion classes in src/frontend/globals.css (.lh-pop / .lh-dialog / .lh-fade
+ * the motion classes in src/frontend/globals.css (.lh-pop / .lh-hang / .lh-fade
  * read data-state="open" | "closed").
  *
  *   const menu = usePresence(open);
@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useArrivals } from "@/frontend/components/lesson/arrivals";
 
 /** The motion tokens of globals.css, for animations and waits run from code: --lh-dur-fast, --lh-dur,
  *  --lh-dur-slow, --lh-dur-page, --lh-ease-out and --lh-ease-in. tests/frontend/motion-times.test.ts
@@ -53,6 +54,15 @@ export function usePresence(open: boolean, exitMs: number = FAST_MS): { mounted:
 	return { mounted: open || mounted, state: open ? "open" : "closed" };
 }
 
+/** Keeps a closing thing on screen with its last `value` while it fades out (usePresence, with the
+ *  words or the record it showed). */
+export function useLastWhileClosing<T>(value: T | null): { mounted: boolean; state: "open" | "closed"; shown: T | null } {
+	const presence = usePresence(value !== null);
+	const [last, setLast] = useState(value);
+	if (value !== null && value !== last) setLast(value);
+	return { mounted: presence.mounted, state: presence.state, shown: value ?? last };
+}
+
 /** An item of a list held while it leaves. */
 export type Leaving<T> = { item: T; leaving: boolean };
 
@@ -90,4 +100,21 @@ export function useLeavingList<T extends { key: string }>(items: readonly T[], e
 		return () => clearTimeout(timer);
 	}, [gone, exitMs]);
 	return useMemo(() => withGone(items, gone), [items, gone]);
+}
+
+/** How a row of a list moves: `leaving` while it fades out in its place, `joined` when it came
+ *  after the list first drew (rowMotion). */
+export type Moves = { leaving: boolean; joined: boolean };
+
+/** The motion of one list: `items` (keyed, stable between renders, as useLeavingList asks), each
+ *  with how it moves. `drawn`: false while the list waits for its data, so what its first drawing
+ *  holds stays at rest. `seen`: keys the list may show later without stepping in ("Show all"). */
+export function useListMotion<T extends { key: string }>(
+	items: readonly T[],
+	{ drawn = true, seen = [] }: { drawn?: boolean; seen?: readonly string[] } = {},
+): (Moves & { item: T })[] {
+	const held = useLeavingList(items);
+	const arrive = useArrivals(drawn);
+	for (const key of seen) arrive(key);
+	return useMemo(() => held.map(({ item, leaving }) => ({ item, leaving, joined: !leaving && !!arrive(item.key) })), [held, arrive]);
 }

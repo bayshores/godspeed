@@ -8,11 +8,10 @@ import { LoadingLine, useWaited } from "@/frontend/components/loading";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { ErrorLine } from "@/frontend/components/error-line";
 import { rowMotion } from "@/frontend/components/motion";
-import { useLeavingList } from "@/frontend/components/presence";
+import { useLastWhileClosing, useLeavingList } from "@/frontend/components/presence";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { savedDay } from "@/frontend/components/rule-chips";
 import { FootQuestion } from "@/frontend/components/ui/foot-question";
-import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { send } from "@/frontend/lib/api";
 import { cn } from "@/frontend/lib/utils";
 import { SMALL_KEY, SettingsGroup, SettingsRow } from "./controls.tsx";
@@ -59,6 +58,7 @@ export function RememberedNotes() {
 	useEffect(() => load(), [load]);
 	const waited = useWaited(notes !== null);
 	// A deleted note fades out in its place; its question (which rises in itself) fades out on Cancel.
+	// Not useListMotion: a note that joins is stepped in by the wrapper's .lh-set.
 	const listed = useLeavingList(useMemo(() => (notes ?? []).map((note) => ({ key: note.id, note })), [notes]));
 	const question = useLastWhileClosing(asking);
 

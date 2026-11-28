@@ -1,7 +1,7 @@
 import { cn } from "@/frontend/lib/utils";
 import { zoomLabel } from "@/frontend/lib/camera";
 import { Hint } from "@/frontend/components/ui/hint";
-import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { useLastWhileClosing } from "@/frontend/components/presence";
 import { useZoom } from "@/frontend/components/use-zoom";
 import { useMagnifier } from "@/frontend/components/magnifier/magnifier";
 import { barWord } from "./bar-look";

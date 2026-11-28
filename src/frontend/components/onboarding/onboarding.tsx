@@ -25,7 +25,7 @@ import { writeStorage } from "@/frontend/lib/storage";
 import { cn } from "@/frontend/lib/utils";
 import { AgentStep } from "./agent-step";
 import { SpaceStep } from "./space-step";
-import { Constellation, type ConstellationMode } from "./constellation";
+import { Constellation, SKY_FLASH_MS, type ConstellationMode } from "./constellation";
 import { DoneStep } from "./done-step";
 import { Intro } from "./intro";
 
@@ -70,7 +70,7 @@ export function Onboarding() {
 		}
 		writeStorage(WELCOME_KEY, "1");
 		// The sky's flash plays out first; with reduced motion there is none to wait for.
-		if (!prefersReducedMotion()) await new Promise((r) => setTimeout(r, 600));
+		if (!prefersReducedMotion()) await new Promise((r) => setTimeout(r, SKY_FLASH_MS));
 		navigate("/", { replace: true });
 		void refresh();
 	}, [spaceId, navigate, refresh, patchGeneral]);

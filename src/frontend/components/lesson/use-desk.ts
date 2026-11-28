@@ -1,6 +1,5 @@
 import { useMemo, useRef } from "react";
-import { prefersReducedMotion } from "@/frontend/components/presence";
-import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { prefersReducedMotion, useLastWhileClosing } from "@/frontend/components/presence";
 import type { LessonWork, LhViewMessage } from "@/shared/core";
 import { deskCalls, deskHead, deskMark, wroteSince } from "./wait-model";
 

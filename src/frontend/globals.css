@@ -1737,10 +1737,10 @@ body:has(.lh-own-bar) .lh-app-bar {
 		width: calc(var(--lh-strip) + 6px);
 	}
 }
+.lh-strip {
+	transition: width var(--lh-dur-fast) var(--lh-ease-out);
+}
 @media (prefers-reduced-motion: no-preference) {
-	.lh-strip {
-		transition: width var(--lh-dur-fast) var(--lh-ease-out);
-	}
 	.lh-strip-arrow[data-beckon] {
 		animation: lh-strip-beckon 4s steps(1, end) infinite;
 	}
@@ -1809,10 +1809,8 @@ body:has(.lh-own-bar) .lh-app-bar {
 	background: var(--lh-bar);
 	clip-path: var(--lh-nook-foot);
 }
-@media (prefers-reduced-motion: no-preference) {
-	.lh-follow-slip {
-		transition: right var(--lh-dur) var(--lh-ease-out);
-	}
+.lh-follow-slip {
+	transition: right var(--lh-dur) var(--lh-ease-out);
 }
 
 /* The strip's peek (strip/peek-sheet.tsx): a sheet that slides out of the
@@ -2017,9 +2015,14 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	from {
 		clip-path: inset(0 100% 0 0);
 	}
+	/* Named, so the steps uncover it: from an inset to no clip at all there is nothing between. */
+	to {
+		clip-path: inset(0);
+	}
 }
+/* Not held after its end: what reaches past the box (a focus ring) is cut only while it draws. */
 .lh-draw-in {
-	animation: lh-draw-in var(--lh-dur-page) steps(4, end) both;
+	animation: lh-draw-in var(--lh-dur-page) steps(4, end) backwards;
 }
 .lh-draw-in.lh-draw-quick {
 	animation-duration: var(--lh-dur);

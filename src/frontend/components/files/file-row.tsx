@@ -14,6 +14,7 @@ import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
 import { rowMotion } from "@/frontend/components/motion";
+import type { Moves } from "@/frontend/components/presence";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { canRemove, canRetry, fileState, fileType, kindTitle, studiedFill, type FileState } from "./files-model";
 import { FULL_LINE } from "./files-pick-model";
@@ -85,7 +86,7 @@ export const FileRow = memo(function FileRow({
 	actions,
 	leaving,
 	joined,
-}: {
+}: Moves & {
 	file: SpaceFile;
 	/** The .tex this PDF is built from: one row, the PDF's. */
 	source?: SpaceFile;
@@ -100,8 +101,6 @@ export const FileRow = memo(function FileRow({
 	/** The teacher's name, for the kind label's hover text. */
 	teacher: string;
 	actions: FileRowActions;
-	leaving: boolean;
-	joined: boolean;
 }) {
 	const state = fileState(file, coverage);
 	const install = state.kind === "failed" ? state.install : undefined;

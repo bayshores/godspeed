@@ -1,9 +1,8 @@
 import { memo, useMemo, useState } from "react";
 import { Link } from "react-router";
 import type { LessonProgress } from "@/shared/core";
-import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { rowMotion } from "@/frontend/components/motion";
-import { useLeavingList } from "@/frontend/components/presence";
+import { useListMotion } from "@/frontend/components/presence";
 import { Pane } from "@/frontend/components/ui/pane";
 import { UNFINISHED_SHOWN, keyLabel, shownRows, stepBlocks } from "./lesson-record-model";
 import { UnfinishedRow, lessonItems } from "./lesson-rows";
@@ -34,10 +33,11 @@ export const LessonCard = memo(function LessonCard({
 }) {
 	const [shownAll, setShownAll] = useState(false);
 	const { rows, showAll } = useMemo(() => shownRows(lessons, UNFINISHED_SHOWN, shownAll), [lessons, shownAll]);
-	const listed = useLeavingList(useMemo(() => lessonItems(rows), [rows]));
-	const arrive = useArrivals();
 	// Every lesson is seen, so the rows "Show all" uncovers are simply there.
-	for (const l of lessons) arrive(l.chatId);
+	const listed = useListMotion(
+		useMemo(() => lessonItems(rows), [rows]),
+		{ seen: lessons.map((l) => l.chatId) },
+	);
 	return (
 		<Pane data-testid={`${name}-lessons`} {...rowMotion(leaving, false, "lh-card")}>
 			<div className="lh-card-head">
@@ -49,8 +49,8 @@ export const LessonCard = memo(function LessonCard({
 				)}
 			</div>
 			<ul className="-mx-3 flex flex-col gap-1">
-				{listed.map(({ item, leaving }) => (
-					<UnfinishedRow key={item.key} lesson={item.lesson} blocks={stepBlocks(item.lesson)} actions={actions} held={{ leaving, joined: !!arrive(item.key) }} />
+				{listed.map(({ item, ...moves }) => (
+					<UnfinishedRow key={item.key} lesson={item.lesson} blocks={stepBlocks(item.lesson)} actions={actions} {...moves} />
 				))}
 			</ul>
 			{showAll !== null && (

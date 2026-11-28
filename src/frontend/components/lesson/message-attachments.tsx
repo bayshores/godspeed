@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { isAttachmentPart, type LhViewPart } from "@/shared/core";
 import { chip } from "@/frontend/components/ui/chip";
-import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { useLastWhileClosing } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
 import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
 

@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { dayLabel, type FileCoverage, type FileGroup, type FileWork, type SpaceFile } from "@/shared/core";
 import { rowMotion } from "@/frontend/components/motion";
+import type { Moves } from "@/frontend/components/presence";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useFold } from "@/frontend/components/use-fold";
@@ -36,19 +37,16 @@ export function SectionToggle({
 	);
 }
 
-/** The files that are leaving (held while they fade out) and those that joined after the page drew. */
-interface FilesMotion {
-	leaving: ReadonlySet<string>;
-	joined: ReadonlySet<string>;
-}
+/** How each file's row moves, by file id (useListMotion). */
+type FileMoves = ReadonlyMap<string, Moves>;
 
 /** A part of the list (a group, an entry, a row) leaves or joins when all its files do, unless the
  *  part that holds it (the files of `outer`) moves with them, so one fade plays, not two. */
-function partMoves(files: readonly SpaceFile[], motion: FilesMotion, outer?: readonly SpaceFile[]): { leaving: boolean; joined: boolean } {
-	const all = (set: ReadonlySet<string>, of: readonly SpaceFile[]) => of.every((f) => set.has(f.id));
+function partMoves(files: readonly SpaceFile[], moves: FileMoves, outer?: readonly SpaceFile[]): Moves {
+	const all = (of: readonly SpaceFile[], on: keyof Moves) => of.every((f) => moves.get(f.id)?.[on]);
 	return {
-		leaving: all(motion.leaving, files) && !(outer && all(motion.leaving, outer)),
-		joined: all(motion.joined, files) && !(outer && all(motion.joined, outer)),
+		leaving: all(files, "leaving") && !(outer && all(outer, "leaving")),
+		joined: all(files, "joined") && !(outer && all(outer, "joined")),
 	};
 }
 
@@ -70,7 +68,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 	disabled,
 	teacher,
 	actions,
-	motion,
+	moves,
 }: {
 	group: FileGroup;
 	collapsed: boolean;
@@ -84,16 +82,16 @@ export const FileGroupSection = memo(function FileGroupSection({
 	disabled?: boolean;
 	teacher: string;
 	actions: FileRowActions;
-	motion: FilesMotion;
+	moves: FileMoves;
 }) {
 	const fold = useFold(!collapsed);
 	const groupFiles = group.items.flatMap((i) => i.files);
-	const whole = partMoves(groupFiles, motion);
+	const whole = partMoves(groupFiles, moves);
 	const rows = (files: FileGroup["items"][number]["files"], outer: readonly SpaceFile[]) =>
 		entryRows(files).map(({ file, source }) => (
 			<FileRow
 				key={file.id}
-				{...partMoves(source ? [file, source] : [file], motion, outer)}
+				{...partMoves(source ? [file, source] : [file], moves, outer)}
 				file={file}
 				source={source}
 				coverage={coverage.get(file.id)}
@@ -122,7 +120,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 						<ul className="flex flex-col">
 							{group.items.map((item) => {
 								if (item.label === null) return rows(item.files, groupFiles);
-								const entry = partMoves(item.files, motion, groupFiles);
+								const entry = partMoves(item.files, moves, groupFiles);
 								return (
 									<li key={item.key} data-testid={`files-item-${item.key}`} {...rowMotion(entry.leaving, entry.joined, "flex items-start gap-3 py-[5px]")}>
 										<div className="flex w-[110px] shrink-0 flex-col pt-1.5">

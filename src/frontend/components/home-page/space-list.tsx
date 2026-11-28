@@ -4,9 +4,8 @@ import type { ProgressPayload, SpaceSummary } from "@/shared/core";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { rowMotion } from "@/frontend/components/motion";
-import { useLeavingList } from "@/frontend/components/presence";
+import { useListMotion, type Moves } from "@/frontend/components/presence";
 import { spaceRow } from "./space-list-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { chip } from "@/frontend/components/ui/chip";
@@ -17,7 +16,7 @@ import { chip } from "@/frontend/components/ui/chip";
  * the new files its linked folder brought. What the teacher is doing is
  * the strip, so the tile never says it. The tile opens the space
  * as its tab does; the new-files chip opens its Files page. A closed
- * space's tile fades out in its place, with what it said; a reopened one steps in.
+ * space's tile fades out in its place, with what it said; one new to the list steps in.
  */
 export function SpaceList({
 	spaces,
@@ -34,18 +33,17 @@ export function SpaceList({
 	newFiles: ReadonlyMap<string, string>;
 	onOpen: (spaceId: string) => void;
 }) {
-	const tiles = useLeavingList(
+	const tiles = useListMotion(
 		useMemo(() => spaces.map((s) => ({ key: s.id, space: s, progress: progress.get(s.id), failed: errors.has(s.id), newFiles: newFiles.get(s.id) ?? null })), [spaces, progress, errors, newFiles]),
 	);
-	const arrive = useArrivals();
 	return (
 		<Pane data-testid="today-spaces" className="lh-card">
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">Your spaces</h2>
 			</div>
 			<ul className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-[6px]">
-				{tiles.map(({ item, leaving }) => (
-					<SpaceTile key={item.key} space={item.space} progress={item.progress} failed={item.failed} newFiles={item.newFiles} leaving={leaving} joined={!!arrive(item.key)} onOpen={onOpen} />
+				{tiles.map(({ item, ...moves }) => (
+					<SpaceTile key={item.key} space={item.space} progress={item.progress} failed={item.failed} newFiles={item.newFiles} {...moves} onOpen={onOpen} />
 				))}
 			</ul>
 		</Pane>
@@ -60,13 +58,11 @@ function SpaceTile({
 	leaving,
 	joined,
 	onOpen,
-}: {
+}: Moves & {
 	space: SpaceSummary;
 	progress: ProgressPayload | undefined;
 	failed: boolean;
 	newFiles: string | null;
-	leaving: boolean;
-	joined: boolean;
 	onOpen: (spaceId: string) => void;
 }) {
 	const words = spaceRow(progress, failed);

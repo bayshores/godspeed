@@ -27,3 +27,11 @@ export function useWaited(ready: boolean): boolean {
 	const [waited] = useState(!ready);
 	return waited;
 }
+
+/** `useWaited` for a list with a search field: a search changes the rows at once, so once the field
+ *  has been typed in the rows no longer step in. Call `typed` from the field's onChange. */
+export function useWaitedUntilTyped(ready: boolean): { stepsIn: boolean; typed: () => void } {
+	const waited = useWaited(ready);
+	const [searched, setSearched] = useState(false);
+	return { stepsIn: waited && !searched, typed: () => setSearched(true) };
+}

@@ -6,8 +6,7 @@ import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { LoadFailed } from "@/frontend/components/load-failed";
-import { useArrivals } from "@/frontend/components/lesson/arrivals";
-import { useLeavingList } from "@/frontend/components/presence";
+import { useListMotion } from "@/frontend/components/presence";
 import { Hint } from "@/frontend/components/ui/hint";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -162,15 +161,11 @@ function FilesPageBody() {
 	const pickOf = useCallback((fileId: string): RowPick => (picked.includes(fileId) ? "picked" : full ? "held" : "free"), [picked, full]);
 	const pickedLine = useMemo(() => pickedNames(picked, new Map(record?.files.map((f) => [f.id, f.name]))), [picked, record]);
 	// A removed file's row fades out in its place and an added one steps in; a search changes the rows at once.
-	const heldFiles = useLeavingList(useMemo(() => (record?.files ?? []).map((file) => ({ key: file.id, file })), [record]));
-	const arrive = useArrivals(!!record);
-	const motion = useMemo(
-		() => ({
-			leaving: new Set(heldFiles.filter((h) => h.leaving).map((h) => h.item.key)),
-			joined: new Set(heldFiles.filter((h) => !h.leaving && arrive(h.item.key)).map((h) => h.item.key)),
-		}),
-		[heldFiles, arrive],
+	const heldFiles = useListMotion(
+		useMemo(() => (record?.files ?? []).map((file) => ({ key: file.id, file })), [record]),
+		{ drawn: !!record },
 	);
+	const moves = useMemo(() => new Map(heldFiles.map(({ item, leaving, joined }) => [item.key, { leaving, joined }])), [heldFiles]);
 	const groups = useMemo(() => fileGroups(heldFiles.map((h) => h.item.file)), [heldFiles]);
 	// A picked file whose row goes (it left the space, or a .tex joined its PDF's row) leaves the picks.
 	useEffect(() => {
@@ -392,7 +387,7 @@ function FilesPageBody() {
 											disabled={disabled}
 											teacher={teacher}
 											actions={actions}
-											motion={motion}
+											moves={moves}
 										/>
 									))}
 								</div>

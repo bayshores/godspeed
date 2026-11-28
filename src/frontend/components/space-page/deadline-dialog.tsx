@@ -22,7 +22,8 @@ import { mocksRemovedLine, takesMocks } from "@/frontend/components/deadline/moc
 import { useMockCount } from "@/frontend/components/deadline/use-deadline-mocks";
 import { jsonInit, send } from "@/frontend/lib/api";
 import { CheckRow } from "@/frontend/components/ui/check-row";
-import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
+import { useLastWhileClosing } from "@/frontend/components/presence";
 import { FIELD } from "@/frontend/components/ui/field";
 import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";

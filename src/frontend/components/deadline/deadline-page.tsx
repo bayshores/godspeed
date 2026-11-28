@@ -14,7 +14,7 @@ import { jsonInit, send } from "@/frontend/lib/api";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
-import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { useLastWhileClosing } from "@/frontend/components/presence";
 import { LessonCard } from "@/frontend/components/overview/lesson-card";
 import { LessonMenuLayer } from "@/frontend/components/overview/lesson-menu-layer";
 import { lessonsFor } from "@/frontend/components/overview/lesson-record-model";

@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
-import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
+import { useLastWhileClosing } from "@/frontend/components/presence";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 
 /**

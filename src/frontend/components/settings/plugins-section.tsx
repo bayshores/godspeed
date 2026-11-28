@@ -5,10 +5,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { LoadingLine } from "@/frontend/components/loading";
 import { rowMotion } from "@/frontend/components/motion";
-import { useLeavingList } from "@/frontend/components/presence";
+import { useListMotion } from "@/frontend/components/presence";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -36,8 +35,10 @@ export function PluginsSection() {
 	const [problem, setProblem] = useState<{ at: Place; text: string } | null>(null);
 
 	// A removed plugin's row fades out in its place, an added one steps in.
-	const heldPlugins = useLeavingList(useMemo(() => (plugins ?? []).map((plugin) => ({ key: plugin.id, plugin })), [plugins]));
-	const arrive = useArrivals(!!plugins);
+	const heldPlugins = useListMotion(
+		useMemo(() => (plugins ?? []).map((plugin) => ({ key: plugin.id, plugin })), [plugins]),
+		{ drawn: !!plugins },
+	);
 
 	const load = useCallback(() => fetchPlugins().then(setPlugins), []);
 	// Both first, so a sheet shows once with its Update key, not before it.
@@ -92,7 +93,7 @@ export function PluginsSection() {
 		<>
 			<div className="flex flex-col gap-(--lh-gap) @[760px]/page:flex-row @[760px]/page:items-start">
 				<Pane aria-label="Plugins" data-testid="plugins-list" className="flex shrink-0 flex-col p-2 @[760px]/page:w-[260px]">
-					{heldPlugins.map(({ item: { plugin: p }, leaving }) => {
+					{heldPlugins.map(({ item: { plugin: p }, leaving, joined }) => {
 						const on = !sheetOpen && p === picked;
 						const off = "manifest" in p && !p.enabled;
 						return (
@@ -106,7 +107,7 @@ export function PluginsSection() {
 									setShowAdd(false);
 									setPick(p.id);
 								}}
-								{...rowMotion(leaving, !!arrive(p.id), cn(ROW, on ? "bg-highlight font-medium" : "hover:bg-tone"))}
+								{...rowMotion(leaving, joined, cn(ROW, on ? "bg-highlight font-medium" : "hover:bg-tone"))}
 							>
 								<span className="min-w-0 flex-1 truncate">{"manifest" in p ? p.manifest.name : p.id}</span>
 								{/* Picked, the sheet's switch says it. */}

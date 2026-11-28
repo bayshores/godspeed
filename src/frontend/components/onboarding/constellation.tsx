@@ -53,6 +53,9 @@ export function dotDelay(x: number): number {
 
 export type ConstellationMode = "intro" | "welcome" | "backdrop" | "bright" | "gone";
 
+/** How long the sky's flash plays in the "gone" mode (`ob-flash` in globals.css). */
+export const SKY_FLASH_MS = 600;
+
 export function Constellation({ mode }: { mode: ConstellationMode }) {
 	return (
 		<svg

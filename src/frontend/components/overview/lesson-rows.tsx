@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import type { LessonProgress } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
 import { rowMotion } from "@/frontend/components/motion";
+import type { Moves } from "@/frontend/components/presence";
 import { lessonHref, problemsDone } from "./overview-model";
 import { OUTCOME_BG } from "./styles";
 import type { LessonActions } from "./use-lesson-actions";
@@ -57,16 +58,13 @@ function MoreButton({ lesson, actions, className }: { lesson: LessonProgress; ac
 	);
 }
 
-/** A list's lessons keyed for useLeavingList, which holds a deleted or moved one while it fades out. */
+/** A list's lessons keyed for useListMotion, which holds a deleted or moved one while it fades out. */
 export const lessonItems = (lessons: readonly LessonProgress[]) => lessons.map((lesson) => ({ key: lesson.chatId, lesson }));
 
-/** How a row of a held list moves: `leaving` while it fades out, `joined` when it came after the list first drew. */
-type Held = { leaving: boolean; joined: boolean };
-
 /** The row's shell: lit while its menu is open; a failed rename says so under it. */
-function RowShell({ lesson, actions, held, itemClass, className, children }: { lesson: LessonProgress; actions: LessonActions; held: Held; itemClass?: string; className: string; children: ReactNode }) {
+function RowShell({ lesson, actions, leaving, joined, itemClass, className, children }: Moves & { lesson: LessonProgress; actions: LessonActions; itemClass?: string; className: string; children: ReactNode }) {
 	return (
-		<li {...rowMotion(held.leaving, held.joined, itemClass)}>
+		<li {...rowMotion(leaving, joined, itemClass)}>
 			<div data-teacher-target={`lesson:${lesson.chatId}`} className={cn(ROW, className, actions.menuId === lesson.chatId && "bg-tone")}>
 				{children}
 			</div>
@@ -84,9 +82,9 @@ export const FINISHED_LIST = "grid grid-cols-[auto_minmax(0,1fr)_auto_auto] gap-
  * row above, the title on one line, and a square per graded answer at the
  * row's end.
  */
-export function FinishedRow({ lesson: l, day, actions, held }: { lesson: LessonProgress; day: string | null; actions: LessonActions; held: Held }) {
+export function FinishedRow({ lesson: l, day, actions, ...moves }: Moves & { lesson: LessonProgress; day: string | null; actions: LessonActions }) {
 	return (
-		<RowShell lesson={l} actions={actions} held={held} itemClass="col-span-full grid grid-cols-subgrid" className="col-span-full grid h-10 grid-cols-subgrid items-center px-3">
+		<RowShell lesson={l} actions={actions} {...moves} itemClass="col-span-full grid grid-cols-subgrid" className="col-span-full grid h-10 grid-cols-subgrid items-center px-3">
 			<span className="font-count text-ui text-ink-2">{day}</span>
 			<TitleCell lesson={l} actions={actions} className="truncate" />
 			<MoreButton lesson={l} actions={actions} />
@@ -107,9 +105,9 @@ export function FinishedRow({ lesson: l, day, actions, held }: { lesson: LessonP
  * AN UNFINISHED LESSON (the side column): the title, then its steps as
  * blocks, or its problems when it has some (a homework, a lesson on files).
  */
-export function UnfinishedRow({ lesson: l, blocks, actions, held }: { lesson: LessonProgress; blocks: { done: number; total: number } | null; actions: LessonActions; held: Held }) {
+export function UnfinishedRow({ lesson: l, blocks, actions, ...moves }: Moves & { lesson: LessonProgress; blocks: { done: number; total: number } | null; actions: LessonActions }) {
 	return (
-		<RowShell lesson={l} actions={actions} held={held} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 gap-y-2 px-3 py-2">
+		<RowShell lesson={l} actions={actions} {...moves} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 gap-y-2 px-3 py-2">
 			<TitleCell lesson={l} actions={actions} className="line-clamp-2" />
 			<MoreButton lesson={l} actions={actions} className="-my-0.5" />
 			{blocks && (

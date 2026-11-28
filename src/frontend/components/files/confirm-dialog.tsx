@@ -1,5 +1,6 @@
 import { createPortal } from "react-dom";
-import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
+import { useLastWhileClosing } from "@/frontend/components/presence";
 import type { ConfirmCopy } from "./files-model";
 
 /**

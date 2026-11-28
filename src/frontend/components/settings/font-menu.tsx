@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { LoadingLine, useWaited } from "@/frontend/components/loading";
+import { LoadingLine, useWaitedUntilTyped } from "@/frontend/components/loading";
 import { MENU_ITEM } from "@/frontend/components/menu-shell";
 import { fuzzyScore } from "@/shared/core";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -66,8 +66,7 @@ export function FontMenuList({
 	const [query, setQuery] = useState("");
 	const [menuIdx, setMenuIdx] = useState<number | null>(null);
 	// The fonts step in once, as they replace the wait; a search changes them at once.
-	const waited = useWaited(!!families);
-	const [searched, setSearched] = useState(false);
+	const { stepsIn, typed } = useWaitedUntilTyped(!!families);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const listRef = useRef<HTMLUListElement>(null);
 
@@ -94,7 +93,7 @@ export function FontMenuList({
 				value={query}
 				onChange={(e) => {
 					setQuery(e.target.value);
-					setSearched(true);
+					typed();
 					setMenuIdx(null); // new query → the walk restarts on Enter/↓
 				}}
 				onKeyDown={(e) => {
@@ -121,7 +120,7 @@ export function FontMenuList({
 				className="mb-1.5 h-9 w-full lh-well lh-notch px-2.5 text-ui text-ink placeholder:text-ink-3"
 			/>
 			{!families && <LoadingLine className="justify-center px-2 py-3 text-ui">Loading fonts…</LoadingLine>}
-			<ul ref={listRef} data-testid="font-list" className={cn("flex max-h-72 flex-col overflow-y-auto", waited && !searched && "lh-set")}>
+			<ul ref={listRef} data-testid="font-list" className={cn("flex max-h-72 flex-col overflow-y-auto", stepsIn && "lh-set")}>
 				{families &&
 					results.map((family, i) => {
 						const isDefault = family === null;

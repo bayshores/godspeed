@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
+import { useLastWhileClosing } from "@/frontend/components/presence";
 import { CodeLines, MarkedText, PageMarks } from "./page-excerpt";
 import type { CitedPassage, FileCite, PassageCite } from "./page-excerpt-model";
 import { useCited } from "./use-cited";

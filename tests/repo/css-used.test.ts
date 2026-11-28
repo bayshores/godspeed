@@ -2,8 +2,8 @@
  * Every class and custom property src/frontend/globals.css defines is used. A class is used when
  * the frontend's code or index.html writes it, or an `@apply` of the stylesheet does. A custom
  * property is used when a `var()` reads it, in the stylesheet, the frontend's code, the shared core
- * or the Rust code (the server sends a topic's color as `var(--lh-ramp-3)`); a theme token
- * is used through its Tailwind utility (`--color-card` by `bg-card`, `--radius-xl` by `rounded-xl`),
+ * or a string of the Rust code (the server sends a topic's color as `var(--lh-ramp-3)`); a theme token
+ * is used through its Tailwind utility (`--color-muted` by `bg-muted`, `--radius-xl` by `rounded-xl`),
  * `--text-xs--line-height` with `--text-xs`, and Tailwind's `--default-transition-*` by any
  * `transition` utility. A name the code builds at run time (`--lh-space-${color}`) makes every
  * name that starts with the part before `${` used. Comments of
@@ -15,7 +15,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { withoutBlockComments } from "./repo-source.ts";
-import { appSources } from "./rust-source.ts";
+import { beforeTests, readRust, rustFiles, rustTokens } from "./rust-source.ts";
 import { parseTs, tsFiles, tsTokens } from "./ts-source.ts";
 
 const root = path.resolve(import.meta.dirname, "../..");
@@ -74,6 +74,13 @@ function unused(sheet: Sheet, uses: ReturnType<typeof usesIn>): string[] {
 	return [...classes, ...properties];
 }
 
+/** The strings the app's own Rust code writes: comments and a file's tests count for nothing. */
+function rustStrings(text: string): string[] {
+	return rustTokens(text, beforeTests(readRust(text).code))
+		.map((token) => token.text)
+		.filter((token) => /^(?:b|br|r)?#*"/.test(token));
+}
+
 /** The files an `@source "<folder>/*.js"` line has Tailwind read for class names, a library's own code among them. */
 function sourcesOf(css: string, dir: string): string[] {
 	return [...css.matchAll(/@source "([^"]+)\/\*\.js"/g)].flatMap(([, folder]) => {
@@ -93,7 +100,9 @@ it("every class and custom property the stylesheet defines is used", () => {
 			return tsTokens(source, source).map((token) => token.getText(source));
 		}),
 	);
-	const server = appSources().map((source) => source.code);
+	const server = rustFiles()
+		.filter((file) => !file.testOnly)
+		.flatMap((file) => rustStrings(file.text));
 	const applied = [...css.matchAll(/@apply ([^;]+);/g)].map(([, list]) => list!);
 	const sheet = definedIn(css);
 	assert.ok(sheet.classes.size > 50 && sheet.properties.size > 100, "found too few classes or properties; the reader is broken");
@@ -120,6 +129,18 @@ describe("the stylesheet reader", () => {
 		const code = '<div className="lh-page hover:bg-card/50 md:rounded-xl text-ui gap-(--lh-short)"><p className={cn("lh-row", x && "lh-card")} style={{ color: `var(--lh-space-${n})` }} /></div>\ncss.getPropertyValue(\n"--lh-read")';
 		const uses = usesIn(`${code}\n.lh-page { gap: var(--lh-gap); } --color-card: var(--background);`);
 		assert.deepEqual(unused(sheet, uses), [".lh-dead", "--lh-old", "--color-gone"]);
+	});
+
+	it("gives a transition utility Tailwind's default time and curve", () => {
+		const sheet = definedIn("@theme inline { --default-transition-duration: 160ms; --default-transition-timing-function: ease-out; }");
+		assert.deepEqual(unused(sheet, usesIn('<p className="transition-colors" />')), []);
+		assert.deepEqual(unused(sheet, usesIn('<p className="lh-row" />')), ["--default-transition-duration", "--default-transition-timing-function"]);
+	});
+
+	it("reads a color the server sends from a string of the Rust code, not from a comment or a test", () => {
+		const rust = '// "var(--lh-in-comment)"\nconst RAMP: [&str; 1] = ["var(--lh-ramp-1)"];\n#[cfg(test)]\nmod tests { const T: &str = "var(--lh-in-test)"; }';
+		const sheet = definedIn(":root { --lh-ramp-1: red; --lh-in-comment: red; --lh-in-test: red; }");
+		assert.deepEqual(unused(sheet, usesIn(rustStrings(rust).join("\n"))), ["--lh-in-comment", "--lh-in-test"]);
 	});
 
 	it("takes comments out, but not a /* inside a string", () => {
