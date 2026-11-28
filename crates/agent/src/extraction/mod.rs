@@ -3,7 +3,7 @@
 
 mod context;
 mod duplicate_check;
-#[expect(clippy::module_inception, reason = "the file that holds the folder's main job carries the folder's name")]
+#[expect(clippy::module_inception, reason = "mod.rs only lists the folder's modules and re-exports, so the folder's main job sits in a file of its own")]
 pub mod extraction;
 pub mod extraction_runs;
 mod findings;

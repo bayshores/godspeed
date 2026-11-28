@@ -4,7 +4,7 @@ pub mod chains;
 pub mod clusters;
 pub mod coverage;
 pub mod duplicates;
-#[expect(clippy::module_inception, reason = "the file that holds the folder's main job carries the folder's name")]
+#[expect(clippy::module_inception, reason = "mod.rs only lists the folder's modules and re-exports, so the folder's main job sits in a file of its own")]
 pub mod graph;
 pub mod graph_deletion;
 pub mod ledger_lines;
