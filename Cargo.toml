@@ -85,6 +85,12 @@ unsafe_code = "deny"
 dbg_macro = "deny"
 # stdout is the line protocol to the desktop shell (gs-shell-rpc).
 print_stdout = "deny"
+# An exception to a lint says why, and fails once nothing needs it any more.
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
+# `.ok();` reads like a check but throws the error away.
+unused_result_ok = "deny"
+too_many_lines = "deny"
 
 # A panic in one request must answer an empty 500 and keep the server up (the HTTP layer catches it).
 [profile.dev]

@@ -99,6 +99,6 @@ mod tests {
 		assert_eq!(id(&first), id(&again));
 		let record = app.stores.spaces.get_space(&space_id).unwrap();
 		assert_eq!(record["files"].as_arr().unwrap().len(), 2);
-		std::fs::remove_dir_all(&root).ok();
+		let _ = std::fs::remove_dir_all(&root);
 	}
 }

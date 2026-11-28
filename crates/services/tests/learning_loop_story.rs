@@ -313,9 +313,6 @@ async fn two_days_of_study_for_the_midterm() {
 	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id), &[]).unwrap()["id"].as_str().unwrap().to_owned();
 	app.stores.chats.save_tree(&chat_id, &plan).unwrap();
 	let chat = chat_id.as_str();
-	// He thinks for 3 minutes 45 before each input; the agent takes 2 minutes to answer (writes).
-	let thinks = || clock::advance(15 * MINUTE_MS / 4);
-
 	// Wednesday 21:00. Start, and three questions from earlier while the first reply is written.
 	// The opening reply has words alone; the plan's first topic takes its quoted page at once.
 	clock_to(local(&wednesday, "21:00"));
@@ -340,42 +337,9 @@ async fn two_days_of_study_for_the_midterm() {
 	fx.writes(chat).await;
 	assert_eq!(fx.input_lines(chat).iter().filter(|l| l.starts_with("[From earlier]")).collect::<Vec<_>>(), ["[From earlier] Bayes' rule wrong, sure 3 of 5, picked Wrong. Eigenvalues right, sure 4 of 5. Gradient descent right, sure 4 of 5."]);
 
-	// The plot and its guess in one message, the plot first: the guess ends the turn. His guess
-	// at A opens it.
-	thinks();
-	fx.send(chat, text("How much does it shrink them?"), vec![FakeStep::Calls(vec![("plot".to_owned(), plot()), ("quiz".to_owned(), guess())])]).await;
-	fx.writes(chat).await;
-	let record = fx.messages(chat);
-	let (plot_call, guess_call) = (last_call(&record, "plot"), last_call(&record, "quiz"));
-	assert_eq!((&plot_call["arguments"], &guess_call["arguments"]), (&plot(), &guess()), "both stored as sent");
-	let drawn = result_of(&record, &id_of(&plot_call));
-	assert_eq!(drawn["details"], json!({ "part": "plot", "v": 1, "id": "p1", "onPlot": { "toolCallId": guess_call["id"], "value": 4.0 }, "y": { "min": 0, "max": 5 } }));
-	assert!(fx.results().iter().any(|r| r == "p1 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2."), "the agent reads what was drawn");
-	thinks();
-	fx.send(chat, answered(&id_of(&guess_call), picked(1, "At 2, the leash's length.", "A", false, 60)), vec![says("Not quite: the penalty puts it at 4. The leash is a picture, and here it breaks.")]).await;
-	fx.writes(chat).await;
+	plot_and_guess(&fx, chat).await;
 
-	// A quiz that carries a kept sentence, right; then Drop this analogy while the teacher writes.
-	thinks();
-	fx.send(chat, text("So the penalty scales with the data?"), vec![says("Yes. The fit is linear in y, so the penalty only prices the weights.")]).await;
-	fx.writes(chat).await;
-	thinks();
-	fx.send(chat, text("Ok, test me."), vec![call("quiz", kept_quiz())]).await;
-	fx.writes(chat).await;
-	let record = fx.messages(chat);
-	let keep_call = last_call(&record, "quiz");
-	let keep_id = id_of(&keep_call);
-	assert_eq!(keep_call["arguments"], kept_quiz(), "stored as sent, its source mark unchecked");
-	assert_eq!(
-		marker(&record, "keep-check", "quizCallId", &keep_id)["details"],
-		json!({ "quizCallId": keep_id, "keep": "shown", "fits": true, "phrase": true, "source": "ok", "sourceMark": stored_page }),
-		"its verdict, stored when the turn was saved"
-	);
-	thinks();
-	fx.send(chat, answered(&keep_id, picked(2, "6", "B", true, 80)), vec![call("problem", problem("reg", "Why does an L2 penalty shrink the weights, and when does it stop helping?"))]).await;
-	assert_eq!(drop_kept_part(app, chat, &keep_id, KeptPart::Analogy, false), Ok(KeptDrop::Done), "Drop this analogy during the turn");
-	fx.writes(chat).await;
-	assert!(fx.input_lines(chat).iter().all(|l| !l.starts_with("[Analogy dropped]") && !l.starts_with("keep")), "the drop came after this input, and the keep holds");
+	let keep_id = kept_quiz_and_drop(&fx, chat, &stored_page).await;
 
 	// The problem, one hint, then the conclude that ends the topic, with no other prose.
 	thinks();
@@ -444,7 +408,64 @@ async fn two_days_of_study_for_the_midterm() {
 	fx.writes(chat).await;
 	assert_eq!(fx.input(chat), [format!("[Resumed] He came back to this session after a stop.\n[Opener] Cross-validation: he picked A, It can move a lot, sure 3 of 5.\n{NO_PLOT_YET}")]);
 
-	// Cross-validation ends on a conclude; Keep going in the same sitting.
+	cross_validation_to_the_end(&fx, chat, &plan).await;
+	let today = midterm(app, &space_id, &deadline_id);
+	assert_eq!((today.get("continueStudy"), &today["studyEndedToday"]), (None, &json!(true)));
+}
+
+/// He thinks for 3 minutes 45 before each input; the agent takes 2 minutes to answer (writes).
+fn thinks() {
+	clock::advance(15 * MINUTE_MS / 4);
+}
+
+/// The plot and its guess in one message, the plot first: the guess ends the turn. His guess at A
+/// opens it.
+async fn plot_and_guess(fx: &Fixture, chat: &str) {
+	thinks();
+	fx.send(chat, text("How much does it shrink them?"), vec![FakeStep::Calls(vec![("plot".to_owned(), plot()), ("quiz".to_owned(), guess())])]).await;
+	fx.writes(chat).await;
+	let record = fx.messages(chat);
+	let (plot_call, guess_call) = (last_call(&record, "plot"), last_call(&record, "quiz"));
+	assert_eq!((&plot_call["arguments"], &guess_call["arguments"]), (&plot(), &guess()), "both stored as sent");
+	let drawn = result_of(&record, &id_of(&plot_call));
+	assert_eq!(drawn["details"], json!({ "part": "plot", "v": 1, "id": "p1", "onPlot": { "toolCallId": guess_call["id"], "value": 4.0 }, "y": { "min": 0, "max": 5 } }));
+	assert!(fx.results().iter().any(|r| r == "p1 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2."), "the agent reads what was drawn");
+	thinks();
+	fx.send(chat, answered(&id_of(&guess_call), picked(1, "At 2, the leash's length.", "A", false, 60)), vec![says("Not quite: the penalty puts it at 4. The leash is a picture, and here it breaks.")]).await;
+	fx.writes(chat).await;
+}
+
+/// A quiz that carries a kept sentence, right; then Drop this analogy while the teacher writes.
+/// Returns the quiz's call id.
+async fn kept_quiz_and_drop(fx: &Fixture, chat: &str, stored_page: &str) -> String {
+	let app = &fx.app;
+	thinks();
+	fx.send(chat, text("So the penalty scales with the data?"), vec![says("Yes. The fit is linear in y, so the penalty only prices the weights.")]).await;
+	fx.writes(chat).await;
+	thinks();
+	fx.send(chat, text("Ok, test me."), vec![call("quiz", kept_quiz())]).await;
+	fx.writes(chat).await;
+	let record = fx.messages(chat);
+	let keep_call = last_call(&record, "quiz");
+	let keep_id = id_of(&keep_call);
+	assert_eq!(keep_call["arguments"], kept_quiz(), "stored as sent, its source mark unchecked");
+	assert_eq!(
+		marker(&record, "keep-check", "quizCallId", &keep_id)["details"],
+		json!({ "quizCallId": keep_id, "keep": "shown", "fits": true, "phrase": true, "source": "ok", "sourceMark": stored_page }),
+		"its verdict, stored when the turn was saved"
+	);
+	thinks();
+	fx.send(chat, answered(&keep_id, picked(2, "6", "B", true, 80)), vec![call("problem", problem("reg", "Why does an L2 penalty shrink the weights, and when does it stop helping?"))]).await;
+	assert_eq!(drop_kept_part(app, chat, &keep_id, KeptPart::Analogy, false), Ok(KeptDrop::Done), "Drop this analogy during the turn");
+	fx.writes(chat).await;
+	assert!(fx.input_lines(chat).iter().all(|l| !l.starts_with("[Analogy dropped]") && !l.starts_with("keep")), "the drop came after this input, and the keep holds");
+	keep_id
+}
+
+/// Saturday after the opener: cross-validation ends on a conclude and he keeps going in the same
+/// sitting; model selection ends on a right quiz, which ends the plan for today.
+async fn cross_validation_to_the_end(fx: &Fixture, chat: &str, plan: &Json) {
+	let app = &fx.app;
 	thinks();
 	let opener_ms = json!({
 		"nodeId": "cv",
@@ -482,9 +503,7 @@ async fn two_days_of_study_for_the_midterm() {
 	assert_eq!(done_ms["content"], json!([{ "type": "text", "text": TOPIC_DONE_NO_OPENER_TEXT }]), "no opener comes after the last topic");
 	let stop = &done_ms["details"]["stop"];
 	assert_eq!((stop["kind"].as_str(), stop["nodeId"].as_str()), (Some("topic"), Some("ms")));
-	assert_eq!(lesson_stop(&record, Some(&plan), None).unwrap()["kind"], json!("end"), "nothing more is planned today");
-	let today = midterm(app, &space_id, &deadline_id);
-	assert_eq!((today.get("continueStudy"), &today["studyEndedToday"]), (None, &json!(true)));
+	assert_eq!(lesson_stop(&record, Some(plan), None).unwrap()["kind"], json!("end"), "nothing more is planned today");
 }
 
 /// The id of the assistant message holding the call `call_id`.

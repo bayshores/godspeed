@@ -251,7 +251,7 @@ fn keep_waiting(rec: &mut Json, req: &Request, args: &Json, refused: Option<&str
 	Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments, reason = "the one caller holds each of these apart, and a struct made only to carry them would be a type with one use")]
 fn place(app: &App, vault: &Path, req: &Request, space_name: &str, note_title: &str, topic: &TopicFacts, source: Option<Source>, seen: Seen) -> Result<Outcome, String> {
 	for link in &req.links {
 		if !seen.link_names.contains(&link.to_lowercase()) && !recorded_names(app).contains(&link.to_lowercase()) {

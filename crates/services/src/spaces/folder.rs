@@ -238,19 +238,7 @@ pub fn scan_linked_folder(app: &Arc<App>, space_id: &str, linking: bool) {
 			}
 			continue;
 		}
-		let mut file = Obj::new();
-		file.insert("id", new_file_id());
-		file.insert("origin", "linked");
-		file.insert("name", rel.rsplit('/').next().unwrap_or(rel));
-		file.insert("path", rel.as_str());
-		file.insert("kind", FileKind::Study);
-		file.insert("contentFp", "");
-		file.insert("status", FileStatus::Pending);
-		file.insert("addedAt", time::iso_now());
-		if !linking {
-			file.insert("foundByScan", true);
-		}
-		added.push(Json::Obj(file));
+		added.push(new_linked_file(rel, linking));
 	}
 	app.spaces.seen_files.lock().insert(space_id.to_owned(), seen);
 	set_folder_status(app, space_id, if walk.capped { Some("too-many-files") } else { None }, Some((settling, &walk.skipped)));
@@ -261,6 +249,29 @@ pub fn scan_linked_folder(app: &Arc<App>, space_id: &str, linking: bool) {
 		drop_gone(app, space_id, &gone, !linking);
 		return;
 	}
+	add_found_files(app, space_id, added, gone, !linking);
+}
+
+/// The entry for a file the scan found in the folder, before it is read.
+fn new_linked_file(rel: &str, linking: bool) -> Json {
+	let mut file = Obj::new();
+	file.insert("id", new_file_id());
+	file.insert("origin", "linked");
+	file.insert("name", rel.rsplit('/').next().unwrap_or(rel));
+	file.insert("path", rel);
+	file.insert("kind", FileKind::Study);
+	file.insert("contentFp", "");
+	file.insert("status", FileStatus::Pending);
+	file.insert("addedAt", time::iso_now());
+	if !linking {
+		file.insert("foundByScan", true);
+	}
+	Json::Obj(file)
+}
+
+/// Adds the files the scan found, each with the kind its name and the space's files suggest, and
+/// triages them together with the files that went.
+fn add_found_files(app: &Arc<App>, space_id: &str, mut added: Vec<Json>, gone: Vec<Json>, announce: bool) {
 	let existing = app.stores.spaces.get_space(space_id).map(|r| r["files"].items().to_vec()).unwrap_or_default();
 	let kinds = kinds_for_new_files(&existing, &added);
 	for file in &mut added {
@@ -279,7 +290,7 @@ pub fn scan_linked_folder(app: &Arc<App>, space_id: &str, linking: bool) {
 		},
 		&[],
 	);
-	triage_new_files(app, space_id, ids, gone, !linking);
+	triage_new_files(app, space_id, ids, gone, announce);
 }
 
 /// Waits until the triage numbered `triage` of this space has ended.

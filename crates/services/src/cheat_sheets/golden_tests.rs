@@ -185,6 +185,6 @@ fn replays_the_recorded_steps() {
 			}
 		}
 	});
-	std::fs::remove_dir_all(&root).ok();
+	let _ = std::fs::remove_dir_all(&root);
 	assert!(wrong.is_empty(), "{} steps differ:\n{}", wrong.len(), wrong.join("\n"));
 }

@@ -11,17 +11,17 @@ fn main() {
 }
 
 #[cfg(target_os = "macos")]
-#[allow(dead_code, unused_imports)]
+#[expect(unused_imports, reason = "the test builds this source file of the app and uses only part of it")]
 #[path = "../src/demo.rs"]
 mod demo;
 
 #[cfg(target_os = "macos")]
-#[allow(dead_code, unused_imports)]
+#[expect(dead_code, unused_imports, reason = "the test builds this source file of the app and uses only part of it")]
 #[path = "../src/paths.rs"]
 mod paths;
 
 #[cfg(target_os = "macos")]
-#[allow(dead_code)]
+#[expect(dead_code, reason = "the test builds this source file of the app and uses only part of it")]
 #[path = "../src/mac/mod.rs"]
 mod mac;
 

@@ -149,7 +149,6 @@ async fn a_model_on_disk_is_returned_without_a_request_and_the_real_url_is_huggi
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[allow(clippy::disallowed_methods)] // real waits: the server is a real thread
 async fn a_server_that_goes_quiet_fails_like_nodes_fetch() {
 	let _turn = DOWNLOADS.lock().await;
 	for (reply, error) in [(Reply::Silent, "fetch failed"), (Reply::Stall, "terminated")] {

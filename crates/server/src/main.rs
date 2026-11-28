@@ -36,8 +36,7 @@ async fn main() -> ExitCode {
 		return ExitCode::FAILURE;
 	};
 	gs_services::app::old_talk::back_up_talk(&paths);
-	// The one stdout writer.
-	#[allow(clippy::disallowed_methods)]
+	#[expect(clippy::disallowed_methods, reason = "the server's one stdout writer: the line protocol to the desktop shell")]
 	let shell = (std::env::var("LH_SHELL").as_deref() == Ok("1")).then(|| ShellLink::new(std::io::stdout()));
 	let port = http::port();
 	let listener = match tokio::net::TcpListener::bind(("127.0.0.1", port)).await {

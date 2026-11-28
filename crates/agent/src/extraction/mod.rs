@@ -3,7 +3,7 @@
 
 mod context;
 mod duplicate_check;
-#[allow(clippy::module_inception)]
+#[expect(clippy::module_inception, reason = "modules are named after their TypeScript files, so graph/graph.ts is graph::graph")]
 pub mod extraction;
 pub mod extraction_runs;
 mod findings;

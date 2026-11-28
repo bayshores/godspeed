@@ -553,6 +553,19 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	case("registry: bare questions", describe(&bare_question_tools()));
 	case("icons", SPACE_ICONS.iter().map(|(icon, _)| Json::from(*icon)).collect());
 
+	let groups = [question_cases().await, probe_and_plan_cases().await, job_and_space_cases().await, practice_and_homework_cases().await];
+	for (name, value) in groups.into_iter().flatten() {
+		case(name, value);
+	}
+	case("agents: system prompts and tool lists", agents(&prompts));
+	cases
+}
+
+/// The question tools: quiz, explain, probe and recall, and the bare ones.
+async fn question_cases() -> Vec<(&'static str, Json)> {
+	let mut cases: Vec<(&'static str, Json)> = Vec::new();
+	let mut case = |name: &'static str, value: Json| cases.push((name, value));
+
 	let w = world();
 	let reg = teacher_tools(&w.teacher("lesson"), None);
 	let options = json!([{ "label": "A", "value": "a" }, { "label": "B", "value": "b" }]);
@@ -600,6 +613,13 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 		"questions: bare",
 		script(&bare_question_tools(), vec![("quiz", quiz_args()), ("quiz", with(&quiz_args(), vec![("nodeId", "anything".into())])), ("ask_user_question", json!({ "question": "Q", "options": "[1" }))]).await,
 	);
+	cases
+}
+
+/// The probe's gate and record, the plan and the work plan.
+async fn probe_and_plan_cases() -> Vec<(&'static str, Json)> {
+	let mut cases: Vec<(&'static str, Json)> = Vec::new();
+	let mut case = |name: &'static str, value: Json| cases.push((name, value));
 
 	let w = world();
 	let first = script(&prober_tools(&w.prober("lesson"), None), vec![("probe_done", done_args()), ("probe", probe_args()), ("probe_done", done_args())]).await;
@@ -649,6 +669,13 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	let w = world();
 	let reg = teacher_tools(&w.teacher("lesson"), None);
 	case("work plan", script(&reg, vec![("work_plan", json!({ "items": ["a", "b", "c"], "done": 1 })), ("work_plan", json!({ "items": ["a", "b", "c"], "done": 4 }))]).await);
+	cases
+}
+
+/// Background jobs, the space tools and the graph search.
+async fn job_and_space_cases() -> Vec<(&'static str, Json)> {
+	let mut cases: Vec<(&'static str, Json)> = Vec::new();
+	let mut case = |name: &'static str, value: Json| cases.push((name, value));
 
 	let w = world();
 	let reg = teacher_tools(&TeacherToolContext { side: drawing_side(), ..w.teacher("lesson") }, None);
@@ -709,6 +736,13 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 			"failing": script(&failing, vec![("search_graph", json!({ "query": "Alpha" }))]).await,
 		}),
 	);
+	cases
+}
+
+/// Practice problems with their gate and targets, a study problem, and the homework flow.
+async fn practice_and_homework_cases() -> Vec<(&'static str, Json)> {
+	let mut cases: Vec<(&'static str, Json)> = Vec::new();
+	let mut case = |name: &'static str, value: Json| cases.push((name, value));
 
 	let w = world();
 	let reg = practice_tools(&w.practice("lesson"), None);
@@ -787,10 +821,9 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	let reg = homework_tools(&w.homework("homework", deadline.clone()), None);
 	let out = script(&reg, vec![("problem", json!({ "number": "2b", "statement": "s" })), ("conclude", json!({ "outcome": "solvedWithHints", "verdict": "v" }))]).await;
 	case("homework: record seeds the gate", json!({ "out": out, "done": deadline.done.lock().clone() }));
-
-	case("agents: system prompts and tool lists", agents(&prompts));
 	cases
 }
+
 
 /// Where the first differing character is, with some of what comes around it.
 fn first_difference(got: &str, want: &str) -> String {

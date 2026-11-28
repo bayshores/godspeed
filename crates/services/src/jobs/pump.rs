@@ -54,6 +54,29 @@ pub(super) fn pump(app: &Arc<App>, chat_id: String) {
 	});
 }
 
+/// Marks the markers in `fire` as on their way in a wake turn, and returns them.
+fn start_waking(app: &App, chat_id: &str, fire: &[u64]) -> Vec<Json> {
+	let mut wake = app.jobs.wake.lock();
+	fire.iter()
+		.filter_map(|seq| {
+			let entry = wake.entry(chat_id, *seq)?;
+			entry.waking = true;
+			Some(entry.steer.clone())
+		})
+		.collect()
+}
+
+/// The wake turn was refused or is busy: its markers wait again for the next wake.
+fn stop_waking(app: &App, chat_id: &str, owned: &[u64]) {
+	let mut wake = app.jobs.wake.lock();
+	for seq in owned {
+		if let Some(entry) = wake.entry(chat_id, *seq) {
+			entry.waking = false;
+			entry.wake_agent = None;
+		}
+	}
+}
+
 /// The pump's loop; true when it parked (the queue waits for something other than time).
 async fn run_pump(app: &Arc<App>, chat_id: &str) -> bool {
 	let mut attempt = 0;
@@ -117,16 +140,7 @@ async fn run_pump(app: &Arc<App>, chat_id: &str) -> bool {
 		if fire.is_empty() {
 			return false;
 		}
-		let steers: Vec<Json> = {
-			let mut wake = app.jobs.wake.lock();
-			fire.iter()
-				.filter_map(|seq| {
-					let entry = wake.entry(chat_id, *seq)?;
-					entry.waking = true;
-					Some(entry.steer.clone())
-				})
-				.collect()
-		};
+		let steers = start_waking(app, chat_id, &fire);
 		let status = runner(chat_id.to_owned(), json!({ "type": "steers", "steers": steers })).await;
 		if let Some(saved) = app.stores.chats.get_chat(chat_id) {
 			note_steers_durable(app, chat_id, saved["messages"].items());
@@ -136,15 +150,7 @@ async fn run_pump(app: &Arc<App>, chat_id: &str) -> bool {
 			fire.into_iter().filter(|seq| wake.queue(chat_id).iter().any(|e| e.seq == *seq)).collect()
 		};
 		if status == 403 || status == 409 {
-			{
-				let mut wake = app.jobs.wake.lock();
-				for seq in &owned {
-					if let Some(entry) = wake.entry(chat_id, *seq) {
-						entry.waking = false;
-						entry.wake_agent = None;
-					}
-				}
-			}
+			stop_waking(app, chat_id, &owned);
 			if status == 403 {
 				return true;
 			}

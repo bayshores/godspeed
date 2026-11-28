@@ -17,3 +17,6 @@ disallowed-methods = [
 	{ path = "tokio::task::spawn_blocking", reason = "use gs_base::tasks::spawn_blocking, which works outside the runtime" },
 	{ path = "tokio::runtime::Handle::current", reason = "panics outside the runtime; start tasks with gs_base::tasks" },
 ]
+
+# A block nested deeper than this is split into a function of its own.
+excessive-nesting-threshold = 6

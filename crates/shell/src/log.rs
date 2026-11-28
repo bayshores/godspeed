@@ -52,7 +52,7 @@ pub fn catch_panics() {
 }
 
 /// Where this program's image starts in memory, from the symbol each linker defines for it.
-#[allow(unsafe_code)]
+#[expect(unsafe_code, reason = "the address of a symbol the linker defines can only be named in an extern block")]
 fn load_address() -> usize {
 	unsafe extern "C" {
 		#[cfg(target_os = "macos")]

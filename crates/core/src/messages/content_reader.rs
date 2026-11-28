@@ -102,10 +102,51 @@ fn literal_ranges(text: &str) -> Vec<(usize, usize)> {
 	ranges
 }
 
+/// Where display math opened by `size` dollars ends its line closes: the first later line of only
+/// dollars, at least `size` of them, indented at most three spaces.
+fn display_dollar_close(text: &[u16], eol: Option<usize>, size: usize) -> Option<(usize, usize)> {
+	static CLOSING_FENCE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^([ \t]{0,3})(\$+)[ \t]*\r?$", ""));
+	let len = text.len();
+	let mut start = eol;
+	while let Some(s) = start.filter(|&s| s < len) {
+		let from = s + 1;
+		let next = index_of(text, NEWLINE, from);
+		if let Some(m) = CLOSING_FENCE.captures(&lone::from_utf16(&text[from..next.unwrap_or(len)])) {
+			let (indent, fence) = (lone::to_utf16(&m.get(1).unwrap_or_default()).len(), lone::to_utf16(&m.get(2).unwrap_or_default()).len());
+			if fence >= size {
+				let at = from + indent;
+				return Some((at, at + fence));
+			}
+		}
+		start = next;
+	}
+	None
+}
+
+/// Where inline math opened by `size` dollars closes: the next run of exactly `size` unescaped
+/// dollars from `from`, before `barrier` or a blank line.
+fn inline_dollar_close(text: &[u16], from: usize, size: usize, barrier: usize) -> Option<(usize, usize)> {
+	let mut j = from;
+	while j < text.len() {
+		if j >= barrier || blank_line_at(text, j) {
+			return None;
+		}
+		if text[j] == DOLLAR && !escaped(text, j) {
+			let n = run_length(text, j, DOLLAR);
+			if n == size {
+				return Some((j, j + n));
+			}
+			j += n;
+		} else {
+			j += 1;
+		}
+	}
+	None
+}
+
 /// The text as prose, code and math spans, with the app's dollar-run and `\(` `\[` math
 /// conventions, and code and blank lines as inline boundaries.
 pub fn read_content_spans(source: &str) -> Vec<ContentSpan> {
-	static CLOSING_FENCE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^([ \t]{0,3})(\$+)[ \t]*\r?$", ""));
 	let text = lone::to_utf16(source);
 	let len = text.len();
 	let slice = |from: usize, to: usize| lone::from_utf16(&text[from..to]);
@@ -152,39 +193,7 @@ pub fn read_content_spans(source: &str) -> Vec<ContentSpan> {
 			let line_start = text[..i].iter().rposition(|&u| u == NEWLINE).map_or(0, |k| k + 1);
 			let before_ok = i - line_start <= 3 && text[line_start..i].iter().all(|&u| u == b' ' as u16 || u == b'\t' as u16);
 			let display = size >= 2 && before_ok && !text[i + size..eol.unwrap_or(len)].contains(&DOLLAR);
-			if display {
-				let mut start = eol;
-				while let Some(s) = start.filter(|&s| s < len) {
-					let from = s + 1;
-					let next = index_of(&text, NEWLINE, from);
-					if let Some(m) = CLOSING_FENCE.captures(&slice(from, next.unwrap_or(len))) {
-						let (indent, fence) = (lone::to_utf16(&m.get(1).unwrap_or_default()).len(), lone::to_utf16(&m.get(2).unwrap_or_default()).len());
-						if fence >= size {
-							let at = from + indent;
-							found = Some((at, at + fence));
-							break;
-						}
-					}
-					start = next;
-				}
-			} else {
-				let mut j = i + size;
-				while j < len {
-					if j >= barrier || blank_line_at(&text, j) {
-						break;
-					}
-					if text[j] == DOLLAR && !escaped(&text, j) {
-						let n = run_length(&text, j, DOLLAR);
-						if n == size {
-							found = Some((j, j + n));
-							break;
-						}
-						j += n;
-					} else {
-						j += 1;
-					}
-				}
-			}
+			found = if display { display_dollar_close(&text, eol, size) } else { inline_dollar_close(&text, i + size, size, barrier) };
 		}
 		match found {
 			Some((_, after)) => {

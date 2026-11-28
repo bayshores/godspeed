@@ -46,7 +46,7 @@ pub fn make_temp_dir(tmp: &Path, prefix: &str) -> Result<PathBuf, String> {
 	loop {
 		let suffix: String = ids::random_bytes(6).iter().map(|b| CHARS[*b as usize % CHARS.len()] as char).collect();
 		let dir = tmp.join(format!("{prefix}{suffix}"));
-		#[cfg_attr(not(unix), allow(unused_mut))]
+		#[cfg_attr(not(unix), expect(unused_mut, reason = "only Unix sets the folder's mode"))]
 		let mut builder = std::fs::DirBuilder::new();
 		#[cfg(unix)]
 		std::os::unix::fs::DirBuilderExt::mode(&mut builder, 0o700);

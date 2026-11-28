@@ -1,7 +1,6 @@
 //! The server's pure logic. Records are `Json`; see docs/rust-server.md.
 
-// Modules are named after their TS files, so graph/graph.ts is graph::graph.
-#![allow(clippy::module_inception)]
+#![expect(clippy::module_inception, reason = "modules are named after their TypeScript files, so graph/graph.ts is graph::graph")]
 
 pub mod contracts;
 pub mod records;

@@ -35,6 +35,49 @@ fn unique<'a>(items: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
 	items.filter(|item| seen.insert(*item)).collect()
 }
 
+/// Appends this job's chains, each endpoint resolved through the job's propositions or passed
+/// through as an existing node id. A known argument re-stated by another chat appends under the
+/// same arg_ id; provenance unions at read time. Returns how many were appended.
+fn append_chains(chat_id: &str, findings: &Json, ledgers: &dyn GraphStore, mapping: &HashMap<String, String>, existing_ids: &HashSet<String>, now: &str) -> Result<usize, String> {
+	let mut appended = 0;
+	let mut asserted_by_chat: HashSet<String> = HashSet::new();
+	let mut id_of_key: HashMap<String, String> = HashMap::new();
+	for line in ledgers.read_chains()? {
+		let key = chain_key_of(&line);
+		if let Some(id) = line["id"].as_str() {
+			id_of_key.entry(key.clone()).or_insert_with(|| id.to_owned());
+		}
+		if touches(&line, chat_id) {
+			asserted_by_chat.insert(key);
+		}
+	}
+	let resolve = |endpoint: &str| -> Option<String> { mapping.get(endpoint).cloned().or_else(|| existing_ids.contains(endpoint).then(|| endpoint.to_owned())) };
+	for chain in findings["chains"].items().iter() {
+		let Some(conclusion) = chain["conclusion"].as_str().and_then(resolve) else { continue };
+		// Two phrasings of one premise collapse; a premise equal to the conclusion is dropped.
+		let mut premises: Vec<String> = Vec::new();
+		for p in chain["premises"].strs().into_iter().filter_map(resolve) {
+			if p != conclusion && !premises.contains(&p) {
+				premises.push(p);
+			}
+		}
+		if premises.is_empty() {
+			continue; // a chain is an argument: bare propositions ride the node ledger alone
+		}
+		let key = chain_key(&premises.iter().map(String::as_str).collect::<Vec<_>>(), &conclusion);
+		if asserted_by_chat.contains(&key) {
+			continue;
+		}
+		let id = id_of_key.get(&key).cloned().unwrap_or_else(|| ids::bytes_hex("arg", 6));
+		ledgers.append_chain(&json!({ "id": id, "premises": premises, "conclusion": conclusion, "createdAt": now, "provenance": point_of(chat_id, None) }))?;
+		id_of_key.insert(key.clone(), id);
+		asserted_by_chat.insert(key);
+		appended += 1;
+	}
+
+	Ok(appended)
+}
+
 /// Merges one job's findings into the graph ledgers. `chat_id` is the job's source key: a chat,
 /// or a notes source ("src_..."). Returns `{ nodes, chains, credits[, droppedChains] }`: what was
 /// appended, and the chains the simplification pass removed.
@@ -46,7 +89,7 @@ fn unique<'a>(items: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
 ///
 /// The caller holds this graph's lock: the simplification pass replaces the whole chain ledger.
 pub fn merge_findings(chat_id: &str, findings: &Json, ledgers: &dyn GraphStore, source: &MergeSource) -> Result<Json, String> {
-	let (mut node_count, mut chain_count, mut credit_count) = (0, 0, 0);
+	let (mut node_count, mut credit_count) = (0, 0);
 
 	// 1. Resolution: this job's propositions -> new graph node ids.
 	let nodes = ledgers.read_nodes()?;
@@ -118,42 +161,8 @@ pub fn merge_findings(chat_id: &str, findings: &Json, ledgers: &dyn GraphStore, 
 		}
 	}
 
-	// 2. Chains. A known argument re-stated by another chat appends under the same arg_ id;
-	//    provenance unions at read time.
-	let mut asserted_by_chat: HashSet<String> = HashSet::new();
-	let mut id_of_key: HashMap<String, String> = HashMap::new();
-	for line in ledgers.read_chains()? {
-		let key = chain_key_of(&line);
-		if let Some(id) = line["id"].as_str() {
-			id_of_key.entry(key.clone()).or_insert_with(|| id.to_owned());
-		}
-		if touches(&line, chat_id) {
-			asserted_by_chat.insert(key);
-		}
-	}
-	let resolve = |endpoint: &str| -> Option<String> { mapping.get(endpoint).cloned().or_else(|| existing_ids.contains(endpoint).then(|| endpoint.to_owned())) };
-	for chain in findings["chains"].items().iter() {
-		let Some(conclusion) = chain["conclusion"].as_str().and_then(resolve) else { continue };
-		// Two phrasings of one premise collapse; a premise equal to the conclusion is dropped.
-		let mut premises: Vec<String> = Vec::new();
-		for p in chain["premises"].strs().into_iter().filter_map(resolve) {
-			if p != conclusion && !premises.contains(&p) {
-				premises.push(p);
-			}
-		}
-		if premises.is_empty() {
-			continue; // a chain is an argument: bare propositions ride the node ledger alone
-		}
-		let key = chain_key(&premises.iter().map(String::as_str).collect::<Vec<_>>(), &conclusion);
-		if asserted_by_chat.contains(&key) {
-			continue;
-		}
-		let id = id_of_key.get(&key).cloned().unwrap_or_else(|| ids::bytes_hex("arg", 6));
-		ledgers.append_chain(&json!({ "id": id, "premises": premises, "conclusion": conclusion, "createdAt": now, "provenance": point_of(chat_id, None) }))?;
-		id_of_key.insert(key.clone(), id);
-		asserted_by_chat.insert(key);
-		chain_count += 1;
-	}
+	// 2. Chains.
+	let chain_count = append_chains(chat_id, findings, ledgers, &mapping, &existing_ids, &now)?;
 
 	// 2b. Simplification over the whole chain ledger.
 	let all_chains = ledgers.read_chains()?;

@@ -107,7 +107,6 @@ async fn the_work_folder_is_private_and_two_runs_do_not_mix() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[allow(clippy::disallowed_methods)] // real waits: this watches a real process
 async fn dropping_the_future_stops_the_program_and_removes_the_work_folder() {
 	let sandbox = Sandbox::new();
 	install(&sandbox.bin.join("ffmpeg"), "#!/bin/sh\necho $$ > \"$(dirname \"$0\")/pid\"\nexec sleep 30\n");

@@ -12,7 +12,7 @@ use tokio::task::JoinHandle;
 static RUNTIME: OnceLock<Handle> = OnceLock::new();
 
 /// Stores the runtime this is called on, for tasks started outside it. Called first in `main`.
-#[allow(clippy::disallowed_methods)]
+#[expect(clippy::disallowed_methods, reason = "this is the one place that reads the current runtime, so tasks need not")]
 pub fn set_runtime() {
 	let _ = RUNTIME.set(Handle::current());
 }

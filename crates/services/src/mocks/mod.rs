@@ -6,7 +6,7 @@
 pub mod mock_end;
 pub mod mock_runner;
 pub mod mock_runs;
-#[allow(clippy::module_inception)]
+#[expect(clippy::module_inception, reason = "modules are named after their TypeScript files, so graph/graph.ts is graph::graph")]
 pub mod mocks;
 
 /// The live state inside `App`.

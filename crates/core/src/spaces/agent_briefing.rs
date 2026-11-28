@@ -74,12 +74,44 @@ fn name_of<'a>(names: &HashMap<&'a str, &'a str>, space_id: Option<&str>) -> Opt
 	space_id.and_then(|id| names.get(id).copied()).filter(|name| !name.is_empty())
 }
 
+/// The last lessons, newest first. Err as in `agent_briefing`.
+fn lesson_lines(lessons: &[BriefingLesson], names: &HashMap<&str, &str>) -> Result<Vec<String>, String> {
+	let moment = |iso: &str| wall_clock_of_iso(iso).map(|c| format!("{} {}", day_label(&c.day), clock_label(&c.time)));
+	let mut recent: Vec<&BriefingLesson> = lessons.iter().collect();
+	recent.sort_by(|a, b| locale::compare(&b.updated_at, &a.updated_at));
+	recent
+		.into_iter()
+		.take(LAST_LESSONS)
+		.map(|l| {
+			let space = name_of(names, l.space_id.as_deref()).unwrap_or("No space");
+			let waiting = if l.waiting { ", waiting for the learner's answer" } else { "" };
+			let files = if l.files.is_empty() { String::new() } else { format!(", its files: {}", l.files.join(", ")) };
+			Ok(format!("- {} ({space}), last active {}, lesson_id \"{}\"{waiting}{files}", l.title, moment(&l.updated_at)?, l.id))
+		})
+		.collect()
+}
+
+/// The next deadlines of the open spaces that are not marked done, soonest first.
+fn deadline_lines(active: &[&BriefingSpace], now_ms: i64) -> Vec<String> {
+	let clock = wall_clock(now_ms);
+	let now_stamp = format!("{}T{}", clock.day, clock.time);
+	let mut open: Vec<(&Json, &str)> = active.iter().flat_map(|c| c.deadlines.iter().filter(|d| !d["done"].truthy()).map(|d| (d, c.name.as_str()))).collect();
+	open.sort_by(|a, b| compare_deadlines(a.0, b.0));
+	open.into_iter()
+		.take(NEXT_DEADLINES)
+		.map(|(d, space_name)| {
+			let (date, time) = deadline_due_at(d);
+			let overdue = cmp16(&format!("{date}T{time}:00"), &now_stamp).is_lt();
+			format!("- {space_name}: {} ({}), {} {}", d["name"].str_or_empty(), d["kind"].str_or_empty(), if overdue { "overdue, was due" } else { "due" }, when_label(d))
+		})
+		.collect()
+}
+
 /// Err is the error `new Date(iso)` raises for a time that isn't one.
 pub fn agent_briefing(input: &BriefingInput) -> Result<String, String> {
 	let BriefingInput { now_ms, spaces, lessons, notes, max_chars } = input;
 	let names: HashMap<&str, &str> = spaces.iter().map(|c| (c.id.as_str(), c.name.as_str())).collect();
 	let day = |iso: &str| wall_clock_of_iso(iso).map(|c| day_label(&c.day));
-	let moment = |iso: &str| wall_clock_of_iso(iso).map(|c| format!("{} {}", day_label(&c.day), clock_label(&c.time)));
 
 	let active: Vec<&BriefingSpace> = spaces.iter().filter(|c| !c.closed).collect();
 	let space_lines: Vec<String> = active
@@ -92,32 +124,8 @@ pub fn agent_briefing(input: &BriefingInput) -> Result<String, String> {
 	let setup_lines: Vec<String> =
 		active.iter().filter(|c| !c.missing_setup.is_empty()).map(|c| format!("- {} (space_id \"{}\"): no {}", c.name, c.id, c.missing_setup.join(", no "))).collect();
 
-	let mut recent: Vec<&BriefingLesson> = lessons.iter().collect();
-	recent.sort_by(|a, b| locale::compare(&b.updated_at, &a.updated_at));
-	let lesson_lines = recent
-		.into_iter()
-		.take(LAST_LESSONS)
-		.map(|l| {
-			let space = name_of(&names, l.space_id.as_deref()).unwrap_or("No space");
-			let waiting = if l.waiting { ", waiting for the learner's answer" } else { "" };
-			let files = if l.files.is_empty() { String::new() } else { format!(", its files: {}", l.files.join(", ")) };
-			Ok(format!("- {} ({space}), last active {}, lesson_id \"{}\"{waiting}{files}", l.title, moment(&l.updated_at)?, l.id))
-		})
-		.collect::<Result<Vec<String>, String>>()?;
-
-	let clock = wall_clock(*now_ms);
-	let now_stamp = format!("{}T{}", clock.day, clock.time);
-	let mut open: Vec<(&Json, &str)> = active.iter().flat_map(|c| c.deadlines.iter().filter(|d| !d["done"].truthy()).map(|d| (d, c.name.as_str()))).collect();
-	open.sort_by(|a, b| compare_deadlines(a.0, b.0));
-	let deadline_lines: Vec<String> = open
-		.into_iter()
-		.take(NEXT_DEADLINES)
-		.map(|(d, space_name)| {
-			let (date, time) = deadline_due_at(d);
-			let overdue = cmp16(&format!("{date}T{time}:00"), &now_stamp).is_lt();
-			format!("- {space_name}: {} ({}), {} {}", d["name"].str_or_empty(), d["kind"].str_or_empty(), if overdue { "overdue, was due" } else { "due" }, when_label(d))
-		})
-		.collect();
+	let lesson_lines = lesson_lines(lessons, &names)?;
+	let deadline_lines = deadline_lines(&active, *now_ms);
 
 	let note_lines = notes
 		.iter()

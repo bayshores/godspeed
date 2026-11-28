@@ -441,7 +441,7 @@ impl Extraction {
 		Ok(aggregate_jobs(chat_id, &settled))
 	}
 
-	#[allow(clippy::too_many_arguments)]
+	#[expect(clippy::too_many_arguments, reason = "the one caller holds each of these apart, and a struct made only to carry them would be a type with one use")]
 	async fn chat_batch(&self, key: &str, chat_id: &str, scope: Option<&str>, title: Option<&str>, batch: &[CoverageSlot<'_>], part: Option<(usize, usize)>, failed: &HashSet<String>) -> Result<Json, JobError> {
 		let messages: Vec<&Json> = batch.iter().map(|slot| slot.message).collect();
 		let view = prose_view(&messages, title, failed);

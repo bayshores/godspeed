@@ -161,7 +161,14 @@ fn replay(cases: &[Json], c: &Json) {
 		same(name, Json::Arr(list(&args["outcomes"]).iter().map(|o| Json::from(homework::conclude_marks_done(o))).collect()), want);
 	} else if name.starts_with("homework context ") {
 		same(name, Json::from(homework::homework_context_text(text(&args["spaceId"]), &args["deadline"], &args["assignment"], &list(&args["problems"]), &list(&args["topics"]))), want);
-	} else if name.starts_with("parse cheat sheet ") {
+	} else if !replay_cheat_sheet(name, args, want) {
+		panic!("no replay for case {name}");
+	}
+}
+
+/// The cheat sheet cases. False for a case of another family.
+fn replay_cheat_sheet(name: &str, args: &Json, want: &Json) -> bool {
+	if name.starts_with("parse cheat sheet ") {
 		same(name, parsed_json(cheat_sheet::parse_cheat_sheet(&args["raw"])), want);
 	} else if name.starts_with("sheet cards ") {
 		let sheets = args["sheets"].clone();
@@ -219,8 +226,9 @@ fn replay(cases: &[Json], c: &Json) {
 	} else if name.starts_with("cheat sheet request ") {
 		same(name, Json::from(cheat_sheet::cheat_sheet_request_text(&args["request"])), want);
 	} else {
-		panic!("no replay for case {name}");
+		return false;
 	}
+	true
 }
 
 #[test]

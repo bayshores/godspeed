@@ -29,7 +29,7 @@ struct Clock {
 
 static CLOCK: LazyLock<Clock> = LazyLock::new(|| Clock { offset: AtomicI64::new(0), seq: AtomicU64::new(0), sleepers: Mutex::new(BTreeMap::new()) });
 
-#[allow(clippy::disallowed_methods)]
+#[expect(clippy::disallowed_methods, reason = "the app clock reads the system time here and nowhere else")]
 fn real_ms() -> i64 {
 	std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64)
 }
@@ -76,7 +76,7 @@ pub async fn within<T>(ms: i64, work: impl Future<Output = T>) -> Option<T> {
 }
 
 /// Ends once the app clock reaches `due` (ms since the epoch).
-#[allow(clippy::disallowed_methods)]
+#[expect(clippy::disallowed_methods, reason = "the app clock's own sleep, which every other wait goes through")]
 pub async fn sleep_until(due: i64) {
 	loop {
 		let (tx, rx) = oneshot::channel();
@@ -104,7 +104,7 @@ impl Drop for Registered {
 	}
 }
 
-#[allow(clippy::disallowed_methods)]
+#[expect(clippy::disallowed_methods, reason = "the clock file is polled in real time, since it is what moves the app clock")]
 async fn watch_clock_file(file: PathBuf) {
 	let applied_file = PathBuf::from(format!("{}.applied", file.display()));
 	let mut applied = 0.0;
@@ -126,7 +126,7 @@ mod tests {
 	use super::*;
 
 	#[tokio::test]
-	#[allow(clippy::disallowed_methods)] // real waits, so the woken tasks get to run
+	#[expect(clippy::disallowed_methods, reason = "real waits, so the woken tasks get to run")]
 	async fn a_jump_ends_due_sleeps_in_order_and_keeps_later_ones() {
 		let order = std::sync::Arc::new(Mutex::new(Vec::new()));
 		let start = now_ms();

@@ -4,6 +4,7 @@ use gs_base::clock;
 use gs_core::spaces::file_state::FileStatus;
 use gs_json::{Json, Obj, json};
 
+use crate::App;
 use crate::spaces::files::file_in;
 use crate::spaces::gaps::open_gap_of;
 use crate::spaces::space_card::{space_file_path, space_topics};
@@ -15,6 +16,73 @@ pub(super) fn path_view(path: &Json) -> Json {
 	let names: Vec<Json> = topics.iter().map(|t| json!({ "name": t["name"], "status": t["status"] })).collect();
 	let next = topics.iter().find(|t| t["id"] == path["nextId"]).map_or(Json::Null, |t| json!({ "name": t["name"], "covers": t["covers"] }));
 	json!({ "goal": path["goal"], "topics": names, "next": next })
+}
+
+/// The file's `keys`, and its error when it has one.
+fn file_fields(f: &Json, keys: &[&str]) -> Obj {
+	let mut entry = Obj::new();
+	for key in keys {
+		entry.insert(*key, f[*key].clone());
+	}
+	if f["error"].truthy() {
+		entry.insert("error", f["error"].clone());
+	}
+	entry
+}
+
+/// One file of the full list.
+fn file_entry(app: &App, record: &Json, sizes: &Obj, f: &Json) -> Json {
+	let mut entry = file_fields(f, &["id", "name", "kind", "origin", "status"]);
+	// A .tex names the PDF built from it, so the teacher finds the source to edit.
+	entry.insert_present("pdfId", f.get("pdfId"));
+	// Where the agent built the file, and the lesson it was for.
+	entry.insert_present("madeFrom", f.get("madeFrom"));
+	entry.insert_present("lessonId", f.get("lessonId"));
+	if let Some(size) = sizes.get(f["id"].str_or_empty()).filter(|s| s.truthy()) {
+		entry.insert("size", size.clone());
+	}
+	entry.insert("path", space_file_path(app, record, f).map_or(Json::Null, Json::from));
+	Json::Obj(entry)
+}
+
+/// The space's deadlines, with each file they name by its id and name.
+fn deadline_entries(record: &Json) -> Vec<Json> {
+	let named = |ids: &Json| -> Vec<Json> {
+		ids.as_arr()
+			.into_iter()
+			.flatten()
+			.map(|id| {
+				let name = id.as_str().and_then(|i| file_in(record, i)).map(|f| &f["name"]).filter(|n| !n.is_null()).unwrap_or(id);
+				json!({ "id": id, "name": name })
+			})
+			.collect()
+	};
+	record["deadlines"]
+		.as_arr()
+		.into_iter()
+		.flatten()
+		.map(|d| {
+			let mut entry = Obj::new();
+			for key in ["id", "kind", "name", "date"] {
+				entry.insert(key, d[key].clone());
+			}
+			if given(d, "time") {
+				entry.insert("time", d["time"].clone());
+			}
+			entry.insert("done", d["done"].clone());
+			entry.insert("files", named(&d["fileIds"]));
+			if d["leftOutIds"].truthy() {
+				entry.insert("leftOut", named(&d["leftOutIds"]));
+			}
+			if d["source"].truthy() {
+				entry.insert("source", d["source"].clone());
+			}
+			if d["aboutFileId"].truthy() {
+				entry.insert("about", named(&json!([d["aboutFileId"]]))[0].clone());
+			}
+			Json::Obj(entry)
+		})
+		.collect()
 }
 
 impl SpaceActions {
@@ -50,85 +118,15 @@ impl SpaceActions {
 			view.insert("outOfDate", gap.agent_line);
 		}
 		if with_files {
-			let listed: Vec<Json> = files
-				.iter()
-				.map(|f| {
-					let mut entry = Obj::new();
-					for key in ["id", "name", "kind", "origin", "status"] {
-						entry.insert(key, f[key].clone());
-					}
-					if f["error"].truthy() {
-						entry.insert("error", f["error"].clone());
-					}
-					// A .tex names the PDF built from it, so the teacher finds the source to edit.
-					entry.insert_present("pdfId", f.get("pdfId"));
-					// Where the agent built the file, and the lesson it was for.
-					entry.insert_present("madeFrom", f.get("madeFrom"));
-					entry.insert_present("lessonId", f.get("lessonId"));
-					if let Some(size) = sizes.get(f["id"].str_or_empty()).filter(|s| s.truthy()) {
-						entry.insert("size", size.clone());
-					}
-					entry.insert("path", space_file_path(app, &record, f).map_or(Json::Null, Json::from));
-					Json::Obj(entry)
-				})
-				.collect();
+			let listed: Vec<Json> = files.iter().map(|f| file_entry(app, &record, &sizes, f)).collect();
 			view.insert("files", listed);
 		} else {
-			let failed: Vec<Json> = files
-				.iter()
-				.filter(|f| matches!(FileStatus::of(f), Some(FileStatus::Failed | FileStatus::NeedsWhisper)))
-				.map(|f| {
-					let mut entry = Obj::new();
-					for key in ["id", "name", "status"] {
-						entry.insert(key, f[key].clone());
-					}
-					if f["error"].truthy() {
-						entry.insert("error", f["error"].clone());
-					}
-					Json::Obj(entry)
-				})
-				.collect();
-			view.insert("failedFiles", failed);
+			let failed = files.iter().filter(|f| matches!(FileStatus::of(f), Some(FileStatus::Failed | FileStatus::NeedsWhisper)));
+			view.insert("failedFiles", failed.map(|f| Json::Obj(file_fields(f, &["id", "name", "status"]))).collect::<Vec<Json>>());
 		}
 		view.insert("topics", space_topics(app, space_id)?);
 		view.insert("today", local_now());
-		let named = |ids: &Json| -> Vec<Json> {
-			ids.as_arr()
-				.into_iter()
-				.flatten()
-				.map(|id| {
-					let name = id.as_str().and_then(|i| file_in(&record, i)).map(|f| &f["name"]).filter(|n| !n.is_null()).unwrap_or(id);
-					json!({ "id": id, "name": name })
-				})
-				.collect()
-		};
-		let deadlines: Vec<Json> = record["deadlines"]
-			.as_arr()
-			.into_iter()
-			.flatten()
-			.map(|d| {
-				let mut entry = Obj::new();
-				for key in ["id", "kind", "name", "date"] {
-					entry.insert(key, d[key].clone());
-				}
-				if given(d, "time") {
-					entry.insert("time", d["time"].clone());
-				}
-				entry.insert("done", d["done"].clone());
-				entry.insert("files", named(&d["fileIds"]));
-				if d["leftOutIds"].truthy() {
-					entry.insert("leftOut", named(&d["leftOutIds"]));
-				}
-				if d["source"].truthy() {
-					entry.insert("source", d["source"].clone());
-				}
-				if d["aboutFileId"].truthy() {
-					entry.insert("about", named(&json!([d["aboutFileId"]]))[0].clone());
-				}
-				Json::Obj(entry)
-			})
-			.collect();
-		view.insert("deadlines", deadlines);
+		view.insert("deadlines", deadline_entries(&record));
 		let lessons: Vec<Json> = app
 			.stores
 			.chats

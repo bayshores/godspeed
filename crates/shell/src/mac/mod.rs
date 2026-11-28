@@ -1,5 +1,5 @@
 //! What the Mac needs beyond Tauri: AppKit and WebKit calls through objc2.
-#![allow(unsafe_code)]
+#![expect(unsafe_code, reason = "AppKit and WebKit are called through objc2, whose calls are unsafe")]
 
 pub mod app_icon;
 pub mod demo;
