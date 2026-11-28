@@ -1,4 +1,4 @@
-//! The chain-simplification pass of src/shared/core/graph.ts (`simplifyChains`).
+//! The chain-simplification pass (`simplify_chains`) that the merger runs.
 
 use std::collections::{HashMap, HashSet};
 

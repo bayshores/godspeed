@@ -10,7 +10,7 @@
 //! itself at once (`local_summary`), and once the lesson has been quiet the session's model writes
 //! the real summary in its place.
 //!
-//! `activeCompactionOf` and `keptIndexFor` live in `messages::compaction_marks`.
+//! `active_compaction_of` and `kept_index_for` live in `messages::compaction_marks`.
 
 use std::collections::HashMap;
 

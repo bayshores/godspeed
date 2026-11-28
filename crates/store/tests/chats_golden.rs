@@ -125,7 +125,7 @@ fn synthetic_store_matches_node() {
 	}
 }
 
-/// `maskCreated` in the Node recorder.
+/// A created chat's id and time masked, as the recorded goldens are.
 fn mask_created(text: &str) -> String {
 	let ids = Re::new(r"chat_[0-9a-z]+_[0-9a-f]{8}", "g").replace(text, "<id>");
 	Re::new(r"\d{4}-\d\d-\d\dT[\d:.]+Z", "g").replace(&ids, "<time>")

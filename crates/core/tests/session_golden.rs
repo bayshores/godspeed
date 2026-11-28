@@ -80,7 +80,7 @@ fn is_generated_id(id: &str) -> bool {
 	matches!(prefix, "msg" | "pb") && !stamp.is_empty() && stamp.bytes().all(|b| b.is_ascii_digit() || b.is_ascii_lowercase()) && rand.len() == 8 && rand.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
-/// Same masking as `maskMarker` in the Node recorder.
+/// A marker with its generated id and its timestamp masked, as the recorded goldens are.
 fn mask_marker(message: &Json) -> Json {
 	let Some(object) = message.as_obj() else { return message.clone() };
 	Json::Obj(

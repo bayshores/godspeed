@@ -56,7 +56,7 @@ impl ExtractionHost for AppHost {
 	}
 }
 
-/// The pipeline (`extraction.runExtraction`, `extraction.importNotes`).
+/// The extraction pipeline (`run_extraction`, `import_notes`).
 pub fn extraction(app: &Arc<App>) -> Extraction {
 	Extraction::new(Arc::new(AppHost(app.clone())))
 }

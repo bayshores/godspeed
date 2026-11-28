@@ -35,7 +35,7 @@ fn image(picture: &[u8]) -> Result<Retained<NSImage>, String> {
 }
 
 fn show_in_dock(image: Option<&NSImage>, mtm: MainThreadMarker) {
-	// SAFETY: the property is `null_resettable`: nil brings back the app's own icon.
+	// SAFETY: AppKit takes nil for this property and brings back the app's own icon.
 	unsafe { NSApplication::sharedApplication(mtm).setApplicationIconImage(image) };
 }
 

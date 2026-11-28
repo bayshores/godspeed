@@ -33,7 +33,7 @@ pub struct SpacesState {
 	pub(super) queues: Mutex<HashMap<String, Queue>>,
 	/// `<space>:<file>` keys waiting in a queue (a file is queued once).
 	pub(super) queued: Mutex<HashSet<String>>,
-	/// Told whenever a queue drains or a triage ends, for `space_idle` and waiting rescans.
+	/// Told whenever a queue drains or a triage ends, so `triage_done` looks again.
 	pub(super) settled: Arc<Notify>,
 	/// Each space's linked folder at its last scan (a FolderStatus).
 	pub(super) folder_scans: Mutex<HashMap<String, Json>>,

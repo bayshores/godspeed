@@ -1,4 +1,4 @@
-//! The merger of src/shared/core/graph.ts (`mergeFindings`): the deterministic last stage of
+//! The graph's merger (`merge_findings`): the deterministic last stage of
 //! extraction. The model supplies the judgment calls; ids, timestamps and provenance are rebuilt
 //! here, and the ledgers are only ever appended to (plus the chain-simplification rewrite).
 

@@ -1,4 +1,4 @@
-//! TypeBox's `Value.Convert` (value/convert/*.mjs) and pi's `normalizeOptionalNulls`: the loose
+//! TypeBox's `Value.Convert` (value/convert/*.mjs) and pi's dropping of optional nulls: the loose
 //! fixes applied to a model's arguments before they are checked ("5" for an integer becomes 5).
 
 use gs_json::{Json, js_number};
@@ -156,7 +156,7 @@ fn try_null(value: &Json) -> bool {
 	}
 }
 
-/// pi's `normalizeOptionalNulls`: an optional property sent as null that may not be null is
+/// As pi does: an optional property sent as null that may not be null is
 /// dropped, at any depth.
 pub fn normalize_optional_nulls(value: &mut Json, schema: &Json) {
 	match value {

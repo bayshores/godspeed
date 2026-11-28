@@ -28,3 +28,20 @@ export function tsTokens(node: ts.Node, source: ts.SourceFile, out: ts.Node[] = 
 	for (const child of children) tsTokens(child, source, out);
 	return out;
 }
+
+/** Every comment of a file with its line, read around the parser's own tokens so a `//` in a string or a regex is never one. */
+export function tsComments(source: ts.SourceFile): { line: number; text: string }[] {
+	const text = source.getFullText();
+	const starts = new Set<number>();
+	const comments: { line: number; text: string }[] = [];
+	for (const token of [...tsTokens(source, source), source.endOfFileToken]) {
+		const at = token.getFullStart();
+		for (const range of [...(ts.getTrailingCommentRanges(text, at) ?? []), ...(ts.getLeadingCommentRanges(text, at) ?? [])]) {
+			// Only the gap before a token holds comments: JSX text such as `// text` has none.
+			if (starts.has(range.pos) || range.end > token.getStart(source)) continue;
+			starts.add(range.pos);
+			comments.push({ line: source.getLineAndCharacterOfPosition(range.pos).line + 1, text: text.slice(range.pos, range.end) });
+		}
+	}
+	return comments.sort((a, b) => a.line - b.line);
+}

@@ -44,7 +44,7 @@ fn put(out: &mut Obj, key: &str, value: Option<f64>) {
 	}
 }
 
-/// `piUsageToStep`: pi-ai's usage (input, output, cacheRead, cacheWrite, cacheWrite1h, reasoning)
+/// The usage pi-ai reports (input, output, cacheRead, cacheWrite, cacheWrite1h, reasoning)
 /// as the per-call shape `accumulate_job_usage` folds.
 pub fn pi_usage_to_step(usage: &Json) -> Json {
 	let mut out = Obj::new();
@@ -66,7 +66,7 @@ fn add(a: Option<f64>, b: Option<f64>) -> Option<f64> {
 	if a.is_none() && b.is_none() { None } else { Some(a.unwrap_or(0.0) + b.unwrap_or(0.0)) }
 }
 
-/// `accumulateJobUsage`: folds one model call's usage into the run's running total.
+/// Folds one model call's usage into the run's running total.
 pub fn accumulate_job_usage(total: Option<&Json>, model: &str, step: &Json) -> Json {
 	let details = &step["inputTokenDetails"];
 	let mut call = Obj::new();
@@ -105,7 +105,7 @@ pub fn accumulate_job_usage(total: Option<&Json>, model: &str, step: &Json) -> J
 	Json::Obj(out)
 }
 
-/// `setSteerUiInverted`: the messages with one demo steer's invert switch set; every
+/// The messages with one demo steer's invert switch set; every
 /// other message comes back as it was.
 pub fn set_steer_ui_inverted(messages: &[Json], message_id: &str, inverted: bool) -> Vec<Json> {
 	messages

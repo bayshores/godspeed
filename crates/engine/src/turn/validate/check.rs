@@ -35,7 +35,7 @@ impl Errors {
 	}
 }
 
-/// pi's `formatValidationPath`: the instance path with dots, or "root".
+/// The instance path with dots, or "root", as pi words a validation error.
 fn dotted(instance_path: &str) -> String {
 	instance_path.strip_prefix('/').unwrap_or(instance_path).replace('/', ".")
 }

@@ -98,7 +98,7 @@ pub fn step_bar(tree: &Json, messages: &[Json], finished: Option<&str>) -> StepB
 	StepBar { done, total: statuses.len(), step: step_position(&statuses), current_title: current.and_then(|node| node["title"].as_str().filter(|t| !t.is_empty())).map(Json::from) }
 }
 
-/// `planPositionLh`: `{done, total}` over the native record.
+/// The plan's position, `{done, total}`, over the native record.
 pub fn plan_position_lh(tree: &Json, messages: &[Json]) -> Json {
 	let bar = step_bar(tree, messages, None);
 	let mut out = Obj::new();

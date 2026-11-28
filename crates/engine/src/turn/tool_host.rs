@@ -58,7 +58,7 @@ fn refused(message: &str) -> Finalized {
 	Finalized { result: error_tool_result(message), is_error: true, duration_ms: None }
 }
 
-/// `prepareToolCall`: find the tool, prepare and validate its arguments, then ask the
+/// Finds the tool, prepares and validates its arguments, then asks the
 /// `before_tool_call` hook.
 fn prepare(tools: &[Arc<dyn Tool>], hook: Option<&BeforeToolCallFn>, reply: Reply, call: &Json, abort: &Abort) -> Prepared {
 	let name = text(&call["name"]);
@@ -81,7 +81,7 @@ fn prepare(tools: &[Arc<dyn Tool>], hook: Option<&BeforeToolCallFn>, reply: Repl
 	}
 }
 
-/// `executePreparedToolCall`: a failed call (or a panic in the tool) becomes an error result.
+/// Runs a prepared call: a failed call (or a panic in the tool) becomes an error result.
 async fn run(tool: &dyn Tool, call: &Json, args: Json, abort: &Abort) -> Finalized {
 	let started = Instant::now();
 	let ctx = ToolContext { tool_call_id: text(&call["id"]), abort: abort.clone() };

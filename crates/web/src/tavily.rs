@@ -22,7 +22,7 @@ pub enum Failure {
 	KeyRefused,
 	/// HTTP 432 or 433: the plan's or the pay-as-you-go limit is used up.
 	OutOfSearches,
-	/// HTTP 429: too many requests for now.
+	/// HTTP 429: too many requests just now.
 	Busy,
 	/// No answer at all (offline, DNS, timeout).
 	Unreachable,

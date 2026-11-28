@@ -4,7 +4,7 @@
 //! move from that pair. A session with no space topics gets the no-topics note instead, and the
 //! agent writes its plan.
 //!
-//! A study topic (TS `StudyTopic`) is `{ id, name[, material], status[, latestWrong: true],
+//! A study topic is `{ id, name[, material], status[, latestWrong: true],
 //! factIds }`: the plan node id (the space topic's id, or `FREE_TOPIC_ID` for a mock question
 //! with no topic), its name, its material, its status from the learner's track record, whether it
 //! is weak with a wrong newest answer, and the picked facts in it.

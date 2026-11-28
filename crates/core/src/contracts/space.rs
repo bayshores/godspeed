@@ -116,7 +116,7 @@ pub fn is_upcoming(deadline: &Json, now_ms: i64) -> bool {
 	!deadline["done"].truthy() && due_at(deadline).is_some_and(|due| due > now_ms)
 }
 
-/// Soonest first, then by time, then by name (`compareDeadlines`).
+/// Soonest first, then by time, then by name.
 pub fn compare_deadlines(a: &Json, b: &Json) -> Ordering {
 	let (da, ta) = deadline_due_at(a);
 	let (db, tb) = deadline_due_at(b);

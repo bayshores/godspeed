@@ -58,7 +58,7 @@ impl StartCommands {
 		self.claude.is_none() && self.codex.is_none()
 	}
 
-	/// As `savedStartCommands` returns it: claude first.
+	/// As the app state saves it, claude first.
 	pub fn to_json(&self) -> Json {
 		let mut out = Obj::new();
 		for agent in FolderAgent::ALL {

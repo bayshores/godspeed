@@ -156,7 +156,7 @@ fn newest_first(runs: Vec<RecentRun>) -> Vec<RecentRun> {
 	sorted
 }
 
-/// `graphCostSummary`: `{stages: {extraction, audit}, runs}` from chat and notes-source runs.
+/// The graph's cost, `{stages: {extraction, audit}, runs}`, from chat and notes-source runs.
 pub fn graph_cost_summary(input: &Json) -> Json {
 	let mut extraction = StageCost::default();
 	let mut audit = StageCost::default();

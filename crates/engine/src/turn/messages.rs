@@ -26,7 +26,7 @@ pub fn text_block(text: &str) -> Json {
 	json!({ "type": "text", "text": text })
 }
 
-/// pi-agent-core's `createErrorToolResult`: what a failed or refused call returns.
+/// What a failed or refused call returns.
 pub fn error_tool_result(text: &str) -> Json {
 	json!({ "content": [text_block(text)], "details": {} })
 }
