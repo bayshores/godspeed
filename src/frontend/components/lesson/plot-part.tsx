@@ -46,7 +46,7 @@ function Label({ text }: { text: string }) {
 function PlotBox({ title, state, children }: { title: string; state: string; children: React.ReactNode }) {
 	return (
 		<figure data-testid="plot-part" data-state={state} className="m-0 flex w-full flex-col overflow-hidden lh-well lh-notch px-5 pt-4 pb-3.5">
-			<figcaption className="font-ui text-lg leading-5.5 text-ink">
+			<figcaption className="font-ui text-item leading-5.5 text-ink">
 				<Label text={title} />
 			</figcaption>
 			{children}
@@ -67,7 +67,7 @@ export function PlotPart({ part }: ArtifactPartProps) {
 	if (part.state === "input-streaming") {
 		return (
 			<PlotBox title={title} state="drawing">
-				<p className="mt-2 font-ui text-(length:--text-base) text-ink-2">Drawing the plot</p>
+				<p className="mt-2 font-ui text-ui text-ink-2">Drawing the plot</p>
 			</PlotBox>
 		);
 	}
@@ -82,7 +82,7 @@ function StoredPlot({ input, output, open, guessAt }: { input: unknown; output: 
 	if (!("plot" in read)) {
 		return (
 			<PlotBox title={read.title} state="failed">
-				<p className="mt-2 font-ui text-(length:--text-base) text-ink-2">This plot could not be drawn.</p>
+				<p className="mt-2 font-ui text-ui text-ink-2">This plot could not be drawn.</p>
 			</PlotBox>
 		);
 	}

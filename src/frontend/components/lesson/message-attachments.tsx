@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { isAttachmentPart, type LhViewPart } from "@/shared/core";
-import { SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { chip } from "@/frontend/components/ui/chip";
 import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { cn } from "@/frontend/lib/utils";
 import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
@@ -38,7 +38,7 @@ export function MessageAttachments({ parts }: { parts: readonly LhViewPart[] }) 
 						data-testid="message-pdf"
 						disabled={!openPath || !pdf.path}
 						onClick={() => void openPath?.(pdf.path)}
-						className={cn(SMALL_BTN, "max-w-64 disabled:cursor-default")}
+						className={cn(chip("well", "item", { press: true }), "max-w-64 disabled:cursor-default")}
 					>
 						<span className="truncate" title={pdf.name}>{pdf.name}</span>
 					</button>
@@ -73,7 +73,7 @@ function PictureOverlay({ src, state, onClose }: { src: string; state: "open" | 
 			aria-label="Picture"
 			data-state={state}
 			onClick={onClose}
-			className="lh-fade lh-no-drag fixed inset-0 z-(--lh-z-dialog) flex cursor-zoom-out items-center justify-center bg-background/90 p-8"
+			className="lh-fade lh-no-drag fixed inset-0 z-(--lh-z-dialog) flex cursor-zoom-out items-center justify-center bg-background/95 p-8"
 		>
 			<img src={src} alt="Your picture" className="max-h-full max-w-full object-contain" />
 		</div>,

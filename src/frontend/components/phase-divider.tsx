@@ -17,7 +17,7 @@ export function PhaseDivider({ phase }: { phase: Phase3 }) {
 	if (phase === "probe") return null;
 	return (
 		<div className="my-4 flex w-full items-center justify-center bg-tone px-3 py-1" data-testid={`phase-divider-${phase}`}>
-			<span className="text-sm text-ink-2">{PHASE_LABEL[phase]}</span>
+			<span className="text-ui text-ink-2">{PHASE_LABEL[phase]}</span>
 		</div>
 	);
 }

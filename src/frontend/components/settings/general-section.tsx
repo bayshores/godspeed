@@ -5,7 +5,8 @@
 
 import { resolveSettings, type UserSettings } from "@/shared/core";
 import type { GeneralPatch } from "@/frontend/components/settings-context";
-import { SettingsGroup, SettingsRow, Toggle } from "./controls.tsx";
+import { Toggle } from "@/frontend/components/ui/toggle";
+import { SettingsGroup, SettingsRow } from "./controls.tsx";
 import { NotesFolderGroup } from "./notes-folder-group.tsx";
 import { UpdateSettings } from "./update-settings.tsx";
 

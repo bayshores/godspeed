@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { ResultTag } from "@/frontend/components/result-tag";
+import { chip } from "@/frontend/components/ui/chip";
 import { ThinkingBlock } from "@/frontend/components/thinking-block";
 import { useFold } from "@/frontend/components/use-fold";
 import { cn } from "@/frontend/lib/utils";
@@ -24,9 +24,9 @@ const kindWords = (label: string) => (label === "Prediction" ? "Your prediction"
 export function ResultChip({ answer }: { answer: QuestionAnswerData }) {
 	const [tone, word] = answer.dontKnow ? (["plain", "Didn't know"] as const) : answer.correct ? (["right", "Right"] as const) : (["wrong", "Wrong"] as const);
 	return (
-		<ResultTag tone={tone} testId="answer-result">
+		<span data-testid="answer-result" className={chip(tone, "tag")}>
 			{word}
-		</ResultTag>
+		</span>
 	);
 }
 

@@ -66,7 +66,7 @@ export function FactPane({
 	const fit = useLinkFit(links.buildsOn.length + links.leadsTo.length, room);
 	const [buildsOn = 0, leadsTo = 0] = shareLinks([links.buildsOn.length, links.leadsTo.length], fit.shown);
 	const answers = (
-		<p data-testid="fact-answers" className={`text-base leading-snug text-ink-2 ${stacked ? "" : "text-center"} ${wordsStep.className}`} style={wordsStep.style}>
+		<p data-testid="fact-answers" className={`text-ui leading-snug text-ink-2 ${stacked ? "" : "text-center"} ${wordsStep.className}`} style={wordsStep.style}>
 			{answerLine(fact)}
 		</p>
 	);

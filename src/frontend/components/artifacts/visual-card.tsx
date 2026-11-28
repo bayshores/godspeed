@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
-import { ResultTag } from "@/frontend/components/result-tag";
+import { chip } from "@/frontend/components/ui/chip";
 import { cn } from "@/frontend/lib/utils";
 import { useSessionMermaid } from "@/frontend/components/session-overlay";
 import { useAppearance } from "@/frontend/components/settings/appearance";
@@ -59,9 +59,9 @@ export function VisualOutputCard({ output }: { output: unknown }) {
 	if (result.svg.length === 0) {
 		return (
 			<div className={cn(CARD, "flex flex-col gap-2 text-card-foreground")} data-testid="visual-card-failed">
-				<div className="flex items-center gap-2.5 text-sm text-ink-2">
+				<div className="flex items-center gap-2.5 text-ui text-ink-2">
 					Figure
-					<ResultTag tone="wrong">failed</ResultTag>
+					<span className={chip("wrong", "tag")}>failed</span>
 				</div>
 				<p className="text-ui text-ink-2">{result.notes ?? "The figure could not be drawn."}</p>
 			</div>

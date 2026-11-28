@@ -9,14 +9,14 @@ export const MermaidError = ({ chart, error, retry }: { chart: string; error: st
 		className="my-4 lh-well p-4"
 		data-streamdown="mermaid-error"
 	>
-		<p className="text-sm font-medium text-destructive">
+		<p className="text-ui font-medium text-destructive">
 			Diagram failed to render
 		</p>
 		<p className="mt-1 font-mono text-xs break-words text-muted-foreground">
 			{error}
 		</p>
 		<details className="mt-3">
-			<summary className="cursor-pointer text-xs text-muted-foreground">
+			<summary className="cursor-pointer text-ui text-muted-foreground">
 				Show diagram source
 			</summary>
 			<pre className="mt-2 overflow-x-auto bg-muted p-3 font-mono text-xs text-foreground">

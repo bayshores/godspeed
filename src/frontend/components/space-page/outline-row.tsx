@@ -30,7 +30,7 @@ export function OutlineRow({
 			{count && <CountBlock size="list" color={null} {...count} />}
 			<span className="flex min-w-0 flex-1 flex-col gap-[3px] px-(--lh-inset) py-3">
 				<span className="text-xl leading-tight break-words text-ink">{name}</span>
-				<span className="text-base leading-snug text-ink-2">{line}</span>
+				<span className="text-ui leading-snug text-ink-2">{line}</span>
 			</span>
 			<span className="flex shrink-0 items-center gap-2.5 pr-(--lh-inset)">{keys}</span>
 		</div>

@@ -17,7 +17,7 @@ export function MockBar({ view, children }: { view: MockView; children?: ReactNo
 				<PixelIcon name="chevron" className="-scale-x-100" />
 				{view.deadlineName !== null && <span className="truncate">{view.deadlineName}</span>}
 			</Link>
-			<h1 className="shrink-0 text-lg font-medium">Mock {view.mock.n}</h1>
+			<h1 className="shrink-0 text-item font-medium">Mock {view.mock.n}</h1>
 			{children ?? <div className="flex-1" aria-hidden />}
 			<NoiseWord />
 		</div>

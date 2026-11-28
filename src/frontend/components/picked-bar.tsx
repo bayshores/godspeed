@@ -57,7 +57,7 @@ export function PickedBar({
 						{failure}
 					</span>
 				) : (
-					<span data-testid={testids.line} className="min-w-0 flex-auto truncate text-lg font-medium">
+					<span data-testid={testids.line} className="min-w-0 flex-auto truncate text-item font-medium">
 						{line}
 					</span>
 				)}

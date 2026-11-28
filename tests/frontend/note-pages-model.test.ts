@@ -26,7 +26,7 @@ describe("the ask", () => {
 describe("a page", () => {
 	it("shrinks a long name instead of cutting it", () => {
 		assert.equal(nameSize("Combinations"), "text-tab");
-		assert.equal(nameSize("Counting strings and subsets"), "text-(length:--text-lg)");
+		assert.equal(nameSize("Counting strings and subsets"), "text-item");
 		assert.equal(nameSize("Permutations and combinations with repeats"), "text-ui");
 	});
 

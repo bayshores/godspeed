@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { SmallSwitch } from "@/frontend/components/ui/small-switch";
+import { Toggle } from "@/frontend/components/ui/toggle";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import type { CodeEditorHandle } from "./code-editor-view";
 import { VIM_KEY, languageLabel, parseVim } from "./code-editor-model";
@@ -79,8 +79,7 @@ export function CodeEditor({
 							{mode}
 						</span>
 					)}
-					<span className="text-(length:--text-sm) text-ink-2">Vim</span>
-					<SmallSwitch on={vim} onChange={toggleVim} label="Vim" testId="vim-switch" />
+					<Toggle checked={vim} onChange={toggleVim} label="Vim" showLabel />
 				</span>
 			</div>
 			<div ref={hostRef} data-testid="code-editor-host" className="min-h-0 flex-1" onKeyDown={keepKeysInEditor} />

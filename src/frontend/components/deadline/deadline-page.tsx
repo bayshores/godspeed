@@ -133,7 +133,7 @@ export function DeadlinePage({
 			<div className="h-full overflow-y-auto">
 				<div className="lh-page pt-(--lh-page-top) pb-(--lh-page-end)">
 					{current && !deadline ? (
-						<p data-testid="deadline-removed" className="text-lg text-ink-2">
+						<p data-testid="deadline-removed" className="text-item text-ink-2">
 							This deadline was removed.
 						</p>
 					) : current && deadline && nowMs !== null ? (

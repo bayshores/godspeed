@@ -5,9 +5,9 @@ import { cn } from "@/frontend/lib/utils";
  *  tab's next deadline, or the one at the head of a deadline's page. */
 const SIZES = {
 	head: { box: "min-h-[120px] w-[120px]", count: "text-[60px] leading-title", unit: "text-ui" },
-	band: { box: "w-[116px]", count: "text-[54px] leading-title", unit: "text-base" },
-	card: { box: "w-[112px]", count: "text-[42px] leading-title", unit: "text-base" },
-	list: { box: "w-24", count: "text-3xl", unit: "text-base" },
+	band: { box: "w-[116px]", count: "text-[54px] leading-title", unit: "text-ui" },
+	card: { box: "w-[112px]", count: "text-[42px] leading-title", unit: "text-ui" },
+	list: { box: "w-24", count: "text-3xl", unit: "text-ui" },
 };
 
 /** A list row with a block at its left. `BLOCK_ROW_BOX` goes on the row, whose width decides for every row of the list alike:

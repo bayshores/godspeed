@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { shownModel, type AgentModel } from "@/shared/core";
-import { MenuShell } from "@/frontend/components/menu-shell";
+import { MENU_ITEM, MenuShell } from "@/frontend/components/menu-shell";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { cn } from "@/frontend/lib/utils";
@@ -35,7 +35,7 @@ export function ModelKey({ models, current, onPick }: { models: readonly AgentMo
 							onPick(m.id);
 							setOpen(false);
 						}}
-						className={cn("lh-press flex w-full items-center gap-2 lh-notch px-2.5 py-1.5 text-left text-ui text-ink hover:bg-tone", m.id === shown.id && "bg-tone")}
+						className={cn(MENU_ITEM, "w-full gap-2", m.id === shown.id && "bg-tone")}
 					>
 						<span className="min-w-0 flex-1 truncate">{m.name}</span>
 						{m.id === shown.id && <PixelIcon name="check" />}

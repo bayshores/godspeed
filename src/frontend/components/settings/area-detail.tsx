@@ -7,7 +7,8 @@
 import { TOOL_SWITCH_LABELS, type AgentSettings, type TeachingArea, type ToggleableTool } from "@/shared/core";
 import { RuleChips } from "@/frontend/components/rule-chips";
 import { Segmented } from "@/frontend/components/ui/segmented";
-import { SMALL_KEY, SettingsGroup, SettingsRow, Toggle } from "./controls.tsx";
+import { Toggle } from "@/frontend/components/ui/toggle";
+import { SMALL_KEY, SettingsGroup, SettingsRow } from "./controls.tsx";
 import { composeGraphTools, composeQuizStyle, composeRules, composeTool } from "./teaching-model.ts";
 import { WebSearch } from "./web-search.tsx";
 
@@ -87,7 +88,7 @@ export function AreaDetail({
 			)}
 			{area.id === "files" && switchRow("pdf", "Reads your PDFs page by page")}
 			<div className="flex flex-col gap-2 py-3">
-				<p className="text-lg font-medium text-ink">Your rules</p>
+				<p className="text-item font-medium text-ink">Your rules</p>
 				<RuleChips
 					rules={agent?.rules?.[area.id] ?? []}
 					onChange={(next) => onSectionChange(composeRules(agent, area.id, next))}

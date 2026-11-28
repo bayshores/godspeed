@@ -130,7 +130,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 					</button>
 				)}
 				<span className="flex-1" />
-				<button type="button" data-testid="deadline-save" disabled={busy} onClick={() => void save()} className="lh-btn lh-btn-main px-[22px]">
+				<button type="button" data-testid="deadline-save" disabled={busy} onClick={() => void save()} className="lh-btn lh-btn-main">
 					{saved ? "Save" : "Add deadline"}
 				</button>
 			</>
@@ -165,7 +165,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 					<input type="time" data-testid="deadline-time" value={draft.time} disabled={busy} onChange={(e) => change({ time: e.target.value })} className={FIELD} />
 				</label>
 				{draft.time !== "" && (
-					<button type="button" data-testid="deadline-time-clear" disabled={busy} onClick={() => change({ time: "" })} className="lh-btn lh-btn-quiet h-10 shrink-0">
+					<button type="button" data-testid="deadline-time-clear" disabled={busy} onClick={() => change({ time: "" })} className="lh-btn lh-btn-quiet shrink-0">
 						Clear time
 					</button>
 				)}

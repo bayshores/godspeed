@@ -128,12 +128,15 @@ Every page, the lesson page included, uses one column and one set of spacing, so
 | Between cards | `--lh-gap` (24), across and down | Every page; also a tab row to the first card |
 | Card | `.lh-card` on a sheet: inset `--lh-inset` (24) on the sides and bottom, 20 on top | Every card with a title or plain content |
 | Card head | `.lh-card-head`: one 40-point line for the title and its key, 12 points above the content | Every card title, and a section title outside a card |
-| Card title | `.lh-card-title`: 20, regular | Every card and section title |
-| Tabs | `.lh-tabs` and `.lh-tab`: 18-point words on a 2-point line | A space's pages, Settings' sections |
+| Card title | `.lh-card-title`: 20, regular | Every card, section, dialog and pop-up title |
+| Heading inside a card | `.lh-inner-title`: 17, regular | A group's name over its rows in a card, a panel or a dialog, and one choice's or one result's name. A heading takes one of the three title classes; `tests/repo/headings.test.ts` fails one drawn with classes of its own |
+| Dialog | `DialogSheet` (`components/ui/dialog-sheet.tsx`): the card title, Close, one padding, the page dimmed under it; 560 wide, or 780 with `wide` for a list or a document | Every dialog; a picture shown full size covers the page in paper instead |
+| Tabs | `.lh-tabs` and `.lh-tab`: 18-point words on a 2-point line | A space's pages, Settings' sections, the parts of an area's full instructions |
 | End of a page | `--lh-page-end` (64) under the last card | Every page that scrolls |
 | Line length | `--lh-measure` (75ch) | Sentences and paragraphs outside lesson text |
-| Keys | 40 high; `.lh-btn-small` 30; `BIG_KEY` and `MAIN_KEY` 48 for a page's main action | Every key |
+| Keys | 40 high; `.lh-btn-small` 30; `BIG_KEY` and `MAIN_KEY` (`components/ui/big-key.ts`) 48 for a page's main action and the plate beside it | Every key |
 | Fields | 40 high (`FIELD`, `SELECT`) | Every field |
+| Chips | `chip(tone, size)` in `components/ui/chip.ts`, cut in `lh-notch`. A tag is 24 high, 13-point medium words on one line; an item is at least 32 high, 15-point words that wrap. Tones: `well`, `lit` (the highlight), `plain`, `right`, `hints`, `wrong`; a chip that is a button and opens what it names takes `press` and answers the pointer | A tag: a word that says how the thing beside it stands (Right, New, In use, late, a tab's count). An item: a thing by its name (a linked fact, a rule, a file, a version made) |
 
 - Pages with the same head start their first card at the same height: a space's pages under the tab row, title pages under the title. The lesson page has no head (its title and words sit in the top bar): its step line starts 20 points under the bar, and its text 24 points under the step line, or under the bar when there is none.
 - Sheets side by side end on the same line: the shorter one grows to the taller one's foot (Home's spaces beside the week), and a block alone in a row of two takes the row (Home's "Unfinished").
@@ -213,20 +216,20 @@ Every corner is cut in pixel steps. Nothing is round, and nothing is outlined wi
 
 Interface and lesson text are one face, Literata, so they stay apart by size, weight and color, as a book sets its running text apart from its headings and notes.
 
-- Lesson text is the reading size (17 px at 100%) in the body ink. Interface words are 15 px or smaller and titles are regular weight, labels medium. Nothing in the interface is heavier than medium, except the legend of a main or danger key.
+- Lesson text is the reading size (17 px at 100%) in the body ink. Interface words are 15 px or smaller, the name of a thing and the one sentence a dialog says are 17, and titles are regular weight, labels medium. Nothing in the interface is heavier than medium, except the legend of a main or danger key.
+- No small grey label: a line the learner needs is `text-ui` even when it is quiet, and one that says what is already clear is cut. Only a count or a date in the counting face and code may be small and quiet (`tests/repo/small-labels.test.ts`).
 - Every text size is a rung of the ladder in `globals.css` (`@theme`). A component never sets a size, a line height, a corner, a timing or a layer of its own: lint fails `text-[15px]`, `leading-[1.4]`, `rounded-[3px]`, `duration-300`, `ease-out` and `z-[41]`. Text from 30 px up is a display size (a count block's numeral, the wordmark) and is set where it is drawn.
 
 | Class | Size | For |
 |---|---|---|
 | `text-xs` | 12 | A key's shortcut mark, a page number |
 | `text-sm` | 13 | A count or a date beside a name, code |
-| `text-base` | 14 | A quiet line under a name |
 | `text-ui` | 15 | Interface words: rows, fields, keys |
-| `text-lg` | 16 | A sentence in a card |
-| `text-item` | 17 | The name of a thing in a row or tile, a big key's legend |
+| `text-lg` | 16 | A count in the counting face (`font-count`), which is drawn on 16 points; never words |
+| `text-item` | 17 | The name of a thing in a row or tile, a big key's legend, the sentence a dialog or an empty box says |
 | `text-tab` | 18 | A tab |
 | `text-xl` | 20 | A card's title |
-| `text-head` | 22 | A pop-up's title, a long question |
+| `text-head` | 22 | A long question, the one line of a box that holds only it (a failed load, a mock being written) |
 | `text-2xl` | 26 | A space's signature |
 | `text-ask` | 28 | What is asked |
 | `text-3xl` | 34 | What is asked on a page of its own |
@@ -245,5 +248,5 @@ Interface and lesson text are one face, Literata, so they stay apart by size, we
 
 - A word key that starts a column of text also carries `lh-btn-flush`, so its word stands on the column's edge.
 - A key's own color goes in `--lh-key` (its face) and `--lh-key-hover`, never in a fill, edge or corner utility. On a dark bar a button is a `barWord`.
-- A key takes its size from `lh-btn`, or `lh-btn-small` for a key in a row, a line of text or a card's corner. A new key never gets a height or font size of its own.
-- Before calling a UI change finished, check that a new key uses one of those two sizes and that no interface text is set at lesson text's size and weight.
+- A key takes its size from `lh-btn`, or `lh-btn-small` for a key in a row, a line of text or a card's corner, or `BIG_KEY` for a page's main action. A new key never gets a height, padding or font size of its own; a key that holds only a glyph is square at its size. A small key that floats over what pans or scrolls under it (a picture's zoom, the lesson's jump to its end) is `FLOAT_KEY` (`components/ui/float-key.ts`).
+- Before calling a UI change finished, check that a new key uses one of those three sizes and that no interface text is set at lesson text's size and weight.

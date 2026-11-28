@@ -160,7 +160,6 @@ export function derivedPalette(background: string): Record<string, string> {
 		"--card-foreground": s.fg,
 		"--popover-foreground": s.fg,
 		"--secondary-foreground": s.fg,
-		"--accent-foreground": s.fg,
 		"--primary": s.fg,
 		"--primary-foreground": background,
 		"--muted-foreground": s.muted,

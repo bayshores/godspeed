@@ -88,7 +88,7 @@ export function MathBox({
 	}, [placeholder, ariaLabel, ready]);
 
 	return (
-		<div data-testid="math-box" onKeyDown={keepKeysInBox} onFocus={onFocus} className="lh-input relative flex w-full min-w-0 flex-1 flex-col overflow-hidden text-lg! leading-6! text-ink">
+		<div data-testid="math-box" onKeyDown={keepKeysInBox} onFocus={onFocus} className="lh-input relative flex w-full min-w-0 flex-1 flex-col overflow-hidden text-item! leading-6! text-ink">
 			{!ready && (
 				<div aria-hidden className={`px-3.5 py-3 ${value ? "whitespace-pre-wrap" : "text-ink-3"}`}>
 					{value || placeholder}

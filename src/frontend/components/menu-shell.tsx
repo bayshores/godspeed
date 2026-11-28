@@ -59,6 +59,9 @@ const MIN_USABLE = 96; // floor: a shorter cap is an unusable sliver; the
 export const MENU_OPEN_EVENT = "lh:menu-open";
 export const MENU_CLOSE_EVENT = "lh:menu-close";
 
+/** One row of a menu, drawn the same in every menu. A row that deletes adds `text-ans-wrong` through `cn`, which drops the ink. */
+export const MENU_ITEM = "lh-press flex items-center lh-notch px-3 py-2 text-left text-ui text-ink hover:bg-tone disabled:pointer-events-none disabled:opacity-50";
+
 export type MenuSide = "up" | "down";
 type MenuAlign = "left" | "right";
 

@@ -59,7 +59,7 @@ export function WhatsNewDialog({
 					<p className="text-ui text-ink-2">{single ? formatChangelogDate(entry.date) : `${entry.version}, ${formatChangelogDate(entry.date)}`}</p>
 					<ul className="flex flex-col gap-3.5">
 						{entry.changes.map((change) => (
-							<li key={change} className="flex gap-3 text-lg text-ink">
+							<li key={change} className="flex gap-3 text-item text-ink">
 								<span aria-hidden className="mt-[9px] size-1.5 shrink-0 bg-ink" />
 								<span>{change}</span>
 							</li>

@@ -46,7 +46,7 @@ export const SpaceIconField = memo(function SpaceIconField({
 					);
 				})}
 			</div>
-			<span className="text-base text-ink-2">{teacher} picks one when it sets up the space. Pick another here any time.</span>
+			<span className="text-ui text-ink-2">{teacher} picks one when it sets up the space. Pick another here any time.</span>
 		</div>
 	);
 });

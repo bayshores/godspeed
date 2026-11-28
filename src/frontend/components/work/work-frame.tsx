@@ -26,7 +26,7 @@ export function WorkFrame({ frame, onPage, children }: { frame: Frame | null; on
 							<span title={frame.text} className="truncate text-ui">
 								{frame.text}
 							</span>
-							<span className="shrink-0 font-count text-base">{frame.count}</span>
+							<span className="shrink-0 font-count text-ui">{frame.count}</span>
 						</div>
 					</div>
 				</div>

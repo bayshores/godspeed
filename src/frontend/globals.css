@@ -35,7 +35,7 @@
 	outline-offset: 2px;
 }
 /* A ring lies outside its box, where a cut corner's box would cut it: the cut lifts while the ring shows. */
-:root[data-tab-focus] :is(.lh-notch, .lh-link-chip, [role="menuitem"]):is(:focus-visible, :has(:focus-visible)) {
+:root[data-tab-focus] .lh-notch:is(:focus-visible, :has(:focus-visible)) {
 	clip-path: none;
 }
 
@@ -93,7 +93,6 @@
 	--muted: #1e1e1e;
 	--muted-foreground: #a9a9a9;
 	--accent: #2c2c2c;
-	--accent-foreground: #e6e6e6;
 	--destructive: #c4847a;
 	--border: #454545;
 	--input: #454545;
@@ -336,9 +335,6 @@
 	background-color: var(--background);
 	color: var(--foreground);
 }
-.lh-popup [role="menuitem"] {
-	clip-path: var(--lh-notch);
-}
 
 @theme inline {
 	/* Fonts: interface and reading text are Literata, set apart by size,
@@ -356,8 +352,10 @@
 	--text-xs--line-height: 1.5;
 	--text-sm: 13px;
 	--text-sm--line-height: 1.5;
-	--text-base: 14px;
-	--text-base--line-height: 1.55;
+	/* 14 is no rung (it reads as 15, so interface words are text-ui), and 16 is the counting face's
+	   own: DotGothic16 is drawn on 16 points. Words a step above the interface are text-item. */
+	--text-base: initial;
+	--text-base--line-height: initial;
 	--text-lg: 16px;
 	--text-lg--line-height: 1.5;
 	--text-xl: 20px;
@@ -367,7 +365,7 @@
 	--text-3xl: 34px;
 	--text-3xl--line-height: 1.2;
 	/* Rungs that set the size alone, so the line height stays the box's own: interface words, the
-	   name of a thing in a row or on a big key, a tab, a pop-up's title, what is asked. lib/utils.ts
+	   name of a thing in a row or on a big key, a tab, a long question, what is asked. lib/utils.ts
 	   names them to the class merger, which would read an unknown text-* as a color. */
 	--text-ui: 15px;
 	--text-item: 17px;
@@ -401,8 +399,6 @@
 	--color-secondary: var(--secondary);
 	--color-muted: var(--muted);
 	--color-muted-foreground: var(--muted-foreground);
-	--color-accent: var(--accent);
-	--color-accent-foreground: var(--accent-foreground);
 	--color-destructive: var(--destructive);
 	--color-border: var(--border);
 	--color-input: var(--input);
@@ -593,7 +589,14 @@ body {
 		line-height: 1.375;
 		color: var(--foreground);
 	}
-	/* A row of tabs on its 2-point line: a space's pages, Settings' sections. */
+	/* A heading inside a card, a panel or a dialog: a group's name over its rows, one choice's or one result's name. */
+	.lh-inner-title {
+		min-width: 0;
+		font-size: var(--text-item);
+		line-height: var(--leading-ui);
+		color: var(--foreground);
+	}
+	/* A row of tabs on its 2-point line: a space's pages, Settings' sections, the parts of an area's instructions. */
 	.lh-tabs {
 		display: flex;
 		column-gap: 6px;
@@ -613,7 +616,8 @@ body {
 	}
 	.lh-tab:hover,
 	.lh-tab[aria-current="page"],
-	.lh-tab[aria-current="true"] {
+	.lh-tab[aria-current="true"],
+	.lh-tab[aria-selected="true"] {
 		color: var(--foreground);
 	}
 	/* The lit tab's underline: one line that slides to it (lit-marker.ts). */
@@ -712,14 +716,6 @@ body {
 	.lh-folder-tab:hover {
 		background: color-mix(in srgb, var(--foreground) 6%, var(--lh-sheet));
 	}
-	/* A link to open, in a well with 2px pixel corners: the Graph panel's linked facts and topics. */
-	.lh-link-chip {
-		background: var(--lh-well);
-		clip-path: var(--lh-notch);
-	}
-	.lh-link-chip:hover {
-		background: var(--color-tone);
-	}
 	/* A scrolling middle that dissolves at its foot in 2px pixels, so what is cut reads as more below. */
 	.lh-scroll-fade {
 		padding-bottom: 16px;
@@ -805,7 +801,7 @@ body {
 		--lh-pad: 10px;
 		gap: 6px;
 		height: 30px;
-		font-size: var(--text-base);
+		font-size: var(--text-ui);
 	}
 	.lh-btn-main,
 	.lh-btn-danger {
@@ -1167,8 +1163,10 @@ body {
 :is(.lh-lesson-room .lh-turn-fit, .lh-turn-top, .lh-turn-left) .lh-turn-task[data-sheet] [data-testid="problem-choices"] {
 	padding: 0 20px 20px;
 }
-/* The tag that names what waits: a question's kind, a problem's number. */
+/* The tag that names what waits: a question's kind, a problem's number. Not a chip: it heads what
+   is asked, the largest text on the page, so its words are interface size. */
 .lh-kind {
+	clip-path: var(--lh-notch);
 	background: var(--color-highlight);
 	padding: 2px 8px;
 	font-size: var(--text-ui);

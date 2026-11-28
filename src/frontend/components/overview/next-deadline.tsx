@@ -13,7 +13,7 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { DeadlineMarks } from "./deadline-marks";
 import { deadlineHref, progressWords } from "./overview-model";
-import { MAIN_KEY } from "./styles";
+import { MAIN_KEY } from "@/frontend/components/ui/big-key";
 
 /**
  * THE NEXT DEADLINE (Progress, top of the side column): the time left as a

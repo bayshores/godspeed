@@ -3,7 +3,7 @@ import { FiledCard } from "@/frontend/components/filed-card";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { PagePiece } from "@/frontend/components/citations/page-piece";
-import { ResultTag, type ResultTone } from "@/frontend/components/result-tag";
+import { chip, type ChipTone } from "@/frontend/components/ui/chip";
 import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { useFold } from "@/frontend/components/use-fold";
@@ -89,7 +89,7 @@ const OUTCOME_LABEL: Record<string, string> = {
 /* The outcome tags: solved reads green, solved-with-hints yellow, surrendered
  * red (the problem beat the learner), moved on grey (the agent's call, not a
  * verdict against the learner). */
-const OUTCOME_TONE: Record<string, ResultTone> = {
+const OUTCOME_TONE: Record<string, ChipTone> = {
 	solved: "right",
 	solvedWithHints: "hints",
 	movedOn: "plain",
@@ -128,9 +128,9 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 			<div className="flex flex-wrap items-center gap-2.5">
 				{/* How the problem ended, said once: its outcome, or plain "Concluded" for one with no name here. */}
 				{label ? (
-					<ResultTag tone={OUTCOME_TONE[outcome] ?? "plain"} testId="conclude-outcome">
+					<span data-testid="conclude-outcome" className={chip(OUTCOME_TONE[outcome] ?? "plain", "tag")}>
 						{label}
-					</ResultTag>
+					</span>
 				) : (
 					<span className="font-count text-ui text-ink-2">Concluded</span>
 				)}

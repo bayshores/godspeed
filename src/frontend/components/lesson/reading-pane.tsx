@@ -123,7 +123,7 @@ export function ReadingPane({
 							</h3>
 						)}
 						<div className="flex flex-1 flex-col gap-4">
-							{newest && messages.length === 0 && !busy && <ConversationEmptyState title="New lesson" description="" />}
+							{newest && messages.length === 0 && !busy && <ConversationEmptyState title="New lesson" />}
 							{sheet.rows.map(({ index: mi, from, to }) => {
 								const m = messages[mi]!;
 								return (
@@ -172,7 +172,7 @@ function teachSeam(messages: readonly LhViewMessage[], phases: readonly Phase3[]
 }
 
 /** The step's number on a block of the space's color, before its name. */
-const STEP_TAB = "grid h-7 min-w-9 shrink-0 place-items-center px-2 font-count text-tab leading-none text-on-space";
+const STEP_TAB = "grid h-7 min-w-9 shrink-0 place-items-center lh-notch px-2 font-count text-tab leading-none text-on-space";
 
 /**
  * The desk under the newest sheet glides to its new place when that sheet is a new one: a reply that starts a sheet of its own,

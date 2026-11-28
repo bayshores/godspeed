@@ -137,12 +137,11 @@ export function MermaidOverlay({
 		>
 			<div className="mb-2 flex items-center gap-2">
 				<span className="text-ui font-medium text-ink">{rawSvg === undefined ? "Diagram" : "Figure"}</span>
-				<span className="text-sm text-ink-2">from this lesson</span>
 				<button
 					type="button"
 					onClick={onClose}
 					data-testid="mermaid-overlay-close"
-					className="lh-btn lh-btn-quiet ml-auto gap-2 px-2.5"
+					className="lh-btn lh-btn-quiet lh-btn-small ml-auto"
 				>
 					<PixelIcon name="close" />
 					Close

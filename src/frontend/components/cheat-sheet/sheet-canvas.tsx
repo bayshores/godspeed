@@ -304,7 +304,7 @@ export function SheetCanvas({
 						<Fragment key={g.n}>
 							<p
 								data-testid="cheat-sheet-version"
-								className={cn("pointer-events-none absolute truncate text-base leading-5", i === 0 ? "font-medium text-ink" : "text-ink-2")}
+								className={cn("pointer-events-none absolute truncate text-ui leading-5", i === 0 ? "font-medium text-ink" : "text-ink-2")}
 								style={{ left: at.x, top: at.y - 30, maxWidth: Math.max(room, 0) }}
 							>
 								{labelFor(v, i === 0)}
@@ -312,7 +312,7 @@ export function SheetCanvas({
 							{g.pages.map((board) => {
 								const p = onScreen(cam, board);
 								return (
-									<p key={board.page} className="pointer-events-none absolute truncate text-base leading-5 text-ink-2" style={{ left: p.x, top: p.y + p.h + 6, width: Math.max(p.w, 40) }}>
+									<p key={board.page} className="pointer-events-none absolute truncate text-ui leading-5 text-ink-2" style={{ left: p.x, top: p.y + p.h + 6, width: Math.max(p.w, 40) }}>
 										{board.label}
 									</p>
 								);

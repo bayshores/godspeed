@@ -76,8 +76,8 @@ export function LinkedFolderButton({
 				hang
 				menuClass="lh-popup flex w-[400px] max-w-[calc(100vw-2rem)] flex-col gap-2.5 px-[18px] py-3.5"
 			>
-				<h2 className="text-xl text-ink">Linked folder</h2>
-				<p className="font-count text-base break-all text-ink">{path}</p>
+				<h2 className="lh-card-title">Linked folder</h2>
+				<p className="font-count text-ui break-all text-ink">{path}</p>
 				{problem && (
 					<p data-testid="space-folder-problem" className="text-ui text-ans-wrong">
 						{PROBLEM_LINE[problem]}

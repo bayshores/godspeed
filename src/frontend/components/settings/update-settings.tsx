@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
-import { SettingsRow, Toggle } from "./controls.tsx";
+import { Toggle } from "@/frontend/components/ui/toggle";
+import { SettingsRow } from "./controls.tsx";
 import { hasWhatsNew, openWhatsNew } from "@/frontend/components/whats-new";
 
 /** Observational snapshot from the desktop shell; never updater permission. */

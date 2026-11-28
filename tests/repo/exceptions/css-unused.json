@@ -5,7 +5,6 @@
 	".katex-base": "a class KaTeX puts on its math",
 	"--radius": "plugins get it as their corner radius, read by name through SHARED_TOKENS in plugin-frame-model.ts",
 	".lh-dialog": "defined and never read; globals.css is being rewritten on another branch, so it is removed there",
-	"--color-accent-foreground": "defined and never read; globals.css is being rewritten on another branch, so it is removed there",
 	"--color-card": "defined and never read; globals.css is being rewritten on another branch, so it is removed there",
 	"--color-input": "defined and never read; globals.css is being rewritten on another branch, so it is removed there",
 	"--color-ring": "defined and never read; globals.css is being rewritten on another branch, so it is removed there",

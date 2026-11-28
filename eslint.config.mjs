@@ -31,10 +31,18 @@ const OWN_VALUES = [
 	["(duration|delay)-(\\d|\\[)", "a timing of its own: use duration-(--lh-dur), (--lh-dur-fast), (--lh-dur-slow) or (--lh-dur-page)"],
 	["ease-(\\[|in|out|linear)", "a curve of its own: use ease-(--lh-ease-out) or ease-(--lh-ease-in)"],
 	["z-\\[", "a layer of its own: use a --lh-z-* name for a layer of the window, or a small step (z-10) inside one box"],
+	["text-base(?![-\\w])", "14 points, which the type ladder does not have: interface words are text-ui"],
+	["bg-accent(?![-\\w])", "the fill of a hovered or lit row by a name the theme does not have: use bg-tone"],
 ];
-const ownValues = OWN_VALUES.flatMap(([pattern, what]) =>
-	["Literal[value=", "TemplateElement[value.raw="].map((node) => ({ selector: `${node}/(^|[\\s:])${pattern}/]`, message: `This class sets ${what}.` })),
-);
+const CLASS_NODES = ["Literal[value=", "TemplateElement[value.raw="];
+const ownValues = [
+	...OWN_VALUES.flatMap(([pattern, what]) => CLASS_NODES.map((node) => ({ selector: `${node}/(^|[\\s:])${pattern}/]`, message: `This class sets ${what}.` }))),
+	// 16 points is the size the counting face is drawn at, and no other text takes it.
+	...CLASS_NODES.map((node) => ({
+		selector: `${node}/^(?![^]*font-count)[^]*(^|[\\s:])text-lg(?![-\\w])/]`,
+		message: "text-lg (16) is for a count in the counting face (font-count): words are text-ui (15) or text-item (17).",
+	})),
+];
 
 const fetchGlobals = [{ name: "fetch", message: FETCH_MESSAGE }];
 const fetchProperties = ["window", "globalThis"].map((object) => ({ object, property: "fetch", message: FETCH_MESSAGE }));

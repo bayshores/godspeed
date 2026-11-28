@@ -1,7 +1,7 @@
 import { useContext, useRef, useState } from "react";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
-import { ResultTag } from "@/frontend/components/result-tag";
+import { chip } from "@/frontend/components/ui/chip";
 import { proseVars, QuizWhy } from "@/frontend/components/answered-card";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
@@ -143,7 +143,7 @@ export function KeptCard({ kept, answer: savedAnswer, input, toolCallId }: { kep
 				<div className="lh-collapse" data-state={why.state} data-testid="kept-why-details">
 					<div className="flex flex-col gap-2 pt-2.5">
 						<div className="flex flex-wrap items-center gap-2.5">
-							<ResultTag tone="right">Right</ResultTag>
+							<span className={chip("right", "tag")}>Right</span>
 							<span className="font-count text-ui text-ink-2">
 								{questionKindLabel(answer.tool ?? "quiz", answer.questionType)}
 								{answer.confidence != null && `, sure ${confidenceLevel(answer.confidence)} of 5`}

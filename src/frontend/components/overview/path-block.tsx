@@ -7,7 +7,7 @@ import { CHANGE_PATH_LINE } from "@/frontend/components/teacher/starter-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import { pathBlockView } from "./path-block-model";
-import { MAIN_KEY } from "./styles";
+import { MAIN_KEY } from "@/frontend/components/ui/big-key";
 
 /**
  * THE PATH (Progress, side column): the space's path toward its goal, the
@@ -27,15 +27,15 @@ export const PathBlock = memo(function PathBlock({ path, main, busyOn, onStudy }
 				{/* The count stays whole, so "of 7" never sits alone on a line. */}
 				<h2 className="lh-card-title">
 					{view.title}
-					{view.count && <span className="font-count text-base whitespace-nowrap text-ink-2">{` ${view.count}`}</span>}
+					{view.count && <span className="font-count text-ui whitespace-nowrap text-ink-2">{` ${view.count}`}</span>}
 				</h2>
 			</div>
-			{view.allStrong && <p className="text-base text-ink-2">Every topic is strong. Study them to keep it that way.</p>}
+			{view.allStrong && <p className="text-ui text-ink-2">Every topic is strong. Study them to keep it that way.</p>}
 			{next && (
 				<div className="flex flex-wrap items-end justify-end gap-x-6 gap-y-3">
 					<div data-testid="space-path-next" className="flex min-w-0 flex-[1_1_200px] flex-col gap-0.5">
 						<RampRow name={next.name} rate={next.rate} tally={next} />
-						<p className="text-base text-ink-2">{next.covers}</p>
+						<p className="text-ui text-ink-2">{next.covers}</p>
 					</div>
 					<Key
 						data-testid="space-path-study"

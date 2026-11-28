@@ -4,7 +4,7 @@ import { hasProblems, rampColor, studyLabel, type DeadlineProgress, type PlanDay
 import { isOverdue } from "@/frontend/components/deadlines-model";
 import { StepBlocks } from "@/frontend/components/overview/lesson-rows";
 import { STATUS_LEGEND, progressWords } from "@/frontend/components/overview/overview-model";
-import { MAIN_KEY } from "@/frontend/components/overview/styles";
+import { MAIN_KEY } from "@/frontend/components/ui/big-key";
 import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { BarActions, BarCrumb, CrumbName } from "@/frontend/components/top-bar/bar-slots";
 import { Key } from "@/frontend/components/ui/key";
@@ -184,7 +184,7 @@ function TopicStrip({ deadline: d, tallies, ready }: { deadline: DeadlineProgres
 		<div className="flex flex-col gap-2">
 			<div data-testid="deadline-topics" className="flex h-4 w-full gap-[3px]">
 				{d.topics.map((t) => (
-					<Tip key={t.id} title={t.name} body={<span className="text-sm text-ink-2">{rightLabel(tallies.get(t.id))}</span>}>
+					<Tip key={t.id} title={t.name} body={rightLabel(tallies.get(t.id))}>
 						{/* Focusable and named, so the tip isn't for the mouse only. */}
 						<span
 							data-testid="deadline-topic"
@@ -197,7 +197,7 @@ function TopicStrip({ deadline: d, tallies, ready }: { deadline: DeadlineProgres
 					</Tip>
 				))}
 			</div>
-			<div className="flex flex-wrap items-center gap-x-[18px] gap-y-1 text-base text-ink-2">
+			<div className="flex flex-wrap items-center gap-x-[18px] gap-y-1 text-ui text-ink-2">
 				{ready && (
 					<span data-testid="deadline-progress" className="text-item text-ink">
 						{ready}

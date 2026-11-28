@@ -31,7 +31,6 @@ export function AddDeadline({ spaces, onPick }: { spaces: readonly SpaceSummary[
 			</button>
 			{!single && (
 				<MenuShell open={open} anchorRef={anchorRef} testid="home-add-deadline-menu" preferredSide="down" align="right" menuClass="lh-popup flex w-[236px] flex-col gap-0.5 p-1.5">
-					<span className="px-2.5 py-1 text-sm text-ink-2">Which space?</span>
 					<SpaceMenuItems
 						spaces={spaces}
 						testidPrefix="home-add-deadline"

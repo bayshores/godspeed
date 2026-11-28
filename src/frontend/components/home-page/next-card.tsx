@@ -1,4 +1,4 @@
-import { MAIN_KEY } from "@/frontend/components/overview/styles";
+import { MAIN_KEY } from "@/frontend/components/ui/big-key";
 import type { CSSProperties, ReactNode } from "react";
 import { Link } from "react-router";
 import type { DeadlineProgress, RhythmGap, SpaceColor } from "@/shared/core";
@@ -19,7 +19,7 @@ import { useOpenInSpace } from "@/frontend/components/use-join-space";
 import { useAnswerGap } from "@/frontend/components/use-open-deadlines";
 import { cn } from "@/frontend/lib/utils";
 import { countLeft, nextCard } from "./home-page-model";
-import { CHIP } from "./styles";
+import { chip } from "@/frontend/components/ui/chip";
 
 /** A narrow card puts the tile above the words as a strip. */
 const STRIP = "@max-[539px]:w-full @max-[539px]:flex-row @max-[539px]:items-baseline @max-[539px]:gap-3 @max-[539px]:py-2";
@@ -77,7 +77,7 @@ export function NextCard({
 				<>
 					{words.line}
 					{words.ready && (
-						<span data-testid="today-card-ready" className={cn(CHIP, "ml-3 align-[1px]")}>
+						<span data-testid="today-card-ready" className={cn(chip("lit", "tag"), "ml-3 align-[1px]")}>
 							{words.ready}
 						</span>
 					)}

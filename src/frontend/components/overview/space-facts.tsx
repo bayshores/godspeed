@@ -23,7 +23,7 @@ export const SpaceFacts = memo(function SpaceFacts({ progress }: { progress: Pic
 		<Pane data-testid="space-facts" className="lh-card">
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">
-					Facts{total > 0 && <span className="font-count text-base whitespace-nowrap text-ink-2">{` ${studied} of ${total} studied`}</span>}
+					Facts{total > 0 && <span className="font-count text-ui whitespace-nowrap text-ink-2">{` ${studied} of ${total} studied`}</span>}
 				</h2>
 			</div>
 			{progress.files.length === 0 ? (
@@ -56,7 +56,7 @@ export const SpaceFacts = memo(function SpaceFacts({ progress }: { progress: Pic
 /** What the squares' colors mean. */
 function FactKey() {
 	return (
-		<p data-testid="fact-key" className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-ink-2">
+		<p data-testid="fact-key" className="flex flex-wrap items-center gap-x-5 gap-y-1 text-ui text-ink-2">
 			<span>One square is one fact</span>
 			<span className="flex items-center gap-[3px]">
 				{RAMP_COLORS.map((c) => (

@@ -28,7 +28,7 @@ export function LessonStats({ open, anchorRef, usage }: { open: boolean; anchorR
 	const providers = pricing?.subscriptionProviders ?? subscriptionLabels(turns.map((turn) => turn.model));
 	return (
 		<MenuShell open={open} anchorRef={anchorRef} testid="stats-detail" role="dialog" label="Lesson stats" preferredSide="down" align="right" hang menuClass="lh-popup flex w-[340px] flex-col gap-1 px-4 py-3.5">
-			<h3 className="text-item text-ink">Lesson stats</h3>
+			<h2 className="lh-card-title">Lesson stats</h2>
 			{size !== null && <StatRow label="Lesson size" value={size} testId="stats-size" />}
 			<StatRow label="Replies" value={String(turns.length)} />
 			<StatRow label="Paid by" value={planCostLabel(providers)} testId="stats-cost" />

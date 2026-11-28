@@ -122,7 +122,7 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 					)}
 				>
 					<span className="text-item text-ink">{summary ? "Drop to replace, or click to choose again" : "Drop files or a folder here"}</span>
-					<span data-testid="onboarding-drop-hint" className="max-w-full truncate text-sm text-ink-2">
+					<span data-testid="onboarding-drop-hint" className="max-w-full truncate text-ui text-ink-2">
 						{summary ?? "A linked folder keeps adding new notes by itself."}
 					</span>
 				</button>

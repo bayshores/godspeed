@@ -39,7 +39,7 @@ export const LessonRecord = memo(function LessonRecord({
 					<KeyHint action="new-session" />
 				</Link>
 			</div>
-			{none && <p className="text-base text-ink-2">No lessons yet.</p>}
+			{none && <p className="text-ui text-ink-2">No lessons yet.</p>}
 			{rows.length > 0 && (
 				<ul className={`-mx-3 ${FINISHED_LIST}`}>
 					{rows.map((l, i) => (

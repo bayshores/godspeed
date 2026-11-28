@@ -6,9 +6,8 @@ import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
-import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
+import { MAIN_KEY } from "@/frontend/components/ui/big-key";
 import { Key } from "@/frontend/components/ui/key";
-import { cn } from "@/frontend/lib/utils";
 import { endedByTime, formatLine, fromAboutLine } from "./mock-model";
 import { postMock, removeMock } from "./use-mock";
 
@@ -51,7 +50,7 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 		body = (
 			<>
 				<p className="text-ask leading-tight text-ink">Mock {mock.n} is ready</p>
-				<p className="max-w-[520px] text-lg leading-snug text-ink-2">
+				<p className="max-w-[520px] text-item leading-snug text-ink-2">
 					{size}. {time}{teacher} stays quiet until it ends, then grades everything.
 				</p>
 				{fromAbout && (
@@ -59,7 +58,7 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 						{fromAbout}
 					</p>
 				)}
-				<Key data-testid="mock-start" busy={pending === "start"} disabled={pending !== null} onClick={() => void act("start")} className={cn("lh-btn-main", BIG_BUTTON)}>
+				<Key data-testid="mock-start" busy={pending === "start"} disabled={pending !== null} onClick={() => void act("start")} className={MAIN_KEY}>
 					Start the mock
 				</Key>
 			</>

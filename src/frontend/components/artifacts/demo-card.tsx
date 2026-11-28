@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { InvertButton } from "@/frontend/components/artifacts/invert-button";
 import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
-import { ResultTag } from "@/frontend/components/result-tag";
+import { Toggle } from "@/frontend/components/ui/toggle";
+import { chip } from "@/frontend/components/ui/chip";
 import { cn } from "@/frontend/lib/utils";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { useArtifactInvert } from "@/frontend/components/artifacts/use-artifact-invert";
@@ -112,9 +112,9 @@ export function DemoOutputCard({
 	if (failed) {
 		return (
 			<div className={cn(CARD, "flex flex-col gap-2 text-card-foreground")} data-testid="demo-card-failed">
-				<div className="flex items-center gap-2.5 text-sm text-ink-2">
+				<div className="flex items-center gap-2.5 text-ui text-ink-2">
 					Interactive demo
-					<ResultTag tone="wrong">failed</ResultTag>
+					<span className={chip("wrong", "tag")}>failed</span>
 				</div>
 				<p className="text-ui text-ink-2">{result.notes ?? "The demo could not be built."}</p>
 			</div>
@@ -158,13 +158,10 @@ function DemoFrame({
 
 	return (
 		<div className={cn(CARD, "flex flex-col gap-2 px-4 py-3 text-card-foreground")} data-testid="demo-card">
-			{/* Caption row: the kind and the demo's name left, the controls right. */}
+			{/* Caption row: the demo's name left, the controls right. */}
 			<div className="flex flex-wrap items-center gap-2.5">
-				<span className="flex min-w-0 flex-1 items-baseline gap-2 text-sm text-ink-2">
-					<span className="shrink-0">Demo</span>
-					<span className="truncate text-ink">{title}</span>
-				</span>
-				<InvertButton label="Invert demo brightness" checked={inverted} onToggle={() => toggleInverted(!inverted)} />
+				<span className="min-w-0 flex-1 truncate text-ui text-ink">{title}</span>
+				<Toggle checked={inverted} onChange={toggleInverted} label="Invert demo brightness" showLabel />
 				<button
 					type="button"
 					onClick={() => saveText(`${slugFilename(title)}.html`, html, "text/html")}

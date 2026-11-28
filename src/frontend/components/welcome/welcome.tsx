@@ -15,7 +15,7 @@ import { useMinute } from "@/frontend/components/countdown";
 import { byDue } from "@/frontend/components/deadlines-model";
 import { Constellation } from "@/frontend/components/onboarding/constellation";
 import { Wordmark } from "@/frontend/components/onboarding/wordmark";
-import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
+import { MAIN_KEY } from "@/frontend/components/ui/big-key";
 import { usePresence } from "@/frontend/components/presence";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { useSound } from "@/frontend/components/sounds";
@@ -100,7 +100,7 @@ function WelcomeScreen({ leaving, onClose, upgraded }: { leaving: boolean; onClo
 						e.stopPropagation();
 						onClose();
 					}}
-					className={cn("lh-btn lh-btn-main", BIG_BUTTON)}
+					className={`lh-btn ${MAIN_KEY}`}
 				>
 					Let&apos;s go
 				</button>
@@ -131,7 +131,7 @@ function BootLog({ lines, skipped }: { lines: readonly string[]; skipped: boolea
 	const shown = instant ? total : Math.min(typed, total);
 	let left = shown;
 	return (
-		<div data-testid="welcome-status" className="flex min-h-[78px] flex-col items-center gap-1.5 font-count text-base leading-5.5 text-ink-2">
+		<div data-testid="welcome-status" className="flex min-h-[78px] flex-col items-center gap-1.5 font-count text-ui leading-5.5 text-ink-2">
 			<span className="sr-only">{lines.join(", ")}</span>
 			{lines.map((line, i) => {
 				const part = line.slice(0, Math.max(0, left));

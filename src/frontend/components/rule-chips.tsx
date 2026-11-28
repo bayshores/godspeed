@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { RULE_MAX_CHARS, RULES_MAX, oneLine } from "@/shared/core";
+import { chip } from "@/frontend/components/ui/chip";
 import { FIELD } from "@/frontend/components/ui/field";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
@@ -34,21 +35,11 @@ export function RuleChips({
 	return (
 		<div data-testid={testid} className="flex flex-col gap-1.5">
 			{rules.length > 0 && (
-				<div className="flex flex-wrap items-center gap-1.5">
+				<ul className="flex flex-wrap items-center gap-1.5">
 					{rules.map((rule) => (
-						<span key={rule} className="flex max-w-full items-center gap-2.5 lh-well lh-notch py-1.5 pr-2 pl-3 text-base text-ink">
-							<span className="min-w-0 break-words">{rule}</span>
-							{saved[rule] && (
-								<span title={savedDay(saved[rule])} className="shrink-0 text-sm whitespace-nowrap text-ink-2">
-									Saved by {teacherName}
-								</span>
-							)}
-							<button type="button" aria-label={`Remove rule: ${rule}`} className="lh-press shrink-0 p-0.5 text-ink-2 hover:text-ink" onClick={() => onChange(rules.filter((r) => r !== rule))}>
-								<PixelIcon name="close" />
-							</button>
-						</span>
+						<RuleChip key={rule} rule={rule} savedBy={saved[rule] ? { name: teacherName, at: saved[rule] } : undefined} onRemove={() => onChange(rules.filter((r) => r !== rule))} />
 					))}
-				</div>
+				</ul>
 			)}
 			{rules.length < RULES_MAX && (
 				<input
@@ -72,6 +63,23 @@ export function RuleChips({
 				/>
 			)}
 		</div>
+	);
+}
+
+/** One rule as a chip in a list: its words, who saved it when the teacher did (the day on hover), and its remove key. */
+export function RuleChip({ rule, savedBy, onRemove, testid }: { rule: string; savedBy?: { name: string; at: string }; onRemove: () => void; testid?: string }) {
+	return (
+		<li data-testid={testid} className={chip("well", "item", { remove: true })}>
+			<span className="min-w-0 break-words">{rule}</span>
+			{savedBy && (
+				<span title={savedDay(savedBy.at)} className="shrink-0 whitespace-nowrap text-ink-2">
+					Saved by {savedBy.name}
+				</span>
+			)}
+			<button type="button" aria-label={`Remove rule: ${rule}`} className="lh-press shrink-0 p-0.5 text-ink-2 hover:text-ink" onClick={onRemove}>
+				<PixelIcon name="close" />
+			</button>
+		</li>
 	);
 }
 

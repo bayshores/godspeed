@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { fitGraphView, fitZoomFor, zoomedGraphView, type Viewport } from "@/frontend/components/pan-zoom";
+import { FLOAT_KEY } from "@/frontend/components/ui/float-key";
 import { Hint } from "@/frontend/components/ui/hint";
 import { ownWheel, wheelUnit } from "@/frontend/lib/own-wheel";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -100,8 +101,7 @@ export function usePanZoomViewport(box: { w: number; h: number }, ready: boolean
 	return { viewportRef, view, atFloor, settled, panning, startDrag, moveDrag, endDrag, stepZoom, fitView };
 }
 
-const ZOOM_BUTTON =
-	"lh-press pointer-events-auto flex h-7 min-w-7 items-center justify-center lh-notch border-2 border-ink bg-panel px-2 text-sm text-ink hover:bg-highlight";
+const ZOOM_BUTTON = `${FLOAT_KEY} pointer-events-auto h-7 min-w-7 px-2 text-sm`;
 
 /** The viewport's bottom bar: the pan hint and zoom out / fit / zoom in. */
 export function ZoomControls({
@@ -117,7 +117,7 @@ export function ZoomControls({
 }) {
 	return (
 		<div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between p-2">
-			<span className="text-xs text-ink-3">Drag to pan, scroll to zoom</span>
+			<span className="text-ui text-ink-3">Drag to pan, scroll to zoom</span>
 			<div className="flex gap-1">
 				<Hint label="Zoom out" side="bottom">
 					<button type="button" aria-label="Zoom out" onClick={() => onStep(1 / 1.25)} className={ZOOM_BUTTON}>

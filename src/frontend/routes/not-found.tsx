@@ -1,6 +1,5 @@
 import { isRouteErrorResponse, Link, useRouteError } from "react-router";
-import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
-import { cn } from "@/frontend/lib/utils";
+import { MAIN_KEY } from "@/frontend/components/ui/big-key";
 import { PageTitle } from "./page-title";
 
 /** A removed lesson's or deadline's link, or any unknown address, in the
@@ -10,9 +9,9 @@ export function NotFound({ page }: { page?: string }) {
 	return (
 		<div className="h-full overflow-y-auto">
 			<PageTitle page={page} />
-			<div data-testid="not-found" className="mx-auto flex w-[520px] max-w-full flex-col items-center gap-6 px-6 pt-[220px] pb-10 text-center">
-				<h1 className="text-[30px] leading-tight text-ink">This page doesn&apos;t exist.</h1>
-				<Link to="/" className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
+			<div data-testid="not-found" className="flex flex-col items-center gap-6 px-6 pt-[220px] pb-10 text-center">
+				<h1 className="lh-page-title">This page doesn&apos;t exist.</h1>
+				<Link to="/" className={`lh-btn ${MAIN_KEY}`}>
 					Go to Home
 				</Link>
 			</div>

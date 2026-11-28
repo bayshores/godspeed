@@ -1,10 +1,13 @@
 import { ariaKeyShortcuts, bindingForAction, IS_MAC, keyHintText, type KeyAction } from "@/shared/core";
 
-/** The key of a button's action, drawn inside the button after its label. It follows the button's
- *  text colour, so it reads on the dark top bar and on light keys alike. */
+/** A key of the keyboard as the app draws it. It follows the text colour around it, so it reads on
+ *  the dark top bar and on light keys alike. */
+export const KEYCAP = "lh-notch bg-[color-mix(in_srgb,currentColor_14%,transparent)] px-[5px] font-[inherit] text-sm leading-ui";
+
+/** The key of a button's action, drawn inside the button after its label. */
 export function KeyHint({ action }: { action: KeyAction }) {
 	return (
-		<kbd aria-hidden className="lh-notch bg-[color-mix(in_srgb,currentColor_14%,transparent)] px-[5px] font-[inherit] text-sm leading-ui">
+		<kbd aria-hidden className={KEYCAP}>
 			{keyHintText(bindingForAction(action), IS_MAC)}
 		</kbd>
 	);

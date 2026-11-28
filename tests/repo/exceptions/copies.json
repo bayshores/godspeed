@@ -9,7 +9,7 @@
 	"constant WEEKDAYS": 2,
 	"function easeOut": 2,
 	"function ignore": 2,
-	"function onKey / onKeyDown": 6,
+	"function onKey / onKeyDown": 5,
 	"function pct": 3,
 	"function roomSize / windowSize": 2,
 	"function startOfDay": 2,

@@ -63,7 +63,6 @@ export function AbortTurnBody({
 			state={state}
 			testid="abort-turn-dialog"
 			onClose={onClose}
-			className="w-[480px]"
 			foot={
 				<>
 					<span className="flex-1" />
@@ -74,14 +73,14 @@ export function AbortTurnBody({
 						type="button"
 						data-testid="abort-turn-confirm"
 						onClick={onConfirm}
-						className={`lh-btn text-ui ${mode === "problem" ? "lh-btn-danger" : "lh-btn-main"}`}
+						className={`lh-btn ${mode === "problem" ? "lh-btn-danger" : "lh-btn-main"}`}
 					>
 						{copy.action}
 					</button>
 				</>
 			}
 		>
-			<p data-testid="abort-turn-line" className="text-lg text-ink">
+			<p data-testid="abort-turn-line" className="text-item text-ink">
 				{copy.line(teacher)}
 				{busy ? ` ${teacher}'s reply stops too.` : ""}
 			</p>

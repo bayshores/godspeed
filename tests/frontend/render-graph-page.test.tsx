@@ -158,7 +158,7 @@ describe("the picked topic", () => {
 		const needs = html.slice(html.indexOf('data-testid="needs-first"'), html.indexOf('data-testid="leads-to"'));
 		assert.ok(needs.includes(">Needs first<"));
 		assert.ok(needs.includes("Variance") && needs.includes("Derivatives"));
-		assert.match(needs, /data-testid="topic-link"[^>]*class="lh-link-chip /);
+		assert.match(needs, /data-testid="topic-link"[^>]*class="lh-notch [^"]*\blh-well\b/);
 		assert.ok(!needs.includes("lh-btn"));
 		assert.ok(html.slice(html.indexOf('data-testid="leads-to"')).includes("Momentum"));
 	});

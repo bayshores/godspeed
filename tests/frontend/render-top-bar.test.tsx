@@ -53,6 +53,7 @@ const { BarZoom } = await import("../../src/frontend/components/top-bar/bar-zoom
 const { MagnifiedPage, MagnifierProvider } = await import("../../src/frontend/components/magnifier/magnifier.tsx");
 const { PINCH } = await import("../../src/frontend/components/magnifier/magnifier-model.ts");
 const { SearchLessons } = await import("../../src/frontend/components/search-lessons.tsx");
+const { FAST_MS } = await import("../../src/frontend/components/presence.ts");
 const { KeyboardShortcuts } = await import("../../src/frontend/components/keyboard-shortcuts.tsx");
 const { SpaceHead } = await import("../../src/frontend/components/space-page/space-head.tsx");
 const { HeadSignature } = await import("../../src/frontend/components/space-page/head-signature.tsx");
@@ -294,6 +295,8 @@ describe("Search lessons", () => {
 		await click(q("menu-search-lessons")!);
 		await act(async () => {});
 	};
+	// A closing dialog stays while its exit plays.
+	const exited = () => act(async () => new Promise((r) => setTimeout(r, FAST_MS + 10)));
 	const type = async (value: string) => {
 		const field = q("search-lessons-field") as HTMLInputElement;
 		// linkedom's input has no type until one is set, and React only
@@ -313,7 +316,7 @@ describe("Search lessons", () => {
 		assert.match(rows[1]!, /^InductionCSE 21/);
 		assert.match(rows[2]!, /^Loose notesNo space/);
 	});
-	it("typing keeps only the matches; a click opens the lesson and closes the popup", async () => {
+	it("typing keeps only the matches; a click opens the lesson and closes the dialog", async () => {
 		await open();
 		await type("induc");
 		assert.equal(texts("[data-testid='search-lessons-row']").length, 1);
@@ -322,11 +325,13 @@ describe("Search lessons", () => {
 		await type("point");
 		await click(q("search-lessons-row")!);
 		assert.deepEqual(pushed, ["/chat/l1"]);
+		await exited();
 		assert.ok(q("search-lessons") === null);
 	});
 	it("Close closes it", async () => {
 		await open();
 		await click(q("search-lessons-close")!);
+		await exited();
 		assert.ok(q("search-lessons") === null);
 	});
 });

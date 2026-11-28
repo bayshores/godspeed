@@ -121,7 +121,7 @@ describe("the practice transcript cards", () => {
 		assert.match(html, /Pair them; each pair is even\./, "the committed solution, verbatim");
 		assert.ok(!html.includes("Concluded"), "the outcome says how it ended, once");
 		// The outcome is the answered card's small chip, at the start of the head row, never a bar across the card.
-		assert.match(html, /data-testid="conclude-card"[^>]*><div class="flex flex-wrap items-center gap-2\.5"><span data-testid="conclude-outcome" class="inline-block shrink-0 lh-notch px-\[9px\] py-0\.5 text-sm font-medium [^"]*">Solved with hints<\/span>/);
+		assert.match(html, /data-testid="conclude-card"[^>]*><div class="flex flex-wrap items-center gap-2\.5"><span data-testid="conclude-outcome" class="lh-notch [^"]*\binline-flex h-6 [^"]*">Solved with hints<\/span>/);
 		assert.match(html, /Model solution/); // the labeled hero
 		assert.ok(html.indexOf("Solved") < html.indexOf("Model solution"), "chip at the top");
 		assert.match(html, /The pairing came after R2\./);

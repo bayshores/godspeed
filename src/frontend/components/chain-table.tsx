@@ -3,8 +3,9 @@ import { chainsForSelection, formatChainLine } from "@/shared/core";
 import type { GraphChain, GraphNode } from "@/shared/core";
 import { LatexGlyph } from "@/frontend/components/latex-glyph";
 import { ON_INK, ON_INK_MAIN, PICKED_COLUMN, PickedBar } from "@/frontend/components/picked-bar";
+import { chip } from "@/frontend/components/ui/chip";
 import { FIELD } from "@/frontend/components/ui/field";
-import { TickMark } from "@/frontend/components/ui/tick-mark";
+import { CheckBox } from "@/frontend/components/ui/check-row";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { countLine, factCount, groupChains, groupName, matchingChains, tickState, type ChainSort, type ReasoningChain } from "./chain-table-model";
@@ -109,7 +110,7 @@ export function ChainTableBody({
 
 					<div className="flex flex-col gap-(--lh-gap)">
 						<div className="flex flex-col gap-1">
-							{selectMode && <h2 className="text-lg text-ink">Pick the facts to start from</h2>}
+							{selectMode && <h2 className="lh-card-title">Pick the facts to start from</h2>}
 							<p data-testid="chain-table-hint" className="text-ui text-ink-2">
 								Picking a file or a fact also picks the facts it builds on.
 							</p>
@@ -126,7 +127,7 @@ export function ChainTableBody({
 										data-testid={`sort-${col}`}
 										onClick={() => onSort(col)}
 										aria-sort={on ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
-										className={cn("lh-btn", on ? "h-auto px-2.5 py-[5px]" : "lh-btn-quiet")}
+										className={cn("lh-btn lh-btn-small", !on && "lh-btn-quiet")}
 									>
 										{label}
 										{on && <PixelIcon name="chevron" className={sort.dir === 1 ? "-rotate-90" : "rotate-90"} />}
@@ -154,10 +155,10 @@ export function ChainTableBody({
 												label={`Select all facts from ${group.label ?? "unlabeled"}`}
 											/>
 											<Expander open={open} onClick={() => onToggleCluster(group.key)} testid={`cluster-toggle-${group.key}`} label={`Expand ${group.label ?? "unlabeled"}`} />
-											<span title={group.label ?? undefined} className={cn("min-w-0 truncate text-lg font-medium", label ? "text-ink" : "text-ink-3")}>
+											<span title={group.label ?? undefined} className={cn("min-w-0 truncate text-item font-medium", label ? "text-ink" : "text-ink-3")}>
 												{label ?? "unlabeled"}
 											</span>
-											{group.kind === "chat" && <span className="shrink-0 lh-notch bg-tone-2 px-[7px] py-px text-xs font-medium text-ink">Lesson</span>}
+											{group.kind === "chat" && <span className={chip("plain", "tag")}>Lesson</span>}
 											<span className="flex-1" />
 											<span className={TALLY}>{factCount(group.nodeIds.length)}</span>
 											<span className={cn(TALLY, "text-ink-3")}>{group.newestCreatedAt.slice(0, 10)}</span>
@@ -248,7 +249,7 @@ function ChainBlock({
 								) : (
 									<LatexGlyph cmd="\land" testid={`chain-and-${chain.id}-${i}`} className="px-1.5 text-ink" />
 								))}
-							<span data-testid={`prop-chip-${id}`} className="lh-well lh-notch px-1.5 py-0.5">
+							<span data-testid={`prop-chip-${id}`} className={chip("well")}>
 								{nameOf(id)}
 							</span>
 						</span>
@@ -316,7 +317,7 @@ function TickBox({
 				onChange={(e) => onToggle(e.target.checked)}
 				className="peer sr-only"
 			/>
-			<TickMark checked={checked} mixed={mixed} className="peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink" />
+			<CheckBox mark={checked ? "tick" : mixed ? "half" : null} />
 		</label>
 	);
 }

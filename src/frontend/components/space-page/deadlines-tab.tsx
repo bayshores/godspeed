@@ -181,7 +181,7 @@ function DeadlineRow({
 						<Link to={deadlineHref(d.id)} data-testid="deadline-open" title={d.name} className={cn("text-xl leading-tight break-words after:absolute after:inset-0", d.done ? "text-ink-3" : "text-ink")}>
 							{d.name}
 						</Link>
-						<span className="text-base leading-snug text-ink-2">{deadlineLine(d, progress, nowMs)}</span>
+						<span className="text-ui leading-snug text-balance text-ink-2">{deadlineLine(d, progress, nowMs)}</span>
 					</span>
 					<span className={BLOCK_ROW_KEYS}>
 						{sheet && (

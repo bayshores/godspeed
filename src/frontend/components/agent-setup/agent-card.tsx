@@ -85,7 +85,7 @@ export function AgentCompact({ className }: { className?: string }) {
 	if (!said) return null;
 	return (
 		// The code field stands out of the card's well.
-		<div data-testid="agent-compact" className={cn("lh-rise flex flex-col gap-3 lh-well lh-notch px-4 py-3 text-base [&_input]:bg-background", className)}>
+		<div data-testid="agent-compact" className={cn("lh-rise flex flex-col gap-3 lh-well lh-notch px-4 py-3 text-ui [&_input]:bg-background", className)}>
 			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
 				<span className="text-ink">{said.sentence}</span>
 				<RowEnd row={said.row} action={action} main />

@@ -105,7 +105,7 @@ describe("the tooltip's look", () => {
 		assert.equal(TOOLTIP_DELAY_MS, 150);
 	});
 
-	it("the box is made of the top bar like every pop-up: no edge, no blur, bold title", async () => {
+	it("the box is made of the top bar like every pop-up: no edge, no blur, a medium title at the interface size", async () => {
 		const trigger = await mount();
 		await act(async () => {
 			trigger.dispatchEvent(new dom.window.Event("focusin", { bubbles: true }));
@@ -113,7 +113,8 @@ describe("the tooltip's look", () => {
 		const html = tooltip()!.outerHTML;
 		assert.match(tooltip()!.className, /\blh-popup\b/);
 		assert.doesNotMatch(html, /\bborder\b|shadow|rounded/);
-		assert.match(html, /class="[^"]*font-bold[^"]*" data-slot="tooltip-title">Waiting for your answer</);
+		assert.match(html, /class="[^"]*font-medium[^"]*" data-slot="tooltip-title">Waiting for your answer</);
+		assert.match(tooltip()!.className, /\btext-ui\b/);
 	});
 
 	it("Hint is the white tag: the label alone, no shortcut", async () => {

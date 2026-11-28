@@ -2,10 +2,10 @@ import { useCallback, useRef, useState } from "react";
 import { Link } from "react-router";
 import { kbdEventForAction } from "@/shared/core";
 import { KeyHint, keyShortcutProps } from "@/frontend/components/ui/key-hint";
-import { MenuShell } from "@/frontend/components/menu-shell";
+import { MENU_ITEM, MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { cn } from "@/frontend/lib/utils";
-import { barWord, MENU_ITEM } from "./bar-look";
+import { barWord } from "./bar-look";
 
 /**
  * Menu, at the top bar's right: Search lessons, Keyboard shortcuts and

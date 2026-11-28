@@ -21,7 +21,7 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite | PassageCite; sta
 	const showImage = !!found && found.page !== null && !brokenImage;
 	const marks = found?.marks ?? null;
 	return (
-		<DialogSheet title={cite.name} state={state} testid="cite-dialog" className="w-[780px]" onClose={onClose}>
+		<DialogSheet title={cite.name} state={state} testid="cite-dialog" wide onClose={onClose}>
 			{passage === null ? null : !found || (!showImage && found.text === "") ? (
 				<p data-testid="cite-gone" className="text-ui text-ink">
 					godspeed can&apos;t find this place in your space files anymore.

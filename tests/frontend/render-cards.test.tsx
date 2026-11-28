@@ -174,10 +174,6 @@ describe("render smoke tests", () => {
 		assert.match(html, /Select all that apply/);
 		assert.ok(html.includes('role="group"'), "checkbox group");
 		assert.equal((html.match(/role="checkbox"/g) ?? []).length, 2, "one checkbox per option");
-		// The bigger \u2713 glyph (text-base) only
-		// mounts on a CHECKED row — unreachable from the unselected static
-		// render, so it's live-verified (Playwright: 14px computed in the
-		// 16px box) instead of pinned here.
 	});
 
 	it("a malformed question input renders the quiet fallback, never a crash", () => {
@@ -280,7 +276,7 @@ describe("render smoke tests", () => {
 		assert.ok(html.includes('data-testid="your-thinking-trigger"'), "the trigger row");
 		assert.ok(html.includes('aria-expanded="false"'), "arrives collapsed");
 		const yourRow = html.slice(html.indexOf('data-testid="your-thinking"'));
-		assert.ok(!yourRow.slice(0, 400).includes("bg-card") && !yourRow.slice(0, 400).includes("bg-accent"), "no band inside the card");
+		assert.ok(!yourRow.slice(0, 400).includes("bg-card") && !yourRow.slice(0, 400).includes("bg-tone"), "no band inside the card");
 		assert.ok(!html.includes("brightness isn&#x27;t distance"), "the text is hidden until expanded");
 		assert.ok(
 			html.indexOf("your-thinking") < html.indexOf("tucked-explanation"),

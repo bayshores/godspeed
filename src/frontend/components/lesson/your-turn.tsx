@@ -250,7 +250,7 @@ export function YourTurn({
 							)}
 
 							{reviewRefused && (
-								<p data-testid="review-refused" className="text-base text-ink-2">
+								<p data-testid="review-refused" className="text-ui text-ink-2">
 									That question is no longer due, so nothing was saved.
 								</p>
 							)}
@@ -305,7 +305,7 @@ export function YourTurn({
 		<div data-testid="turn-row" {...stood} className={cn("flex min-w-0 shrink-0 flex-col gap-3", stand)}>
 			{error && (
 				<JobFailure>
-					<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well lh-notch px-4 py-3 text-base">
+					<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well lh-notch px-4 py-3 text-ui">
 						<span data-testid="lesson-error" title={error.detail} className="text-ans-wrong">
 							{error.text}
 						</span>
@@ -328,7 +328,7 @@ export function YourTurn({
 			{(view.help || (turn.kind === "ask" && !busy)) && (
 				// Keys that wrap line up under the first key, not under the label.
 				<div data-testid="turn-foot" className="flex items-baseline gap-2.5">
-					<span className="mr-1 shrink-0 text-base text-ink-2">{view.help ? "Stuck?" : "Try asking"}</span>
+					<span className="mr-1 shrink-0 text-ui text-ink-2">{view.help ? "Stuck?" : "Try asking"}</span>
 					<div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
 						{view.help ? (
 							<HelpKeys help={view.help} questionRef={questionRef} onHelpLine={onHelpLine} />

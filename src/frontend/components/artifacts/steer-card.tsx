@@ -83,8 +83,8 @@ function BriefBadge({ testId, who, ended, children }: { testId: string; who: str
 	return (
 		<details data-testid={testId} className={cn(CARD, "group w-full py-3")}>
 			<summary className="flex cursor-pointer select-none list-none flex-wrap items-center gap-2.5 [&::-webkit-details-marker]:hidden">
-				<span className="text-lg text-ink">{who}</span>
-				<span className="text-sm text-ink-2">{ended}</span>
+				<span className="text-item text-ink">{who}</span>
+				<span className="text-ui text-ink-2">{ended}</span>
 				<span className="flex-1" />
 				<span className={cn(SMALL_BTN, "inline-flex items-center group-open:hidden")}>View brief</span>
 				<span className={cn(SMALL_BTN, "hidden items-center bg-tone-2 group-open:inline-flex")}>Hide brief</span>

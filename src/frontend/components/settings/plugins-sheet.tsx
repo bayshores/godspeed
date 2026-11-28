@@ -6,7 +6,8 @@ import { Segmented } from "@/frontend/components/ui/segmented";
 import { SELECT, SELECT_ARROW } from "@/frontend/components/ui/field";
 import type { ListedPlugin, PluginManifest, PluginSetting, SettingValue } from "@/frontend/lib/plugins-api";
 import { cn } from "@/frontend/lib/utils";
-import { CommitInput, QUIET_KEY, SMALL_KEY, SettingsRow, Toggle } from "./controls.tsx";
+import { Toggle } from "@/frontend/components/ui/toggle";
+import { CommitInput, QUIET_KEY, SMALL_KEY, SettingsRow } from "./controls.tsx";
 import { SEGMENTED_MAX, pluginLine } from "./plugins-model.ts";
 
 /** The control godspeed draws for one setting the manifest declares. */
@@ -93,7 +94,7 @@ export function PluginSheet({
 				<h2 className="lh-card-title">{manifest.name}</h2>
 				<Toggle checked={enabled} label={manifest.name} onChange={(on) => onChange({ enabled: on })} />
 			</div>
-			<p className="text-base text-ink-2">{pluginLine(manifest, agentName)}</p>
+			<p className="text-ui text-ink-2">{pluginLine(manifest, agentName)}</p>
 			<div className="flex flex-col">
 				{manifest.settings.map((s) => (
 					// Off: its settings dim and lock, like every dependent settings row.
@@ -168,7 +169,7 @@ export function AddSheet({
 }) {
 	return (
 		<Pane data-testid="plugins-add-sheet" aria-label="Add" className="lh-card">
-			<p className="text-lg text-ink">Checked by godspeed.</p>
+			<p className="text-item text-ink">Checked by godspeed.</p>
 			<div className="flex flex-col">
 				{rows.map((entry) => (
 					<div key={entry.id}>
@@ -201,7 +202,7 @@ export function BrokenSheet({ name, reason, busy, error, onRemove }: { name: str
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">{name}</h2>
 			</div>
-			<p data-testid="plugin-broken" className="text-base whitespace-pre-wrap text-ans-wrong">
+			<p data-testid="plugin-broken" className="text-ui whitespace-pre-wrap text-ans-wrong">
 				{reason}
 			</p>
 			{error && <ErrorLine text={error} />}

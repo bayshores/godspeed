@@ -1,8 +1,9 @@
 import type { RefObject } from "react";
-import { MenuShell } from "@/frontend/components/menu-shell";
+import { MENU_ITEM, MenuShell } from "@/frontend/components/menu-shell";
 import { KeyHint, keyShortcutProps } from "@/frontend/components/ui/key-hint";
 import { CoverageMenuBlock } from "@/frontend/components/extraction-coverage";
 import { dispositionFileName, saveBlob } from "@/frontend/components/artifacts/download";
+import { cn } from "@/frontend/lib/utils";
 
 /**
  * THE LESSON MENU (a Progress row's More button, and the open lesson's More): the way out of a
@@ -13,8 +14,6 @@ import { dispositionFileName, saveBlob } from "@/frontend/components/artifacts/d
  * lesson's More in the top bar (`bar`) it hangs from the bar and Rename shows
  * its key.
  */
-
-const ITEM = "lh-press flex items-center px-3 py-2 text-left hover:bg-accent";
 
 /** Saves the lesson as a markdown file. A raw fetch, not a link: the server only answers requests
  *  the page itself makes, and the body is a download, not JSON. A failed export shows nothing, as a failed download did. */
@@ -62,11 +61,11 @@ export function LessonMenu({
 			menuClass="lh-popup flex w-[250px] flex-col p-1.5 text-ui"
 		>
 			{exit && (
-				<button role="menuitem" type="button" data-testid={exit.testId} onClick={exit.onPick} className={`${ITEM} text-ink`}>
+				<button role="menuitem" type="button" data-testid={exit.testId} onClick={exit.onPick} className={MENU_ITEM}>
 					{exit.label}
 				</button>
 			)}
-			<button role="menuitem" type="button" data-testid="ctx-rename" onClick={onRename} {...(bar && keyShortcutProps("rename-session"))} className={`${ITEM} justify-between gap-2 text-ink`}>
+			<button role="menuitem" type="button" data-testid="ctx-rename" onClick={onRename} {...(bar && keyShortcutProps("rename-session"))} className={cn(MENU_ITEM, "justify-between gap-2")}>
 				Rename
 				{bar && <KeyHint action="rename-session" />}
 			</button>
@@ -78,19 +77,19 @@ export function LessonMenu({
 					onClose();
 					void exportMarkdown(chatId);
 				}}
-				className={`${ITEM} text-ink`}
+				className={MENU_ITEM}
 			>
 				Export as Markdown
 			</button>
-			<button role="menuitem" type="button" data-testid="ctx-move-space" onClick={onMove} className={`${ITEM} text-ink`}>
+			<button role="menuitem" type="button" data-testid="ctx-move-space" onClick={onMove} className={MENU_ITEM}>
 				Move to another space
 			</button>
 			{onStats && (
-				<button role="menuitem" type="button" data-testid="ctx-stats" onClick={onStats} className={`${ITEM} text-ink`}>
+				<button role="menuitem" type="button" data-testid="ctx-stats" onClick={onStats} className={MENU_ITEM}>
 					Lesson stats
 				</button>
 			)}
-			<button role="menuitem" type="button" data-testid="ctx-delete" onClick={onDelete} className={`${ITEM} text-ans-wrong`}>
+			<button role="menuitem" type="button" data-testid="ctx-delete" onClick={onDelete} className={cn(MENU_ITEM, "text-ans-wrong")}>
 				Delete
 			</button>
 			<div className="h-1.5" aria-hidden="true" />

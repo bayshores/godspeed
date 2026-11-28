@@ -59,7 +59,7 @@ export function DeadlineRows({
 									<Link to={deadlineHref(d.id)} title={d.name} className="truncate text-xl leading-tight text-ink hover:underline">
 										{d.name}
 									</Link>
-									<span className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-base leading-snug text-ink-2">
+									<span className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-ui leading-snug text-ink-2">
 										{deadlineLine(d, d, nowMs)}
 										<DeadlineMarks deadline={d} />
 									</span>

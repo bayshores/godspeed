@@ -6,7 +6,8 @@ import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/frontend/components/lesson/chat-helpers";
 import { LessonBox } from "@/frontend/components/lesson/lesson-box";
-import { savedDay } from "@/frontend/components/rule-chips";
+import { RuleChip } from "@/frontend/components/rule-chips";
+import { chip } from "@/frontend/components/ui/chip";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useFold } from "@/frontend/components/use-fold";
 import { cn } from "@/frontend/lib/utils";
@@ -20,9 +21,6 @@ export function pointedLabel(region: SheetRegion, pages: number): string {
 	const page = pages === 2 ? (region.page === 1 ? "the front" : "the back") : `page ${region.page}`;
 	return `${page} of version ${region.n}`;
 }
-
-/** A small boxed note in the chat (a version made). */
-const NOTE = "flex items-center gap-2.5 lh-well self-start lh-notch px-2.5 py-1.5 text-base text-ink";
 
 /**
  * THE SHEET'S CHAT: the sheet's rules (each with a remove ✕), then the
@@ -210,7 +208,7 @@ function YouFiles({ message, spaceId, deadlineId }: { message: Extract<SheetMess
 				f.file && !/\.pdf$/i.test(f.file) ? (
 					<img key={i} data-testid="sheet-picture" src={sheetFilePath(spaceId, deadlineId, f.file)} alt={f.name} className="block max-h-[160px] w-auto max-w-full lh-notch lh-well p-1" />
 				) : (
-					<span key={i} data-testid="sheet-file" className="flex h-8 max-w-56 lh-well items-center lh-notch px-3 text-base text-ink">
+					<span key={i} data-testid="sheet-file" className={cn(chip("well"), "max-w-56")}>
 						<span className="truncate" title={f.name}>
 							{f.name}
 						</span>
@@ -227,7 +225,7 @@ function AgentNotes({ message, current, onShowVersion }: { message: Extract<Shee
 	return (
 		<>
 			{n !== undefined && (
-				<button type="button" data-testid="sheet-made" disabled={!onShowVersion} onClick={() => onShowVersion?.(n)} className={cn(NOTE, "lh-press max-w-full text-left enabled:hover:bg-tone disabled:cursor-default")}>
+				<button type="button" data-testid="sheet-made" disabled={!onShowVersion} onClick={() => onShowVersion?.(n)} className={cn(chip("well", "item", { press: true }), "self-start disabled:cursor-default")}>
 					<span className="min-w-0 truncate">
 						Made version {n}
 						{n === current ? ", the sheet now" : ""}
@@ -236,7 +234,7 @@ function AgentNotes({ message, current, onShowVersion }: { message: Extract<Shee
 				</button>
 			)}
 			{(message.rules ?? []).map((rule) => (
-				<p key={rule} data-testid="sheet-rule-saved" className="min-w-0 text-base text-ink-2">
+				<p key={rule} data-testid="sheet-rule-saved" className="min-w-0 text-ui text-ink-2">
 					Saved a rule for this sheet: {rule}
 				</p>
 			))}
@@ -262,15 +260,7 @@ function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[
 					<div>
 						<ul className="flex flex-col items-start gap-1.5">
 							{rules.map((rule) => (
-								<li key={rule.text} data-testid="sheet-rule" className="flex max-w-full items-center lh-well gap-2.5 lh-notch py-1.5 pr-2 pl-3 text-base text-ink">
-									<span className="min-w-0 break-words">{rule.text}</span>
-									<span title={savedDay(rule.at)} className="shrink-0 text-sm whitespace-nowrap text-ink-2">
-										Saved by {agentName}
-									</span>
-									<button type="button" aria-label={`Remove rule: ${rule.text}`} onClick={() => onRemove(rule.text)} className="lh-press shrink-0 p-0.5 text-ink-2 hover:text-ink">
-										<PixelIcon name="close" />
-									</button>
-								</li>
+								<RuleChip key={rule.text} testid="sheet-rule" rule={rule.text} savedBy={{ name: agentName, at: rule.at }} onRemove={() => onRemove(rule.text)} />
 							))}
 						</ul>
 					</div>
@@ -283,9 +273,9 @@ function SheetRules({ rules, agentName, onRemove }: { rules: readonly SheetRule[
 /** The part of the sheet pointed at, waiting to go with the next line. */
 function PointedChip({ pointed, pages, onClear }: { pointed: Pointed; pages: number; onClear: () => void }) {
 	return (
-		<div data-testid="sheet-pointed-chip" className="flex max-w-full items-center gap-2.5 lh-well self-start lh-notch py-1.5 pr-2 pl-1.5">
+		<div data-testid="sheet-pointed-chip" className={cn(chip("well", "item", { lead: true, remove: true }), "self-start")}>
 			<img src={`data:${pointed.picture.mimeType};base64,${pointed.picture.data}`} alt="" className="block h-6 w-auto max-w-12 bg-white object-contain" />
-			<span className="min-w-0 truncate text-base text-ink">Pointing at {pointedLabel(pointed.region, pages)}</span>
+			<span className="min-w-0 truncate">Pointing at {pointedLabel(pointed.region, pages)}</span>
 			<button type="button" aria-label="Don't send the part you pointed at" onClick={onClear} className="lh-press shrink-0 p-0.5 text-ink-2 hover:text-ink">
 				<PixelIcon name="close" />
 			</button>

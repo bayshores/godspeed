@@ -138,16 +138,16 @@ export function SettingsPage({ section }: { section?: string }) {
 					{error && (
 						<p
 							role="alert"
-							className="mb-4 lh-well px-3 py-2 text-xs text-ans-wrong"
+							className="mb-4 lh-well px-3 py-2 text-ui text-ans-wrong"
 							data-testid="settings-error"
 						>
 							{error}
 						</p>
 					)}
 					{record === undefined ? (
-						<LoadingLine className="text-xs">Loading settings…</LoadingLine>
+						<LoadingLine className="text-ui">Loading settings…</LoadingLine>
 					) : record === null ? (
-						<p className="text-xs text-ink-2">
+						<p className="text-ui text-ink-2">
 							Settings could not be loaded. Refresh to retry.
 						</p>
 					) : (

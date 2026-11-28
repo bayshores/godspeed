@@ -46,8 +46,8 @@ export function SettingsGroup({
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">{label}</h2>
 			</div>
-			{about && <p className="text-base text-ink-2">{about}</p>}
-			<div className="flex flex-col [&>p]:py-3 [&>p]:text-base">{children}</div>
+			{about && <p className="text-ui text-ink-2">{about}</p>}
+			<div className="flex flex-col [&>p]:py-3 [&>p]:text-ui">{children}</div>
 		</section>
 	);
 }
@@ -74,48 +74,6 @@ export function SettingsRow({
 			</span>
 			{children}
 		</div>
-	);
-}
-
-/** The on/off switch: a plain button in the switch role, its state in words
- *  beside a small track. */
-export function Toggle({
-	checked,
-	onChange,
-	label,
-}: {
-	checked: boolean;
-	onChange: (next: boolean) => void;
-	/** Accessible name for the switch role. */
-	label: string;
-}) {
-	return (
-		<button
-			type="button"
-			role="switch"
-			aria-checked={checked}
-			aria-label={label}
-			data-testid={`toggle-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
-			onClick={() => onChange(!checked)}
-			className="lh-press group flex shrink-0 items-center gap-2"
-		>
-			<span className="text-base font-medium text-ink">{checked ? "On" : "Off"}</span>
-			<span
-				className={cn(
-					"relative h-[22px] w-10 lh-notch",
-					// On is a filled track with the knob at the right; off is an
-					// empty track (a 3:1 edge) with the knob at the left.
-					checked ? "bg-ink" : "shadow-[inset_0_0_0_2px_var(--lh-edge)] group-hover:shadow-[inset_0_0_0_2px_var(--lh-ink-3)]",
-				)}
-			>
-				<span
-					className={cn(
-						"absolute left-0 top-[3px] size-4 lh-notch transition-[translate,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
-						checked ? "translate-x-[21px] bg-background" : "translate-x-[3px] bg-ink-2",
-					)}
-				/>
-			</span>
-		</button>
 	);
 }
 

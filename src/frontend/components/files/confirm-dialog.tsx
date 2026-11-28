@@ -17,7 +17,6 @@ export function ConfirmDialog({ copy, onConfirm, onClose }: { copy: ConfirmCopy 
 			state={state}
 			testid="files-confirm"
 			onClose={onClose}
-			className="w-[540px]"
 			foot={
 				<>
 					<span className="flex-1" />
@@ -28,14 +27,14 @@ export function ConfirmDialog({ copy, onConfirm, onClose }: { copy: ConfirmCopy 
 						type="button"
 						data-testid="files-confirm-button"
 						onClick={onConfirm}
-						className={`lh-btn text-ui ${shown.danger ? "lh-btn-danger" : "lh-btn-main"}`}
+						className={`lh-btn ${shown.danger ? "lh-btn-danger" : "lh-btn-main"}`}
 					>
 						{shown.action}
 					</button>
 				</>
 			}
 		>
-			<p className="text-lg break-words text-ink">{shown.body}</p>
+			<p className="text-item break-words text-ink">{shown.body}</p>
 			{shown.note && <p className="text-ui text-ink-2">{shown.note}</p>}
 		</DialogSheet>,
 		document.body,

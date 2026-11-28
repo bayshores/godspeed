@@ -1,7 +1,7 @@
 import { DispatchCard } from "@/frontend/components/artifacts/dispatch-card";
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { CARD } from "@/frontend/components/ui/card-parts";
-import { ResultTag } from "@/frontend/components/result-tag";
+import { chip } from "@/frontend/components/ui/chip";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { cn } from "@/frontend/lib/utils";
 import type { ArtifactPartProps, PdfResult, ResearchResult } from "@/shared/core";
@@ -55,7 +55,7 @@ export function PdfBriefCard({ output }: { output: unknown }) {
 		<div className={cn(CARD, "flex flex-col gap-2.5 text-card-foreground")} data-testid="pdf-brief-card">
 			<div className="flex items-center gap-2.5">
 				<span className={LABEL_TEXT}>PDF brief</span>
-				{failed && <ResultTag tone="wrong">failed</ResultTag>}
+				{failed && <span className={chip("wrong", "tag")}>failed</span>}
 			</div>
 			<div className="[&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
 				<MessageResponse>{result.brief}</MessageResponse>
@@ -92,7 +92,7 @@ export function ResearchBriefCard({ output }: { output: unknown }) {
 		<div className={cn(CARD, "flex flex-col gap-2.5 text-card-foreground")} data-testid="research-brief-card">
 			<div className="flex items-center gap-2.5">
 				<span className={LABEL_TEXT}>Research brief</span>
-				{failed && <ResultTag tone="wrong">failed</ResultTag>}
+				{failed && <span className={chip("wrong", "tag")}>failed</span>}
 			</div>
 			<div className="[&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
 				<MessageResponse>{result.brief}</MessageResponse>

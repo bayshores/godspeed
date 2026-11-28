@@ -5,7 +5,7 @@ import { RequestLine } from "./request-line";
 import type { About } from "./use-deadline-about";
 
 /** The teacher's Markdown; its headings stay under the sheet's title. */
-const ABOUT_TEXT = "font-prose text-item leading-relaxed text-ink [--lh-heading-weight:500] [&_:is(h1,h2,h3)]:text-lg [&_:is(h1,h2,h3)]:leading-snug";
+const ABOUT_TEXT = "font-prose text-item leading-relaxed text-ink [--lh-heading-weight:500] [&_:is(h1,h2,h3)]:text-item [&_:is(h1,h2,h3)]:leading-snug";
 
 /**
  * WHAT IT'S LIKE: what the teacher wrote about the deadline (its file

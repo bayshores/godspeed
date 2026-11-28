@@ -75,7 +75,8 @@ function MockBoxForm({ onWrite }: { onWrite: (questions: number, minutes: number
 	);
 }
 
-const STEP = "lh-btn h-10 w-10 shrink-0 justify-center px-0";
+/** A glyph key, square at a key's height. */
+const STEP = "lh-btn w-10 shrink-0 justify-center px-0";
 
 /** A number with − and + beside it; it can be typed too, and stays in its range. */
 function Stepper({ label, range, value, disabled, testid, onChange }: { label: string; range: StepRange; value: number; disabled: boolean; testid: string; onChange: (n: number) => void }) {

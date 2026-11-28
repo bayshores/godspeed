@@ -5,6 +5,7 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { SpaceDialog, type SpaceDialogMode } from "@/frontend/components/space-dialog";
 import { STRIP, useTabStrip } from "@/frontend/components/tab-strip";
+import { chip } from "@/frontend/components/ui/chip";
 import { tabWorkTag } from "@/frontend/components/work/work-model";
 import { cn } from "@/frontend/lib/utils";
 import { BAR_TAB, barTabState } from "./bar-look";
@@ -83,7 +84,7 @@ export function SpaceTabs({ selected }: { selected: string }) {
 									{c.name}
 								</span>
 								{tag && (
-									<span data-testid={`space-work-${c.id}`} title="Files the teacher still has to read" className="shrink-0 bg-highlight px-1.5 text-sm text-ink">
+									<span data-testid={`space-work-${c.id}`} title="Files the teacher still has to read" className={chip("lit", "tag")}>
 										{tag}
 									</span>
 								)}

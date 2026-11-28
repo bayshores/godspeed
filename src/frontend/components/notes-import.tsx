@@ -82,6 +82,6 @@ export function useNotesImport(callbacks: { onStart?: () => void; onFinish?: () 
 
 export function NotesImportErrors({ errors }: { errors: readonly string[] }) {
 	return <>{errors.map((error, i) => (
-		<p key={i} role="alert" className="lh-rise max-w-full whitespace-pre-wrap break-words text-xs text-ans-wrong">{error}</p>
+		<p key={i} role="alert" className="lh-rise max-w-full whitespace-pre-wrap break-words text-ui text-ans-wrong">{error}</p>
 	))}</>;
 }

@@ -77,7 +77,7 @@ export function ActivityList({
 
 			{rows.length > 0 && (
 				<section className="flex flex-col gap-3">
-					<h3 className="text-item font-normal text-ink">Recent</h3>
+					<h3 className="lh-inner-title">Recent</h3>
 					<div data-testid="activity-recent" className={ACTIVITY_ROWS}>
 						{rows.map((row) => (
 							<div key={row.id} data-testid="activity-recent-row" className={cn(ACTIVITY_ROW, "flex w-full items-baseline gap-3 py-2 text-ui")}>

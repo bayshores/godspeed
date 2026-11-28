@@ -231,8 +231,8 @@ export function PlanPopup({
 
 	if (typeof document === "undefined") return null;
 	return createPortal(
-		<DialogSheet title="The plan" state={state} testid="plan-popup" onClose={onClose} className="w-[640px]">
-			<p className="text-(length:--text-base) text-ink-2">Updates as you answer</p>
+		<DialogSheet title="The plan" state={state} testid="plan-popup" onClose={onClose} wide>
+			<p className="text-ui text-ink-2">Updates as you answer</p>
 			{tree ? (
 				<div
 					ref={viewportRef}

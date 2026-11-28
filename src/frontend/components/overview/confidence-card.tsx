@@ -38,7 +38,7 @@ export const ConfidenceCard = memo(function ConfidenceCard({ calibration }: { ca
 			</div>
 			{calibration.sureButWrong.length > 0 && (
 				<>
-					<h3 className="pt-3 text-ui text-ink">Sure but wrong</h3>
+					<h3 className="lh-inner-title pt-3">Sure but wrong</h3>
 					<ul className="-mx-1 flex flex-col">
 						{calibration.sureButWrong.map((q) => (
 							<SureButWrongRow key={`${q.chatId}:${q.toolCallId}`} q={q} />
@@ -73,10 +73,10 @@ const SureButWrongRow = memo(function SureButWrongRow({ q }: { q: SureButWrong }
 	return (
 		<li>
 			<Link to={questionHref(q.chatId, q.messageId)} data-testid={`sure-but-wrong-${q.toolCallId}`} className={cn(ROW, "py-[9px]")}>
-				<span className="min-w-0 flex-1 truncate font-prose text-lg text-ink">
+				<span className="min-w-0 flex-1 truncate font-prose text-item text-ink">
 					<InlineMath text={q.question} />
 				</span>
-				<span className="shrink-0 text-base text-ink-2">Picked {q.level}</span>
+				<span className="shrink-0 text-ui text-ink-2">Picked {q.level}</span>
 				<PixelIcon name="chevron" className="text-ink" />
 			</Link>
 		</li>

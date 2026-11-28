@@ -28,7 +28,7 @@ export function FootQuestion({
 		<div data-testid={testid} className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
 			<span className="flex min-w-0 flex-1 basis-[200px] flex-col gap-px">
 				<span className="text-ui break-words text-ink">{line}</span>
-				{note && <span className="text-base text-ink-2">{note}</span>}
+				{note && <span className="text-ui text-ink-2">{note}</span>}
 			</span>
 			<button type="button" data-testid={`${testid}-keep`} disabled={busy} onClick={onKeep} className="lh-btn">
 				{keep}

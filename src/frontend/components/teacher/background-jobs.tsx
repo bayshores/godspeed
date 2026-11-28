@@ -68,7 +68,7 @@ export function BackgroundJobs({ feed, chats }: { feed: ActivityFeed; chats: rea
 	return (
 		<section data-testid="activity-section" className="flex flex-col gap-3">
 			<div className="flex items-baseline gap-2">
-				<h3 className="min-w-0 flex-1 text-item font-normal text-ink">Running in the background</h3>
+				<h3 className="lh-inner-title flex-1">Running in the background</h3>
 				{blobs.length > 0 && (
 					<span data-testid="activity-total-cost" title="Total running cost" className="shrink-0 font-count text-ui text-ink-2">
 						{planCostLabel(subscriptionLabels(blobs.map((blob) => blob.model)))}
@@ -78,10 +78,10 @@ export function BackgroundJobs({ feed, chats }: { feed: ActivityFeed; chats: rea
 			<div className={ACTIVITY_ROWS}>
 				{failed.map((f) => (
 					<div key={f.id} data-testid="activity-failed" className={`flex flex-col gap-0.5 py-2.5 ${ACTIVITY_ROW}`}>
-						<span className="truncate text-lg text-ink" title={f.title}>
+						<span className="truncate text-item text-ink" title={f.title}>
 							{f.title}
 						</span>
-						<span className="break-words text-base text-ans-wrong">Failed: {f.error}</span>
+						<span className="break-words text-ui text-ans-wrong">Failed: {f.error}</span>
 					</div>
 				))}
 				{blobs.map((blob) => (
@@ -122,16 +122,16 @@ function ChatRow({ chat }: { chat: RunningChat }) {
 		<div data-testid="activity-chat" className={`lh-rise flex flex-col ${ACTIVITY_ROW}`}>
 			<div className="flex items-center gap-3 py-2.5">
 				<span className="flex min-w-0 flex-1 flex-col gap-0.5">
-					<span className="w-full truncate text-lg text-ink" title={chat.title}>
+					<span className="w-full truncate text-item text-ink" title={chat.title}>
 						{chat.title}
 					</span>
-					<span className="w-full truncate text-base text-ink-2">Chat</span>
+					<span className="w-full truncate text-ui text-ink-2">Chat</span>
 				</span>
 				<button type="button" data-testid="activity-chat-stop" onClick={stop} disabled={busy} aria-label={`Stop the reply in ${chat.title}`} className="lh-btn lh-btn-small shrink-0">
 					Stop
 				</button>
 			</div>
-			{error && <p className="pb-2.5 text-base text-ans-wrong">Stop didn't go through. Try again.</p>}
+			{error && <p className="pb-2.5 text-ui text-ans-wrong">Stop didn't go through. Try again.</p>}
 		</div>
 	);
 }
@@ -162,10 +162,10 @@ function JobRow({
 		<div data-testid={`activity-blob-${blob.process}`} className={`lh-rise flex flex-col ${ACTIVITY_ROW}`}>
 			<div className="flex items-center gap-3 py-2.5">
 				<button type="button" onClick={onToggleDetail} aria-expanded={detailOpen} className="lh-press flex min-w-0 flex-1 flex-col gap-0.5 text-left">
-					<span className="w-full truncate text-lg text-ink" title={blob.title}>
+					<span className="w-full truncate text-item text-ink" title={blob.title}>
 						{blob.title}
 					</span>
-					<span className="w-full truncate text-base text-ink-2">
+					<span className="w-full truncate text-ui text-ink-2">
 						{label}, <span data-testid="activity-blob-elapsed">{elapsed}</span>
 					</span>
 				</button>
@@ -186,7 +186,7 @@ function JobRow({
 			{detail.mounted && (
 				<div className="lh-collapse" data-state={detail.state}>
 					<div>
-						<div data-testid="activity-blob-detail" className="flex flex-col gap-1 pb-3 text-base text-ink-2">
+						<div data-testid="activity-blob-detail" className="flex flex-col gap-1 pb-3 text-ui text-ink-2">
 							{doing && (
 								<p className="break-words text-ink" title={doing}>
 									{doing}

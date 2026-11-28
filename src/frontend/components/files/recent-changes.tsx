@@ -37,8 +37,8 @@ export function RecentChanges({ changes, collapsed, onToggle }: { changes: reado
 								<span title={c.name} className={cn("min-w-0 flex-1 truncate text-ui", removed ? "text-ink-3" : "text-ink")}>
 									{c.name}
 								</span>
-								<span className={cn("w-[70px] shrink-0 text-base", removed ? "text-ans-wrong" : "text-ink")}>{removed ? "Removed" : "Added"}</span>
-								<span className="font-count w-24 shrink-0 text-base text-ink-2">{dayLabel(localDay(new Date(c.at)))}</span>
+								<span className={cn("w-[70px] shrink-0 text-ui", removed ? "text-ans-wrong" : "text-ink")}>{removed ? "Removed" : "Added"}</span>
+								<span className="font-count w-24 shrink-0 text-ui text-ink-2">{dayLabel(localDay(new Date(c.at)))}</span>
 							</li>
 						);
 					})}

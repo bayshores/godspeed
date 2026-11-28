@@ -146,7 +146,7 @@ function DeskRows({ rows, under, slot, arrive }: { rows: DeskRow[]; under: strin
 							<div className="flex min-w-0 flex-col gap-1.5">
 								<RowText row={row} />
 								{row.state === "now" && under && (
-									<span key={under} className={cn("line-clamp-3 text-base leading-5 break-words text-ink-2", arrive(`${slot}:under:${under}`) && "lh-block-in")} style={{ "--lh-block-delay": "60ms" } as CSSProperties}>
+									<span key={under} className={cn("line-clamp-3 text-ui leading-5 break-words text-ink-2", arrive(`${slot}:under:${under}`) && "lh-block-in")} style={{ "--lh-block-delay": "60ms" } as CSSProperties}>
 										{under}
 									</span>
 								)}

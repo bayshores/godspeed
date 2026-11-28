@@ -28,7 +28,7 @@ export function ConfidenceLine({ level, onChange, ref }: { level: ConfidenceLeve
 		group.querySelector<HTMLElement>('[tabindex="0"]')?.focus();
 	}, [level]);
 	return (
-		<div ref={ref} data-testid="confidence-line" className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-base">
+		<div ref={ref} data-testid="confidence-line" className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-ui">
 			<span id="confidence-question" className="shrink-0 text-ink-2">
 				How sure?
 			</span>

@@ -20,7 +20,7 @@ export function CompactionCutDivider({ data }: { data: CompactionDividerData }) 
 	const length = data.details.tokensBefore > 0 ? `, ${pagesLabel(data.details.tokensBefore)}` : "";
 	return (
 		<div data-testid="compaction-cut-divider" className="my-4 flex w-full items-center justify-center bg-tone px-3 py-1">
-			<span className="text-sm text-ink-2">Earlier messages summarized{length}</span>
+			<span className="text-ui text-ink-2">Earlier messages summarized{length}</span>
 		</div>
 	);
 }

@@ -48,7 +48,7 @@ const { SpaceFacts } = await import("../../src/frontend/components/overview/spac
 const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../../src/frontend/components/use-open-deadlines.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { PeekSheet } = await import("../../src/frontend/components/strip/peek-sheet.tsx");
-const { MAIN_KEY } = await import("../../src/frontend/components/overview/styles.ts");
+const { MAIN_KEY } = await import("../../src/frontend/components/ui/big-key.ts");
 
 // Wed Oct 28 2026, 4:12 PM local.
 const NOW = new Date(2026, 9, 28, 16, 12).getTime();

@@ -147,7 +147,7 @@ function MockRow({ spaceId, mock: m, nowMs, onRemove }: { spaceId: string; mock:
 				<>
 					<Link to={mockHref(spaceId, m.id)} className="lh-press flex min-w-0 flex-1 items-center gap-2.5 py-2 hover:text-ink">
 						<span className="w-[64px] shrink-0 text-ui text-ink">Mock {m.n}</span>
-						<span className="min-w-0 flex-1 truncate font-count text-base text-ink-2">{monthDay(localDay(new Date(m.endedAt ?? m.createdAt)))}</span>
+						<span className="min-w-0 flex-1 truncate font-count text-ui text-ink-2">{monthDay(localDay(new Date(m.endedAt ?? m.createdAt)))}</span>
 						{m.state === "graded" && <StepBlocks done={m.solved ?? 0} total={m.format.questions} />}
 						<span data-testid="deadline-mock-line" className="shrink-0 text-ui text-ink">
 							{mockLine(m, nowMs)}

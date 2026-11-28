@@ -96,14 +96,13 @@ export function DeleteNodeBody({
 			testid="delete-node-dialog"
 			busy={busy}
 			onClose={onClose}
-			className="w-[540px]"
 			foot={<DeleteFoot cancelTestid="node-delete-cancel" confirmTestid="node-delete-confirm" busy={busy} onClose={onClose} onRun={onRun} />}
 		>
 			{/* Many names stop at 8; the title has the full count. */}
 			<p data-testid={one ? "node-name-code" : "node-names-code"} className="font-count text-lg break-words text-ink">
 				{one ? nodes[0]?.name : nodes.slice(0, 8).map((n) => n.name).join(", ") + (nodes.length > 8 ? `, and ${nodes.length - 8} more` : "")}
 			</p>
-			<p data-testid="node-permanence-line" className="text-lg text-ink">
+			<p data-testid="node-permanence-line" className="text-item text-ink">
 				{one ? "This permanently deletes the fact. This cannot be undone." : `This permanently deletes all ${nodes.length} facts. This cannot be undone.`}
 			</p>
 			{failure && <FailureRow testid="node-delete-failure" retryTestid="node-delete-retry" failure={failure} busy={busy} onRun={onRun} />}

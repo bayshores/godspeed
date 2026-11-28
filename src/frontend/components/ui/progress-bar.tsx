@@ -1,3 +1,4 @@
+import { QUARTER_TONE } from "@/frontend/lib/dither";
 import { cn } from "@/frontend/lib/utils";
 
 /**
@@ -7,7 +8,8 @@ import { cn } from "@/frontend/lib/utils";
 export function ProgressBar({ share, className }: { share: number; className?: string }) {
 	return (
 		<span aria-hidden className={cn("relative block h-3.5", className)}>
-			<span className="absolute inset-x-0 top-[3px] h-2 bg-[radial-gradient(var(--color-ink-2)_1px,transparent_1px)] bg-[length:4px_4px]" />
+			{/* Two rows of the dots, 4 points from the bar's top and foot. */}
+			<span className="absolute inset-x-0 top-1 h-1.5 bg-ink-2" style={QUARTER_TONE} />
 			<span className="lh-grow absolute inset-y-0 left-0 bg-ink" style={{ width: `${Math.min(1, Math.max(0, share)) * 100}%` }} />
 		</span>
 	);

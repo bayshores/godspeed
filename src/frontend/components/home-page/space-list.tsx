@@ -5,7 +5,7 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { spaceRow } from "./space-list-model";
 import { Pane } from "@/frontend/components/ui/pane";
-import { CHIP } from "./styles";
+import { chip } from "@/frontend/components/ui/chip";
 
 /**
  * "Your spaces": a tile per open space, named as its tab names it (its
@@ -67,7 +67,7 @@ function SpaceTile({
 					{s.name}
 				</Link>
 				{newFiles && (
-					<Link to="/space/files" data-testid="today-space-files" onClick={() => onOpen(s.id)} title={newFiles} className={cn(CHIP, "relative z-10 ml-auto max-w-[60%] shrink hover:underline")}>
+					<Link to="/space/files" data-testid="today-space-files" onClick={() => onOpen(s.id)} title={newFiles} className={cn(chip("lit", "tag"), "relative z-10 ml-auto max-w-[60%] shrink hover:underline")}>
 						<PixelIcon name="folder" size={12} />
 						<span className="truncate">{newFiles}</span>
 					</Link>
@@ -81,7 +81,7 @@ function SpaceTile({
 				</span>
 			)}
 			{words.line && (
-				<span data-testid="today-space-line" aria-hidden={total > 0 || undefined} className="text-sm leading-snug text-ink-2">
+				<span data-testid="today-space-line" aria-hidden={total > 0 || undefined} className="text-ui leading-snug text-ink-2">
 					{words.line}
 				</span>
 			)}

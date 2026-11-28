@@ -12,7 +12,6 @@ export function RestartDialog({ name, open, onLater, onRestart }: { name: string
 			state={presence.state}
 			testid="restart-dialog"
 			onClose={onLater}
-			className="w-[480px]"
 			foot={
 				<>
 					<span className="flex-1" />
@@ -25,7 +24,7 @@ export function RestartDialog({ name, open, onLater, onRestart }: { name: string
 				</>
 			}
 		>
-			<p className="text-lg text-ink">{`${name} is answering you. Restarting stops ${name}.`}</p>
+			<p className="text-item text-ink">{`${name} is answering you. Restarting stops ${name}.`}</p>
 		</DialogSheet>,
 		document.body,
 	);

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSound } from "@/frontend/components/sounds";
-import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
-import { cn } from "@/frontend/lib/utils";
+import { MAIN_KEY } from "@/frontend/components/ui/big-key";
 import { useReturn } from "./use-return";
 import { Wordmark } from "./wordmark";
 
@@ -23,7 +22,7 @@ export function Intro({ skipped, onSkip, onDone }: { skipped: boolean; onSkip: (
 		<div data-testid="onboarding-intro" className="flex w-full flex-col items-center justify-center">
 			<div className="ob-rise flex flex-col items-center gap-[30px]">
 				<Wordmark />
-				<button type="button" data-testid="onboarding-start" className={cn("lh-btn lh-btn-main", BIG_BUTTON)} onClick={onDone}>
+				<button type="button" data-testid="onboarding-start" className={`lh-btn ${MAIN_KEY}`} onClick={onDone}>
 					Get started
 				</button>
 			</div>

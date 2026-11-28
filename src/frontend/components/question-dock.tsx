@@ -107,7 +107,7 @@ export function QuestionDock(props: QuestionDockProps) {
 					: parseAskInput(input);
 	if (!parsed) {
 		return (
-			<div data-testid="malformed-question" className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well lh-notch px-4 py-3 text-base text-ink-2">
+			<div data-testid="malformed-question" className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well lh-notch px-4 py-3 text-ui text-ink-2">
 				This question came through broken.
 				<button type="button" data-testid="skip-broken-question" onClick={props.onSkip} className="lh-btn lh-btn-small shrink-0">
 					Skip question

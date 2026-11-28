@@ -55,8 +55,12 @@ export function ditherEnds(ends: "start" | "end" | "both"): CSSProperties {
 	};
 }
 
-/** Half of a fill: the dither's middle step, a checker of 2-point cells. */
-export const HALF_TONE: CSSProperties = {
-	maskImage: url(TILE, TILE, RANK.flatMap((row, y) => row.map((rank, x) => (rank < 8 ? cell(x * CELL, y * CELL) : ""))).join("")),
+/** A share of a fill (in sixteenths): the dither's cells ranked below it. */
+const tone = (share: number): CSSProperties => ({
+	maskImage: url(TILE, TILE, RANK.flatMap((row, y) => row.map((rank, x) => (rank < share ? cell(x * CELL, y * CELL) : ""))).join("")),
 	maskSize: `${TILE}px ${TILE}px`,
-};
+});
+/** Half of a fill: the dither's middle step, a checker of 2-point cells. */
+export const HALF_TONE = tone(8);
+/** A quarter of a fill: 2-point dots on a 4-point grid (a progress bar's track). */
+export const QUARTER_TONE = tone(4);

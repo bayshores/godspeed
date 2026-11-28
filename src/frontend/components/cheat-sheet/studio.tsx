@@ -148,7 +148,7 @@ function Studio({
 										<div aria-hidden className="hidden aspect-[17/22] h-[min(78%,620px)] shrink-0 bg-white @[900px]:block" />
 										<div className="flex w-full max-w-[520px] flex-col gap-[18px]">
 											<h2 className="text-3xl leading-title text-ink">What do you want on your cheat sheet?</h2>
-											<p className="text-lg text-ink-2">{emptyChatLine(false)}</p>
+											<p className="text-item text-ink-2">{emptyChatLine(false)}</p>
 											{quiet && chat}
 											{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(spaceId, deadlineId).then(setFailed)} />}
 										</div>

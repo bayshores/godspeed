@@ -1,5 +1,5 @@
-import { Button } from "@/frontend/components/ui/button";
 import { usePresence } from "@/frontend/components/presence";
+import { FLOAT_KEY } from "@/frontend/components/ui/float-key";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import type { ComponentProps } from "react";
@@ -34,14 +34,12 @@ export const ConversationContent = ({
 
 type ConversationEmptyStateProps = ComponentProps<"div"> & {
   title?: string;
-  description?: string;
   icon?: React.ReactNode;
 };
 
 export const ConversationEmptyState = ({
   className,
   title = "No messages yet",
-  description = "Start a conversation to see messages here",
   icon,
   children,
   ...props
@@ -56,18 +54,13 @@ export const ConversationEmptyState = ({
     {children ?? (
       <>
         {icon && <div className="text-muted-foreground">{icon}</div>}
-        <div className="space-y-1">
-          <h3 className="font-medium text-sm">{title}</h3>
-          {description && (
-            <p className="text-muted-foreground text-sm">{description}</p>
-          )}
-        </div>
+        <h3 className="lh-card-title">{title}</h3>
       </>
     )}
   </div>
 );
 
-type ConversationScrollButtonProps = ComponentProps<typeof Button>;
+type ConversationScrollButtonProps = ComponentProps<"button">;
 
 export const ConversationScrollButton = ({
   className,
@@ -85,21 +78,16 @@ export const ConversationScrollButton = ({
     presence.mounted && (
       // In the bottom-right corner, in the page's side gutter, so it never
       // sits on words; right-3 leaves the scrollbar clear.
-      <Button
+      <button
         aria-label="Scroll to the bottom"
-        className={cn(
-          "lh-fade absolute right-3 bottom-4 bg-background hover:bg-muted",
-          className
-        )}
+        className={cn(FLOAT_KEY, "lh-fade absolute right-3 bottom-4 size-9", className)}
         data-state={presence.state}
         onClick={handleScrollToBottom}
-        size="icon"
         type="button"
-        variant="outline"
         {...props}
       >
         <PixelIcon name="chevron" className="rotate-90" />
-      </Button>
+      </button>
     )
   );
 };

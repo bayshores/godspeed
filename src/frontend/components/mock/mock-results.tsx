@@ -77,14 +77,14 @@ function QuestionRow({ n, question: q, view, teacher, busyOn, onGoOver }: { n: n
 			</span>
 			<div className="flex min-w-0 flex-1 flex-col gap-2">
 				<div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5">
-					<h3 className="min-w-0 flex-1 basis-[200px] text-lg leading-snug text-ink">{q.title}</h3>
+					<h3 className="lh-inner-title flex-1 basis-[200px]">{q.title}</h3>
 					<span data-testid="mock-result-word" className={cn("shrink-0 text-ui", result === "right" ? "text-ans-right" : result === "blank" ? "text-ink-2" : "text-ans-wrong")}>
 						{RESULT_WORD[result]}
 					</span>
 					{answer && answer.seconds > 0 && <span className="shrink-0 text-ui text-ink-2">{spentText(answer.seconds)}</span>}
 				</div>
 				{grade && (
-					<div data-testid="mock-feedback" className="max-w-(--lh-measure) font-prose text-lg leading-relaxed text-ink">
+					<div data-testid="mock-feedback" className="max-w-(--lh-measure) font-prose text-item leading-relaxed text-ink">
 						<MessageResponse>{grade.feedback}</MessageResponse>
 					</div>
 				)}
@@ -102,7 +102,7 @@ function QuestionRow({ n, question: q, view, teacher, busyOn, onGoOver }: { n: n
 						)}
 					</div>
 				)}
-				<Key data-testid="mock-go-over" busy={busyOn === q.id} disabled={busyOn !== null} onClick={onGoOver} className="self-start text-ui">
+				<Key data-testid="mock-go-over" busy={busyOn === q.id} disabled={busyOn !== null} onClick={onGoOver} className="self-start">
 					Go over it with {teacher}
 				</Key>
 			</div>

@@ -25,6 +25,7 @@ import { usePresence } from "@/frontend/components/presence";
 import { useSpaces } from "@/frontend/components/space-context";
 import { followMoves } from "@/frontend/components/teacher/follow";
 import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
+import { KEYCAP } from "@/frontend/components/ui/key-hint";
 
 export function KeyboardShortcuts() {
 	const navigate = useNavigate();
@@ -134,7 +135,7 @@ export function KeyboardShortcuts() {
 
 	if (!presence.mounted) return null;
 	return createPortal(
-		<DialogSheet title="Keyboard shortcuts" state={presence.state} testid="shortcuts" onClose={() => setShortcutsOpen(false)} className="w-[780px]">
+		<DialogSheet title="Keyboard shortcuts" state={presence.state} testid="shortcuts" onClose={() => setShortcutsOpen(false)} wide>
 			<ShortcutList />
 		</DialogSheet>,
 		document.body,
@@ -147,13 +148,13 @@ function ShortcutList() {
 		<div className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
 			{KEY_SCOPES.map(({ scope, label }) => (
 				<div key={scope} className="flex flex-col gap-0.5">
-					<h3 className="text-lg text-ink">{label}</h3>
+					<h3 className="lh-inner-title">{label}</h3>
 					{KEYBOARD_ACTIONS.filter((a) => a.scope === scope).map((a) => (
 						<div key={a.id} className="flex items-center justify-between gap-4 py-1.5 text-ui text-ink">
 							{a.label}
 							<span className="flex shrink-0 gap-1.5">
 								{bindingKeys(bindingForAction(a.id)).map((key, i) => (
-									<kbd key={i} className="lh-notch border-2 border-ink bg-background px-2 py-0.5 font-[inherit] text-sm">
+									<kbd key={i} className={KEYCAP}>
 										{key}
 									</kbd>
 								))}

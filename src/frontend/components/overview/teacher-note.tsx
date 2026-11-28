@@ -11,9 +11,9 @@ export const TeacherNote = memo(function TeacherNote({ note, nowMs }: { note: Sp
 	const when = nowMs !== null ? noteWhen(note.at, nowMs) : "";
 	return (
 		<Pane data-testid="teacher-note" className="lh-card gap-0.5">
-			<p className="font-prose text-lg leading-snug text-ink">{note.text}</p>
+			<p className="font-prose text-item leading-snug text-ink">{note.text}</p>
 			{when && (
-				<p className="font-count text-base text-ink-2">
+				<p className="font-count text-ui text-ink-2">
 					{teacherName}, {when}
 				</p>
 			)}

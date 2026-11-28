@@ -14,7 +14,7 @@ export function PickSpace({ line }: { line: string }) {
 	const current = spaces.filter((c) => !c.closed);
 	return (
 		<div data-testid="pick-space" className="flex flex-col gap-3">
-			<p className="text-lg text-ink-2">{line}</p>
+			<p className="text-item text-ink-2">{line}</p>
 			<div className="flex flex-wrap gap-2">
 				{current.map((c) => (
 					<button key={c.id} type="button" data-testid={`pick-space-${c.id}`} onClick={() => setActive(c.id)} className={CHOICE}>

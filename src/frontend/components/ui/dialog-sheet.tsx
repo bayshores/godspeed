@@ -18,7 +18,8 @@ export function useLastWhileClosing<T>(value: T | null): { mounted: boolean; sta
 /**
  * A dialog: a sheet out of the top bar, over the dimmed page, with its
  * title and "Close" on top, its fields in the middle (they scroll) and
- * its buttons in the foot.
+ * its buttons in the foot. It comes in two widths: narrow for a question
+ * or a form, wide for a list or a document.
  * "Close", Esc and a click outside all call onClose.
  */
 export function DialogSheet({
@@ -28,7 +29,7 @@ export function DialogSheet({
 	busy = false,
 	onClose,
 	foot,
-	className,
+	wide = false,
 	children,
 }: {
 	title: string;
@@ -40,7 +41,8 @@ export function DialogSheet({
 	onClose: () => void;
 	/** The dialog's buttons; a dialog with none has no foot. */
 	foot?: ReactNode;
-	className?: string;
+	/** Holds a list or a document. */
+	wide?: boolean;
 	children: ReactNode;
 }) {
 	const ref = useDialogFocus<HTMLDivElement>(state === "open");
@@ -68,10 +70,10 @@ export function DialogSheet({
 					aria-label={title}
 					data-testid={testid}
 					data-state={state}
-					className={cn("lh-popup lh-hang-body flex max-h-[85vh] w-[560px] max-w-[calc(100vw-2rem)] flex-col outline-none", className)}
+					className={cn("lh-popup lh-hang-body flex max-h-[85vh] max-w-[calc(100vw-2rem)] flex-col outline-none", wide ? "w-[780px]" : "w-[560px]")}
 				>
 					<div className="flex shrink-0 items-center gap-2 pt-4 pr-3.5 pb-3.5 pl-6">
-						<h2 className="min-w-0 flex-1 truncate text-head leading-tight text-ink">{title}</h2>
+						<h2 className="lh-card-title flex-1 truncate">{title}</h2>
 						<button type="button" data-testid={`${testid}-close`} disabled={busy} onClick={onClose} className="lh-btn lh-btn-quiet shrink-0">
 							<PixelIcon name="close" />
 							Close

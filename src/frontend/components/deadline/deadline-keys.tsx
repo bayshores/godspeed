@@ -1,5 +1,5 @@
 import { deadlineStudyLabel, studyLabel, type DeadlineProgress } from "@/shared/core";
-import { BIG_KEY, MAIN_KEY } from "@/frontend/components/overview/styles";
+import { BIG_KEY, MAIN_KEY } from "@/frontend/components/ui/big-key";
 import { homeworkStartId } from "@/frontend/components/study-page/use-lesson-start";
 import { Key } from "@/frontend/components/ui/key";
 

@@ -5,9 +5,11 @@
  * Reset and leaving with unsaved text ask first.
  */
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { PART_NAMES, type PromptSegmentInfo, type TeachingArea } from "@/shared/core";
 import { jsonInit, send } from "@/frontend/lib/api";
+import { useLitMarker } from "@/frontend/components/lit-marker";
+import { STRIP, useTabStrip } from "@/frontend/components/tab-strip";
 import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { tabListKeys } from "@/frontend/components/ui/tab-list";
@@ -136,43 +138,13 @@ export function InstructionsPanel({
 							Teaching
 						</button>
 						<div className="min-w-0">
-							<h2 className="text-[30px] leading-9 text-ink">{area.label}, full instructions</h2>
+							<h1 className="lh-page-title">{area.label}, full instructions</h1>
 							<p className="text-ui text-ink-2">What {teacherName} reads before every lesson</p>
 						</div>
 					</>
 				)}
 			</div>
-			{parts.length > 1 && (
-				<div
-					role="tablist"
-					aria-label="Parts"
-					onKeyDown={tabListKeys(parts.indexOf(part), parts.length, (i) => pick(parts[i]!.path))}
-					className="flex flex-wrap gap-1.5 border-b-2 border-edge"
-				>
-					{parts.map((p, i) => {
-						const on = p.path === part.path;
-						return (
-							<button
-								key={p.path}
-								type="button"
-								role="tab"
-								id={`${tabsId}-${i}`}
-								aria-selected={on}
-								aria-controls={`${tabsId}-panel`}
-								tabIndex={on ? 0 : -1}
-								onClick={() => pick(p.path)}
-								className={cn(
-									"lh-press -mb-0.5 flex items-baseline gap-2 border-b-2 px-3.5 py-2.5 text-lg",
-									on ? "border-ink font-medium text-ink" : "border-transparent text-ink-2 hover:text-ink",
-								)}
-							>
-								{PART_NAMES[p.path] ?? p.path}
-								{p.overrideText !== null && <span className="text-ui font-normal text-ink-2">changed</span>}
-							</button>
-						);
-					})}
-				</div>
-			)}
+			{parts.length > 1 && <PartTabs parts={parts} lit={part} tabsId={tabsId} onPick={pick} />}
 			<div
 				role={parts.length > 1 ? "tabpanel" : undefined}
 				id={`${tabsId}-panel`}
@@ -184,7 +156,7 @@ export function InstructionsPanel({
 					data-testid="instructions-editor"
 					spellCheck={false}
 					onChange={(e) => setDrafts((d) => ({ ...d, [part.path]: e.target.value }))}
-					className="h-[470px] w-full resize-none lh-well lh-notch px-7 py-[22px] text-lg leading-relaxed text-ink"
+					className="h-[470px] w-full resize-none lh-well lh-notch px-7 py-[22px] text-item leading-relaxed text-ink"
 				/>
 			</div>
 			<footer className="flex items-center gap-2.5">
@@ -210,5 +182,44 @@ export function InstructionsPanel({
 				)}
 			</footer>
 		</section>
+	);
+}
+
+/** A tab per part, drawn like every row of tabs: the lit one's underline slides to it, and a row too narrow scrolls. */
+function PartTabs({ parts, lit, tabsId, onPick }: { parts: PromptSegmentInfo[]; lit: PromptSegmentInfo; tabsId: string; onPick: (path: string) => void }) {
+	const rowRef = useRef<HTMLDivElement>(null);
+	const underline = useLitMarker(rowRef, '[aria-selected="true"]', lit.path);
+	const strip = useTabStrip('[aria-selected="true"]', lit.path);
+	return (
+		<div ref={rowRef} className="lh-tabs relative isolate">
+			<div ref={underline} hidden aria-hidden className="lh-lit-marker lh-tab-line" />
+			<div
+				{...strip}
+				role="tablist"
+				aria-label="Parts"
+				onKeyDown={tabListKeys(parts.indexOf(lit), parts.length, (i) => onPick(parts[i]!.path))}
+				className={cn("flex gap-x-1.5", STRIP)}
+			>
+				{parts.map((p, i) => {
+					const on = p.path === lit.path;
+					return (
+						<button
+							key={p.path}
+							type="button"
+							role="tab"
+							id={`${tabsId}-${i}`}
+							aria-selected={on}
+							aria-controls={`${tabsId}-panel`}
+							tabIndex={on ? 0 : -1}
+							onClick={() => onPick(p.path)}
+							className="lh-press lh-tab"
+						>
+							{PART_NAMES[p.path] ?? p.path}
+							{p.overrideText !== null && <span className="text-ui text-ink-2">changed</span>}
+						</button>
+					);
+				})}
+			</div>
+		</div>
 	);
 }

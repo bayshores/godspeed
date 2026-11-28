@@ -62,13 +62,13 @@ function ApprovalCard({ approval, leaving, live, answer: send }: { approval: Wor
 				>
 					<p className="text-ui leading-5 text-ink">{approval.text}</p>
 					{subject && (
-						<p data-testid="approval-subject" data-kind={subject.kind} className={cn("lh-paper lh-sheet line-clamp-4 px-3 py-2 text-base leading-5 break-words whitespace-pre-wrap", subject.kind === "command" && "font-mono")}>
+						<p data-testid="approval-subject" data-kind={subject.kind} className={cn("lh-paper lh-sheet line-clamp-4 px-3 py-2 text-ui leading-5 break-words whitespace-pre-wrap", subject.kind === "command" && "font-mono")}>
 							{subject.text}
 						</p>
 					)}
 					<div className="flex flex-wrap items-center justify-end gap-3">
 						{answer.error && (
-							<p role="alert" className="min-w-0 flex-1 text-base leading-5 text-ans-wrong">
+							<p role="alert" className="min-w-0 flex-1 text-ui leading-5 text-ans-wrong">
 								{answer.error}
 							</p>
 						)}

@@ -9,11 +9,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LoadingLine } from "@/frontend/components/loading";
+import { MENU_ITEM } from "@/frontend/components/menu-shell";
 import { fuzzyScore } from "@/shared/core";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 
-const ROW = "lh-press flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-ui text-ink hover:bg-accent";
+const ROW = cn(MENU_ITEM, "w-full justify-between gap-3");
 
 /** The factory reading family (unset = this). */
 export const DEFAULT_READING_FONT = "Literata";
@@ -128,7 +129,7 @@ export function FontMenuList({
 									data-testid={isDefault ? "font-option-default" : `font-option-${family.replace(/[^a-z0-9-]/gi, "_")}`}
 									data-idx={i}
 									onClick={() => onPick(family)}
-									className={cn(ROW, i === menuIdx && "bg-accent", effective && "font-medium")}
+									className={cn(ROW, i === menuIdx && "bg-tone", effective && "font-medium")}
 								>
 									<span className="truncate">{family ?? DEFAULT_READING_FONT}</span>
 									<span className="shrink-0 text-ink-2">{isDefault ? "default" : effective && <PixelIcon name="check" />}</span>
@@ -138,14 +139,14 @@ export function FontMenuList({
 					})}
 				{families && customFamily !== null && (
 					<li>
-						<button type="button" data-testid="font-option-custom" data-idx={0} onClick={() => onPick(customFamily)} className={cn(ROW, menuIdx === 0 && "bg-accent")}>
+						<button type="button" data-testid="font-option-custom" data-idx={0} onClick={() => onPick(customFamily)} className={cn(ROW, menuIdx === 0 && "bg-tone")}>
 							<span className="truncate">Use “{customFamily}”</span>
 							<span className="shrink-0 text-ink-2">custom</span>
 						</button>
 					</li>
 				)}
 			</ul>
-			{footer && <div className="px-3 pt-1.5 text-sm text-ink-2">{footer}</div>}
+			{footer && <div className="px-3 pt-1.5 text-ui text-ink-2">{footer}</div>}
 		</>
 	);
 }

@@ -3,14 +3,14 @@
  * was, for a miss the question and the right answer, and his kept sentence
  * on that topic with its phrase and source. Pure.
  */
-import type { ResultTone } from "@/frontend/components/result-tag";
+import type { ChipTone } from "@/frontend/components/ui/chip";
 import { answerWasLine } from "@/frontend/components/answered-card-model";
 import type { FileCite } from "@/frontend/components/citations/page-excerpt-model";
 import { confidenceLevel, type ReviewDetails } from "@/shared/core";
 import { keptSource, phraseLine } from "./kept-card-model";
 
 interface FromEarlierRow {
-	tone: ResultTone;
+	tone: ChipTone;
 	word: "Right" | "Wrong" | "Didn't know";
 	topic: string;
 	/** 1 to 5, or null when he did not know or gave none. */

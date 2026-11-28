@@ -18,6 +18,11 @@ Object.assign(globalThis, {
 	document: dom.document,
 	HTMLElement: dom.window.HTMLElement,
 	IS_REACT_ACT_ENVIRONMENT: true,
+	// The row of parts follows its tabs' sizes; linkedom lays nothing out.
+	ResizeObserver: class {
+		observe() {}
+		disconnect() {}
+	},
 });
 
 const { createRoot } = await import("react-dom/client");

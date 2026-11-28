@@ -54,7 +54,7 @@ function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; 
 				</>
 			}
 		>
-			<p title={lesson.title} className="truncate text-lg text-ink">
+			<p title={lesson.title} className="truncate text-item text-ink">
 				{lesson.title}
 			</p>
 			<div role="radiogroup" aria-label="Space" className="flex flex-col">

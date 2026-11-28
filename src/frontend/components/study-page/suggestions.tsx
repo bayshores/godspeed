@@ -104,7 +104,7 @@ const SuggestionRow = memo(function SuggestionRow({
 				<span className="truncate text-item leading-tight text-ink">
 					<InlineMath text={title} />
 				</span>
-				<span className="flex min-w-0 items-center gap-2.5 text-base text-ink-2">
+				<span className="flex min-w-0 items-center gap-2.5 text-ui text-ink-2">
 					{blocks && <StepBlocks done={blocks.done} total={blocks.total} />}
 					<span className="truncate">{suggestionLine(s)}</span>
 				</span>

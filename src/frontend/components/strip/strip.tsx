@@ -17,7 +17,7 @@ const DOWN = "[writing-mode:vertical-rl] whitespace-nowrap";
 /** One row of the peek. */
 const ROW = "flex min-h-11 items-center gap-3 px-[18px] py-2 text-left text-item";
 /** A row that does something when clicked. */
-const ROW_KEY = cn(ROW, "lh-press hover:bg-accent");
+const ROW_KEY = cn(ROW, "lh-press hover:bg-tone");
 /** What waits for the learner, on the highlighter. */
 const LIT = "bg-highlight text-ink";
 
@@ -147,7 +147,7 @@ function PeekRows({ strip }: { strip: StripState }) {
 	return (
 		<>
 			{status?.status && (
-				<button type="button" data-testid="peek-status" onClick={strip.click} className={cn(ROW, "lh-press gap-2.5 hover:bg-accent")}>
+				<button type="button" data-testid="peek-status" onClick={strip.click} className={cn(ROW, "lh-press gap-2.5 hover:bg-tone")}>
 					<SquareMark square={view.square} />
 					<span className="min-w-0 flex-1">{status.status}</span>
 				</button>
@@ -181,7 +181,7 @@ function PeekRows({ strip }: { strip: StripState }) {
 				</div>
 			)}
 			{strip.waiting > 0 && (
-				<button type="button" data-testid="peek-notices" aria-expanded={strip.noticesOpen} onClick={() => setNoticesOpen(!strip.noticesOpen)} className={cn(ROW_KEY, strip.noticesOpen && "bg-accent")}>
+				<button type="button" data-testid="peek-notices" aria-expanded={strip.noticesOpen} onClick={() => setNoticesOpen(!strip.noticesOpen)} className={cn(ROW_KEY, strip.noticesOpen && "bg-tone")}>
 					{noticeCount(strip.waiting)}
 				</button>
 			)}

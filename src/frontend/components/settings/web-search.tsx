@@ -2,8 +2,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { LoadingLine } from "@/frontend/components/loading";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
+import { chip } from "@/frontend/components/ui/chip";
 import { FIELD } from "@/frontend/components/ui/field";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { send, serverError } from "@/frontend/lib/api";
 import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { cn } from "@/frontend/lib/utils";
@@ -76,11 +78,7 @@ export function WebSearch() {
 										</span>
 										<div className="flex min-w-0 flex-1 flex-col gap-1.5">
 											<span className="text-ui text-ink-2">{usageLine(view.limit)}</span>
-											{view.limit !== null && view.limit > 0 && (
-												<span aria-hidden className="block h-2 bg-tone">
-													<span className="block h-full bg-ink" style={{ width: `${Math.min(1, view.used / view.limit) * 100}%` }} />
-												</span>
-											)}
+											{view.limit !== null && view.limit > 0 && <ProgressBar share={view.used / view.limit} />}
 										</div>
 									</div>
 								)}
@@ -91,10 +89,10 @@ export function WebSearch() {
 								)}
 								<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
 									<PixelIcon name="key" size={10} className="text-ink" />
-									<span data-testid="web-search-key" className="text-base text-ink">
+									<span data-testid="web-search-key" className="text-ui text-ink">
 										Key ending in {view.keyEnd}
 									</span>
-									{works && <span className="bg-ans-right px-2 py-0.5 text-sm text-background">Works</span>}
+									{works && <span className={chip("right", "tag")}>Works</span>}
 									<button type="button" data-testid="web-search-remove" disabled={busy} onClick={() => run(() => request("/api/web-search/key", { method: "DELETE" }))} className="lh-btn ml-auto shrink-0">
 										Remove key
 									</button>
@@ -146,8 +144,8 @@ function Choice({ testid, name, picked, children }: { testid: string; name: stri
 				<span aria-hidden className={cn("flex size-[18px] shrink-0 items-center justify-center border-2", picked ? "border-ink bg-ink text-background" : "border-edge")}>
 					{picked && <PixelIcon name="check" size={10} />}
 				</span>
-				<h3 className={cn("min-w-0 flex-1 text-item leading-tight", picked ? "font-medium text-ink" : "text-ink-2")}>{name}</h3>
-				{picked && <span className="shrink-0 bg-highlight px-2 py-0.5 text-sm text-ink">In use</span>}
+				<h3 className={cn("lh-inner-title flex-1", picked ? "font-medium" : "text-ink-2")}>{name}</h3>
+				{picked && <span className={chip("lit", "tag")}>In use</span>}
 			</div>
 			{children}
 		</div>

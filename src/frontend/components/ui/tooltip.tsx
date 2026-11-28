@@ -6,8 +6,8 @@ import { cn } from "@/frontend/lib/utils"
 /**
  * THE TOOLTIP: flat, no blur, no shadow. Two looks:
  * - the box: made of the top bar like every pop-up (lh-popup), so it reads
- *   the same on every background, a bold title and small content under it
- *   (<Tip title body>);
+ *   the same on every background, a title and quiet content under it, both
+ *   at the interface size (<Tip title body>);
  * - the tag: white with black text, one short label (<Hint label>, in
  *   src/frontend/components/ui/hint.tsx).
  *
@@ -44,7 +44,7 @@ function TooltipTrigger({
 }
 
 const BOX =
-  "lh-popup flex w-max max-w-72 flex-col gap-1.5 px-3 py-2.5 text-left text-xs text-ink-2"
+  "lh-popup flex w-max max-w-72 flex-col gap-1.5 px-3 py-2.5 text-left text-ui text-ink-2"
 const TAG = "w-max max-w-72 bg-ink px-2 py-1 text-(length:--text-sm) font-semibold text-background"
 
 function TooltipContent({
@@ -69,9 +69,9 @@ function TooltipContent({
 }
 
 interface TipProps {
-  /** Bold first line. */
+  /** First line, in ink. */
   title?: React.ReactNode
-  /** Small content under the title (text, bars, answer blocks). */
+  /** Quiet content under the title (text, bars, answer blocks). */
   body?: React.ReactNode
   side?: "top" | "bottom" | "left" | "right"
   align?: "start" | "center" | "end"
@@ -92,7 +92,7 @@ function Tip({ title, body, side = "top", align = "center", disabled, className,
         <TooltipTrigger asChild>{children}</TooltipTrigger>
         <TooltipContent side={side} align={align} className={className}>
           {title !== undefined && title !== null && (
-            <div data-slot="tooltip-title" className="text-sm font-bold text-ink">
+            <div data-slot="tooltip-title" className="font-medium text-ink">
               {title}
             </div>
           )}

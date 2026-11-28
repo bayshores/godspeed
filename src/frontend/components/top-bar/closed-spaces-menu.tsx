@@ -2,12 +2,12 @@ import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
 import { spaceColorVar } from "@/frontend/components/space-color";
-import { MenuShell } from "@/frontend/components/menu-shell";
+import { MENU_ITEM, MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { useLessonList } from "@/frontend/components/lessons/use-lesson-list";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { BAR_TAB, barTabState, MENU_ITEM } from "./bar-look";
+import { BAR_TAB, barTabState } from "./bar-look";
 import { hasLessonsWithNoSpace, plusName } from "./top-bar-model";
 import { useCloseSpace } from "./use-close-space";
 

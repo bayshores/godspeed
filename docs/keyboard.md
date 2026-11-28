@@ -50,7 +50,7 @@ Entries marked `displayOnly` are keys one surface owns, like the question rows b
 
 On the Mac the menu bar owns ⌘, (godspeed, Settings…), ⌘N (File, Study), ⌘⇧F (File, Search Lessons), ⌘G (Go, Graph), ⌘[ (Go, Back) and ⌘] (Go, Forward). Those keys never reach the page there; the menu pushes the item to the page, which runs it through the same code as the key. In a browser the page's listener handles ⌘N, ⌘⇧F, ⌘G and ⌘, (comma), and ⌘[ and ⌘] do nothing. Help, Keyboard Shortcuts has no key: a bare `?` would take it from the field being typed in. It sends the same event as the `?` key, on every system.
 
-Search lessons opens a popup over every space. In its field ↑/↓ walk the results and Enter opens one (the first match if none is picked).
+Search lessons opens a dialog over every space. In its field ↑/↓ walk the results and Enter opens one (the first match if none is picked).
 
 ## Keys that are only listed
 

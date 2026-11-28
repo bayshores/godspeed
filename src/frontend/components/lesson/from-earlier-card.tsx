@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
-import { ResultTag } from "@/frontend/components/result-tag";
+import { chip } from "@/frontend/components/ui/chip";
 import { proseVars, QuizWhy } from "@/frontend/components/answered-card";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { useFold } from "@/frontend/components/use-fold";
@@ -41,9 +41,9 @@ function Row({ details }: { details: ReviewDetails }) {
 	return (
 		<div data-testid="from-earlier-row" className="flex flex-col gap-2.5 py-3 first:pt-0 last:pb-0">
 			<div className="flex flex-wrap items-center gap-2.5">
-				<ResultTag tone={row.tone} testId="from-earlier-result">
+				<span data-testid="from-earlier-result" className={chip(row.tone, "tag")}>
 					{row.word}
-				</ResultTag>
+				</span>
 				<span className="font-count text-ui text-ink-2">
 					{whyButton ? (
 						row.topic

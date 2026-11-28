@@ -183,7 +183,6 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 				testid="space-dialog"
 				busy={busy}
 				onClose={requestClose}
-				className="w-[540px]"
 				foot={
 					<>
 						<span className="flex-1" />
@@ -196,7 +195,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 					</>
 				}
 			>
-				<p data-testid="space-delete-confirm" className="text-lg text-ink">
+				<p data-testid="space-delete-confirm" className="text-item text-ink">
 					This permanently removes the space, all its lessons, its copied files, and its knowledge graph. A linked folder on your computer is not touched. This cannot be undone.
 				</p>
 				{errorLine}
@@ -212,7 +211,6 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 			testid="space-dialog"
 			busy={busy}
 			onClose={requestClose}
-			className={mode.kind === "edit" ? "w-[620px]" : undefined}
 			foot={
 				asking === "discard" ? (
 					<FootQuestion
@@ -286,7 +284,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 					<SpaceSignatureField kind={signature.kind} value={signature.value} disabled={busy} onChange={(kind, value) => setSignature({ kind, value })} />
 					<div className="flex flex-col gap-1.5">
 						<span className={LABEL_TEXT}>Rules for this space</span>
-						<span className="text-base text-ink-2">Added to your rules in every {editing.name} lesson</span>
+						<span className="text-ui text-ink-2">Added to your rules in every {editing.name} lesson</span>
 						<RuleChips rules={rules} onChange={setRules} testid="space-rules" saved={savedTimes(savedRules, { spaceId: editing.id })} teacherName={teacherName} />
 					</div>
 				</>

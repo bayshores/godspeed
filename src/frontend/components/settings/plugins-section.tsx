@@ -15,7 +15,7 @@ import { cn } from "@/frontend/lib/utils";
 import { addAction, addable, updateFor } from "./plugins-model.ts";
 import { AddSheet, BrokenSheet, PluginSheet } from "./plugins-sheet.tsx";
 
-const ROW = "lh-press flex items-center gap-2 px-3.5 py-3 text-left text-base text-ink";
+const ROW = "lh-press flex items-center gap-2 px-3.5 py-3 text-left text-ui text-ink";
 
 /** Where an action runs and where its failure shows: Add (the folder chooser), the open sheet,
  *  its Update key, or a row of the Add sheet. */
@@ -73,7 +73,7 @@ export function PluginsSection() {
 			return folder ? added(await installPlugin(folder)) : null;
 		});
 
-	if (!plugins) return plugins === null ? <p className="text-xs text-ink-2">Plugins could not be loaded.</p> : <LoadingLine className="text-xs" />;
+	if (!plugins) return plugins === null ? <p className="text-ui text-ink-2">Plugins could not be loaded.</p> : <LoadingLine className="text-ui" />;
 	const rows = addable(listed, plugins);
 	const addDoes = addAction(rows.length, !!pickFolder);
 	const sheetOpen = showAdd && rows.length > 0;
@@ -145,7 +145,7 @@ export function PluginsSection() {
 						/>
 					) : !picked ? (
 						<Pane data-testid="plugins-empty" className="lh-card">
-							<p className="text-base text-ink-2">No plugins yet.</p>
+							<p className="text-ui text-ink-2">No plugins yet.</p>
 						</Pane>
 					) : "manifest" in picked ? (
 						<PluginSheet

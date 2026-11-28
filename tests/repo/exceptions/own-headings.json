@@ -1,0 +1,11 @@
+{
+	"src/frontend/components/cheat-sheet/studio.tsx": 1,
+	"src/frontend/components/graph/fact-pane.tsx": 1,
+	"src/frontend/components/graph/topic-pane.tsx": 1,
+	"src/frontend/components/home-page/next-card.tsx": 1,
+	"src/frontend/components/home-page/week-columns.tsx": 1,
+	"src/frontend/components/lesson/reading-pane.tsx": 1,
+	"src/frontend/components/mock/mock-bar.tsx": 1,
+	"src/frontend/components/onboarding/wordmark.tsx": 1,
+	"src/frontend/components/settings/appearance-section.tsx": 2
+}

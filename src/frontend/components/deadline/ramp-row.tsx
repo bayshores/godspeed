@@ -10,7 +10,7 @@ export function RampRow({ name, rate, tally }: { name: string; rate: number | nu
 			<span title={name} className="min-w-0 flex-1 truncate text-ui text-ink">
 				{name}
 			</span>
-			{(tally?.answered ?? 0) > 0 && <span className="shrink-0 text-base text-ink-2">{rightLabel(tally)}</span>}
+			{(tally?.answered ?? 0) > 0 && <span className="shrink-0 text-ui text-ink-2">{rightLabel(tally)}</span>}
 		</span>
 	);
 }

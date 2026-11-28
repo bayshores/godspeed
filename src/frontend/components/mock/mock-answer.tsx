@@ -66,7 +66,7 @@ export function CodeAnswer({
 			{erasing ? (
 				<span className="flex items-center gap-1.5 text-(length:--text-sm) text-ink">
 					Erase your {MOCK_LANGUAGES[language]} code?
-					<button type="button" data-testid="mock-start-over-yes" onClick={onStartOver} className="lh-btn h-6 px-2 text-(length:--text-sm)">
+					<button type="button" data-testid="mock-start-over-yes" onClick={onStartOver} className="lh-btn lh-btn-small">
 						Erase
 					</button>
 					<button type="button" onClick={() => setErasing(false)} className="lh-btn lh-btn-small lh-btn-quiet">

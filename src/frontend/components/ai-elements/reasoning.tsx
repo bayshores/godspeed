@@ -148,7 +148,7 @@ export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => (
     <CollapsibleContent
       className={cn(
-        "mt-2 border-l-2 border-tone-2 pl-3 font-prose text-(length:--text-lg) italic text-ink-2 outline-none",
+        "mt-2 border-l-2 border-tone-2 pl-3 font-prose text-item italic text-ink-2 outline-none",
         /* The app's motion tokens (tw-animate is not loaded). Opening
            rises in; closing fades, and Radix waits for it before unmounting. */
         "motion-safe:data-[state=open]:animate-[lh-rise-in_var(--lh-dur)_var(--lh-ease-out)] motion-safe:data-[state=closed]:animate-[lh-fade-out_var(--lh-dur-fast)_var(--lh-ease-in)_both]",

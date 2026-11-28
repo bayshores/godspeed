@@ -284,7 +284,7 @@ function FontPicker({ family, onPick }: { family: string | null; onPick: (family
 						setOpen(false);
 						onPick(f);
 					}}
-					footer={fonts === undefined ? undefined : fonts === null ? "Common fonts. Your installed fonts show in the desktop app." : "Your installed fonts"}
+					footer={fonts === null ? "Common fonts. Your installed fonts show in the desktop app." : undefined}
 				/>
 			</MenuShell>
 		</span>

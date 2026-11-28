@@ -65,7 +65,7 @@ export function TopicPane({
 				<h2 className={`${stacked ? "pr-12 " : ""}text-2xl leading-tight [overflow-wrap:anywhere] text-ink ${nameStep.className}`} style={nameStep.style}>
 					{topic.name}
 				</h2>
-				<p data-testid="topic-score" className={`-mt-1 text-base text-ink-2 ${scoreStep.className}`} style={scoreStep.style}>
+				<p data-testid="topic-score" className={`-mt-1 text-ui text-ink-2 ${scoreStep.className}`} style={scoreStep.style}>
 					{topicCountLine(list.length, topic)}
 				</p>
 				{list.length > 0 && <TopicMoons key={topic.id} facts={list} onOpen={onOpenFact} size={36} stepFrom={rowStart(motion, 2)} />}

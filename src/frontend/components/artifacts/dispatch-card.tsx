@@ -61,7 +61,7 @@ function DispatchActivityCard({ job, label }: { job: JobRecord | null; label: st
 			className={cn(CARD, "flex flex-col gap-2 py-3 text-card-foreground")}
 			data-testid="dispatch-card"
 		>
-			<div className="flex items-center gap-2.5 text-base text-ink">
+			<div className="flex items-center gap-2.5 text-ui text-ink">
 				{/* The Braille spinner: one working indicator everywhere. */}
 				<BrailleSpinner label={`${label} running`} />
 				{label}
@@ -73,7 +73,7 @@ function DispatchActivityCard({ job, label }: { job: JobRecord | null; label: st
 				</div>
 			)}
 			{!job && (
-				<div className="text-sm text-ink-2" data-testid="dispatch-pending">
+				<div className="text-ui text-ink-2" data-testid="dispatch-pending">
 					Dispatched…
 				</div>
 			)}

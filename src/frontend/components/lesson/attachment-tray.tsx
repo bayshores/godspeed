@@ -137,7 +137,7 @@ export function AttachmentTray({ draft }: { draft: AttachmentDraft }) {
 					))}
 				</div>
 			)}
-			{draft.error && <p data-testid="attachment-error" className="text-base text-ink-2">{draft.error}</p>}
+			{draft.error && <p data-testid="attachment-error" className="text-ui text-ink-2">{draft.error}</p>}
 		</div>
 	);
 }
@@ -150,7 +150,7 @@ function DraftChip({ file, onRemove }: { file: ChatAttachment; onRemove: () => v
 			{!pdf && (
 				<img src={`data:${file.mimeType};base64,${file.data}`} alt="" className="size-11 shrink-0 object-cover" />
 			)}
-			<span className="min-w-0 truncate text-base text-ink" title={file.name}>{file.name}</span>
+			<span className="min-w-0 truncate text-ui text-ink" title={file.name}>{file.name}</span>
 			<button type="button" aria-label={`Remove ${file.name}`} onClick={onRemove} className="lh-btn lh-btn-small lh-btn-quiet shrink-0">
 				Remove
 			</button>

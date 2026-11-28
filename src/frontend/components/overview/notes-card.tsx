@@ -34,7 +34,7 @@ export function NotesCard({ spaceId }: { spaceId: string | null }) {
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">
 					{obsidian ? "Obsidian" : "Notes"}
-					<span className="font-count text-base whitespace-nowrap text-ink-2">{` ${notes.length}`}</span>
+					<span className="font-count text-ui whitespace-nowrap text-ink-2">{` ${notes.length}`}</span>
 				</h2>
 				{!all && more && (
 					<button type="button" data-testid="notes-all" onClick={() => setAll(true)} className="lh-btn shrink-0">

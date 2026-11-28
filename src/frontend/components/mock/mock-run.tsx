@@ -5,7 +5,7 @@ import { MathBox } from "@/frontend/components/math-box";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { barWord } from "@/frontend/components/top-bar/bar-look";
 import { Travel } from "@/frontend/components/travel/travel";
-import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
+import { MAIN_KEY } from "@/frontend/components/ui/big-key";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { cn } from "@/frontend/lib/utils";
@@ -210,10 +210,10 @@ export function MockRun({ view }: { view: MockView }) {
 			{paused ? (
 				<div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3.5 overflow-y-auto p-8 text-center">
 					<p className="text-ask leading-tight text-ink">Mock {mock.n} is paused</p>
-					<p className="max-w-[520px] text-lg leading-snug text-ink-2">
+					<p className="max-w-[520px] text-item leading-snug text-ink-2">
 						The questions are hidden and nothing is saved until you resume.
 					</p>
-					<button ref={resumeButton} type="button" data-testid="mock-resume" disabled={switching} onClick={() => void pauseOrResume()} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
+					<button ref={resumeButton} type="button" data-testid="mock-resume" disabled={switching} onClick={() => void pauseOrResume()} className={`lh-btn ${MAIN_KEY}`}>
 						Resume
 					</button>
 					{errorLine}

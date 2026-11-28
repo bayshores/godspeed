@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from "react";
 import type { SpaceColor, SpaceSummary } from "@/shared/core";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { chip } from "@/frontend/components/ui/chip";
 import { JOINED } from "@/frontend/components/motion";
 import { blockColor, paleSpaceColor, spaceLineColor } from "@/frontend/components/space-color";
 import { prefersReducedMotion } from "@/frontend/components/presence";
@@ -119,7 +120,7 @@ function WeekBlock({ item, dated, color, picked, joined, onPick }: { item: WeekI
 			>
 				{/* On a box of its own: the focus rule takes a focused button's own outline away. */}
 				{item.kind === "gap" && <span aria-hidden className="lh-dashed pointer-events-none absolute -inset-0.5" />}
-				{item.late && <span className="mb-0.5 bg-ans-wrong px-1 text-xs leading-ui text-background">late</span>}
+				{item.late && <span className={cn(chip("wrong", "tag"), "mb-0.5")}>late</span>}
 				{/* Under 1000px of week a day's name is small and alone; from it, and in a row, its time shows under it. */}
 				<span className={cn("line-clamp-3 w-full text-sm leading-ask hyphens-manual wrap-anywhere @min-[1000px]:text-ui", item.done && "line-through")}>{item.name}</span>
 				{item.detail && <span className={cn("w-full truncate text-sm leading-ask", dated ? "block" : "hidden @min-[1000px]:block @max-[600px]:block")}>{item.detail}</span>}

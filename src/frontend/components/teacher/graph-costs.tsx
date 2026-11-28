@@ -21,7 +21,7 @@ export function GraphCosts({ costs, space }: { costs: GraphCostSummary; space: s
 	const unpriced = displayUnpricedRuns(costs);
 	return (
 		<section data-testid="graph-costs" className="flex flex-col gap-3">
-			<h3 className="truncate text-item font-normal text-ink">
+			<h3 className="lh-inner-title truncate">
 				Graph costs
 				{space && <span className="text-ink-2">, {space}</span>}
 			</h3>

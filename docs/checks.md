@@ -49,6 +49,8 @@ The hooks are the files in `.githooks`. `npm install` points git at them for eve
 | A Rust save or delete whose error is thrown away (`let _ =`, `.ok();`) | `tests/repo/ignored-writes.test.ts` | the test |
 | A Rust file over 17,000 characters, about 500 lines | `tests/repo/file-size.test.ts` | `tests/repo/exceptions/file-size.json` |
 | An unused Rust dependency | `cargo machete` | `package.json`, `rust:check` |
+| A heading drawn with classes of its own instead of `.lh-page-title`, `.lh-card-title` or `.lh-inner-title` | `tests/repo/headings.test.ts` | `tests/repo/exceptions/own-headings.json` |
+| A small grey label (`text-sm` or `text-xs` in a quiet ink) | `tests/repo/small-labels.test.ts` | `tests/repo/exceptions/small-labels.json` |
 | A broken screen layout | `npm run layout` (not part of `check`) | `scripts/layout-screens.mjs` |
 | A list of exceptions that grew | `tests/repo/ratchet.test.ts` | `tests/repo/exceptions/` |
 

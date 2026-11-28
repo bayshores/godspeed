@@ -102,11 +102,11 @@ export function DeleteLessonBody({
 			onClose={onClose}
 			foot={<DeleteFoot cancelTestid="delete-cancel" confirmTestid="delete-confirm" busy={busy} onClose={onClose} onRun={onRun} />}
 		>
-			<p data-testid="delete-lesson-name" title={chat.title} className="truncate text-lg text-ink">
+			<p data-testid="delete-lesson-name" title={chat.title} className="truncate text-item text-ink">
 				{chat.title}
 			</p>
 			<CheckRow testid="delete-traces-checkbox" label="Also remove what it added to the graph" checked={traces} disabled={busy} onToggle={() => onTraces(!traces)} />
-			<p className="text-lg text-ink">This cannot be undone.</p>
+			<p className="text-item text-ink">This cannot be undone.</p>
 			{failure && <FailureRow testid="delete-failure" retryTestid="delete-retry" failure={failure} busy={busy} onRun={onRun} />}
 		</DialogSheet>
 	);

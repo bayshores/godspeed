@@ -51,7 +51,7 @@ export function StudyLine({ spaces, busyOn, onStudy }: { spaces: readonly SpaceS
 				className="min-w-0 flex-1 bg-transparent font-prose text-item text-ink outline-none placeholder:text-ink-3"
 			/>
 			{spaces.length > 1 && <SpaceChip spaces={spaces} space={space} onPick={setChosen} />}
-			<Key data-testid="home-study-start" busy={busyOn === TYPED_START} disabled={busyOn !== null} onClick={submit} className="shrink-0 text-ui">
+			<Key data-testid="home-study-start" busy={busyOn === TYPED_START} disabled={busyOn !== null} onClick={submit} className="shrink-0">
 				Study
 			</Key>
 		</form>

@@ -3,12 +3,13 @@ import { Link } from "react-router";
 import { isNewFolderFile, type SpaceFile, type FileCoverage, type FileWork } from "@/shared/core";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { useMinute } from "@/frontend/components/countdown";
-import { MenuShell } from "@/frontend/components/menu-shell";
+import { MENU_ITEM, MenuShell } from "@/frontend/components/menu-shell";
 import { StepBlocks } from "@/frontend/components/overview/lesson-rows";
 import { lessonHref, problemsDone } from "@/frontend/components/overview/overview-model";
 import { SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { chip } from "@/frontend/components/ui/chip";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { TickMark } from "@/frontend/components/ui/tick-mark";
+import { CheckBox } from "@/frontend/components/ui/check-row";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
@@ -58,7 +59,7 @@ const KIND_HELP = {
 } as const;
 
 const SLOT = "w-[236px] shrink-0";
-const STATUS = `${SLOT} text-base text-ink-2`;
+const STATUS = `${SLOT} text-ui text-ink-2`;
 
 /** How a row is picked: `held` when the lesson's file limit is reached and
  *  this row is not among the picks. */
@@ -138,7 +139,7 @@ export const FileRow = memo(function FileRow({
 					held && "cursor-not-allowed",
 				)}
 			>
-				{boxes && <TickMark checked={picked} className={cn(held && "opacity-50")} />}
+				{boxes && <CheckBox mark={picked ? "tick" : null} className={cn(held && "opacity-50")} />}
 				{/* Study material, which makes the facts, is the dark tile. */}
 				<span
 					aria-hidden
@@ -161,18 +162,18 @@ export const FileRow = memo(function FileRow({
 						name
 					)}
 					{source && (
-						<span data-testid={`space-file-source-${file.id}`} className="shrink-0 text-base text-ink-2">
+						<span data-testid={`space-file-source-${file.id}`} className="shrink-0 text-ui text-ink-2">
 							.tex
 						</span>
 					)}
 					{minute !== null && isNewFolderFile(file, minute) && (
-						<span data-testid={`space-file-new-${file.id}`} className={cn("shrink-0 px-1.5 text-xs font-medium text-ink", picked ? "bg-background" : "bg-highlight")}>
+						<span data-testid={`space-file-new-${file.id}`} className={chip(picked ? "well" : "lit", "tag")}>
 							New
 						</span>
 					)}
 				</span>
-				<Tip title={help.title} body={<span className="text-xs text-ink-2">{helpBody}</span>} side="bottom" className="w-[240px]">
-					<span data-testid={`space-file-kind-${file.id}`} className="w-10 shrink-0 text-base text-ink-2">
+				<Tip title={help.title} body={helpBody} side="bottom" className="w-[240px]">
+					<span data-testid={`space-file-kind-${file.id}`} className="w-10 shrink-0 text-ui text-ink-2">
 						{file.kind === "study" ? "Study" : "Info"}
 					</span>
 				</Tip>
@@ -268,7 +269,7 @@ function RowState({
 				return (
 					<span className={cn(SLOT, "flex items-center gap-2")}>
 						{lead}
-						<span data-testid={`space-file-status-${fileId}`} title={label} className="min-w-0 truncate text-base text-ink-2">
+						<span data-testid={`space-file-status-${fileId}`} title={label} className="min-w-0 truncate text-ui text-ink-2">
 							{label}
 						</span>
 					</span>
@@ -282,7 +283,7 @@ function RowState({
 		}
 		case "failed": {
 			const label = (
-				<span data-testid={`space-file-status-${fileId}`} tabIndex={state.error ? 0 : undefined} className="min-w-0 truncate text-base text-ans-wrong outline-none">
+				<span data-testid={`space-file-status-${fileId}`} tabIndex={state.error ? 0 : undefined} className="min-w-0 truncate text-ui text-ans-wrong outline-none">
 					{state.label}
 				</span>
 			);
@@ -314,15 +315,13 @@ const LINK = "lh-press outline-none hover:text-ink focus-visible:outline-2 focus
 /** The speech tool's install step, under a recording that needs it. */
 function InstallLine({ fileId, command }: { fileId: string; command: string }) {
 	return (
-		<span data-testid={`space-file-install-${fileId}`} className="flex basis-full flex-wrap items-center gap-x-2.5 gap-y-1.5 pt-0.5 pb-2 text-base text-ink-2">
+		<span data-testid={`space-file-install-${fileId}`} className="flex basis-full flex-wrap items-center gap-x-2.5 gap-y-1.5 pt-0.5 pb-2 text-ui text-ink-2">
 			<span className="min-w-0 flex-1 basis-[240px]">To turn recordings into text, run this in Terminal, then click Retry.</span>
 			<code className="font-count flex h-8 items-center lh-well lh-notch px-2.5 text-sm text-ink">{command}</code>
 			<CopyButton text={command} data-testid={`space-file-install-copy-${fileId}`} className={SMALL_BTN} />
 		</span>
 	);
 }
-
-const MENU_ITEM = "lh-press px-[18px] py-[11px] text-left hover:bg-tone";
 
 /** More: Move to the other kind, Retry (stuck waiting), Show in Finder
  *  (desktop app) and Remove (the app's own copies). */
@@ -374,18 +373,18 @@ function RowMenu({
 				testid={`space-file-menu-body-${file.id}`}
 				preferredSide="down"
 				align="right"
-				menuClass="lh-popup flex w-[250px] flex-col py-1.5 text-lg"
+				menuClass="lh-popup flex w-[250px] flex-col p-1.5"
 			>
-				<button role="menuitem" type="button" data-testid={`space-file-move-${file.id}`} onClick={pick(() => actions.onKind(file, other))} className={`${MENU_ITEM} text-ink`}>
+				<button role="menuitem" type="button" data-testid={`space-file-move-${file.id}`} onClick={pick(() => actions.onKind(file, other))} className={MENU_ITEM}>
 					Move to {kindTitle(other)}
 				</button>
 				{retry && (
-					<button role="menuitem" type="button" data-testid={`space-file-menu-retry-${file.id}`} onClick={pick(() => actions.onRetry(file.id))} className={`${MENU_ITEM} text-ink`}>
+					<button role="menuitem" type="button" data-testid={`space-file-menu-retry-${file.id}`} onClick={pick(() => actions.onRetry(file.id))} className={MENU_ITEM}>
 						Retry
 					</button>
 				)}
 				{show && (
-					<button role="menuitem" type="button" data-testid={`space-file-show-${file.id}`} onClick={pick(() => show.run(file.id))} className={`${MENU_ITEM} text-ink`}>
+					<button role="menuitem" type="button" data-testid={`space-file-show-${file.id}`} onClick={pick(() => show.run(file.id))} className={MENU_ITEM}>
 						{show.label}
 					</button>
 				)}
@@ -398,7 +397,7 @@ function RowMenu({
 							data-testid={`space-file-remove-${file.id}`}
 							aria-label={`Remove ${file.name}`}
 							onClick={pick(() => actions.onRemove(file))}
-							className={`${MENU_ITEM} text-ans-wrong`}
+							className={cn(MENU_ITEM, "text-ans-wrong")}
 						>
 							Remove
 						</button>

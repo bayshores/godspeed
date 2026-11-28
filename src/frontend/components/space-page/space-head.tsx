@@ -10,6 +10,7 @@ import { useUnseenFiles } from "@/frontend/components/files/files-seen";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { BarActions } from "@/frontend/components/top-bar/bar-slots";
 import { barWord } from "@/frontend/components/top-bar/bar-look";
+import { chip } from "@/frontend/components/ui/chip";
 import { KeyHint, keyShortcutProps } from "@/frontend/components/ui/key-hint";
 import { useProgress } from "@/frontend/components/use-progress";
 import type { ShownPlugin } from "@/frontend/lib/use-plugins-at";
@@ -68,7 +69,7 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 									</span>
 								)}
 								{t.href === "/space/files" && unseenFiles && (
-									<span data-testid="nav-files-new" className="bg-highlight px-1.5 text-sm text-ink">
+									<span data-testid="nav-files-new" className={chip("lit", "tag")}>
 										new
 									</span>
 								)}

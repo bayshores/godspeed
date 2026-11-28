@@ -49,7 +49,7 @@ export function PathSheet({
 				<h2 className="lh-card-title">Path</h2>
 			</div>
 			{ahead && (
-				<p data-testid="deadline-path-note" className="text-base text-ink-2">
+				<p data-testid="deadline-path-note" className="text-ui text-ink-2">
 					{needsGuide
 						? `Nothing is planned yet. A plan needs study files, and the posting only tells ${teacherName} about the interview.`
 						: pathNote(d, plan.length > 0, allStrong, material)}
@@ -68,7 +68,7 @@ export function PathSheet({
 							<li key={day.day} data-testid="deadline-day" className="flex flex-col gap-1 py-1">
 								<span className={cn("text-ui text-ink", i > 0 && "font-count")}>{i === 0 ? "Today" : deadlineDateLabel(day.day)}</span>
 								{day.topics.length === 0 && (
-									<p data-testid="deadline-day-empty" className="text-base text-ink-2">
+									<p data-testid="deadline-day-empty" className="text-ui text-ink-2">
 										{nothingMorePlannedLine()}
 									</p>
 								)}

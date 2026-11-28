@@ -70,7 +70,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 				</>
 			}
 		>
-			<p className="text-lg text-ink">
+			<p className="text-item text-ink">
 				{name} teaches you from {view?.short ?? "~/godspeed"} now. Your other {name} chats stop loading godspeed, and your spaces and lessons stay as
 				they are.
 			</p>
