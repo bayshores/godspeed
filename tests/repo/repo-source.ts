@@ -33,6 +33,11 @@ export type Repo = {
 
 export const wordsOf = (text: string) => text.match(/[A-Za-z_$][\w$]*/g) ?? [];
 
+/** Text with its `/* */` comments taken out, but not a `/*` inside a string such as `"dist/*.js"`. */
+export function withoutBlockComments(text: string): string {
+	return text.replace(/("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')|\/\*[\s\S]*?\*\//g, (_whole, string?: string) => string ?? "");
+}
+
 /** A file's code as the text of its tokens, comments left out, and its comments. Other text files are read whole. */
 function readCode(file: string, text: string): { code: string[]; comments: Comment[] } {
 	if (SCRIPT.test(file)) {
@@ -41,7 +46,7 @@ function readCode(file: string, text: string): { code: string[]; comments: Comme
 		return { code: tsTokens(source, source).map((token) => token.getText(source)), comments: tsComments(source).map((comment) => ({ file, ...comment })) };
 	}
 	if (file.endsWith(".rs")) return { code: rustTokens(text).map((token) => token.text), comments: readRust(text).comments.map((comment) => ({ file, ...comment })) };
-	return { code: [text.replace(/\/\*[\s\S]*?\*\//g, "")], comments: [] };
+	return { code: [withoutBlockComments(text)], comments: [] };
 }
 
 export function readRepo(): Repo {
