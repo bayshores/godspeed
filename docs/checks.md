@@ -41,7 +41,13 @@ The hooks are the files in `.githooks`. `npm install` points git at them for eve
 | A value written in both languages that no longer matches | `tests/repo/rust-twins.test.ts`, `tests/repo/event-names.test.ts`, `tests/repo/bridge-names.test.ts`, `crates/shell/tests/command_lists.rs` | the tests |
 | A feature with no control a learner can see, or no row in `docs/features.md` | `tests/repo/features.test.ts` | the test |
 | A Rust warning, `unsafe`, `dbg!`, `println!` | clippy with `-D warnings` | `Cargo.toml`, `[workspace.lints]` |
+| An exception to a Rust lint without a reason, or one nothing needs any more (`#[allow]`) | clippy | `Cargo.toml`, `[workspace.lints]` |
+| A Rust function over 100 lines, a block nested more than 6 deep, a result dropped with `.ok();` | clippy | `Cargo.toml`, `clippy.toml` |
+| An `unwrap` or `expect` in Rust the app runs, other than an `expect` that cannot fail under `#[expect(clippy::expect_used, reason = "...")]` | clippy on the libraries and binaries only | `package.json`, `rust:check` |
 | A bare task spawn, clock read, sleep or file write in Rust | clippy | `clippy.toml` |
+| A Rust `pub` item that nothing but tests uses | `tests/repo/rust-pub-used.test.ts` | the test |
+| A Rust save or delete whose error is thrown away (`let _ =`, `.ok();`) | `tests/repo/ignored-writes.test.ts` | the test |
+| A Rust file over 17,000 characters, about 500 lines | `tests/repo/file-size.test.ts` | `tests/repo/exceptions/file-size.json` |
 | An unused Rust dependency | `cargo machete` | `package.json`, `rust:check` |
 | A broken screen layout | `npm run layout` (not part of `check`) | `scripts/layout-screens.mjs` |
 | A list of exceptions that grew | `tests/repo/ratchet.test.ts` | `tests/repo/exceptions/` |

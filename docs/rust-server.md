@@ -64,6 +64,7 @@ Use `gs_base::re::Re::new(pattern, flags)` with the pattern as the screens' JS w
 - Write only with `fsx::write_atomic`, `fsx::write_text_atomic` or `fsx::write_atomic_pair`. Each writes temp file `<name>.tmp-<8 hex>`, then renames, like `write-file-atomic`. `write_atomic_pair` streams two files that go together and renames only once both are written.
 - A data file the app rewrites is read with `fsx::read_json_or_set_aside`: one that is not valid JSON is kept as `<name>.corrupt-<ms>`, so the next save cannot replace it. `fsx::read_json` is only for a file the app does not rewrite (a plugin's `manifest.json`) or a read that must not rename (`list_mocks_unlocked`). Other unreadable records go aside with `fsx::set_aside_corrupt`.
 - Error texts the learner or the agent sees come from `fsx::node_error_message`, which spells libuv's messages as Node did (`ENOENT: no such file or directory, open '<path>'`).
+- A file the app made and no longer needs (a failed write's temp file, a cache entry, a finished run's folder) goes with `fsx::remove_leftover`, which logs a failure with the caller's place. Any other delete returns its error or logs it.
 - Directory and file order must not depend on the file system. Sort explicitly.
 
 ### No globals
@@ -73,7 +74,7 @@ Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `lo
 ### Events, errors and concurrency
 
 - Emit with `app.events.emit(EventKind::X, json!({...}))`. Payload is the event minus `type`.
-- A fallible function returns `Result<T, String>`, or a small error enum when callers match on kind.
+- A fallible function returns `Result<T, String>`, or a small error enum when callers match on kind. Code the app runs has no `unwrap`; a call that cannot fail (a literal, compiled-in data) keeps its `expect` under `#[expect(clippy::expect_used, reason = "...")]`.
 - A route returns `Result<Response, Unhandled>`; `?` on any error answers an empty 500. A handler panic also answers an empty 500 and the server keeps running, but do not rely on it.
 - Start every task through `gs_base::tasks`: `detach(label, future)` for one nobody awaits (it prints `[label] task panicked: ...` if it panics), `spawn(label, future)` where the handle is awaited, stored or aborted, and `spawn_blocking(label, work)`. They use the current runtime, else the one `main` stored with `set_runtime`, so a task started from a plain `std::thread` (the thread that reads the shell's messages) still runs, where `tokio::spawn` would panic. With no runtime at all `detach` logs `[label] no runtime` and returns, while `spawn` and `spawn_blocking` panic with that text, since they must hand back a handle; so code on a plain thread starts its tasks with `detach`. Clippy refuses `tokio::spawn`, `tokio::task::spawn`, `tokio::task::spawn_blocking` and `Handle::current` everywhere else (`clippy.toml`).
 - Never hold a lock across `.await`. See [Locks](#locks).
@@ -89,7 +90,7 @@ Where output must equal the original TypeScript's (formatting, ranking, merging,
 - Short files with one job, short comments that say why, no history or phase notes in comments, no dead code.
 - No `unsafe`, except the shell's platform modules ([tauri-shell/files.md](tauri-shell/files.md#rules)).
 - Workspace dependencies are listed in root `Cargo.toml`. Indent with tabs.
-- Done means `npm run rust:check` passes: cargo test, clippy with `-D warnings` (also with the shell's `screens` and `self-test` features) and cargo-machete. Remove an unused dependency; do not ignore it.
+- Done means `npm run rust:check` passes: cargo test, clippy with `-D warnings` (also with the shell's `screens` and `self-test` features, and over the libraries and binaries with `unwrap` and `expect` refused) and cargo-machete. Remove an unused dependency; do not ignore it.
 
 ## What every module can use
 

@@ -46,8 +46,8 @@
 
 ### Rules
 
-- Workspace keeps `unsafe_code = "deny"`. Only `mac/mod.rs`, `win/mod.rs` and `linux/mod.rs` start with `#![allow(unsafe_code)]`, and every `unsafe` block there has a `// SAFETY:` line.
+- Workspace keeps `unsafe_code = "deny"`. Only `mac/mod.rs`, `win/mod.rs` and `linux/mod.rs` start with `#![expect(unsafe_code, reason = "...")]`, and `log.rs` marks `load_address` the same way. Every `unsafe` block there has a `// SAFETY:` line.
 - The shell uses `gs_base::clock` and `gs_base::fsx` like the server; `clippy.toml` applies.
 - It depends on `gs-base` and `gs-shell-rpc`, never on server crates.
-- stdout is the protocol channel. The workspace denies `print_stdout`, and `clippy.toml` bans `std::io::stdout`. The server's one writer (`ShellLink::new(std::io::stdout())` in `crates/server/src/main.rs`) carries `#[allow(clippy::disallowed_methods)]`.
+- stdout is the protocol channel. The workspace denies `print_stdout`, and `clippy.toml` bans `std::io::stdout`. The server's one writer (`ShellLink::new(std::io::stdout())` in `crates/server/src/main.rs`) carries `#[expect(clippy::disallowed_methods, reason = "...")]`.
 - Tauri and plugin versions are pinned exactly (`=x.y.z`) in the root `Cargo.toml`. Check an API name on the docs.rs page of the pinned version first.
