@@ -1,4 +1,8 @@
 #!/bin/sh
 # An early warning before CI spends eight minutes. The gate is GitHub's rule on main (docs/checks.md).
 cd "$(git rev-parse --show-toplevel)" || exit 1
-exec npm run --silent --if-present check:fast
+# Quiet when it passes: the full output is only worth reading on a failure.
+out=$(npm run --silent --if-present check:fast 2>&1) || {
+	printf '%s\n' "$out"
+	exit 1
+}
