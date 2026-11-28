@@ -1,0 +1,59 @@
+# Code checks
+
+What stops messy code, when each check runs, and how a change reaches `main`. Read before landing a branch, adding a check or adding an exception.
+
+A rule that is only written down gets broken. A kind of mistake is stopped by a check in `npm run check`, so each row below names the check, not the rule.
+
+## When the checks run
+
+| When | What runs | Can an agent skip it |
+|---|---|---|
+| `git commit` and `git push` | `npm run check:fast`, about 15 seconds: typecheck, lint, dead code and the repo checks in `tests/repo`. | Yes (`--no-verify`). It is an early warning, not the gate. |
+| A push of any branch to GitHub | CI's `quality` job: `npm run check` and the skill's tests, about 8 minutes. | No. |
+| A push to `main` | GitHub's rule "main takes checked commits" refuses a commit until `quality` has passed on it. | No. |
+
+The hooks are the files in `.githooks`. `npm install` points git at them for every worktree. In a checkout where it never ran, run `node scripts/install-hooks.mjs` once.
+
+## Landing a change on main
+
+1. Rebase the branch on `origin/main`, so `main` can move to it without a merge commit.
+2. Run `npm run check`, and `npm run layout` for a UI change.
+3. Push the branch: `git push origin <branch>`.
+4. Wait for CI on that commit: `gh run watch -R bayshores/godspeed --exit-status $(gh run list -R bayshores/godspeed --branch <branch> --limit 1 --json databaseId --jq '.[0].databaseId')`.
+5. Move `main` to it: `git push origin <branch>:main`. GitHub refuses when `quality` has not passed on that exact commit, or when `main` moved since step 1 (go back to step 1).
+6. CI then runs the slow jobs (`desktop`, `window`) on `main`. Watch them too.
+
+## What each check stops
+
+| Kind of mess | Check | Where it is set |
+|---|---|---|
+| An unused variable or parameter | `npm run typecheck` | `tsconfig.json` |
+| An unused file, export, type or npm package | `npm run deadcode` (knip) | `knip.json` |
+| A core export only tests use | `tests/repo/core-is-used.test.ts` | the test |
+| An import across the layers, an import cycle | `npm run lint` | `eslint.config.mjs` |
+| A request outside `lib/api.ts`, browser storage outside `lib/storage.ts` | `npm run lint` | `eslint.config.mjs` |
+| A right-click menu | `npm run lint` | `eslint.config.mjs` |
+| A hand-typed size, line height, corner, timing, curve or layer | `npm run lint`, `tests/frontend/type-ladder.test.ts`, `tests/frontend/motion-times.test.ts` | `eslint.config.mjs`, `src/frontend/globals.css` |
+| A value written in both languages that no longer matches | `tests/repo/rust-twins.test.ts`, `tests/repo/event-names.test.ts`, `tests/repo/bridge-names.test.ts`, `crates/shell/tests/command_lists.rs` | the tests |
+| A feature with no control a learner can see, or no row in `docs/features.md` | `tests/repo/features.test.ts` | the test |
+| A Rust warning, `unsafe`, `dbg!`, `println!` | clippy with `-D warnings` | `Cargo.toml`, `[workspace.lints]` |
+| A bare task spawn, clock read, sleep or file write in Rust | clippy | `clippy.toml` |
+| An unused Rust dependency | `cargo machete` | `package.json`, `rust:check` |
+| A broken screen layout | `npm run layout` (not part of `check`) | `scripts/layout-screens.mjs` |
+| A list of exceptions that grew | `tests/repo/ratchet.test.ts` | `tests/repo/exceptions/` |
+
+## Exceptions
+
+A check that must let something through reads it from a list, never from a comment that switches the check off.
+
+- A list is a file in `tests/repo/exceptions/`: each name with its reason, or each name with a count.
+- A list may only shrink. `tests/repo/ratchet.test.ts` compares the branch's last commit with the commit where it left `origin/main`, and fails on a new name or a higher count.
+- To grow a list for a reason that holds, write one line in the commit message: `Ratchet: <list>, <reason>`. The list's name is its file name without `.json`.
+- A check whose own cases are the list (`rust-twins`) is counted from its source, by the `COUNTED` table in the ratchet test.
+
+## Adding a check
+
+1. Fix the mistake, and write the check in the same change.
+2. A check of the repo itself is a test in `tests/repo/`. Have it also run its own reader on a few lines of made-up text, so a reader that stops finding anything fails.
+3. Mess already in the code that cannot be fixed in the same change goes in a list in `tests/repo/exceptions/`.
+4. Add a row to "What each check stops", and remove the written rule from `AGENTS.md` that the check now enforces.

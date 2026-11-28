@@ -1,6 +1,6 @@
 # Features
 
-Every feature a learner can use, and the control that reaches it. A feature is finished only when its Home is a control a learner can see before the feature exists. `tests/shared/features.test.ts` fails when a teacher tool, a key or a route is in no row, when a Home control is no longer in the code, or when a feature only the teacher makes is not proven drawn by a screen of `npm run layout`.
+Every feature a learner can use, and the control that reaches it. A feature is finished only when its Home is a control a learner can see before the feature exists. `tests/repo/features.test.ts` fails when a teacher tool, a key or a route is in no row, when a Home control is no longer in the code, or when a feature only the teacher makes is not proven drawn by a screen of `npm run layout`.
 
 To add a row:
 

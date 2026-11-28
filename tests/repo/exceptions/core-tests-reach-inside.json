@@ -1,0 +1,8 @@
+{
+	"restoreMathEscapes": "one step of repairMathForDisplay, which tests pin step by step",
+	"healOverescapedCommands": "one step of repairMathForDisplay, which tests pin step by step",
+	"pdfNote": "the note the browser writes for a PDF it shows before the server saves it; tests build and read that note",
+	"coerceCorrectAnswer": "a grading step the browser runs, pinned case by case",
+	"isCorrect": "a grading step the browser runs, pinned case by case",
+	"contrast": "the WCAG measure behind inkFor; tests use it to check every color the app draws"
+}

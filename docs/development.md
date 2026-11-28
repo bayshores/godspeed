@@ -17,7 +17,8 @@ A desktop learning app. Its screens are a React app built with Vite (`src/fronte
 | [desktop-release.md](desktop-release.md) | Builds, CI and releases on all three operating systems. |
 | [teaching-methodology.md](teaching-methodology.md) | The theory of teaching the agent prompts are built from. |
 | [keyboard.md](keyboard.md) | Keyboard shortcuts. |
-| [features.md](features.md) | Every feature, the control that reaches it and who makes it; checked by `tests/shared/features.test.ts`. |
+| [features.md](features.md) | Every feature, the control that reaches it and who makes it; checked by `tests/repo/features.test.ts`. |
+| [checks.md](checks.md) | Which check stops which kind of mess, when the checks run, how a change reaches `main`, the lists of exceptions. |
 | [compaction-accounting.md](compaction-accounting.md) | How long lessons get shortened, the size meter, usage counts. |
 | [tool-content-recovery.md](tool-content-recovery.md) | How broken LaTeX in tool calls is repaired for display. |
 | `crates/agent/prompts/README.md` | How the agent prompts are put together. |
@@ -38,7 +39,8 @@ You need Node, a Rust toolchain (`rust-toolchain.toml` pins it) and `cargo-mache
 | `npm run dev:fresh` | Fresh instance with empty data at http://localhost:3005, for testing onboarding. Data folder `.fresh-data/`, wiped each launch unless you pass `--keep`. |
 | `npm run build` | `vite build`: the screens into `dist-ui/`. |
 | `npm run check` | The done gate: typecheck, tests, lint, deadcode and `rust:check`. CI runs the same, plus `layout` on the Mac. |
-| `npm test` | Frontend, shared and desktop tests (node:test through tsx). |
+| `npm run check:fast` | The part of `check` that takes about 15 seconds: typecheck, lint, deadcode and the repo checks in `tests/repo`. The git hooks run it at every commit and push. |
+| `npm test` | Frontend, shared, desktop and repo tests (node:test through tsx). |
 | `npm run lint` | ESLint, including the import law. |
 | `npm run typecheck` | `tsc --noEmit`. Unused variables and parameters are errors. |
 | `npm run deadcode` | knip: unused files, exports, types and npm packages. |
@@ -48,7 +50,7 @@ You need Node, a Rust toolchain (`rust-toolchain.toml` pins it) and `cargo-mache
 | `npm run desktop:local` | Unsigned local Mac app in `target/release/bundle/macos/`. |
 | `npm run desktop:dist` | Signed, notarized Mac app and DMG. `scripts/mac-dist.sh` says what it needs. |
 
-A change is done when `npm run check` passes.
+A change is done when `npm run check` passes. It reaches `main` by the steps in [checks.md](checks.md).
 
 The two passes of `npm run layout`:
 
@@ -154,6 +156,7 @@ Single files in `components/` include `boot.tsx` (boot info for the whole app), 
 | `tests/frontend/` | Screen tests, many through React server-side rendering. |
 | `tests/shared/` | Tests for `src/shared/core`. |
 | `tests/desktop/` | The shell shim, release scripts, layout check and the Claude helper. |
+| `tests/repo/` | Checks of the repo itself ([checks.md](checks.md)), with their lists of exceptions in `exceptions/`. |
 | `tests/fixtures/` | Fixtures. `golden-data/` is a real data folder, never edited by hand. |
 | `tests/skills/` | The skill's Python tests. |
 | `tests/perf/` | The lesson-stream benchmark. |
@@ -172,6 +175,7 @@ Shared helpers sit in `tests/` itself.
 | `compile-icon.mjs` | Compiles the Mac app icon into `.stage/Assets.car`. |
 | `dev-resources.mjs` | Makes `.dev-resources/`, the folder a debug server runs in. |
 | `dev-fresh.sh` | The `dev:fresh` instance. |
+| `install-hooks.mjs` | Points git at the hooks in `.githooks`, for every worktree. `npm install` runs it. |
 | `stage-app.mjs` | Builds what `tauri bundle` packs: the UI, the pdf.js files, the Claude helper, the release server and, with `--app`, the app's binary beside it. |
 | `build-claude-helper.mjs` | Bundles the Claude helper (`crates/runtime/src/claude/claude-helper.mjs`) with the Agent SDK into one file; `stage-app.mjs` and `dev-resources.mjs` run it. |
 | `smoke-server.mjs`, `smoke-app.mjs` | Start the release server, or the packaged app, once to prove it runs. |
@@ -200,7 +204,7 @@ Each is described in [architecture/README.md](architecture/README.md), in the se
 
 | Command | Runs |
 |---|---|
-| `npm test` | `tests/frontend`, `tests/shared` and `tests/desktop`. |
+| `npm test` | `tests/frontend`, `tests/shared`, `tests/desktop` and `tests/repo`. |
 | `cargo test --workspace` (part of `npm run rust:check`) | Rust unit tests in each module and each crate's `tests/` folder. |
 | `python3 -B -m unittest discover -s tests/skills -v` | The skill's Python tests. |
 

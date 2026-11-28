@@ -2,7 +2,7 @@
  *  (the first one names the lesson). Pure. */
 
 /** Most files one lesson works from: the server's MAX_LESSON_FILES
- *  (tests/shared/rust-twins.test.ts keeps the two the same). */
+ *  (tests/repo/rust-twins.test.ts keeps the two the same). */
 export const MAX_LESSON_FILES = 8;
 
 /** Why a row no longer picks once the lesson's files are all picked. */

@@ -61,20 +61,13 @@ function identifiersOf(file: string): Set<string> {
 }
 
 /** Browser logic whose single steps or measuring tool tests need to reach, with the reason each stays. */
-const TESTS_REACH_INSIDE = new Map([
-	["restoreMathEscapes", "one step of repairMathForDisplay, which tests pin step by step"],
-	["healOverescapedCommands", "one step of repairMathForDisplay, which tests pin step by step"],
-	["pdfNote", "the note the browser writes for a PDF it shows before the server saves it; tests build and read that note"],
-	["coerceCorrectAnswer", "a grading step the browser runs, pinned case by case"],
-	["isCorrect", "a grading step the browser runs, pinned case by case"],
-	["contrast", "the WCAG measure behind inkFor; tests use it to check every color the app draws"],
-]);
+const TESTS_REACH_INSIDE = new Map(Object.entries(JSON.parse(readFileSync(path.join(import.meta.dirname, "exceptions/core-tests-reach-inside.json"), "utf-8")) as Record<string, string>));
 
 it("every name the core exports is used by the frontend or by another core file", () => {
 	const exported = exportsOf(path.join(coreDir, "index.ts"));
 	for (const [name, from] of exportsOf(path.join(coreDir, "contracts.ts"))) exported.set(name, from);
 	assert.ok(exported.size > 100, "found too few exports; the reader is broken");
-	for (const name of TESTS_REACH_INSIDE.keys()) assert.ok(exported.has(name), `${name} is no longer exported: remove it from TESTS_REACH_INSIDE`);
+	for (const name of TESTS_REACH_INSIDE.keys()) assert.ok(exported.has(name), `${name} is no longer exported: remove it from tests/repo/exceptions/core-tests-reach-inside.json`);
 
 	const users = [...sourceFiles(path.join(root, "src/frontend")), ...sourceFiles(coreDir).filter((file) => !barrels.includes(file))].map((file) => ({ file, names: identifiersOf(file) }));
 	const unused = [...exported]

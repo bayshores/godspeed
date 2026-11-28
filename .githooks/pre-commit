@@ -1,0 +1,4 @@
+#!/bin/sh
+# An early warning before the commit exists. The gate is GitHub's rule on main (docs/checks.md).
+cd "$(git rev-parse --show-toplevel)" || exit 1
+exec npm run --silent --if-present check:fast

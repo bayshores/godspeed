@@ -115,14 +115,14 @@ It then fetches the model and pdfium, compiles the icon, runs `stage-app.mjs --a
 
 ## CI
 
-`.github/workflows/ci.yml` runs on pushes to main and on pull requests. Changes to only `docs/**` and `README.md` skip it.
+`.github/workflows/ci.yml` runs on a push to any branch and on pull requests. `quality` runs every time, because `main` takes a commit only after it passed ([checks.md](checks.md)). `desktop` and `window` run on `main` and on pull requests, and not for a change to only `docs/**` and `README.md`.
 
 - `quality` (Ubuntu 24.04): fetches the model and ONNX Runtime, runs `npm run check` (typecheck, tests, lint, knip, then cargo test, clippy and cargo machete) and the skill's Python tests.
 - `desktop` (macOS 15, Windows, Ubuntu 22.04 container): build pipeline steps 1 to 4, then `stage-app.mjs` and `smoke-server.mjs`, and on Windows and Linux `cargo test -p gs-shell` and the self-test. It does not compile the Mac icon.
 - `window` (macOS 15, four runners): each runs one of the four parts of `npm run layout` (the screens in the real app window, see [development.md](development.md)), beside the Mac desktop job. The fourth also runs `cargo test -p gs-shell` and the self-test.
 - `release-cache`: on a push to main, starts a release rehearsal on main when the release caches are stale or missing (see [Build caches](#build-caches)).
 
-The Ubuntu job keeps the downloaded Linux packages in the cache, because the runner's package mirror is sometimes very slow. Pull requests restore caches but save none.
+The Ubuntu job keeps the downloaded Linux packages in the cache, because the runner's package mirror is sometimes very slow. Only runs on `main` save caches; other branches and pull requests restore them.
 
 ## Release workflow
 

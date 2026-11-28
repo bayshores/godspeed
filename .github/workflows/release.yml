@@ -37,7 +37,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
+      # The whole history: the ratchet check compares the commit with origin/main.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: Tag must match package.json
         if: github.event_name == 'push'
         run: |

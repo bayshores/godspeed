@@ -51,7 +51,7 @@ Keep godspeed small, tidy and easy to read. The checks below enforce these rules
 
 **Where code goes**
 - `src/frontend`: what the browser runs, built by Vite (`index.html`, `main.tsx`, `routes/` for the router and its screens, `components/`, `lib/`, `globals.css`, `fonts/`). `src/shared/core`: pure TypeScript logic, only what the frontend uses. `crates/`: all Rust. `crates/shell`: the desktop app (Tauri). Server crates: see `docs/rust-server.md`.
-- Tests sit in the matching place: `tests/frontend`, `tests/shared`, `tests/desktop` (the shim and `scripts/`). Rust tests sit beside their crate. Shared helpers and `fixtures/` stay in `tests/` itself.
+- Tests sit in the matching place: `tests/frontend`, `tests/shared`, `tests/desktop` (the shim and `scripts/`), `tests/repo` (checks of the repo itself). Rust tests sit beside their crate. Shared helpers and `fixtures/` stay in `tests/` itself.
 
 **One job per file**
 - Pure logic lives in `src/shared/core` (or a `*-model.ts` next to its component) with unit tests. Components render, hooks fetch. `src/frontend/routes` holds the router, its loaders and screens. Server crates own everything behind `/api`.
@@ -69,8 +69,8 @@ Keep godspeed small, tidy and easy to read. The checks below enforce these rules
 
 **Two languages, one truth**
 - The server decides, the browser shows. No TypeScript copy of logic the Rust server runs. A number or text the server knows is sent by the server.
-- Code only tests call is dead code, and knip cannot see it. An export in `src/shared/core` needs a user in `src/frontend` (`tests/shared/core-is-used.test.ts` fails otherwise).
-- A name, limit or text that must be written in both languages gets a line in `tests/shared/rust-twins.test.ts` (event names: `event-names.test.ts`; desktop commands: `tests/desktop/bridge-names.test.ts` and `crates/shell/tests/command_lists.rs`).
+- Code only tests call is dead code, and knip cannot see it. An export in `src/shared/core` needs a user in `src/frontend` (`tests/repo/core-is-used.test.ts` fails otherwise).
+- A name, limit or text that must be written in both languages gets a line in `tests/repo/rust-twins.test.ts` (event names: `event-names.test.ts`; desktop commands: `bridge-names.test.ts` and `crates/shell/tests/command_lists.rs`).
 
 **Failures are seen**
 - No silent failure: an error is shown, logged with where it happened, or handled for a stated reason. A damaged data file is kept aside, never read as empty and overwritten. Rust specifics: `docs/rust-server.md`.
@@ -82,10 +82,12 @@ Keep godspeed small, tidy and easy to read. The checks below enforce these rules
 
 **Done means clean**
 - `npm run check` passes: typecheck (unused variables and parameters are errors), tests, lint, `npm run deadcode` (knip) and `npm run rust:check` (cargo test, clippy, cargo machete). CI runs the same.
+- `main` takes a commit only after CI's `quality` job passed on it: push the branch, wait for it, then move `main` (steps in `docs/checks.md`). Never skip a git hook with `--no-verify`.
+- A check lets something through only by a list in `tests/repo/exceptions/`, and a list only shrinks. Growing one needs a `Ratchet: <list>, <reason>` line in the commit message.
 - The Mac check does not build Rust code behind a Windows or Linux condition (`#[cfg(windows)]`, `demo_webview.rs`, `crates/shell/src/linux/`). After touching such a file, the change is finished only when CI's check job is green, or the same lint passed on the build box.
 - `npm run check` does not run `npm run layout`, whose stand-in helper (`scripts/layout-helper.mjs`, started through `LH_CLAUDE_HELPER` in a debug build) plays every lesson. After changing what the teacher is sent or refused (a tool refusal, a reply sent back, a work item, a lesson tool), run `npm run layout` on the Mac before merging.
 - Before calling a change finished, reread the diff and cut anything unused, duplicated or over-built. Ask of each new piece: is this data already loaded somewhere, does a helper already do this, does the server already know this, can two copies disagree?
-- A new class of mistake gets a rule here or, better, a check in `npm run check`, in the same change that fixes it.
+- A new class of mistake gets a check in `npm run check`, in the same change that fixes it, with its row in `docs/checks.md`. A rule written here alone gets broken; write one only where no check can see the mistake.
 
 # Docs
 
@@ -96,6 +98,7 @@ Read only what the task needs. One topic per file; a README in each docs folder 
 | Any screen, control, pop-up or label | `docs/ui-rules.md` |
 | Adding, moving or removing a feature | `docs/features.md` |
 | Commands, file layout, testing | `docs/development.md` |
+| Landing a branch on `main`, adding a check or an exception | `docs/checks.md` |
 | Layers, data ownership, chat turn, graph, study, agent boundary | `docs/architecture/README.md` |
 | Rust crates, server process, locks | `docs/rust-server.md` |
 | Desktop shell, `window.lh`, terminals, updates | `docs/tauri-shell/README.md` |
