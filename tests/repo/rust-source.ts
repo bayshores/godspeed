@@ -465,32 +465,55 @@ export function rustSize(text: string, code: string): number {
 }
 
 /**
- * The names blanked code takes from the crate whose library is `lib` (as `gs_core`): each name in a
- * `use lib::...` tree, and each name after `::` in a path that starts at `lib` or at a name such a
- * tree brought in. Another crate reaches an item only along such a path.
+ * The names blanked code takes from the crate whose library is `lib` (as `gs_core`), each with the
+ * module paths it is reached along (`session::plot` for `Plot` in `use gs_core::session::plot::Plot`,
+ * "" for the crate's root): each name in a `use lib::...` tree, and each name after `::` in a path
+ * that starts at `lib` or at a name such a tree brought in. Another crate reaches an item only along
+ * such a path.
  */
-export function namesFromCrate(code: string, lib: string): Set<string> {
+export function namesFromCrate(code: string, lib: string): Map<string, Set<string>> {
 	const tokens = code.match(/[A-Za-z_]\w*|::|[{}(),;*]/g) ?? [];
-	const taken = new Set<string>();
-	const heads = new Set([lib]);
+	const taken = new Map<string, Set<string>>();
+	const take = (name: string, path: string[]) => taken.set(name, (taken.get(name) ?? new Set()).add(path.join("::")));
+	// A name that may start a path later on, with each path it stands for.
+	const heads = new Map<string, string[][]>([[lib, [[]]]]);
+	const head = (name: string, path: string[]) => heads.set(name, [...(heads.get(name) ?? []), path]);
+	const isName = (token: string | undefined) => /^[A-Za-z_]/.test(token ?? "") && token !== "self" && token !== "as";
+	// One use tree from `at`, under `path`; answers where it ends.
+	const tree = (at: number, path: string[]): number => {
+		if (tokens[at] === "{") {
+			for (at++; at < tokens.length && tokens[at] !== "}" && tokens[at] !== ";"; ) {
+				at = tree(at, path);
+				if (tokens[at] === ",") at++;
+			}
+			return tokens[at] === "}" ? at + 1 : at;
+		}
+		if (!isName(tokens[at])) return at + 1;
+		const name = tokens[at]!;
+		take(name, path);
+		head(name, [...path, name]);
+		if (tokens[at + 1] === "::") return tree(at + 2, [...path, name]);
+		if (tokens[at + 1] === "as" && isName(tokens[at + 2])) {
+			take(tokens[at + 2]!, path);
+			head(tokens[at + 2]!, [...path, name]);
+			return at + 3;
+		}
+		return at + 1;
+	};
 	for (let i = 0; i < tokens.length; i++) {
 		if (tokens[i] !== "use") continue;
-		let at = tokens[i + 1] === "::" ? i + 2 : i + 1;
-		if (tokens[at] !== lib) continue;
-		for (at++; at < tokens.length && tokens[at] !== ";"; at++) {
-			const word = tokens[at]!;
-			if (!/^[A-Za-z_]/.test(word) || word === "self" || word === "as") continue;
-			// A module the tree brings in (also through `{self}`) may start a path later on.
-			taken.add(word);
-			heads.add(word);
-		}
-		i = at;
+		const at = tokens[i + 1] === "::" ? i + 2 : i + 1;
+		if (tokens[at] === lib && tokens[at + 1] === "::") i = tree(at + 2, []);
 	}
 	for (let i = 0; i + 2 < tokens.length; i++) {
-		if (!heads.has(tokens[i]!) || tokens[i + 1] !== "::" || tokens[i - 1] === "::") continue;
-		for (let at = i + 2; /^[A-Za-z_]/.test(tokens[at] ?? ""); at += 2) {
-			taken.add(tokens[at]!);
-			if (tokens[at + 1] !== "::") break;
+		if (tokens[i + 1] !== "::" || tokens[i - 1] === "::") continue;
+		for (const start of heads.get(tokens[i]!) ?? []) {
+			let path = start;
+			for (let at = i + 2; isName(tokens[at]); at += 2) {
+				take(tokens[at]!, path);
+				path = [...path, tokens[at]!];
+				if (tokens[at + 1] !== "::") break;
+			}
 		}
 	}
 	return taken;

@@ -7,9 +7,11 @@
  *   a test's use does not count.
  * - taken by another crate: along a path from this crate (`use gs_core::...`, `gs_core::a::b`), by
  *   the crate's own binary, through a macro it exports, or as part of the signature of an item that
- *   is taken. Tests take too: another crate's test code and the crate's own `tests/` folder can only
- *   reach a `pub` item. The crate's unit tests in `src` reach a `pub(crate)` one, so they do not
- *   count. Anything else is `pub(crate)` or private, where rustc sees it.
+ *   is taken. Where two items of the crate share a name, only a path that leads to the item's own
+ *   module counts for it (`turns::catch_up` takes the one under `src/turns/`). Tests take too:
+ *   another crate's test code and the crate's own `tests/` folder can only reach a `pub` item. The
+ *   crate's unit tests in `src` reach a `pub(crate)` one, so they do not count. Anything else is
+ *   `pub(crate)` or private, where rustc sees it.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -51,33 +53,55 @@ function members(text: string): string {
 	return [...text].filter((c) => (c === "{" ? ++depth : c === "}" ? depth-- : depth) <= 1).join("");
 }
 
+/** A file's module within its crate: `turns::agent_catch_up` for `crates/services/src/turns/agent_catch_up.rs`, "" for the crate's root. */
+const moduleOf = (file: string) =>
+	file
+		.replace(/^crates\/[^/]+\/src\//, "")
+		.replace(/(?:^|\/)(?:lib|main|mod)\.rs$|\.rs$/, "")
+		.split("/")
+		.filter(Boolean)
+		.join("::");
+
+/** Whether a path a name is reached along leads to `module`: the module itself, or a parent that re-exports from it. */
+const reaches = (path: string, module: string) => path === "" || module === path || module.startsWith(`${path}::`);
+
 /**
  * The top-level `pub` items of each crate in `libs` (its folder under `crates/`, with its library's
  * name) that no other crate takes. `app` is the code the app builds, where the items are; `all` is
- * every Rust file with its test code, where the takers are.
+ * every Rust file with its test code, where the takers are. A name that more than one item of the
+ * crate carries is taken for an item only along a path that leads to its module.
  */
 function widePub(app: Source[], all: Source[], libs: Map<string, string>): { file: string; line: number; name: string }[] {
 	return [...libs].flatMap(([crate, lib]) => {
 		const own = app.filter((source) => crateOf(source.file) === crate && source.file.startsWith(`crates/${crate}/src/`) && !isBinary(source.file));
-		const items = own.flatMap((source) => topLevelItems(source.code).map((item) => ({ ...item, file: source.file })));
+		const items = own.flatMap((source) => topLevelItems(source.code).map((item) => ({ ...item, file: source.file }))).filter((item) => item.kind !== "impl");
+		const impls = own.flatMap((source) => topLevelItems(source.code).filter((item) => item.kind === "impl").map((impl) => ({ ...impl, file: source.file })));
+		const carriers = new Map<string, number>();
+		for (const { name } of items) carriers.set(name, (carriers.get(name) ?? 0) + 1);
+		// Each name taken, with the paths it is taken along.
+		const taken = new Map<string, Set<string>>();
+		const take = (name: string, path: string): boolean => {
+			const paths = taken.get(name) ?? new Set<string>();
+			taken.set(name, paths);
+			if (paths.has(path)) return false;
+			paths.add(path);
+			return true;
+		};
+		const isTaken = (item: (typeof items)[number]) => [...(taken.get(item.name) ?? [])].some((path) => carriers.get(item.name)! === 1 || reaches(path, moduleOf(item.file)));
 		const takes = (file: string) => crateOf(file) !== crate || isBinary(file) || file.startsWith(`crates/${crate}/tests/`);
-		const taken = new Set<string>();
-		for (const source of all) if (takes(source.file)) for (const name of namesFromCrate(source.code, lib)) taken.add(name);
-		for (const word of own.flatMap(({ code }) => exportedMacros(code)).flatMap(words)) taken.add(word);
-		// An item that is taken hands out what its signature names, and a type also what its impls' members name.
+		for (const source of all) if (takes(source.file)) for (const [name, paths] of namesFromCrate(source.code, lib)) for (const path of paths) take(name, path);
+		for (const word of own.flatMap(({ code }) => exportedMacros(code)).flatMap(words)) take(word, "");
+		// An item that is taken hands out what its signature names, and a type also what its impls' members name, from its own module.
 		const handed = new Set<string>();
 		for (let grew = true; grew; ) {
 			grew = false;
-			for (const item of items.filter((item) => item.kind !== "impl" && taken.has(item.name) && !handed.has(`${item.file}:${item.line}`))) {
+			for (const item of items.filter((item) => isTaken(item) && !handed.has(`${item.file}:${item.line}`))) {
 				handed.add(`${item.file}:${item.line}`);
-				const impls = ["struct", "enum", "union", "type", "trait"].includes(item.kind) ? items.filter((impl) => impl.kind === "impl" && words(impl.name).includes(item.name)) : [];
-				for (const word of [signature(item), ...impls.map((impl) => `${impl.name} ${members(impl.text)}`)].flatMap(words)) {
-					grew ||= !taken.has(word);
-					taken.add(word);
-				}
+				const its = ["struct", "enum", "union", "type", "trait"].includes(item.kind) ? impls.filter((impl) => words(impl.name).includes(item.name) && (carriers.get(item.name)! === 1 || impl.file === item.file)) : [];
+				for (const word of [signature(item), ...its.map((impl) => `${impl.name} ${members(impl.text)}`)].flatMap(words)) grew = take(word, moduleOf(item.file)) || grew;
 			}
 		}
-		return items.filter((item) => item.pub && item.kind !== "impl" && !taken.has(item.name)).map(({ file, line, name }) => ({ file, line, name }));
+		return items.filter((item) => item.pub && !isTaken(item)).map(({ file, line, name }) => ({ file, line, name }));
 	});
 }
 
@@ -177,6 +201,14 @@ describe("finding pub items no other crate takes", () => {
 			["// gs_demo::inner()", 'const NOTE: &str = "gs_demo::by_path";', "fn f(x: X) { x.by_binary(); by_path(); }", "#[cfg(test)]", "mod tests {", '\tconst T: &str = "gs_demo::taken";', "}"].join("\n"),
 		);
 		assert.deepEqual(names(widePub([demo], [demo, dodges], libs)), ["taken", "Shape", "Line", "Plot", "Slider", "Fault", "inner", "by_path", "by_binary"]);
+	});
+
+	it("tells two pub items of one name in two modules apart by the path another crate takes one along", () => {
+		const turns = app("crates/demo/src/turns/catch.rs", "pub fn catch_up() {}");
+		const vault = app("crates/demo/src/vault/pass.rs", "pub fn catch_up() {}\npub enum Stop { Now }");
+		const outcome = app("crates/demo/src/outcome.rs", "pub enum Stop { Now }");
+		const user = all("crates/other/src/lib.rs", "use gs_demo::turns;\nuse gs_demo::outcome::Stop;\nfn f() { turns::catch_up(); }");
+		assert.deepEqual(widePub([turns, vault, outcome], [user], libs).map(({ file, name }) => `${file} ${name}`), ["crates/demo/src/vault/pass.rs catch_up", "crates/demo/src/vault/pass.rs Stop"]);
 	});
 
 	it("counts another crate's tests and the crate's own tests folder as takers, and not the crate's unit tests in src", () => {

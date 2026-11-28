@@ -211,7 +211,7 @@ pub(crate) fn related_text(names: &[String]) -> String {
 	format!("## Related\n{}", items.join("\n"))
 }
 
-pub fn check_text(title: &str, line: &str) -> String {
+pub(crate) fn check_text(title: &str, line: &str) -> String {
 	format!("> [!example]- Check yourself: {title}\n> {line}")
 }
 

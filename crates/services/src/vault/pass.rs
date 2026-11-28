@@ -159,7 +159,7 @@ pub fn lesson_left(app: &Arc<App>, was: Option<&str>, now: Option<&str>) {
 
 /// Once per run of the app: every lesson that has new answers and is not open now, since the
 /// app may have quit before its pass.
-pub fn catch_up(app: &Arc<App>) {
+pub(crate) fn catch_up(app: &Arc<App>) {
 	if app.vault.pass.caught_up.swap(true, Ordering::SeqCst) || !picked_vault(app) {
 		return;
 	}

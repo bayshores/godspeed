@@ -95,7 +95,7 @@ fn command_for(language: MockLanguage) -> Result<Vec<PathBuf>, &'static str> {
 /// Linux the run leads its own process group, so the whole group; on Windows its process tree,
 /// only while the program runs, since once it has ended its pid may already be another program's.
 #[derive(Debug, PartialEq)]
-pub enum Stop {
+pub(crate) enum Stop {
 	Group(u32),
 	Command(Vec<String>),
 }

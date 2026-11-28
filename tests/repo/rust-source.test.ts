@@ -143,7 +143,7 @@ describe("reading what the app builds", () => {
 		for (const gone of ["Pipes", "a: u8", "0 =>", "Kind::A", "=> x,"]) assert.ok(!code.includes(gone), gone);
 	});
 
-	it("knows which names a file takes from another crate, only along a path from that crate", () => {
+	it("knows which names a file takes from another crate, and through which module, only along a path from that crate", () => {
 		const code = readRust(
 			[
 				"use gs_core::session::{plot::{Plot, Range as Span}, compaction};",
@@ -158,8 +158,11 @@ describe("reading what the app builds", () => {
 				"}",
 			].join("\n"),
 		).code;
-		assert.deepEqual([...namesFromCrate(code, "gs_core")].sort(), ["Plot", "Range", "Span", "compaction", "ends_topic", "plot", "session", "study", "topic_end", "trim"]);
-		assert.deepEqual([...namesFromCrate(code, "gs_base")].sort(), ["detach", "set_runtime", "tasks"]);
+		const core = namesFromCrate(code, "gs_core");
+		assert.deepEqual([...core.keys()].sort(), ["Plot", "Range", "Span", "compaction", "ends_topic", "plot", "session", "study", "topic_end", "trim"]);
+		assert.deepEqual([...namesFromCrate(code, "gs_base").keys()].sort(), ["detach", "set_runtime", "tasks"]);
+		// Each name with the module it is reached through: a tree's prefix, or a path from a name a tree brought in.
+		assert.deepEqual([core.get("Plot"), core.get("trim"), core.get("ends_topic"), core.get("session")].map((paths) => [...paths!]), [["session::plot"], ["session::compaction"], ["study::topic_end"], [""]]);
 	});
 
 	it("finds the macros a file exports, whole, and not the ones it keeps", () => {
