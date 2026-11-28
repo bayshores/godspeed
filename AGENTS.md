@@ -87,6 +87,7 @@ Keep godspeed small, tidy and easy to read. The checks below enforce these rules
 - The Mac check does not build Rust code behind a Windows or Linux condition (`#[cfg(windows)]`, `demo_webview.rs`, `crates/shell/src/linux/`). After touching such a file, the change is finished only when CI's check job is green, or the same lint passed on the build box.
 - `npm run check` does not run `npm run layout`, whose stand-in helper (`scripts/layout-helper.mjs`, started through `LH_CLAUDE_HELPER` in a debug build) plays every lesson. After changing what the teacher is sent or refused (a tool refusal, a reply sent back, a work item, a lesson tool), run `npm run layout` on the Mac before merging.
 - Before calling a change finished, reread the diff and cut anything unused, duplicated or over-built. Ask of each new piece: is this data already loaded somewhere, does a helper already do this, does the server already know this, can two copies disagree?
+- Before a branch lands, a fresh agent that did not write it reviews it with `docs/review.md` as its whole brief. Fix what it finds, and report its findings with the change.
 - A new class of mistake gets a check in `npm run check`, in the same change that fixes it, with its row in `docs/checks.md`. A rule written here alone gets broken; write one only where no check can see the mistake.
 
 # Docs
@@ -99,6 +100,7 @@ Read only what the task needs. One topic per file; a README in each docs folder 
 | Adding, moving or removing a feature | `docs/features.md` |
 | Commands, file layout, testing | `docs/development.md` |
 | Landing a branch on `main`, adding a check or an exception | `docs/checks.md` |
+| Reviewing a branch before it lands | `docs/review.md` |
 | Layers, data ownership, chat turn, graph, study, agent boundary | `docs/architecture/README.md` |
 | Rust crates, server process, locks | `docs/rust-server.md` |
 | Desktop shell, `window.lh`, terminals, updates | `docs/tauri-shell/README.md` |

@@ -19,6 +19,7 @@ A desktop learning app. Its screens are a React app built with Vite (`src/fronte
 | [keyboard.md](keyboard.md) | Keyboard shortcuts. |
 | [features.md](features.md) | Every feature, the control that reaches it and who makes it; checked by `tests/repo/features.test.ts`. |
 | [checks.md](checks.md) | Which check stops which kind of mess, when the checks run, how a change reaches `main`, the lists of exceptions. |
+| [review.md](review.md) | The brief for the agent that reviews a branch before it lands: the kinds of mess no check can see. |
 | [compaction-accounting.md](compaction-accounting.md) | How long lessons get shortened, the size meter, usage counts. |
 | [tool-content-recovery.md](tool-content-recovery.md) | How broken LaTeX in tool calls is repaired for display. |
 | `crates/agent/prompts/README.md` | How the agent prompts are put together. |

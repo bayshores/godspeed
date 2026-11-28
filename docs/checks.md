@@ -18,10 +18,11 @@ The hooks are the files in `.githooks`. `npm install` points git at them for eve
 
 1. Rebase the branch on `origin/main`, so `main` can move to it without a merge commit.
 2. Run `npm run check`, and `npm run layout` for a UI change.
-3. Push the branch: `git push origin <branch>`.
-4. Wait for CI on that commit: `gh run watch -R bayshores/godspeed --exit-status $(gh run list -R bayshores/godspeed --branch <branch> --limit 1 --json databaseId --jq '.[0].databaseId')`.
-5. Move `main` to it: `git push origin <branch>:main`. GitHub refuses when `quality` has not passed on that exact commit, or when `main` moved since step 1 (go back to step 1).
-6. CI then runs the slow jobs (`desktop`, `window`) on `main`. Watch them too.
+3. Have a fresh agent review the branch with [review.md](review.md) as its whole brief, and fix what it finds. The checks cannot see what it looks for.
+4. Push the branch: `git push origin <branch>`.
+5. Wait for CI on that commit: `gh run watch -R bayshores/godspeed --exit-status $(gh run list -R bayshores/godspeed --branch <branch> --limit 1 --json databaseId --jq '.[0].databaseId')`.
+6. Move `main` to it: `git push origin <branch>:main`. GitHub refuses when `quality` has not passed on that exact commit, or when `main` moved since step 1 (go back to step 1).
+7. CI then runs the slow jobs (`desktop`, `window`) on `main`. Watch them too.
 
 ## What each check stops
 
