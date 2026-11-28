@@ -1,6 +1,7 @@
 //! Progress, study sessions, homework, deadline plans and cheat sheets.
 
 pub mod progress;
+#[expect(clippy::module_inception, reason = "the file that holds the folder's main job carries the folder's name")]
 pub mod study;
 pub mod continue_study;
 pub mod homework;

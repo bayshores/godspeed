@@ -4,7 +4,7 @@
 
 pub mod extraction;
 pub mod extraction_runs;
-#[expect(clippy::module_inception, reason = "modules are named after their TypeScript files, so graph/graph.ts is graph::graph")]
+#[expect(clippy::module_inception, reason = "the file that holds the folder's main job carries the folder's name")]
 pub mod graph;
 pub mod progress;
 pub mod study_start;
