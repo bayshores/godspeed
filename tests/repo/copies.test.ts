@@ -6,7 +6,8 @@
  *   nothing. A body under 40 characters of code repeats by chance (`{}`, `self.reader.alive()`), so it
  *   counts only for two helpers of the same name at the top of their files. Methods in an
  *   `impl Trait for Type` block repeat by design and are left out.
- * - Constants of the same name and value. A number is compared by its value, so `86_400_000` and
+ * - Constants of the same name and value, and in Rust of the same declared type, since one number in
+ *   two units is two facts. A number is compared by its value, so `86_400_000` and
  *   `24 * 60 * 60 * 1000` are the same. Plain values two limits share by chance are left out: nothing,
  *   a boolean, an empty value, a number under 100 (unless the name ends in a unit such as `_MS`),
  *   and a value that holds state (a lock, an atomic, an empty `new Set()`).
@@ -257,7 +258,9 @@ function rustPieces(file: string, text: string, code = readAppCode(text).code): 
 			const number = rustNumber(value, known);
 			if (number !== undefined) known.set(name, number);
 			const shape = number === undefined ? value.map((part) => part.text).join(" ") : String(number);
-			if (!plain(name, shape)) pieces.push({ kind: "constant", name, file, shape });
+			// The same number in two units (UTF-16 units in an i64, chars in a usize) is two facts.
+			const type = tokens[i + 2]?.text === ":" && equals > 0 ? tokens.slice(i + 3, equals).map((part) => part.text).join(" ") : "";
+			if (!plain(name, shape)) pieces.push({ kind: "constant", name, file, shape: `${type} = ${shape}` });
 		}
 		// Types at the top of the file: an associated `type Output` belongs to its trait.
 		if (depth === 0 && ["struct", "enum", "type"].includes(token.text) && /^[A-Z]\w*$/.test(name)) {
@@ -354,6 +357,11 @@ describe("the copy finder", () => {
 		assert.deepEqual(keys([...first, ...second]), ["constant DAY_MS: a.ts, b.ts", "constant RETRY_MS: a.ts, b.ts", "constant WEEKDAYS: a.ts, b.ts"]);
 		const rust = [...rustPieces("a.rs", "const DAY_MS: i64 = 86_400_000;\nconst NEWLINE: u16 = b'\\n' as u16;\nstatic LOCK: Mutex<()> = Mutex::new(());\n"), ...rustPieces("b.rs", "fn f() { const DAY_MS: i64 = 24 * 60 * 60 * 1000; }\nconst NEWLINE: u16 = b'\\n' as u16;\nstatic LOCK: Mutex<()> = Mutex::new(());\n")];
 		assert.deepEqual(keys(rust), ["constant DAY_MS: a.rs, b.rs"]);
+	});
+
+	it("takes two Rust constants with one name and value but different types for two facts", () => {
+		const rust = [...rustPieces("a.rs", "const SNIPPET_CHARS: i64 = 200;\nconst LIMIT_MS: u64 = 5_000;\n"), ...rustPieces("b.rs", "const SNIPPET_CHARS: usize = 200;\nconst LIMIT_MS: u64 = 5000;\n")];
+		assert.deepEqual(keys(rust), ["constant LIMIT_MS: a.rs, b.rs"]);
 	});
 
 	it("finds a type of the same name and shape, however its members end", () => {

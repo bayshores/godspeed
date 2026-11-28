@@ -275,7 +275,7 @@ pub fn range_point(range: &str) -> Option<f64> {
 }
 
 /// The most characters a snippet shows.
-pub(crate) const SNIPPET_CHARS: i64 = 200;
+const SNIPPET_CHARS: i64 = 200;
 
 /// About two lines of a passage around the first query word it holds (its start when none),
 /// whitespace collapsed.

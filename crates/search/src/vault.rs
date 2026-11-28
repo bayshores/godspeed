@@ -4,11 +4,13 @@
 
 use std::collections::HashMap;
 
-use crate::chunks::SNIPPET_CHARS;
 use crate::keyword::{KeywordIndex, keyword_index, keyword_ranking};
 
 /// Text kept per note, so a big vault stays small in memory (about 20 MB at 5,000 notes).
 pub const MAX_NOTE_CHARS: usize = 4_000;
+
+/// How many characters of a note a search hit shows.
+const NOTE_SNIPPET_CHARS: usize = 200;
 
 /// Whose note it is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -59,7 +61,7 @@ impl VaultIndex {
 		let mut texts: HashMap<String, String> = HashMap::with_capacity(entries.len());
 		for entry in entries {
 			let body = entry.text.trim();
-			let snippet = first_chars(&body.split_whitespace().collect::<Vec<_>>().join(" "), SNIPPET_CHARS as usize);
+			let snippet = first_chars(&body.split_whitespace().collect::<Vec<_>>().join(" "), NOTE_SNIPPET_CHARS);
 			texts.insert(entry.path.clone(), format!("{}\n{}", entry.title, first_chars(body, MAX_NOTE_CHARS)));
 			hits.insert(entry.path.clone(), VaultHit { name: entry.title, path: entry.path, owner: entry.owner, snippet });
 		}

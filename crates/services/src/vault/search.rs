@@ -7,7 +7,7 @@ use gs_base::fsx;
 use gs_core::vault::frontmatter::{Doc, Owner};
 use gs_core::vault::note_tool::{SEARCH_DEFAULT_LIMIT, SEARCH_MAX_LIMIT, WHOLE_NOTE_CHARS};
 use gs_json::{Json, json};
-use gs_search::vault::VaultOwner;
+use gs_search::vault::{VaultOwner, first_chars};
 
 use super::{NO_VAULT, VaultError, rescan, with_reader};
 use crate::App;
@@ -76,7 +76,7 @@ fn read_note(vault: &Path, path: &str) -> Result<Json, String> {
 	let owned_by_godspeed = matches!(Doc::parse(&text).owner(), Some(Owner::Topic(_)));
 	let name = path.rsplit('/').next().unwrap_or(path).trim_end_matches(".md");
 	let cut = text.chars().count() > WHOLE_NOTE_CHARS;
-	let mut out = json!({ "name": name, "path": path, "owner": owner_word(owned_by_godspeed), "text": text.chars().take(WHOLE_NOTE_CHARS).collect::<String>() });
+	let mut out = json!({ "name": name, "path": path, "owner": owner_word(owned_by_godspeed), "text": first_chars(&text, WHOLE_NOTE_CHARS) });
 	if let (true, Some(fields)) = (cut, out.as_obj_mut()) {
 		fields.insert("cut", true);
 	}
