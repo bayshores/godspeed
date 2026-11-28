@@ -3,23 +3,10 @@
 
 use gs_base::clock;
 use gs_core::spaces::today_note::{today_note_text, today_note_to_append, wall_clock};
-use gs_core::session::practice_outcomes::practice_outcomes;
 use gs_json::{Json, json};
 
 use crate::App;
-
-/// The space's problems (practice and study) the learner solved only with hints.
-fn hinted_problems(app: &App, space_id: &str) -> Vec<Json> {
-	app.stores
-		.chats
-		.list_space_chats(space_id)
-		.iter()
-		.filter_map(|chat| app.stores.chats.get_chat(chat["id"].as_str()?))
-		.flat_map(|chat| practice_outcomes(chat["messages"].items()))
-		.filter(|outcome| outcome["outcome"].as_str() == Some("solvedWithHints"))
-		.map(|outcome| json!({ "statement": outcome["statement"], "at": outcome["at"] }))
-		.collect()
-}
+use crate::graph::progress::hinted_problems;
 
 /// The space part of the note. Closed spaces show none.
 fn note_space(app: &App, space_id: Option<&str>) -> Option<Json> {

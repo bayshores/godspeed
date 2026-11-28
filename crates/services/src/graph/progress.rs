@@ -124,6 +124,17 @@ pub(crate) fn space_reviews(app: &App, space_id: &str) -> SpaceReviews {
 	out
 }
 
+/// The space's problems (practice and study) the learner solved only with hints.
+pub(crate) fn hinted_problems(app: &App, space_id: &str) -> Vec<Json> {
+	app.stores.chats.list_space_chats(space_id)
+		.iter()
+		.filter_map(|c| lesson_readout(app, c["id"].str_or_empty()))
+		.flat_map(|readout| readout.outcomes.clone())
+		.filter(|o| o["outcome"].as_str() == Some("solvedWithHints"))
+		.map(|o| json!({ "statement": o["statement"], "at": o["at"] }))
+		.collect()
+}
+
 /// Which topic each fact is in, and the facts each answer counts for.
 struct TopicLookup {
 	index: HashMap<String, Vec<String>>,
