@@ -1,7 +1,7 @@
 /** The Rust reader the checks in this folder stand on: a reader that misreads a string hides real findings. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { appSources, beforeTests, inTraitImpl, readAppCode, readRust, rustFiles, rustFunctions, rustTokens, topLevelPubItems } from "./rust-source.ts";
+import { appSources, beforeTests, discardedResults, inTraitImpl, readAppCode, readRust, rustFiles, rustFunctions, rustSize, rustTokens, topLevelPubItems } from "./rust-source.ts";
 
 describe("reading Rust source", () => {
 	it("blanks comments and keeps their words apart from the code", () => {
@@ -112,6 +112,19 @@ describe("reading what the app builds", () => {
 			{ name: "G", line: 7 },
 			{ name: "I", line: 11 },
 		]);
+	});
+
+	it("finds the statements that throw a result away, whole, and not the ones that keep it", () => {
+		const code = ["fn f() {", "\tlet _ = a(b(c), {", "\t\td", "\t});", "\t_ = e();", "\tg().ok();", "\tlet h = i().ok();", "\tj = k().ok();", "\tlet _guard = l();", "\tmatch m { _ => n() }", "}"].join("\n");
+		assert.deepEqual(discardedResults(code), [
+			{ line: 2, text: "let _ = a(b(c), { d });" },
+			{ line: 5, text: "_ = e();" },
+			{ line: 6, text: "g().ok();" },
+		]);
+	});
+
+	it("sizes a file by its code and strings above its tests", () => {
+		assert.equal(rustSize('// note\nfn a() { b("c d"); }\n#[cfg(test)]\nmod tests {}'), 'fna(){b("cd");}'.length);
 	});
 
 	it("leaves out the files only tests build: by name, by a test cfg on their mod line, or by their module's", () => {

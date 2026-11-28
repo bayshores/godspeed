@@ -260,6 +260,14 @@ function itemEnd(code: string, from: number): number {
 	return code.length;
 }
 
+/** Where the inside of each string lies in blanked code. Every quote left in the code opens or closes a string, so they pair up in order. */
+function stringSpans(code: string): [number, number][] {
+	const quotes = [...code.matchAll(/"/g)].map((match) => match.index);
+	const spans: [number, number][] = [];
+	for (let q = 0; q + 1 < quotes.length; q += 2) spans.push([quotes[q]! + 1, quotes[q + 1]!]);
+	return spans;
+}
+
 /**
  * What the app builds of a Rust file: its code as `readRust` leaves it, with every item behind a
  * test cfg blanked too (a test module, a test helper, a `mod` line naming a file of tests), and the
@@ -270,11 +278,8 @@ export function readAppCode(text: string): { code: string; testModules: string[]
 	const { code } = readRust(text);
 	const out = code.split("");
 	const testModules: string[] = [];
-	// Every quote left in the code opens or closes a string, so they pair up in order.
-	const quotes = [...code.matchAll(/"/g)].map((match) => match.index);
-	for (let q = 0; q + 1 < quotes.length; q += 2) {
-		const from = quotes[q]! + 1;
-		for (const arg of text.slice(from, quotes[q + 1]).matchAll(/(?<!\{)\{([A-Za-z_]\w*)(?=[}:])/g)) {
+	for (const [from, to] of stringSpans(code)) {
+		for (const arg of text.slice(from, to).matchAll(/(?<!\{)\{([A-Za-z_]\w*)(?=[}:])/g)) {
 			for (let i = 1; i <= arg[1]!.length; i++) out[from + arg.index + i] = text[from + arg.index + i]!;
 		}
 	}
@@ -388,4 +393,12 @@ export function discardedResults(code: string): { line: number; text: string }[]
 			return { line: code.slice(0, start).split("\n").length, text: code.slice(start, to).replace(/\s+/g, " ").trim() };
 		})
 		.sort((a, b) => a.line - b.line);
+}
+
+/** A Rust file's size as the size check counts it: the characters that are not blank and not in a comment, strings included, above the file's first `#[cfg(test)]`. */
+export function rustSize(text: string): number {
+	const { code } = readRust(text);
+	const kept = code.split("");
+	for (const [from, to] of stringSpans(code)) for (let i = from; i < to; i++) kept[i] = text[i]!;
+	return kept.slice(0, beforeTests(code).length).join("").replace(/\s/g, "").length;
 }
