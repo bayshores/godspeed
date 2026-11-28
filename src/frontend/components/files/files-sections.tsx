@@ -28,7 +28,7 @@ export function SectionToggle({
 		<button type="button" aria-expanded={!collapsed} data-testid={testid} onClick={onClick} className="lh-press flex min-h-10 w-full items-center gap-3 text-left">
 			<PixelIcon name="chevron" className={cn("h-[10.5px] text-ink transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", !collapsed && "rotate-90")} />
 			<h2 className="lh-card-title">{label}</h2>
-			<span data-testid={noteTestid} className="font-count text-[15px] text-ink-2 tabular-nums">
+			<span data-testid={noteTestid} className="font-count text-ui text-ink-2 tabular-nums">
 				{note}
 			</span>
 		</button>
@@ -104,7 +104,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 								) : (
 									<li key={item.key} data-testid={`files-item-${item.key}`} className="flex items-start gap-3 py-[5px]">
 										<div className="flex w-[110px] shrink-0 flex-col pt-1.5">
-											<span title={item.label} className="truncate text-[15px] font-medium text-ink">
+											<span title={item.label} className="truncate text-ui font-medium text-ink">
 												{item.label}
 											</span>
 											{item.date && <span className="font-count text-sm text-ink-2">{dayLabel(item.date)}</span>}

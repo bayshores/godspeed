@@ -68,7 +68,7 @@ export function ActivityList({
 	return (
 		<div data-testid="activity-list" className="flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto">
 			{recent.length === 0 && !jobs && !graph && (
-				<p data-testid="activity-empty" className="text-[15px] text-ink-2">
+				<p data-testid="activity-empty" className="text-ui text-ink-2">
 					Nothing yet. What {name} reads and builds shows here.
 				</p>
 			)}
@@ -77,10 +77,10 @@ export function ActivityList({
 
 			{rows.length > 0 && (
 				<section className="flex flex-col gap-3">
-					<h3 className="text-[17px] font-normal text-ink">Recent</h3>
+					<h3 className="text-item font-normal text-ink">Recent</h3>
 					<div data-testid="activity-recent" className={ACTIVITY_ROWS}>
 						{rows.map((row) => (
-							<div key={row.id} data-testid="activity-recent-row" className={cn(ACTIVITY_ROW, "flex w-full items-baseline gap-3 py-2 text-[15px]")}>
+							<div key={row.id} data-testid="activity-recent-row" className={cn(ACTIVITY_ROW, "flex w-full items-baseline gap-3 py-2 text-ui")}>
 								<span className="flex min-w-0 flex-1 items-baseline gap-2">
 									<span className="truncate text-ink" title={row.label}>
 										{row.label}

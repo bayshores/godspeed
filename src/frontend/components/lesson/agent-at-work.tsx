@@ -146,7 +146,7 @@ function DeskRows({ rows, under, slot, arrive }: { rows: DeskRow[]; under: strin
 							<div className="flex min-w-0 flex-col gap-1.5">
 								<RowText row={row} />
 								{row.state === "now" && under && (
-									<span key={under} className={cn("line-clamp-3 text-[14px] leading-5 break-words text-ink-2", arrive(`${slot}:under:${under}`) && "lh-block-in")} style={{ "--lh-block-delay": "60ms" } as CSSProperties}>
+									<span key={under} className={cn("line-clamp-3 text-base leading-5 break-words text-ink-2", arrive(`${slot}:under:${under}`) && "lh-block-in")} style={{ "--lh-block-delay": "60ms" } as CSSProperties}>
 										{under}
 									</span>
 								)}
@@ -175,9 +175,9 @@ function Mark({ row }: { row: DeskRow }) {
 }
 
 function RowText({ row }: { row: DeskRow }) {
-	if (row.state === "folded") return <span className="font-count text-[15px] leading-5 text-ink-2">{row.count} done</span>;
+	if (row.state === "folded") return <span className="font-count text-ui leading-5 text-ink-2">{row.count} done</span>;
 	return (
-		<span key={row.text} className={cn("line-clamp-2 text-[15px] leading-5 break-words", row.state === "now" ? "text-ink" : "text-ink-2")}>
+		<span key={row.text} className={cn("line-clamp-2 text-ui leading-5 break-words", row.state === "now" ? "text-ink" : "text-ink-2")}>
 			{row.text}
 		</span>
 	);

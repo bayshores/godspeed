@@ -174,8 +174,8 @@ function StepsRow({
 						))}
 					</span>
 				)}
-				{!open && line.name && <span className="max-w-[45%] min-w-0 truncate text-[15px] text-ink-2 group-hover:text-ink">{line.name}</span>}
-				<span className="shrink-0 font-count text-[18px] text-ink-2 group-hover:text-ink">{line.count}</span>
+				{!open && line.name && <span className="max-w-[45%] min-w-0 truncate text-ui text-ink-2 group-hover:text-ink">{line.name}</span>}
+				<span className="shrink-0 font-count text-tab text-ink-2 group-hover:text-ink">{line.count}</span>
 				<PixelIcon name="chevron" className={cn("h-2.5 shrink-0 text-ink-2 transition-transform duration-(--lh-dur) ease-(--lh-ease-out) group-hover:text-ink", open ? "ml-auto -rotate-90" : "rotate-90")} />
 			</button>
 			{fold.mounted && (
@@ -237,7 +237,7 @@ function StepCell({
 			<span className={cn("mt-auto block h-1.5 w-full shrink-0", TONE[step.tone])} style={step.tone === "current" ? { background: color } : undefined} />
 		</>
 	);
-	const cls = cn("flex h-full w-full min-w-0 flex-col gap-1.5 text-left text-[15px] leading-snug", step.tone === "current" ? "text-ink" : "text-ink-2");
+	const cls = cn("flex h-full w-full min-w-0 flex-col gap-1.5 text-left text-ui leading-snug", step.tone === "current" ? "text-ink" : "text-ink-2");
 	const { jump } = step;
 	return (
 		<li data-testid="plan-step" data-status={step.state} aria-current={step.tone === "current" ? "step" : undefined} title={step.hint} className="flex min-w-0">

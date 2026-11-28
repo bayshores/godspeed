@@ -272,7 +272,7 @@ function DeskIn({ live, afterSend, children }: { live: boolean; afterSend: boole
  *  click glides back to the card. */
 function CardAway({ text, onClick }: { text: string; onClick: () => void }) {
 	return (
-		<button type="button" data-testid="talk-card-away" onClick={onClick} className="lh-block-in lh-sheet lh-press mx-[18px] mb-2 truncate px-3 py-2 text-left text-[15px] text-ink hover:bg-(--lh-key-hover)">
+		<button type="button" data-testid="talk-card-away" onClick={onClick} className="lh-block-in lh-sheet lh-press mx-[18px] mb-2 truncate px-3 py-2 text-left text-ui text-ink hover:bg-(--lh-key-hover)">
 			{text}
 		</button>
 	);

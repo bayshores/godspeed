@@ -60,7 +60,7 @@ function SpaceTile({
 	const total = words.segments.reduce((sum, seg) => sum + seg.count, 0);
 	return (
 		// The name's link covers the whole tile; the new-files chip sits above it.
-		<li data-testid={`today-space-${s.id}`} className="relative flex min-w-0 flex-col gap-2 bg-tone px-3 py-2.5 text-[17px] transition-colors hover:bg-tone-2">
+		<li data-testid={`today-space-${s.id}`} className="relative flex min-w-0 flex-col gap-2 bg-tone px-3 py-2.5 text-item transition-colors hover:bg-tone-2">
 			<span className="flex min-h-[26px] min-w-0 items-center gap-2">
 				<span aria-hidden className="size-2.5 shrink-0" style={{ background: spaceColorVar(s.color) }} />
 				<Link to="/space" data-testid="today-space-open" onClick={() => onOpen(s.id)} title={s.name} className="min-w-0 truncate text-ink after:absolute after:inset-0">

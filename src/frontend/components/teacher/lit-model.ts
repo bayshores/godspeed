@@ -13,9 +13,6 @@ export interface LitMark {
 
 export type Lit = ReadonlyMap<string, LitMark>;
 
-/** A leaving mark fades this long (--lh-dur-fast) before it goes. */
-export const LEAVE_MS = 110;
-
 /** These keys light up on `page`, again too when one was leaving. */
 export function lightUp(lit: Lit, keys: readonly string[], page: string): Lit {
 	if (keys.length === 0) return lit;

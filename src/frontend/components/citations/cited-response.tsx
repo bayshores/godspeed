@@ -50,7 +50,7 @@ export function CitedResponse({
 			{view.cites.length > 0 && (
 				<div data-testid="cite-list" className="mt-3 flex flex-col gap-1 pt-2">
 					<div className={LABEL_TEXT}>Sources</div>
-					<ul className="flex flex-col gap-0.5 text-[15px]">
+					<ul className="flex flex-col gap-0.5 text-ui">
 						{view.cites.map((cite, i) => (
 							<li key={i} data-testid="cite-row" className="flex gap-2">
 								<span className="shrink-0 text-ink-2">{i + 1}</span>

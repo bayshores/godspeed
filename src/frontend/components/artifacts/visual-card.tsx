@@ -54,7 +54,7 @@ export function VisualCard({ part }: ArtifactPartProps) {
 export function VisualOutputCard({ output }: { output: unknown }) {
 	const result = output as VisualResult | undefined;
 	if (!result || typeof result.svg !== "string") {
-		return <div className={cn(CARD, "text-[15px] text-ink-2")}>Figure completed, but the result could not be displayed.</div>;
+		return <div className={cn(CARD, "text-ui text-ink-2")}>Figure completed, but the result could not be displayed.</div>;
 	}
 	if (result.svg.length === 0) {
 		return (
@@ -63,7 +63,7 @@ export function VisualOutputCard({ output }: { output: unknown }) {
 					Figure
 					<ResultTag tone="wrong">failed</ResultTag>
 				</div>
-				<p className="text-[15px] text-ink-2">{result.notes ?? "The figure could not be drawn."}</p>
+				<p className="text-ui text-ink-2">{result.notes ?? "The figure could not be drawn."}</p>
 			</div>
 		);
 	}

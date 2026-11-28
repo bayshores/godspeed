@@ -60,11 +60,11 @@ export function WebSearch() {
 	return (
 		<section data-testid="web-search" aria-label="Who searches" className="flex flex-col gap-4 pt-1 pb-4">
 			{!view ? (
-				error ? <p className="text-[15px] text-ink-2">{error}</p> : <LoadingLine className="text-[15px]" />
+				error ? <p className="text-ui text-ink-2">{error}</p> : <LoadingLine className="text-ui" />
 			) : (
 				<div className="grid items-start gap-4 min-[860px]:grid-cols-[290px_1fr]">
 					<Choice testid="web-search-agent" name={`${teacher} searches`} picked={!works}>
-						<p className="text-[15px] text-ink-2">Free, nothing to set up. Works with Claude Code and Codex.</p>
+						<p className="text-ui text-ink-2">Free, nothing to set up. Works with Claude Code and Codex.</p>
 					</Choice>
 					<Choice testid="web-search-tavily" name="godspeed searches with Tavily" picked={works}>
 						{hasKey ? (
@@ -75,7 +75,7 @@ export function WebSearch() {
 											{view.used.toLocaleString("en-US")}
 										</span>
 										<div className="flex min-w-0 flex-1 flex-col gap-1.5">
-											<span className="text-[15px] text-ink-2">{usageLine(view.limit)}</span>
+											<span className="text-ui text-ink-2">{usageLine(view.limit)}</span>
 											{view.limit !== null && view.limit > 0 && (
 												<span aria-hidden className="block h-2 bg-tone">
 													<span className="block h-full bg-ink" style={{ width: `${Math.min(1, view.used / view.limit) * 100}%` }} />
@@ -85,7 +85,7 @@ export function WebSearch() {
 									</div>
 								)}
 								{view.error && (
-									<p role="alert" data-testid="web-search-error" className="text-[15px] text-ans-wrong">
+									<p role="alert" data-testid="web-search-error" className="text-ui text-ans-wrong">
 										{view.error} {teacher}'s own search is used until it works again.
 									</p>
 								)}
@@ -108,7 +108,7 @@ export function WebSearch() {
 									run(() => request("/api/web-search/key", { method: "PUT", body: JSON.stringify({ key }) }));
 								}}
 							>
-								<label htmlFor="web-search-key-input" className="text-[15px] text-ink-2">
+								<label htmlFor="web-search-key-input" className="text-ui text-ink-2">
 									Paste a Tavily key and godspeed runs the searches itself.
 								</label>
 								<div className="flex items-center gap-2.5">
@@ -117,18 +117,18 @@ export function WebSearch() {
 										Save key
 									</button>
 								</div>
-								{busy && <p className="text-[15px] text-ink-2">Checking the key…</p>}
+								{busy && <p className="text-ui text-ink-2">Checking the key…</p>}
 							</form>
 						)}
 						{error && (
-							<p role="alert" data-testid="web-search-failed" className="text-[15px] text-ans-wrong">
+							<p role="alert" data-testid="web-search-failed" className="text-ui text-ans-wrong">
 								{error}
 							</p>
 						)}
 					</Choice>
 				</div>
 			)}
-			<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[15px] text-ink-2">
+			<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-ui text-ink-2">
 				<p className="mr-auto">With a key, your search words go to Tavily. godspeed still opens the pages itself.</p>
 				<a href="https://tavily.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-ink">
 					Get a free key at tavily.com
@@ -146,7 +146,7 @@ function Choice({ testid, name, picked, children }: { testid: string; name: stri
 				<span aria-hidden className={cn("flex size-[18px] shrink-0 items-center justify-center border-2", picked ? "border-ink bg-ink text-background" : "border-edge")}>
 					{picked && <PixelIcon name="check" className="h-2" />}
 				</span>
-				<h3 className={cn("min-w-0 flex-1 text-[17px] leading-tight", picked ? "font-medium text-ink" : "text-ink-2")}>{name}</h3>
+				<h3 className={cn("min-w-0 flex-1 text-item leading-tight", picked ? "font-medium text-ink" : "text-ink-2")}>{name}</h3>
 				{picked && <span className="shrink-0 bg-highlight px-2 py-0.5 text-sm text-ink">In use</span>}
 			</div>
 			{children}

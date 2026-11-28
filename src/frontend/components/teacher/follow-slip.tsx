@@ -36,7 +36,7 @@ const LIST_ID = "lh-follow-slip-list";
 const STEP_IN = { "--lh-block-delay": "60ms" } as CSSProperties;
 
 /** The teacher's words are in its screen's font, as the strip's and the panel's head are. */
-const TYPE = "font-mono text-[13px]";
+const TYPE = "font-mono text-(length:--text-sm)";
 const ROW = cn("flex min-h-9 w-full items-center gap-2.5 px-4 py-1.5 text-left", TYPE);
 
 /** The source pop-up's cite for a file read's link. */
@@ -155,7 +155,7 @@ function SlipBody({
 						{view.line}
 					</span>
 					{view.count && (
-						<span ref={count} data-testid="follow-slip-count" style={STEP_IN} className="font-count shrink-0 text-[13px]">
+						<span ref={count} data-testid="follow-slip-count" style={STEP_IN} className="font-count shrink-0 text-(length:--text-sm)">
 							{view.count}
 						</span>
 					)}

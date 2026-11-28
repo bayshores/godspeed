@@ -15,7 +15,7 @@ import { KeptPhrase, KeptSentence, KeptSource } from "./kept-card";
 export function FromEarlierCard({ data }: { data: FromEarlierData }) {
 	return (
 		<div data-testid="from-earlier-card" className={cn(CARD, "flex flex-col gap-2.5 text-card-foreground")}>
-			<p className="font-count text-[15px] text-ink-2">From earlier</p>
+			<p className="font-count text-ui text-ink-2">From earlier</p>
 			<div className="flex flex-col gap-1.5">
 				{data.rows.map((details) => (
 					<Row key={`${details.of.chatId}:${details.of.toolCallId}:${details.answer.answeredAt}`} details={details} />
@@ -44,7 +44,7 @@ function Row({ details }: { details: ReviewDetails }) {
 				<ResultTag tone={row.tone} testId="from-earlier-result">
 					{row.word}
 				</ResultTag>
-				<span className="font-count text-[15px] text-ink-2">
+				<span className="font-count text-ui text-ink-2">
 					{whyButton ? (
 						row.topic
 					) : (

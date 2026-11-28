@@ -5,7 +5,7 @@ import { agoLabel } from "./activity-model";
 import { ACTIVITY_ROW, ACTIVITY_ROWS } from "./activity-look";
 import { useTeacher } from "./teacher-context";
 
-const CHAT_ROW = cn(ACTIVITY_ROW, "lh-press flex w-full items-baseline gap-3 py-2 text-left text-[15px] hover:bg-(--lh-key-hover)");
+const CHAT_ROW = cn(ACTIVITY_ROW, "lh-press flex w-full items-baseline gap-3 py-2 text-left text-ui hover:bg-(--lh-key-hover)");
 
 /**
  * The chats under the panel's Chats key: New chat, then the chats, newest first, each with its

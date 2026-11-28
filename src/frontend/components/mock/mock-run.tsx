@@ -158,7 +158,7 @@ export function MockRun({ view }: { view: MockView }) {
 	};
 
 	const errorLine = error && (
-		<p role="alert" data-testid="mock-run-error-line" className="min-w-0 flex-1 text-[15px] text-ans-wrong">
+		<p role="alert" data-testid="mock-run-error-line" className="min-w-0 flex-1 text-ui text-ans-wrong">
 			{error}
 		</p>
 	);
@@ -209,7 +209,7 @@ export function MockRun({ view }: { view: MockView }) {
 			</MockBar>
 			{paused ? (
 				<div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3.5 overflow-y-auto p-8 text-center">
-					<p className="text-[28px] leading-tight text-ink">Mock {mock.n} is paused</p>
+					<p className="text-ask leading-tight text-ink">Mock {mock.n} is paused</p>
 					<p className="max-w-[520px] text-lg leading-snug text-ink-2">
 						The questions are hidden and nothing is saved until you resume.
 					</p>
@@ -221,7 +221,7 @@ export function MockRun({ view }: { view: MockView }) {
 			) : (
 				<>
 					{confirmEnd && (
-						<div role="alertdialog" aria-label="End the mock" data-testid="mock-end-confirm" className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 bg-highlight px-6 py-2.5 text-[15px] text-ink">
+						<div role="alertdialog" aria-label="End the mock" data-testid="mock-end-confirm" className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 bg-highlight px-6 py-2.5 text-ui text-ink">
 							<p className="min-w-0 flex-1">
 								{submittedLine(questions.length, notSubmitted)} End Mock {mock.n} now? {teacher} grades what you have written.
 							</p>
@@ -315,20 +315,20 @@ function QuestionPanel({ question: q, n, teacher }: { question: MockQuestion; n:
 			<h2 className="lh-card-title">
 				Question {n}: {q.title}
 			</h2>
-			<div className="font-prose text-[17px] leading-relaxed text-ink">
+			<div className="font-prose text-item leading-relaxed text-ink">
 				<MessageResponse>{q.statement}</MessageResponse>
 			</div>
 			{q.kind === "code" &&
 				q.examples.map((e, i) => (
 					<div key={i} className="flex flex-col gap-1">
-						<p className="text-[15px] text-ink-2">Example {i + 1}</p>
-						<pre className="overflow-x-auto lh-well rounded-sm px-3 py-2 font-mono text-[13.5px] leading-relaxed text-ink">
+						<p className="text-ui text-ink-2">Example {i + 1}</p>
+						<pre className="overflow-x-auto lh-well rounded-sm px-3 py-2 font-mono text-sm leading-relaxed text-ink">
 							{exampleCall(q.fn, e.args)}
 							{"\n"}returns {e.expected}
 						</pre>
 					</div>
 				))}
-			<p className="mt-auto pt-4 text-[15px] text-balance text-ink-3">{teacher} stays quiet until the mock ends.</p>
+			<p className="mt-auto pt-4 text-ui text-balance text-ink-3">{teacher} stays quiet until the mock ends.</p>
 		</section>
 	);
 }

@@ -93,7 +93,7 @@ export function HomeBody(p: HomeBodyProps) {
 							Add a space
 						</button>
 					</div>
-					<p data-testid="today-empty" className="text-[17px] text-ink-2">
+					<p data-testid="today-empty" className="text-item text-ink-2">
 						None yet. A space holds one subject&apos;s files, deadlines and lessons.
 					</p>
 				</Pane>
@@ -103,7 +103,7 @@ export function HomeBody(p: HomeBodyProps) {
 					<div className={cn("grid gap-(--lh-gap) @[1100px]/page:grid-cols-[minmax(0,1fr)_340px]", waited && "lh-set")}>
 						<div className="flex min-w-0 flex-col gap-(--lh-gap)">
 							{p.lessonError && (
-								<p role="alert" className="text-[15px] text-ans-wrong">
+								<p role="alert" className="text-ui text-ans-wrong">
 									{p.lessonError}
 								</p>
 							)}

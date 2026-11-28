@@ -48,7 +48,7 @@ export function CodeAnswer({
 
 	const tools = (
 		<span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-			<span className="font-mono text-[12.5px] text-ink-3">{RUN_FILE[language]}</span>
+			<span className="font-mono text-(length:--text-sm) text-ink-3">{RUN_FILE[language]}</span>
 			<span role="group" aria-label="Language" className="flex items-center gap-0.5">
 				{LANGUAGES.map((l) => (
 					<button
@@ -57,16 +57,16 @@ export function CodeAnswer({
 						data-testid={`mock-language-${l}`}
 						aria-pressed={l === language}
 						onClick={() => l !== language && onLanguage(l)}
-						className={cn("lh-press rounded-sm px-2 py-0.5 text-[13px] text-ink", l === language ? "bg-highlight" : "hover:bg-tone")}
+						className={cn("lh-press rounded-sm px-2 py-0.5 text-(length:--text-sm) text-ink", l === language ? "bg-highlight" : "hover:bg-tone")}
 					>
 						{MOCK_LANGUAGES[l]}
 					</button>
 				))}
 			</span>
 			{erasing ? (
-				<span className="flex items-center gap-1.5 text-[13px] text-ink">
+				<span className="flex items-center gap-1.5 text-(length:--text-sm) text-ink">
 					Erase your {MOCK_LANGUAGES[language]} code?
-					<button type="button" data-testid="mock-start-over-yes" onClick={onStartOver} className="lh-btn h-6 px-2 text-[13px]">
+					<button type="button" data-testid="mock-start-over-yes" onClick={onStartOver} className="lh-btn h-6 px-2 text-(length:--text-sm)">
 						Erase
 					</button>
 					<button type="button" onClick={() => setErasing(false)} className="lh-btn lh-btn-small lh-btn-quiet">
@@ -97,21 +97,21 @@ export function CodeAnswer({
 					<button type="button" data-testid="mock-run-examples" disabled={running} onClick={() => void run()} className="lh-btn shrink-0">
 						{running ? "Running" : "Run examples"}
 					</button>
-					<p className="min-w-0 flex-1 basis-[260px] text-[15px] leading-snug text-ink-3">
+					<p className="min-w-0 flex-1 basis-[260px] text-ui leading-snug text-ink-3">
 						Your code runs on your own computer. {teacher} checks more cases when the mock ends.
 					</p>
 				</div>
 				{outcome?.error && (
-					<pre role="alert" data-testid="mock-run-error" className="overflow-x-auto font-mono text-[13px] leading-relaxed whitespace-pre-wrap text-ans-wrong">
+					<pre role="alert" data-testid="mock-run-error" className="overflow-x-auto font-mono text-sm leading-relaxed whitespace-pre-wrap text-ans-wrong">
 						{outcome.error}
 					</pre>
 				)}
 				{outcome && outcome.examples.length > 0 && (
 					<ul data-testid="mock-run-results" className="flex flex-col">
 						{outcome.examples.map((e, i) => (
-							<li key={i} className="flex items-baseline gap-3.5 py-1.5 text-[15px]">
+							<li key={i} className="flex items-baseline gap-3.5 py-1.5 text-ui">
 								<span className="w-[86px] shrink-0 text-ink">Example {i + 1}</span>
-								<span className="min-w-0 flex-1 font-mono text-[13.5px] break-words text-ink-2">{exampleLine(e, question.examples[i]?.expected ?? "")}</span>
+								<span className="min-w-0 flex-1 font-mono text-(length:--text-sm) break-words text-ink-2">{exampleLine(e, question.examples[i]?.expected ?? "")}</span>
 								<span className={cn("shrink-0", e.passed ? "text-ans-right" : "text-ans-wrong")}>{e.passed ? "passed" : "not right yet"}</span>
 							</li>
 						))}
@@ -119,8 +119,8 @@ export function CodeAnswer({
 				)}
 				{outcome?.printed && (
 					<div className="flex flex-col gap-1">
-						<p className="text-[15px] text-ink-2">What your code printed</p>
-						<pre data-testid="mock-run-printed" className="overflow-x-auto font-mono text-[13px] leading-relaxed whitespace-pre-wrap text-ink">
+						<p className="text-ui text-ink-2">What your code printed</p>
+						<pre data-testid="mock-run-printed" className="overflow-x-auto font-mono text-sm leading-relaxed whitespace-pre-wrap text-ink">
 							{outcome.printed}
 						</pre>
 					</div>

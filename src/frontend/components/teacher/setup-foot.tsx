@@ -77,7 +77,7 @@ function OtherAgent() {
 				Use {AGENT_LABEL[other]}
 			</button>
 			{action.error && (
-				<p role="alert" className="text-[15px] text-ans-wrong">
+				<p role="alert" className="text-ui text-ans-wrong">
 					{action.error}
 				</p>
 			)}

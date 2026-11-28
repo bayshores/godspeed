@@ -46,7 +46,7 @@ export function DeadlinesCard({
 			{!lists ? (
 				<LoadFailed message="Couldn't load your deadlines." onRetry={onRetry} className="py-10" />
 			) : empty ? (
-				<p data-testid="today-empty" className="text-[17px] text-ink-2">
+				<p data-testid="today-empty" className="text-item text-ink-2">
 					{empty}
 				</p>
 			) : (

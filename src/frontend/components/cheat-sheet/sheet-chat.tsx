@@ -113,7 +113,7 @@ export function SheetChat({
 	const notes = (
 		<>
 			{(failed || view.newer) && (
-				<p role="alert" className="text-[15px] text-ans-wrong">
+				<p role="alert" className="text-ui text-ans-wrong">
 					{view.newer ? "A newer godspeed saved this cheat sheet. Update godspeed to change it." : failed}
 				</p>
 			)}
@@ -143,7 +143,7 @@ export function SheetChat({
 			<div data-testid="sheet-thread" className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-[22px] pt-[18px] pb-[22px]">
 				<SheetRules rules={view.sheet.rules} agentName={agentName} onRemove={(rule) => post({ action: "remove-rule", text: rule })} />
 				{empty && messages.length === 0 && (
-					<p data-testid="sheet-chat-empty" className="text-[15px] leading-snug text-ink-2">
+					<p data-testid="sheet-chat-empty" className="text-ui leading-snug text-ink-2">
 						{empty}
 					</p>
 				)}
@@ -155,7 +155,7 @@ export function SheetChat({
 									who: "you",
 									text: m.text ?? "",
 									over: m.region && (
-										<p data-testid="sheet-pointed" className="text-[15px] text-ink-2">
+										<p data-testid="sheet-pointed" className="text-ui text-ink-2">
 											Pointed at {pointedLabel(m.region, pagesOf(m.region.n))}
 										</p>
 									),
@@ -167,7 +167,7 @@ export function SheetChat({
 					live={
 						<>
 							{view.running && (
-								<p data-testid="sheet-working" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
+								<p data-testid="sheet-working" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-ui text-ink-2">
 									<span>{agentName} is on it</span>
 									<button type="button" data-testid="sheet-stop" onClick={() => post({ action: "stop" })} className="lh-btn lh-btn-quiet">
 										Stop
@@ -177,7 +177,7 @@ export function SheetChat({
 							{view.running && <ApprovalCards approvals={view.approvals} slot={slot} arrive={arrive} answer={answer} />}
 							{!busy && view.error && (
 								<JobFailure>
-									<p data-testid="sheet-failed" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
+									<p data-testid="sheet-failed" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-ui text-ink-2">
 										<span>
 											<span className="text-ans-wrong">{agentName} couldn&apos;t finish that.</span> {view.error.text}
 										</span>
@@ -232,7 +232,7 @@ function AgentNotes({ message, current, onShowVersion }: { message: Extract<Shee
 						Made version {n}
 						{n === current ? ", the sheet now" : ""}
 					</span>
-					{onShowVersion && <span className="shrink-0 px-1 text-[15px] font-medium text-ink-2">Show</span>}
+					{onShowVersion && <span className="shrink-0 px-1 text-ui font-medium text-ink-2">Show</span>}
 				</button>
 			)}
 			{(message.rules ?? []).map((rule) => (

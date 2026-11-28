@@ -31,7 +31,7 @@ export function CloseButton({ testid, onClick }: { testid: string; onClick: () =
 /** The fact's topic as a folder tab standing on the panel's top edge; a click goes back to the topic. */
 export function TopicTab({ topic, onClick }: { topic: TopicProgress; onClick: () => void }) {
 	return (
-		<button type="button" data-testid="fact-pane-back" onClick={onClick} className="lh-folder-tab lh-press absolute bottom-[calc(100%-8px)] left-0 flex h-11 max-w-[min(100%,36ch)] items-center gap-2.5 pt-0 pr-5 pb-2 pl-4 text-[15px] text-ink-2 hover:text-ink">
+		<button type="button" data-testid="fact-pane-back" onClick={onClick} className="lh-folder-tab lh-press absolute bottom-[calc(100%-8px)] left-0 flex h-11 max-w-[min(100%,36ch)] items-center gap-2.5 pt-0 pr-5 pb-2 pl-4 text-ui text-ink-2 hover:text-ink">
 			<span aria-hidden className="size-[10px] shrink-0" style={{ background: topicColor(topic) }} />
 			<span className="truncate">{topic.name}</span>
 		</button>

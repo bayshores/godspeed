@@ -63,10 +63,10 @@ export function BarFind({
 				value={query}
 				onChange={(event) => onQuery(event.target.value)}
 				spellCheck={false}
-				className="h-[30px] w-[220px] min-w-[8ch] shrink rounded-[2px] bg-bar-ink/10 px-3 text-[15px] text-bar-ink outline-none placeholder:text-bar-ink/60"
+				className="h-[30px] w-[220px] min-w-[8ch] shrink rounded bg-bar-ink/10 px-3 text-ui text-bar-ink outline-none placeholder:text-bar-ink/60"
 			/>
 			{count !== undefined && (
-				<output aria-live="polite" data-testid={`${testIds.field}-count`} className="font-count min-w-[7ch] px-3 text-[15px] whitespace-nowrap">
+				<output aria-live="polite" data-testid={`${testIds.field}-count`} className="font-count min-w-[7ch] px-3 text-ui whitespace-nowrap">
 					{count}
 				</output>
 			)}

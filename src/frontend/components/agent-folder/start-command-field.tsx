@@ -40,10 +40,10 @@ export function StartCommandField({ agent, saved, onSave }: { agent: FolderAgent
 					Save
 				</button>
 			</div>
-			<p className="text-[15px] text-ink-2">
+			<p className="text-ui text-ink-2">
 				Leave empty to use <span className="font-mono">{agent}</span>
 			</p>
-			<p className="text-[15px] text-ink-2">
+			<p className="text-ui text-ink-2">
 				godspeed adds its own options after your command. Some launchers need two dashes first, like{" "}
 				<span className="font-mono">standardcompute launch {agent} --</span>
 			</p>

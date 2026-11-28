@@ -87,7 +87,7 @@ export function NewLesson() {
 							attachments={attachments}
 						/>
 						{lesson.error && (
-							<p role="alert" data-testid="lesson-start-error" className="text-[15px] text-ans-wrong">
+							<p role="alert" data-testid="lesson-start-error" className="text-ui text-ans-wrong">
 								{lesson.error}
 							</p>
 						)}

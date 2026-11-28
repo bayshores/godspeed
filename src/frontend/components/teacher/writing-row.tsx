@@ -61,7 +61,7 @@ export function WritingRow({ name, noBox, box, focus, busy, error, ideas, made, 
 	);
 	// One main key: Try again, unless the box holds words to send.
 	const errorRow = error && (
-		<div data-testid="talk-error" className="lh-rise flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well px-4 py-3 text-[15px]">
+		<div data-testid="talk-error" className="lh-rise flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lh-well px-4 py-3 text-ui">
 			<span title={error.detail} className="text-ans-wrong">
 				{error.text}
 			</span>

@@ -28,13 +28,13 @@ export const SpaceFacts = memo(function SpaceFacts({ progress }: { progress: Pic
 			</div>
 			{progress.files.length === 0 ? (
 				<div className="flex flex-col items-start gap-3">
-					<p className="text-[15px] text-ink-2">No study files yet.</p>
+					<p className="text-ui text-ink-2">No study files yet.</p>
 					<Link to="/space/files" data-testid="space-facts-add-files" className="lh-btn">
 						Add files
 					</Link>
 				</div>
 			) : total === 0 ? (
-				<p className="text-[15px] text-ink-2">No facts yet. They show up once your agent reads the files.</p>
+				<p className="text-ui text-ink-2">No facts yet. They show up once your agent reads the files.</p>
 			) : (
 				<div className="flex flex-col gap-4">
 					<div role="img" aria-label={`${studied} of ${total} facts studied`} className="flex flex-wrap gap-[3px]">

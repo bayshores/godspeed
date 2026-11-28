@@ -242,7 +242,7 @@ function FilesPageBody() {
 
 	const showRecent = !searching && changes.length > 0;
 	const noMatch = (
-		<p data-testid="files-no-match" className="text-[15px] text-ink-2">
+		<p data-testid="files-no-match" className="text-ui text-ink-2">
 			No file names have “{query.trim()}”.
 		</p>
 	);
@@ -279,7 +279,7 @@ function FilesPageBody() {
 			<h1 className="sr-only">Files</h1>
 			<div className={cn("@container/page lh-page flex flex-1 flex-col gap-(--lh-gap) pt-(--lh-gap) pb-(--lh-page-end)", waited && "lh-set")}>
 				{!active && <PickSpace line="Pick a space to see its files." />}
-				{active && !record && !failed && <LoadingLine className="text-[15px]" />}
+				{active && !record && !failed && <LoadingLine className="text-ui" />}
 				{active && !record && failed && <LoadFailed message="Couldn't load this space's files." onRetry={() => void reload()} />}
 				{record && actions && (
 					<>
@@ -315,7 +315,7 @@ function FilesPageBody() {
 								<div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-x-4 gap-y-2.5 px-(--lh-inset) py-4">
 									<div className="flex min-w-0 flex-1 basis-[240px] flex-col gap-1">
 										{record.files.length > 0 && (
-											<p data-testid="files-summary" className="text-[22px] leading-tight text-ink">
+											<p data-testid="files-summary" className="text-head leading-tight text-ink">
 												{filesSummary(record.files)}
 												{arrived && `, ${arrived}`}
 												{removed && `, ${removed}`}
@@ -333,19 +333,19 @@ function FilesPageBody() {
 							</Pane>
 						)}
 						{error && (
-							<p role="alert" data-testid="space-files-error" className="text-[15px] whitespace-pre-wrap text-ans-wrong">
+							<p role="alert" data-testid="space-files-error" className="text-ui whitespace-pre-wrap text-ans-wrong">
 								{error}
 							</p>
 						)}
 						{finderDrag !== null && (
-							<div data-testid="files-drop" className="flex h-[110px] items-center justify-center lh-well rounded px-4 text-center text-[17px] font-medium text-ink">
+							<div data-testid="files-drop" className="flex h-[110px] items-center justify-center lh-well rounded px-4 text-center text-item font-medium text-ink">
 								{dropTitle(finderDrag)}
 							</div>
 						)}
 						{record.files.length === 0 && finderDrag === null && (
 							<Pane data-testid="files-empty" className="lh-card gap-1.5">
-								<span className="text-[17px] text-ink">Add notes, readings, recordings or a syllabus, or drop them here.</span>
-								<span className="text-[15px] text-ink-2">PDF, Markdown, text, VTT/SRT, audio, video</span>
+								<span className="text-item text-ink">Add notes, readings, recordings or a syllabus, or drop them here.</span>
+								<span className="text-ui text-ink-2">PDF, Markdown, text, VTT/SRT, audio, video</span>
 							</Pane>
 						)}
 						{searching && shown.length === 0 && (

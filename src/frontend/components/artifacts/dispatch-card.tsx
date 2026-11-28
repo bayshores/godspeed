@@ -37,7 +37,7 @@ export function DispatchCard({ toolCallId, kind }: { toolCallId: string; kind: J
 	const failed = job.status === "error";
 	const line = (
 		<div
-			className="flex items-center gap-2.5 text-[15px] text-ink-2"
+			className="flex items-center gap-2.5 text-ui text-ink-2"
 			data-testid="dispatch-settled"
 		>
 			<PixelIcon name={failed ? "close" : "check"} className={cn(failed && "text-ans-wrong")} />
@@ -65,10 +65,10 @@ function DispatchActivityCard({ job, label }: { job: JobRecord | null; label: st
 				{/* The Braille spinner: one working indicator everywhere. */}
 				<BrailleSpinner label={`${label} running`} />
 				{label}
-				{elapsed !== null && <span className="font-count text-[15px] text-ink-2">{elapsed}s</span>}
+				{elapsed !== null && <span className="font-count text-ui text-ink-2">{elapsed}s</span>}
 			</div>
 			{job?.activity && (
-				<div className="truncate font-count text-[15px] text-ink-2" data-testid="dispatch-activity-line">
+				<div className="truncate font-count text-ui text-ink-2" data-testid="dispatch-activity-line">
 					{job.activity}
 				</div>
 			)}

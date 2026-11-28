@@ -15,13 +15,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-/** Matches --lh-dur-fast in src/frontend/globals.css. */
-const EXIT_MS = 110;
-
-/** Matches --lh-dur in src/frontend/globals.css, for animations and waits run from code. */
+/** The motion tokens of globals.css, for animations and waits run from code: --lh-dur-fast, --lh-dur,
+ *  --lh-dur-page, --lh-ease-out and --lh-ease-in. tests/frontend/motion-times.test.ts holds them equal. */
+export const FAST_MS = 110;
 export const DUR_MS = 160;
-
-/** The --lh-ease-out and --lh-ease-in curves in globals.css, for animations run from code. */
+export const PAGE_MS = 420;
 export const EASE_OUT = "cubic-bezier(0.2, 0, 0, 1)";
 export const EASE_IN = "cubic-bezier(0.4, 0, 1, 1)";
 
@@ -35,7 +33,7 @@ export function prefersReducedMotion(): boolean {
 	return reducedMotionQuery.matches;
 }
 
-export function usePresence(open: boolean, exitMs: number = EXIT_MS): { mounted: boolean; state: "open" | "closed" } {
+export function usePresence(open: boolean, exitMs: number = FAST_MS): { mounted: boolean; state: "open" | "closed" } {
 	const [mounted, setMounted] = useState(open);
 	useEffect(() => {
 		if (open) {
@@ -58,7 +56,7 @@ export type Leaving<T> = { item: T; leaving: boolean };
 
 /** usePresence for a list: what leaves `items` stays `exitMs` more, after them, marked `leaving`,
  *  so its exit plays (.lh-fade with data-state="closed"). With reduced motion it goes at once. */
-export function useLeavingList<T extends { key: string }>(items: readonly T[], exitMs: number = EXIT_MS): Leaving<T>[] {
+export function useLeavingList<T extends { key: string }>(items: readonly T[], exitMs: number = FAST_MS): Leaving<T>[] {
 	const [last, setLast] = useState(items);
 	const [gone, setGone] = useState<readonly T[]>([]);
 	// Read in the render that drops it, so the leaving one is never missing for a frame.

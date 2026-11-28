@@ -63,7 +63,7 @@ export function SpaceHead({ plugins }: { plugins: readonly ShownPlugin[] }) {
 								{t.label}
 								{t.action && <KeyHint action={t.action} />}
 								{count !== undefined && (
-									<span data-testid={`${t.testid}-count`} className="font-count text-[15px] text-ink-2 tabular-nums">
+									<span data-testid={`${t.testid}-count`} className="font-count text-ui text-ink-2 tabular-nums">
 										{count}
 									</span>
 								)}

@@ -30,7 +30,7 @@ function TitleCell({ lesson, actions, className }: { lesson: LessonProgress; act
 			to={lessonHref(lesson.chatId)}
 			data-testid="lesson-row"
 			title={lesson.title}
-			className={cn("min-w-0 text-[17px] leading-snug text-ink after:absolute after:inset-0", className)}
+			className={cn("min-w-0 text-item leading-snug text-ink after:absolute after:inset-0", className)}
 		>
 			{lesson.title}
 		</Link>
@@ -63,7 +63,7 @@ function RowShell({ lesson, actions, itemClass, className, children }: { lesson:
 				{children}
 			</div>
 			{actions.renameFailedId === lesson.chatId && (
-				<p role="alert" data-testid="lesson-rename-failed" className="col-span-full px-3 pt-1 pb-2 text-[15px] text-ans-wrong">
+				<p role="alert" data-testid="lesson-rename-failed" className="col-span-full px-3 pt-1 pb-2 text-ui text-ans-wrong">
 					Couldn&apos;t rename the lesson.
 				</p>
 			)}
@@ -83,7 +83,7 @@ export const FINISHED_LIST = "grid grid-cols-[auto_minmax(0,1fr)_auto_auto] gap-
 export function FinishedRow({ lesson: l, day, actions }: { lesson: LessonProgress; day: string | null; actions: LessonActions }) {
 	return (
 		<RowShell lesson={l} actions={actions} itemClass="col-span-full grid grid-cols-subgrid" className="col-span-full grid h-10 grid-cols-subgrid items-center px-3">
-			<span className="font-count text-[15px] text-ink-2">{day}</span>
+			<span className="font-count text-ui text-ink-2">{day}</span>
 			<TitleCell lesson={l} actions={actions} className="truncate" />
 			<MoreButton lesson={l} actions={actions} />
 			{l.answered > 0 ? (
@@ -142,7 +142,7 @@ function RenameField({ title, onCommit, onCancel }: { title: string; onCommit: (
 			}}
 			aria-label="Rename lesson"
 			data-testid="lesson-rename-input"
-			className="lh-well relative z-10 w-full min-w-0 px-2 py-1 text-[17px] text-ink outline-none"
+			className="lh-well relative z-10 w-full min-w-0 px-2 py-1 text-item text-ink outline-none"
 		/>
 	);
 }

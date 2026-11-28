@@ -79,12 +79,12 @@ export function LinkedFolderButton({
 				<h2 className="text-xl text-ink">Linked folder</h2>
 				<p className="font-count text-base break-all text-ink">{path}</p>
 				{problem && (
-					<p data-testid="space-folder-problem" className="text-[15px] text-ans-wrong">
+					<p data-testid="space-folder-problem" className="text-ui text-ans-wrong">
 						{PROBLEM_LINE[problem]}
 					</p>
 				)}
 				{skipped.length > 0 && (
-					<p data-testid="space-folder-skipped" className="text-[15px] break-words text-ink-2">
+					<p data-testid="space-folder-skipped" className="text-ui break-words text-ink-2">
 						{skipped.join(" ")}
 					</p>
 				)}
@@ -113,7 +113,7 @@ export function LinkedFolderButton({
 export function FolderStatusLine({ path, status, now }: { path: string; status: FolderStatus; now: number | null }) {
 	const line = folderStatusLine(path, status, now);
 	return (
-		<p className="flex items-center gap-2 text-[15px]">
+		<p className="flex items-center gap-2 text-ui">
 			<span aria-hidden className={cn("size-2.5 shrink-0", line.warn ? "bg-ans-wrong" : "bg-ans-right")} />
 			<span data-testid="space-folder-status" className={cn("min-w-0", line.warn ? "text-ans-wrong" : "text-ink-2")}>
 				{line.text}
@@ -131,7 +131,7 @@ export function LinkFolderButton({ disabled, onClick }: { disabled?: boolean; on
 	);
 }
 
-const FIELD = "h-10 min-w-0 flex-1 lh-well rounded px-3 text-[15px] text-ink placeholder:text-ink-3";
+const FIELD = "h-10 min-w-0 flex-1 lh-well rounded px-3 text-ui text-ink placeholder:text-ink-3";
 
 /** The path field (no native folder picker): type a folder, Link. */
 export function LinkFolderField({

@@ -83,7 +83,7 @@ export function CoversSheet({
 				<LoadingBox className="h-40 bg-tone" />
 			) : (
 				<>
-					<p data-testid="deadline-material-summary" className="text-[15px] text-ink-2">
+					<p data-testid="deadline-material-summary" className="text-ui text-ink-2">
 						{materialSummary(m)}
 						{source && (
 							<>
@@ -124,7 +124,7 @@ export function CoversSheet({
 					)}
 					{/* An interview's files aren't class days, so nothing is checked. */}
 					{m.notIncluded.length === 0 && d.kind !== "interview" && (
-						<p data-testid="deadline-all-accounted" className="flex items-center gap-2.5 text-[15px] text-ink-2">
+						<p data-testid="deadline-all-accounted" className="flex items-center gap-2.5 text-ui text-ink-2">
 							<DayMark state="ready" open={false} />
 							Every day {before} is on it or left out.
 						</p>
@@ -205,7 +205,7 @@ function DayRow({ day, open = false, children }: { day: Day; open?: boolean; chi
 			<DayMark state={day.state} open={open} />
 			{day.date && <span className="w-14 shrink-0 font-count text-base text-ink-2">{monthDay(day.date)}</span>}
 			<Tip title={day.title} body={<span className="text-sm text-ink-2">{`${day.names.join(", ")}, ${STATE_WORD[day.state]}`}</span>}>
-				<span tabIndex={0} className="min-w-0 truncate text-[15px] text-ink">
+				<span tabIndex={0} className="min-w-0 truncate text-ui text-ink">
 					{day.title}
 				</span>
 			</Tip>

@@ -137,7 +137,7 @@ export function InstructionsPanel({
 						</button>
 						<div className="min-w-0">
 							<h2 className="text-[30px] leading-9 text-ink">{area.label}, full instructions</h2>
-							<p className="text-[15px] text-ink-2">What {teacherName} reads before every lesson</p>
+							<p className="text-ui text-ink-2">What {teacherName} reads before every lesson</p>
 						</div>
 					</>
 				)}
@@ -167,7 +167,7 @@ export function InstructionsPanel({
 								)}
 							>
 								{PART_NAMES[p.path] ?? p.path}
-								{p.overrideText !== null && <span className="text-[15px] font-normal text-ink-2">changed</span>}
+								{p.overrideText !== null && <span className="text-ui font-normal text-ink-2">changed</span>}
 							</button>
 						);
 					})}
@@ -192,7 +192,7 @@ export function InstructionsPanel({
 					question
 				) : (
 					<>
-						<span className="min-w-0 flex-1 text-[15px] text-ink-2">
+						<span className="min-w-0 flex-1 text-ui text-ink-2">
 							{error ?? (dirty ? "Unsaved changes" : part.overrideText !== null ? "Your version is in use" : "The original is in use")}
 						</span>
 						<button

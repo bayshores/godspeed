@@ -66,7 +66,7 @@ export function PathSheet({
 					<ol className="flex flex-col">
 						{plan.map((day, i) => (
 							<li key={day.day} data-testid="deadline-day" className="flex flex-col gap-1 py-1">
-								<span className={cn("text-[15px] text-ink", i > 0 && "font-count")}>{i === 0 ? "Today" : deadlineDateLabel(day.day)}</span>
+								<span className={cn("text-ui text-ink", i > 0 && "font-count")}>{i === 0 ? "Today" : deadlineDateLabel(day.day)}</span>
 								{day.topics.length === 0 && (
 									<p data-testid="deadline-day-empty" className="text-base text-ink-2">
 										{nothingMorePlannedLine()}
@@ -81,7 +81,7 @@ export function PathSheet({
 								</ul>
 							</li>
 						))}
-						<li data-testid="deadline-day-due" className="mt-3 flex items-baseline gap-2.5 text-[15px] font-medium text-ink">
+						<li data-testid="deadline-day-due" className="mt-3 flex items-baseline gap-2.5 text-ui font-medium text-ink">
 							<span className="shrink-0 font-count">{deadlineDateLabel(d.date)}</span>
 							<span className="min-w-0 truncate">{d.time ? `${d.name}, ${clockLabel(d.time)}` : d.name}</span>
 						</li>

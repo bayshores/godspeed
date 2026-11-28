@@ -46,8 +46,8 @@ export function PeekSheet({ children }: { children: ReactNode }) {
 			data-lh-menu={out || open ? "" : "quiet"}
 			data-state={presence.state}
 			inert={!shown}
-			// Over the teacher's panel (z-41) and the strip, under dialogs (z-50): a dialog is modal, so notices wait under its dim.
-			className={cn("lh-peek fixed z-[45]", !presence.mounted && "invisible")}
+			// Over the teacher's panel and the strip, under dialogs: a dialog is modal, so notices wait under its dim.
+			className={cn("lh-peek fixed z-(--lh-z-peek)", !presence.mounted && "invisible")}
 			onPointerEnter={() => {
 				hold("pointer", true);
 				peekPointer(true);

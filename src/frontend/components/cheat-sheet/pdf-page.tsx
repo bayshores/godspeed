@@ -78,7 +78,7 @@ export function PdfPage({ doc, board, cam, view }: { doc: PDFDocumentProxy | "fa
 		<div data-testid="cheat-sheet-page" data-picture="" className="absolute bg-white" style={{ left: board.x, top: board.y, width: board.w, height: board.h }}>
 			<div ref={whole} className="absolute inset-0" />
 			<div ref={part} className="absolute inset-0" />
-			{doc === "failed" && <p className="absolute inset-0 flex items-center justify-center p-6 text-center text-[13px] text-black/60">Couldn&apos;t show this page.</p>}
+			{doc === "failed" && <p className="absolute inset-0 flex items-center justify-center p-6 text-center text-(length:--text-sm) text-black/60">Couldn&apos;t show this page.</p>}
 		</div>
 	);
 }

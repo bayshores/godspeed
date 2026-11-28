@@ -656,7 +656,7 @@ export function Constellation({
 			{looseK && note && !zoomed && (
 				<p
 					data-testid="graph-sorts-next"
-					className={startOf(looseK.topic.id) === undefined ? "pointer-events-none absolute text-center text-[15px] text-ink-2" : "lh-reveal pointer-events-none absolute text-center text-[15px] text-ink-2"}
+					className={startOf(looseK.topic.id) === undefined ? "pointer-events-none absolute text-center text-ui text-ink-2" : "lh-reveal pointer-events-none absolute text-center text-ui text-ink-2"}
 					style={{ left: 0, width: shownW, top: Math.round(sy(looseK.cy) + looseK.r * kk + NOTE_GAP), ["--lh-at" as string]: `${(startOf(looseK.topic.id) ?? 0) + NAME_AFTER}ms` }}
 				>
 					{note}

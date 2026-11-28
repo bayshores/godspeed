@@ -13,7 +13,7 @@ import { fuzzyScore } from "@/shared/core";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 
-const ROW = "lh-press flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[15px] text-ink hover:bg-accent";
+const ROW = "lh-press flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-ui text-ink hover:bg-accent";
 
 /** The factory reading family (unset = this). */
 export const DEFAULT_READING_FONT = "Literata";
@@ -113,9 +113,9 @@ export function FontMenuList({
 				}}
 				placeholder="Search fonts…"
 				aria-label="Search fonts"
-				className="mb-1.5 h-9 w-full lh-well rounded px-2.5 text-[15px] text-ink placeholder:text-ink-3"
+				className="mb-1.5 h-9 w-full lh-well rounded px-2.5 text-ui text-ink placeholder:text-ink-3"
 			/>
-			{!families && <LoadingLine className="justify-center px-2 py-3 text-[15px]">Loading fonts…</LoadingLine>}
+			{!families && <LoadingLine className="justify-center px-2 py-3 text-ui">Loading fonts…</LoadingLine>}
 			<ul ref={listRef} data-testid="font-list" className="flex max-h-72 flex-col overflow-y-auto">
 				{families &&
 					results.map((family, i) => {

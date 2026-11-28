@@ -37,12 +37,12 @@ export function DoneStep({
 			<div className="flex flex-col items-center gap-2.5">
 				<h1 className="text-[40px] leading-tight text-ink">{ready ? "You’re all set." : "You’re almost set."}</h1>
 				{ready ? (
-					<p className="text-[17px] text-ink-2">Ask {teacher} to teach you anything, or type a topic in godspeed.</p>
+					<p className="text-item text-ink-2">Ask {teacher} to teach you anything, or type a topic in godspeed.</p>
 				) : (
 					<AgentCompact className="w-full max-w-[460px] text-left" />
 				)}
 				{failed && (
-					<p role="alert" data-testid="onboarding-save-error" className="text-[15px] text-ans-wrong">
+					<p role="alert" data-testid="onboarding-save-error" className="text-ui text-ans-wrong">
 						Couldn&apos;t save your setup.
 					</p>
 				)}

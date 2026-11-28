@@ -52,7 +52,7 @@ export function AgentCard({ foot }: { foot?: ReactNode }) {
 			/>
 			<Rows action={action} />
 			{action.error && (
-				<p role="alert" className="lh-rise text-[15px] text-ans-wrong">
+				<p role="alert" className="lh-rise text-ui text-ans-wrong">
 					{action.error}
 				</p>
 			)}
@@ -92,7 +92,7 @@ export function AgentCompact({ className }: { className?: string }) {
 			</div>
 			<RowUnder row={said.row} action={action} />
 			{action.error && (
-				<p role="alert" className="text-[15px] text-ans-wrong">
+				<p role="alert" className="text-ui text-ans-wrong">
 					{action.error}
 				</p>
 			)}
@@ -142,9 +142,9 @@ function Row({ row, delay, action, main }: { row: CardRow; delay: number; action
 		<div data-testid={row.id === "version" ? "agent-row-version" : row.id === "account" ? "agent-row-account" : "agent-row-own"} data-mark={row.mark} className="flex flex-col py-2">
 			<div ref={said} style={{ "--lh-block-delay": `${delay}ms` } as CSSProperties} className="flex min-h-10 flex-wrap items-center gap-x-3 gap-y-2">
 				<Mark mark={row.mark} />
-				<span className="text-[17px] text-ink">{row.name}</span>
+				<span className="text-item text-ink">{row.name}</span>
 				{row.fact && (
-					<span data-testid={`agent-row-${row.id}-fact`} title={row.tip ?? undefined} className="min-w-0 text-[15px] text-ink-2">
+					<span data-testid={`agent-row-${row.id}-fact`} title={row.tip ?? undefined} className="min-w-0 text-ui text-ink-2">
 						{row.fact}
 					</span>
 				)}
@@ -178,7 +178,7 @@ const keyLabel = (key: RowKey): string => (key.kind === "cancel" ? "Cancel" : ke
 /** What stands at the row's end: its keys, or a word in a key's place ("Updated"). The key that
  *  fixes the failing check is the view's main key; Check again only asks again. */
 function RowEnd({ row, action, main }: { row: CardRow; action: Action; main: boolean }) {
-	if (row.note) return <span className="text-[15px] text-ink-2">{row.note}</span>;
+	if (row.note) return <span className="text-ui text-ink-2">{row.note}</span>;
 	return (
 		<>
 			{row.keys.map((key, n) => (
@@ -207,7 +207,7 @@ function RowUnder({ row, action }: { row: CardRow; action: Action }) {
 			{run.mounted && shown.run && (
 				<div className="lh-collapse" data-state={run.state}>
 					<div>
-						<div data-testid="agent-update-command" className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-2 text-[15px]">
+						<div data-testid="agent-update-command" className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-2 text-ui">
 							<span className="text-ink-2">Or run this in Terminal:</span>
 							<code className="font-mono text-ink">{shown.run}</code>
 							<CopyButton text={shown.run} className="lh-btn lh-btn-quiet lh-btn-small" />
@@ -300,7 +300,7 @@ function ModelRow({ agent, arrives }: { agent: FolderAgent; arrives: boolean }) 
 			style={{ "--lh-block-delay": "80ms" } as CSSProperties}
 			className={cn("flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-2", arrives && "lh-block-in")}
 		>
-			<span className="text-[17px] text-ink">Model</span>
+			<span className="text-item text-ink">Model</span>
 			{/* A flex box, so the select sits on no line of text: an empty one would drop below it. */}
 			<span className="relative flex w-[224px] shrink-0">
 				<select
@@ -324,7 +324,7 @@ function ModelRow({ agent, arrives }: { agent: FolderAgent; arrives: boolean }) 
 				<PixelIcon name="chevron" className={SELECT_ARROW} />
 			</span>
 			{action.error && (
-				<p role="alert" className="w-full text-[15px] text-ans-wrong">
+				<p role="alert" className="w-full text-ui text-ans-wrong">
 					{action.error}
 				</p>
 			)}

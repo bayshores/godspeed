@@ -117,7 +117,7 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 	// learner clicked; the record needs only the fact).
 	if (outcome === "dismissed") {
 		return (
-			<div data-testid="conclude-card" className="my-1 px-1 text-[15px] text-ink-2">
+			<div data-testid="conclude-card" className="my-1 px-1 text-ui text-ink-2">
 				Problem dismissed.
 			</div>
 		);
@@ -132,7 +132,7 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 						{label}
 					</ResultTag>
 				) : (
-					<span className="font-count text-[15px] text-ink-2">Concluded</span>
+					<span className="font-count text-ui text-ink-2">Concluded</span>
 				)}
 				{folds && (
 					<button

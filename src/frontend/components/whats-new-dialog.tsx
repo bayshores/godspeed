@@ -56,7 +56,7 @@ export function WhatsNewDialog({
 		>
 			{entries.map((entry) => (
 				<section key={entry.version} data-testid="whats-new-entry" className="mt-2 flex flex-col gap-3.5 first:mt-0">
-					<p className="text-[15px] text-ink-2">{single ? formatChangelogDate(entry.date) : `${entry.version}, ${formatChangelogDate(entry.date)}`}</p>
+					<p className="text-ui text-ink-2">{single ? formatChangelogDate(entry.date) : `${entry.version}, ${formatChangelogDate(entry.date)}`}</p>
 					<ul className="flex flex-col gap-3.5">
 						{entry.changes.map((change) => (
 							<li key={change} className="flex gap-3 text-lg text-ink">

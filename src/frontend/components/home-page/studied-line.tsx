@@ -11,7 +11,7 @@ export function StudiedLine({ progress, noSpace, nowMs }: { progress: ReadonlyMa
 	const day = localDay(nowMs);
 	const line = useMemo(() => studiedLine(noSpace ? [...progress.values(), noSpace] : [...progress.values()], nowMs), [progress, noSpace, day]);
 	return (
-		<p data-testid="today-studied" className="min-w-0 flex-[1_1_220px] text-[15px] leading-snug text-ink-2">
+		<p data-testid="today-studied" className="min-w-0 flex-[1_1_220px] text-ui leading-snug text-ink-2">
 			{line}
 		</p>
 	);

@@ -65,11 +65,11 @@ export function DeadlineRows({
 									</span>
 								</span>
 								<span className={BLOCK_ROW_KEYS}>
-									<Key data-testid="home-study-deadline" title={deadlineStudyLabel(d.continueStudy, d.name)} busy={busyOn === d.id} disabled={busyOn !== null} onClick={() => onStudy(d)} className="text-[15px]">
+									<Key data-testid="home-study-deadline" title={deadlineStudyLabel(d.continueStudy, d.name)} busy={busyOn === d.id} disabled={busyOn !== null} onClick={() => onStudy(d)} className="text-ui">
 										{studyLabel(d.continueStudy)}
 									</Key>
 									{hasProblems(d.kind) && (
-										<Key data-testid="home-work-deadline" title={workLabel(d.name)} busy={busyOn === homeworkStartId(d.id)} disabled={busyOn !== null} onClick={() => onWork(d)} className="text-[15px]">
+										<Key data-testid="home-work-deadline" title={workLabel(d.name)} busy={busyOn === homeworkStartId(d.id)} disabled={busyOn !== null} onClick={() => onWork(d)} className="text-ui">
 											{WORK_ON_IT}
 										</Key>
 									)}

@@ -121,14 +121,14 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 						over ? "bg-highlight" : "hover:bg-tone",
 					)}
 				>
-					<span className="text-[17px] text-ink">{summary ? "Drop to replace, or click to choose again" : "Drop files or a folder here"}</span>
+					<span className="text-item text-ink">{summary ? "Drop to replace, or click to choose again" : "Drop files or a folder here"}</span>
 					<span data-testid="onboarding-drop-hint" className="max-w-full truncate text-sm text-ink-2">
 						{summary ?? "A linked folder keeps adding new notes by itself."}
 					</span>
 				</button>
 			</div>
 			{error && (
-				<p role="alert" className="whitespace-pre-wrap text-[15px] text-ans-wrong">
+				<p role="alert" className="whitespace-pre-wrap text-ui text-ans-wrong">
 					{error}
 				</p>
 			)}

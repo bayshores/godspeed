@@ -190,13 +190,13 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 						{listed.map((f) => (
 							<CheckRow key={f.id} testid={`deadline-file-${f.id}`} label={f.name} note={fileDayLabel(f.name)} checked={draft.fileIds.includes(f.id)} disabled={busy} onToggle={() => change({ fileIds: toggleFile(draft.fileIds, f.id, order) })} />
 						))}
-						{listed.length === 0 && <p className="py-1.5 text-[15px] text-ink-2">No file matches.</p>}
+						{listed.length === 0 && <p className="py-1.5 text-ui text-ink-2">No file matches.</p>}
 					</div>
 				</div>
 			)}
 			{saved && <CheckRow testid="deadline-done" label="Done" checked={draft.done} disabled={busy} onToggle={() => change({ done: !draft.done })} />}
 			{error && (
-				<p key={error} ref={(el) => el?.scrollIntoView({ block: "nearest" })} role="alert" data-testid="deadline-dialog-error" className="text-[15px] whitespace-pre-wrap text-ans-wrong">
+				<p key={error} ref={(el) => el?.scrollIntoView({ block: "nearest" })} role="alert" data-testid="deadline-dialog-error" className="text-ui whitespace-pre-wrap text-ans-wrong">
 					{error}
 				</p>
 			)}

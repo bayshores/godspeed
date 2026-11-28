@@ -56,7 +56,7 @@ export function SheetDock({
 						<PixelIcon name="chevron" className={SELECT_ARROW} />
 					</div>
 				) : (
-					<span className="min-w-0 flex-1 truncate px-1 text-[15px] font-medium text-ink">{shownName ? `Cheat sheet for ${shownName}` : "Cheat sheet"}</span>
+					<span className="min-w-0 flex-1 truncate px-1 text-ui font-medium text-ink">{shownName ? `Cheat sheet for ${shownName}` : "Cheat sheet"}</span>
 				)
 			}
 		>
@@ -65,7 +65,7 @@ export function SheetDock({
 			) : !cards ? null : shown ? (
 				<DockedSheet key={shown} spaceId={spaceId} deadlineId={shown} />
 			) : (
-				<div data-testid="sheet-dock-none" className="flex min-h-0 flex-1 flex-col items-start gap-3 px-4 pt-2 pb-5 text-[15px] text-ink-2">
+				<div data-testid="sheet-dock-none" className="flex min-h-0 flex-1 flex-col items-start gap-3 px-4 pt-2 pb-5 text-ui text-ink-2">
 					<p>No cheat sheet yet.</p>
 					{target ? (
 						<Link to={studioPath(target)} data-testid="sheet-dock-make" className="lh-btn lh-btn-main">

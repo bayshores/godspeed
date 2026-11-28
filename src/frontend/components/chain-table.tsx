@@ -16,7 +16,7 @@ const SORTS = [
 ] as const;
 
 /** The right end of a group or chain row: how many facts and the newest. */
-const TALLY = "shrink-0 font-count text-[15px] text-ink-2";
+const TALLY = "shrink-0 font-count text-ui text-ink-2";
 
 /**
  * "All facts": every fact of the space in three levels, the lesson or
@@ -88,7 +88,7 @@ export function ChainTableBody({
 					<div className="flex flex-wrap items-center gap-3.5">
 						<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 							<h1 className="lh-page-title">All facts</h1>
-							<p data-testid="chain-table-count" className="text-[15px] text-ink-2">
+							<p data-testid="chain-table-count" className="text-ui text-ink-2">
 								{countLine(nodes.length, spaceLabel)}
 							</p>
 						</div>
@@ -110,13 +110,13 @@ export function ChainTableBody({
 					<div className="flex flex-col gap-(--lh-gap)">
 						<div className="flex flex-col gap-1">
 							{selectMode && <h2 className="text-lg text-ink">Pick the facts to start from</h2>}
-							<p data-testid="chain-table-hint" className="text-[15px] text-ink-2">
+							<p data-testid="chain-table-hint" className="text-ui text-ink-2">
 								Picking a file or a fact also picks the facts it builds on.
 							</p>
 						</div>
 
 						<div className="flex flex-wrap items-center gap-1.5">
-							<span className="mr-1 text-[15px] text-ink-2">Sort by</span>
+							<span className="mr-1 text-ui text-ink-2">Sort by</span>
 							{SORTS.map(({ col, label }) => {
 								const on = sort.col === col;
 								return (
@@ -137,7 +137,7 @@ export function ChainTableBody({
 
 						<div className="lh-sheet px-(--lh-inset) py-2.5">
 							{groups.length === 0 && (
-								<p data-testid="chain-table-nomatch" className="py-2.5 text-[15px] text-ink-2">
+								<p data-testid="chain-table-nomatch" className="py-2.5 text-ui text-ink-2">
 									No matching facts.
 								</p>
 							)}
@@ -239,7 +239,7 @@ function ChainBlock({
 					label={`Select ${nameOf(chain.conclusion)} and the facts it builds on`}
 				/>
 				<Expander open={open} onClick={onToggle} testid={`chain-toggle-${chain.id}`} label={`Expand ${nameOf(chain.conclusion)}`} />
-				<span className="flex min-w-0 flex-1 flex-wrap items-center gap-y-1 text-[15px] leading-tight text-ink">
+				<span className="flex min-w-0 flex-1 flex-wrap items-center gap-y-1 text-ui leading-tight text-ink">
 					{ids.map((id, i) => (
 						<span key={id} className="flex items-center">
 							{i > 0 &&
@@ -264,7 +264,7 @@ function ChainBlock({
 					return (
 						<div key={id} data-testid={`prop-row-${id}`} className="lh-rise flex items-start gap-3 py-[9px] pl-[68px]">
 							<TickBox checked={selection.has(id)} onToggle={(next) => onToggleNodes([id], next)} testid={`prop-checkbox-${id}`} label={`Select ${node.name}`} />
-							<span className="min-w-0 flex-1 pt-px text-[15px] text-ink">{node.statement}</span>
+							<span className="min-w-0 flex-1 pt-px text-ui text-ink">{node.statement}</span>
 						</div>
 					);
 				})}

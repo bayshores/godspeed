@@ -43,7 +43,7 @@ export const HomeworkCard = memo(function HomeworkCard({
 			{problems.length > 0 ? (
 				<ol data-testid="homework-problems" className="gap-x-(--lh-inset) @[760px]:columns-2">
 					{problems.map((p) => (
-						<li key={p.number} data-testid="homework-problem" data-done={p.done || undefined} data-next={p === next || undefined} className="flex min-w-0 break-inside-avoid items-center gap-3 py-1 text-[17px]">
+						<li key={p.number} data-testid="homework-problem" data-done={p.done || undefined} data-next={p === next || undefined} className="flex min-w-0 break-inside-avoid items-center gap-3 py-1 text-item">
 							<span className={cn("flex h-8 w-11 shrink-0 items-center justify-center font-count text-base", p.done ? "bg-ink text-(--background)" : p === next ? "bg-highlight text-ink" : "lh-well text-ink")}>{p.number}</span>
 							<span title={p.title} className={cn("min-w-0 flex-1 truncate", p.done ? "text-ink-2" : "text-ink")}>
 								{p.title}
@@ -53,11 +53,11 @@ export const HomeworkCard = memo(function HomeworkCard({
 					))}
 				</ol>
 			) : (
-				<p data-testid="homework-none" className="text-[15px] text-ink-2">
+				<p data-testid="homework-none" className="text-ui text-ink-2">
 					{assignmentId ? "The teacher lists its problems when you start working on it." : "Pick its assignment file, and the teacher lists its problems when you start working on it."}
 				</p>
 			)}
-			<label className="flex items-center gap-2.5 text-[15px] text-ink">
+			<label className="flex items-center gap-2.5 text-ui text-ink">
 				<span className="min-w-0 flex-1">Assignment file</span>
 				<span className="relative w-[220px] max-w-[55%] shrink-0">
 					<select

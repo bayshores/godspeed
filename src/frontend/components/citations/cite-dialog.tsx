@@ -23,12 +23,12 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite | PassageCite; sta
 	return (
 		<DialogSheet title={cite.name} state={state} testid="cite-dialog" className="w-[780px]" onClose={onClose}>
 			{passage === null ? null : !found || (!showImage && found.text === "") ? (
-				<p data-testid="cite-gone" className="text-[15px] text-ink">
+				<p data-testid="cite-gone" className="text-ui text-ink">
 					godspeed can&apos;t find this place in your space files anymore.
 				</p>
 			) : (
 				<>
-					<p data-testid="cite-place" className="text-[15px] text-ink">
+					<p data-testid="cite-place" className="text-ui text-ink">
 						{"range" in cite ? cite.range : found.range}
 					</p>
 					{showImage ? (
@@ -36,7 +36,7 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite | PassageCite; sta
 					) : marks?.kind === "lines" ? (
 						<CodeLines name={cite.name} marks={marks} />
 					) : (
-						<div data-testid="cite-text" className="lh-well rounded p-3.5 text-[15px] whitespace-pre-wrap text-ink">
+						<div data-testid="cite-text" className="lh-well rounded p-3.5 text-ui whitespace-pre-wrap text-ink">
 							{marks?.kind === "passage" ? <MarkedText before={found.text.slice(0, marks.start)} marked={found.text.slice(marks.start, marks.end)} after={found.text.slice(marks.end)} /> : found.text}
 						</div>
 					)}

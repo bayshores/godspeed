@@ -13,10 +13,10 @@ export function TryAsking({ starters, groups, off, onSend }: { starters: readonl
 	if (starters.length === 0) return null;
 	return (
 		<div data-testid="talk-try" inert={off} className={cn("flex flex-col gap-3 transition-opacity duration-(--lh-dur) ease-(--lh-ease-out)", off && "opacity-45")}>
-			<h3 className="text-[18px] leading-7 text-ink">Try asking</h3>
+			<h3 className="text-tab leading-7 text-ink">Try asking</h3>
 			<div className="flex flex-col gap-1.5">
 				{starters.map((line) => (
-					<button key={line} type="button" data-testid="talk-starter" onClick={() => onSend(line)} className="lh-sheet lh-press w-full truncate px-4 py-2.5 text-left text-[16px] text-ink hover:bg-(--lh-key-hover)">
+					<button key={line} type="button" data-testid="talk-starter" onClick={() => onSend(line)} className="lh-sheet lh-press w-full truncate px-4 py-2.5 text-left text-(length:--text-lg) text-ink hover:bg-(--lh-key-hover)">
 						{line}
 					</button>
 				))}

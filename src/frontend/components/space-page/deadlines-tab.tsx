@@ -113,7 +113,7 @@ export function DeadlinesTab() {
 				{!record && failed ? (
 					<LoadFailed message="Couldn't load this space's deadlines." onRetry={() => void reload()} />
 				) : coming && coming.length === 0 ? (
-					<p data-testid="deadlines-none" className="text-[15px] text-ink-2">
+					<p data-testid="deadlines-none" className="text-ui text-ink-2">
 						Nothing is coming up.
 					</p>
 				) : coming ? (
@@ -130,7 +130,7 @@ export function DeadlinesTab() {
 						)}
 					</ul>
 				) : (
-					<LoadingLine className="text-[15px]" />
+					<LoadingLine className="text-ui" />
 				)}
 			</section>
 			{lists && lists.past.length > 0 && (

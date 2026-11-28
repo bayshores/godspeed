@@ -33,7 +33,7 @@ export function EndNotes({ notes }: { notes: TurnNotes }) {
 export function NotesSaved({ notes }: { notes: TurnNotes }) {
 	if (notes.pages.length === 0 || !notes.saved) return null;
 	return (
-		<p role="status" data-testid="notes-saved" data-whole className="-mt-3 shrink-0 text-[15px] text-ink-2">
+		<p role="status" data-testid="notes-saved" data-whole className="-mt-3 shrink-0 text-ui text-ink-2">
 			{notes.saved}
 		</p>
 	);

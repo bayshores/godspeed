@@ -77,7 +77,7 @@ export function PathMocks({
 			)}
 			{failed && (
 				<div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2">
-					<p className="min-w-0 flex-1 text-[15px] text-ink">Couldn&apos;t load the mocks.</p>
+					<p className="min-w-0 flex-1 text-ui text-ink">Couldn&apos;t load the mocks.</p>
 					<button type="button" data-testid="deadline-mocks-retry" onClick={onRetry} className="lh-btn">
 						Try again
 					</button>
@@ -91,7 +91,7 @@ export function PathMocks({
 				</ul>
 			)}
 			{error && (
-				<p role="alert" data-testid="deadline-mocks-error" className="text-[15px] text-ans-wrong">
+				<p role="alert" data-testid="deadline-mocks-error" className="text-ui text-ans-wrong">
 					{error}
 				</p>
 			)}
@@ -118,9 +118,9 @@ function MockRow({ spaceId, mock: m, nowMs, onRemove }: { spaceId: string; mock:
 		<li ref={rowRef} data-testid={`deadline-mock-${m.id}`} className="flex min-h-[38px] min-w-0 items-center gap-2.5">
 			{asking ? (
 				<>
-					<span className="w-[64px] shrink-0 text-[15px] text-ink">Mock {m.n}</span>
+					<span className="w-[64px] shrink-0 text-ui text-ink">Mock {m.n}</span>
 					<span role="group" aria-label={`Remove Mock ${m.n}?`} className="flex min-w-0 flex-1 items-center justify-end gap-2 py-1">
-						<span className="min-w-0 flex-1 text-[15px] text-ink">Remove it?</span>
+						<span className="min-w-0 flex-1 text-ui text-ink">Remove it?</span>
 						<button
 							type="button"
 							data-testid="deadline-mock-remove-confirm-go"
@@ -146,10 +146,10 @@ function MockRow({ spaceId, mock: m, nowMs, onRemove }: { spaceId: string; mock:
 			) : (
 				<>
 					<Link to={mockHref(spaceId, m.id)} className="lh-press flex min-w-0 flex-1 items-center gap-2.5 py-2 hover:text-ink">
-						<span className="w-[64px] shrink-0 text-[15px] text-ink">Mock {m.n}</span>
+						<span className="w-[64px] shrink-0 text-ui text-ink">Mock {m.n}</span>
 						<span className="min-w-0 flex-1 truncate font-count text-base text-ink-2">{monthDay(localDay(new Date(m.endedAt ?? m.createdAt)))}</span>
 						{m.state === "graded" && <StepBlocks done={m.solved ?? 0} total={m.format.questions} />}
-						<span data-testid="deadline-mock-line" className="shrink-0 text-[15px] text-ink">
+						<span data-testid="deadline-mock-line" className="shrink-0 text-ui text-ink">
 							{mockLine(m, nowMs)}
 						</span>
 						<PixelIcon name="chevron" className="h-3 text-ink" />

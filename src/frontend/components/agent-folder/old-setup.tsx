@@ -40,7 +40,7 @@ export function OldSetupNotice() {
 			{rest && <NoticeText>{rest}</NoticeText>}
 			{!removed && lines.slice(1).map((line) => <NoticeText key={line}>{line}</NoticeText>)}
 			{error && (
-				<p role="alert" className="text-[13px] text-ans-wrong">
+				<p role="alert" className="text-(length:--text-sm) text-ans-wrong">
 					{error}
 				</p>
 			)}

@@ -170,7 +170,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 	const shownError = error ?? closer.error;
 	const errorLine = shownError && (
 		// Scrolled to on each new error, so it is never out of sight after Save.
-		<p key={shownError} ref={scrollIntoSight} role="alert" data-testid="space-dialog-error" className="text-[15px] whitespace-pre-wrap text-ans-wrong">
+		<p key={shownError} ref={scrollIntoSight} role="alert" data-testid="space-dialog-error" className="text-ui whitespace-pre-wrap text-ans-wrong">
 			{shownError}
 		</p>
 	);
@@ -274,7 +274,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 							disabled={busy}
 							onChange={(e) => setDescription(e.target.value)}
 							placeholder="Your level, the book or source you follow, what you are working toward (a course's exams, a job interview). The teacher reads this."
-							className={`${FIELD} h-auto min-h-[84px] resize-y py-[9px] leading-[1.4]`}
+							className={`${FIELD} h-auto min-h-[84px] resize-y py-[9px] leading-ui`}
 						/>
 					</label>
 				</>

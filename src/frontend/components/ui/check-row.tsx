@@ -34,7 +34,7 @@ export function CheckRow({
 			>
 				{checked && <PixelIcon name="check" className="h-[9px]" />}
 			</span>
-			<span title={label} className="min-w-0 flex-1 truncate text-[15px] text-ink">
+			<span title={label} className="min-w-0 flex-1 truncate text-ui text-ink">
 				{label}
 			</span>
 			{note && <span className="shrink-0 text-base text-ink-2">{note}</span>}

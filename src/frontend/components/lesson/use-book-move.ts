@@ -1,8 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
-import { EASE_IN as IN, EASE_OUT as OUT, prefersReducedMotion } from "@/frontend/components/presence";
+import { EASE_IN as IN, EASE_OUT as OUT, FAST_MS as LEAVE_MS, prefersReducedMotion } from "@/frontend/components/presence";
 
-/** The kept task leaving the right page before the book shuts (--lh-dur-fast). */
-const LEAVE_MS = 110;
 /** The two pages sliding apart or together, and the sheet and the talk moving sideways with them (useLeftSlide). */
 export const SLIDE_MS = 240;
 /** The right page rising out of the strip, or sinking into it. */

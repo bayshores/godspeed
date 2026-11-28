@@ -44,7 +44,7 @@ function TooltipTrigger({
 
 const BOX =
   "flex w-max max-w-72 flex-col gap-1.5 border border-tone-2 bg-tip px-3 py-2.5 text-left text-xs text-ink-2"
-const TAG = "w-max max-w-72 bg-ink px-2 py-1 text-[12.5px] font-semibold text-background"
+const TAG = "w-max max-w-72 bg-ink px-2 py-1 text-(length:--text-sm) font-semibold text-background"
 
 function TooltipContent({
   className,
@@ -58,7 +58,7 @@ function TooltipContent({
       <TooltipPrimitive.Content
         data-slot="tooltip-content"
         sideOffset={sideOffset}
-        className={cn("lh-fade z-50", tag ? TAG : BOX, className)}
+        className={cn("lh-fade z-(--lh-z-dialog)", tag ? TAG : BOX, className)}
         {...props}
       >
         {children}

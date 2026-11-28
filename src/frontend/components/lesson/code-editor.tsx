@@ -69,17 +69,17 @@ export function CodeEditor({
 		<div data-testid="code-editor" className="flex min-h-0 flex-1 flex-col lh-well">
 			<div className="flex items-center justify-between gap-3 px-3.5 pt-2.5 pb-1">
 				{tools ?? (
-					<span data-testid="code-language" className="font-mono text-[12.5px] text-ink-3">
+					<span data-testid="code-language" className="font-mono text-(length:--text-sm) text-ink-3">
 						{languageLabel(language)}
 					</span>
 				)}
 				<span className="flex items-center gap-[7px]">
 					{vim && (
-						<span data-testid="vim-mode" className="font-mono text-[12.5px] font-bold text-ink-2">
+						<span data-testid="vim-mode" className="font-mono text-(length:--text-sm) font-bold text-ink-2">
 							{mode}
 						</span>
 					)}
-					<span className="text-[13px] text-ink-2">Vim</span>
+					<span className="text-(length:--text-sm) text-ink-2">Vim</span>
 					<SmallSwitch on={vim} onChange={toggleVim} label="Vim" testId="vim-switch" />
 				</span>
 			</div>

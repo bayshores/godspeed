@@ -4,7 +4,7 @@ import { Pane } from "@/frontend/components/ui/pane";
 
 export function GraphEmpty({ inSpace }: { inSpace: boolean }) {
 	return (
-		<Pane data-testid="graph-empty" className="lh-card flex-1 text-center text-[15px] text-ink-2">
+		<Pane data-testid="graph-empty" className="lh-card flex-1 text-center text-ui text-ink-2">
 			{inSpace ? (
 				<span>
 					Start a lesson or{" "}

@@ -55,7 +55,7 @@ function FolderRows() {
 		<>
 			<SettingsRow label="Folder" testid="agent-folder-row">
 				<span className="flex items-center gap-3">
-					<span data-testid="agent-folder-path" className="text-[15px] text-ink-2">
+					<span data-testid="agent-folder-path" className="text-ui text-ink-2">
 						{view.short}
 					</span>
 					{canChange && (
@@ -67,7 +67,7 @@ function FolderRows() {
 			</SettingsRow>
 			<SettingsRow label="Start command" testid="agent-start-command-row">
 				<span className="flex items-center gap-3">
-					<span className="font-mono text-[15px] text-ink-2">{view.startCommands[agent] ?? agent}</span>
+					<span className="font-mono text-ui text-ink-2">{view.startCommands[agent] ?? agent}</span>
 					<button type="button" data-testid="agent-start-command-change" aria-expanded={changing} className={QUIET_KEY} onClick={() => setChanging(!changing)}>
 						Change
 					</button>
@@ -90,7 +90,7 @@ function FolderRows() {
 				</div>
 			)}
 			{error && (
-				<p role="alert" className="text-[15px] text-ans-wrong">
+				<p role="alert" className="text-ui text-ans-wrong">
 					{error}
 				</p>
 			)}

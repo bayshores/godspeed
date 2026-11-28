@@ -47,7 +47,7 @@ export function AppBar() {
 function BarDate() {
 	const minute = useMinute();
 	return (
-		<span data-testid="bar-date" className="font-count -order-1 flex shrink-0 items-center pr-4 pl-5 text-[15px] tabular-nums max-[1099px]:pl-4">
+		<span data-testid="bar-date" className="font-count -order-1 flex shrink-0 items-center pr-4 pl-5 text-ui tabular-nums max-[1099px]:pl-4">
 			{minute === null ? "" : dateText(new Date(minute))}
 		</span>
 	);
@@ -56,7 +56,7 @@ function BarDate() {
 function Clock() {
 	const minute = useMinute();
 	return (
-		<span data-testid="bar-clock" className="font-count order-1 flex shrink-0 items-center pr-5 pl-3 text-[15px] tabular-nums max-[1099px]:pr-3">
+		<span data-testid="bar-clock" className="font-count order-1 flex shrink-0 items-center pr-5 pl-3 text-ui tabular-nums max-[1099px]:pr-3">
 			{minute === null ? "" : clockText(new Date(minute))}
 		</span>
 	);

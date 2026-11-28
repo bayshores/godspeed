@@ -149,11 +149,11 @@ function ShortcutList() {
 				<div key={scope} className="flex flex-col gap-0.5">
 					<h3 className="text-lg text-ink">{label}</h3>
 					{KEYBOARD_ACTIONS.filter((a) => a.scope === scope).map((a) => (
-						<div key={a.id} className="flex items-center justify-between gap-4 py-1.5 text-[15px] text-ink">
+						<div key={a.id} className="flex items-center justify-between gap-4 py-1.5 text-ui text-ink">
 							{a.label}
 							<span className="flex shrink-0 gap-1.5">
 								{bindingKeys(bindingForAction(a.id)).map((key, i) => (
-									<kbd key={i} className="rounded-[2px] border-[1.5px] border-ink bg-background px-2 py-0.5 font-[inherit] text-sm">
+									<kbd key={i} className="rounded border-[1.5px] border-ink bg-background px-2 py-0.5 font-[inherit] text-sm">
 										{key}
 									</kbd>
 								))}

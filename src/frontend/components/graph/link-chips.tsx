@@ -21,7 +21,7 @@ interface LinkChip {
 	mark: ReactNode;
 }
 
-const CHIP = "lh-link-chip lh-press flex min-h-8 max-w-full items-center gap-2 py-1 pr-3 pl-1.5 text-left text-[15px] leading-snug";
+const CHIP = "lh-link-chip lh-press flex min-h-8 max-w-full items-center gap-2 py-1 pr-3 pl-1.5 text-left text-ui leading-snug";
 
 export function LinkChips({
 	label,

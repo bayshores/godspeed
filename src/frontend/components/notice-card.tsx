@@ -32,7 +32,7 @@ export function NoticeCard({
 	return (
 		<div {...rest} role={kind === "error" ? "alert" : "status"} hidden={!shown} className={cn("lh-notice flex flex-col gap-2 py-3.5 pr-4 pl-[18px] font-ui", className)}>
 			<div className="flex gap-3">
-				<p className="min-w-0 flex-1 text-[17px] text-ink">{title}</p>
+				<p className="min-w-0 flex-1 text-item text-ink">{title}</p>
 				{close && (
 					<button
 						type="button"
@@ -58,7 +58,7 @@ export function NoticeCard({
 /** A notice's body text, under its title. */
 export function NoticeText({ children, title }: { children: ReactNode; title?: string }) {
 	return (
-		<p title={title} className="text-[15px] text-ink-2">
+		<p title={title} className="text-ui text-ink-2">
 			{children}
 		</p>
 	);

@@ -46,7 +46,7 @@ function Label({ text }: { text: string }) {
 function PlotBox({ title, state, children }: { title: string; state: string; children: React.ReactNode }) {
 	return (
 		<figure data-testid="plot-part" data-state={state} className="m-0 flex w-full flex-col overflow-hidden lh-well rounded px-5 pt-4 pb-3.5">
-			<figcaption className="font-ui text-[16px] leading-[22px] text-ink">
+			<figcaption className="font-ui text-lg leading-5.5 text-ink">
 				<Label text={title} />
 			</figcaption>
 			{children}
@@ -67,7 +67,7 @@ export function PlotPart({ part }: ArtifactPartProps) {
 	if (part.state === "input-streaming") {
 		return (
 			<PlotBox title={title} state="drawing">
-				<p className="mt-2 font-ui text-[14px] text-ink-2">Drawing the plot</p>
+				<p className="mt-2 font-ui text-(length:--text-base) text-ink-2">Drawing the plot</p>
 			</PlotBox>
 		);
 	}
@@ -82,7 +82,7 @@ function StoredPlot({ input, output, open, guessAt }: { input: unknown; output: 
 	if (!("plot" in read)) {
 		return (
 			<PlotBox title={read.title} state="failed">
-				<p className="mt-2 font-ui text-[14px] text-ink-2">This plot could not be drawn.</p>
+				<p className="mt-2 font-ui text-(length:--text-base) text-ink-2">This plot could not be drawn.</p>
 			</PlotBox>
 		);
 	}
@@ -137,7 +137,7 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 		<PlotBox title={plot.title} state={open ? "open" : "locked"}>
 			<div className="grid gap-x-[25px]" style={{ gridTemplateColumns: `minmax(0,1fr) ${KEY_WIDTH}px` }}>
 				<div ref={ref} className="relative" style={{ height: open && plot.slider ? OPEN_HEIGHT : LOCKED_HEIGHT }}>
-					<div className="absolute top-[11px] text-[13px] leading-none whitespace-nowrap text-ink-2" style={{ left: GUTTER, right: 0 }}>
+					<div className="absolute top-[11px] text-sm leading-none whitespace-nowrap text-ink-2" style={{ left: GUTTER, right: 0 }}>
 						<Label text={plot.y.label} />
 					</div>
 					<svg role="img" aria-label={labelPieces(plot.title).map((p) => p.text).join("")} width={width} height={AXIS_HEIGHT} className="absolute top-0 left-0 overflow-visible">
@@ -177,7 +177,7 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 							</g>
 						</svg>
 					)}
-					<div className="absolute text-center font-ui text-[13px] leading-[17px] text-ink-2" style={{ top: X_TITLE_TOP, left: GUTTER, right: 0 }}>
+					<div className="absolute text-center font-ui text-sm leading-4.25 text-ink-2" style={{ top: X_TITLE_TOP, left: GUTTER, right: 0 }}>
 						<Label text={plot.x.label} />
 					</div>
 					{open && plot.slider && <SliderRow slider={plot.slider} value={slider} onChange={setSlider} width={width} className={drawIn} />}
@@ -189,7 +189,7 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 					{plot.lines.map((l, i) =>
 						shown[i] ? (
 							<div key={i} data-testid="plot-key" className={cn("absolute right-0 left-0", l.hidden && drawIn)} style={{ top: tops.get(i) }}>
-								<div className="flex items-center gap-1.5 font-ui text-[13px] leading-[16px] text-ink-2">
+								<div className="flex items-center gap-1.5 font-ui text-sm leading-4 text-ink-2">
 									<svg aria-hidden width={16} height={l.points ? MARK : 2} className="shrink-0 text-ink">
 										<line x1={0} y1={l.points ? MARK / 2 : 1} x2={16} y2={l.points ? MARK / 2 : 1} stroke="currentColor" strokeWidth={2} strokeDasharray={l.dashed ? "4 2" : undefined} />
 										{l.points && <rect x={8 - MARK / 2} y={0} width={MARK} height={MARK} fill="currentColor" />}
@@ -199,7 +199,7 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 									</span>
 								</div>
 								{l.points === null && (
-									<div data-testid="plot-formula" className="-mr-5 -mb-1 overflow-x-auto overflow-y-hidden pt-0.5 pb-1 pl-[22px] text-[13px] whitespace-nowrap text-ink-2">
+									<div data-testid="plot-formula" className="-mr-5 -mb-1 overflow-x-auto overflow-y-hidden pt-0.5 pb-1 pl-[22px] text-(length:--text-sm) whitespace-nowrap text-ink-2">
 										<Tex tex={l.latex} />
 									</div>
 								)}
@@ -222,7 +222,7 @@ function SliderRow({ slider, value, onChange, width, className }: { slider: Slid
 	const thumb = 14;
 	return (
 		<div className={cn("pointer-events-none absolute top-0 left-0", className)} style={{ width, height: OPEN_HEIGHT }}>
-			<div aria-hidden className="absolute text-right text-[17px] leading-none whitespace-nowrap text-ink" style={{ top: TRACK_Y - 8, left: 0, width: GUTTER - 8 }}>
+			<div aria-hidden className="absolute text-right text-item leading-none whitespace-nowrap text-ink" style={{ top: TRACK_Y - 8, left: 0, width: GUTTER - 8 }}>
 				<Tex tex={slider.latex} />
 			</div>
 			<div aria-hidden className="absolute h-0.5 bg-ink" style={{ top: TRACK_Y - 1, left: GUTTER, width: trackWidth }} />

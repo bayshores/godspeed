@@ -29,8 +29,8 @@ export const ConfidenceCard = memo(function ConfidenceCard({ calibration }: { ca
 					))}
 				</div>
 				<div className="flex min-w-[220px] flex-1 flex-col gap-2.5">
-					{takeaway && <p className="text-[17px] text-ink">{takeaway}</p>}
-					<div data-testid="calibration-legend" className="flex flex-col gap-2.5 text-[15px] text-ink-2">
+					{takeaway && <p className="text-item text-ink">{takeaway}</p>}
+					<div data-testid="calibration-legend" className="flex flex-col gap-2.5 text-ui text-ink-2">
 						<p>How sure you were, from 1 (guessing) to 5 (certain).</p>
 						<p>The fill is how often you were right. The line is where it would be if your confidence matched.</p>
 					</div>
@@ -38,7 +38,7 @@ export const ConfidenceCard = memo(function ConfidenceCard({ calibration }: { ca
 			</div>
 			{calibration.sureButWrong.length > 0 && (
 				<>
-					<h3 className="pt-3 text-[15px] text-ink">Sure but wrong</h3>
+					<h3 className="pt-3 text-ui text-ink">Sure but wrong</h3>
 					<ul className="-mx-1 flex flex-col">
 						{calibration.sureButWrong.map((q) => (
 							<SureButWrongRow key={`${q.chatId}:${q.toolCallId}`} q={q} />
@@ -56,7 +56,7 @@ const LevelBar = memo(function LevelBar({ level }: { level: CalibrationLevel }) 
 	const red = isLevelOverconfident(level);
 	return (
 		<div data-testid={`calibration-level-${level.level}`} data-overconfident={red || undefined} className="flex flex-col items-center gap-1.5">
-			<span className="font-count text-[15px] text-ink tabular-nums">{level.answered > 0 ? `${level.right}/${level.answered}` : "–"}</span>
+			<span className="font-count text-ui text-ink tabular-nums">{level.answered > 0 ? `${level.right}/${level.answered}` : "–"}</span>
 			<div className="relative h-[110px] w-[52px] overflow-hidden bg-background">
 				{level.rate !== null && (
 					<div data-testid="calibration-right" className={cn("absolute inset-x-0 bottom-0", red ? "bg-ans-wrong" : "bg-ans-right")} style={{ height: `${level.rate * 100}%` }} />
@@ -64,7 +64,7 @@ const LevelBar = memo(function LevelBar({ level }: { level: CalibrationLevel }) 
 				{/* Edged in the page's color, so the line shows over the fill. */}
 				<div data-testid="calibration-target" className="absolute inset-x-0 h-[3px] bg-ink shadow-[0_0_0_1px_var(--background)]" style={{ top: `${100 - level.target}%` }} />
 			</div>
-			<span className="text-[15px] text-ink tabular-nums">{level.level}</span>
+			<span className="text-ui text-ink tabular-nums">{level.level}</span>
 		</div>
 	);
 });

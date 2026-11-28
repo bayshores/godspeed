@@ -64,10 +64,10 @@ function FolderBlock({ status }: { status: VaultStatus }) {
 			{folder ? (
 				<>
 					<div className="flex flex-col gap-1">
-						<span data-testid="vault-title" className="text-[17px] leading-snug break-words text-ink">
+						<span data-testid="vault-title" className="text-item leading-snug break-words text-ink">
 							{folderTitle(folder, status.obsidian)}
 						</span>
-						<p data-testid="vault-line" className={cn("text-[15px]", problem ? "text-ans-wrong" : "text-ink-2")}>
+						<p data-testid="vault-line" className={cn("text-ui", problem ? "text-ans-wrong" : "text-ink-2")}>
 							{folderLine(status, browserName())}
 						</p>
 					</div>
@@ -97,7 +97,7 @@ function FolderBlock({ status }: { status: VaultStatus }) {
 				</>
 			) : (
 				<>
-					<p className="text-[15px] text-ink-2">{pickLine(status)}</p>
+					<p className="text-ui text-ink-2">{pickLine(status)}</p>
 					<div className="flex flex-wrap items-center gap-2">
 						{status.vaults.map((vault) => (
 							<VaultKey key={vault.path} vault={vault} disabled={busy} onPick={link} />
@@ -110,7 +110,7 @@ function FolderBlock({ status }: { status: VaultStatus }) {
 			)}
 			{typing && <LinkFolderField initial={folder?.path ?? ""} disabled={busy} onLink={link} onCancel={() => setTyping(false)} />}
 			{error && (
-				<p role="alert" data-testid="vault-error" className="text-[15px] text-ans-wrong">
+				<p role="alert" data-testid="vault-error" className="text-ui text-ans-wrong">
 					{error}
 				</p>
 			)}
@@ -133,7 +133,7 @@ function WhoWrites({ words }: { words: VaultWords }) {
 	const label: Record<VaultWords, string> = { teacher: `${teacherName} writes it`, mine: "I add my own words" };
 	return (
 		<div data-testid="vault-who" className="flex flex-col gap-3 pt-2.5 pb-3.5">
-			<span className="text-[17px] leading-snug text-ink">Who writes the note</span>
+			<span className="text-item leading-snug text-ink">Who writes the note</span>
 			<Segmented
 				label="Who writes the note"
 				testid="vault-words"
@@ -143,7 +143,7 @@ function WhoWrites({ words }: { words: VaultWords }) {
 				onChange={(next) => void run(() => change({ words: next }))}
 			/>
 			{error && (
-				<p role="alert" className="text-[15px] text-ans-wrong">
+				<p role="alert" className="text-ui text-ans-wrong">
 					{error}
 				</p>
 			)}

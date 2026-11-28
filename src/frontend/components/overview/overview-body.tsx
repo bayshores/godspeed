@@ -149,7 +149,7 @@ export const OverviewBody = memo(function OverviewBody({
 							))}
 						{hasSpace && waiting}
 						{startError && (
-							<p role="alert" data-testid="start-error" className="text-[15px] text-ans-wrong">
+							<p role="alert" data-testid="start-error" className="text-ui text-ans-wrong">
 								{startError}
 							</p>
 						)}

@@ -53,7 +53,7 @@ export function WeekColumns({
 					);
 					return (
 						<section key={column.day ?? "later"} data-testid={column.day ? `week-day-${column.day}` : "week-later"} className={cn("flex min-w-0 flex-col gap-1 bg-tone p-1 @max-[600px]:flex-row", column.items.length === 0 && !column.today && "@max-[600px]:hidden")}>
-							<h3 className={cn("px-1.5 py-0.5 text-[15px] leading-snug whitespace-nowrap @max-[600px]:w-[76px] @max-[600px]:shrink-0 @max-[600px]:self-start", column.today ? "bg-highlight text-ink" : "text-ink-2")}>
+							<h3 className={cn("px-1.5 py-0.5 text-ui leading-snug whitespace-nowrap @max-[600px]:w-[76px] @max-[600px]:shrink-0 @max-[600px]:self-start", column.today ? "bg-highlight text-ink" : "text-ink-2")}>
 								<span aria-hidden>
 									{column.short}
 									{column.date !== null && <span className="font-count"> {column.date}</span>}
@@ -119,10 +119,10 @@ function WeekBlock({ item, dated, color, picked, joined, onPick }: { item: WeekI
 			>
 				{/* On a box of its own: the focus rule takes a focused button's own outline away. */}
 				{item.kind === "gap" && <span aria-hidden className="lh-dashed pointer-events-none absolute -inset-0.5" />}
-				{item.late && <span className="mb-0.5 bg-ans-wrong px-1 text-[12px] leading-[1.4] text-background">late</span>}
+				{item.late && <span className="mb-0.5 bg-ans-wrong px-1 text-xs leading-ui text-background">late</span>}
 				{/* Under 1000px of week a day's name is small and alone; from it, and in a row, its time shows under it. */}
-				<span className={cn("line-clamp-3 w-full text-[13px] leading-[1.3] hyphens-manual wrap-anywhere @min-[1000px]:text-[15px]", item.done && "line-through")}>{item.name}</span>
-				{item.detail && <span className={cn("w-full truncate text-[13px] leading-[1.3]", dated ? "block" : "hidden @min-[1000px]:block @max-[600px]:block")}>{item.detail}</span>}
+				<span className={cn("line-clamp-3 w-full text-sm leading-ask hyphens-manual wrap-anywhere @min-[1000px]:text-ui", item.done && "line-through")}>{item.name}</span>
+				{item.detail && <span className={cn("w-full truncate text-sm leading-ask", dated ? "block" : "hidden @min-[1000px]:block @max-[600px]:block")}>{item.detail}</span>}
 			</button>
 		</div>
 	);

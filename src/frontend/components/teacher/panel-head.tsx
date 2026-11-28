@@ -111,7 +111,7 @@ export function PanelHead({
 
 	const words = elsewhere ? "Working" : name;
 	const statusChip = (
-		<span data-testid="teacher-panel-agent" title={words} className="flex min-w-0 items-center gap-2.5 text-left text-[15px] leading-5 text-bar-ink">
+		<span data-testid="teacher-panel-agent" title={words} className="flex min-w-0 items-center gap-2.5 text-left text-ui leading-5 text-bar-ink">
 			<span aria-hidden className={cn("size-2 shrink-0 bg-current", working && "ob-pulse")} />
 			<span key={words} data-state="open" className="lh-fade min-w-0 truncate">
 				{words}

@@ -74,7 +74,7 @@ export function AppearanceSection({
 					<label className="lh-press flex cursor-pointer flex-col items-center gap-1.5" data-testid="theme-custom">
 						<span
 							className={cn(
-								"relative flex h-16 w-full items-center justify-center rounded-[3px] border bg-background",
+								"relative flex h-16 w-full items-center justify-center rounded border bg-background",
 								!isPreset ? "border-2 border-ink" : "border-edge",
 							)}
 							style={!isPreset && background ? { background: readableBackground(background) } : undefined}
@@ -135,7 +135,7 @@ function TextSize() {
 function Control({ label, children }: { label: string; children: React.ReactNode }) {
 	return (
 		<div className="flex flex-col gap-2">
-			<p className="text-[17px] leading-snug text-ink">{label}</p>
+			<p className="text-item leading-snug text-ink">{label}</p>
 			{children}
 		</div>
 	);
@@ -146,7 +146,7 @@ function ThemeTile({ name, color, on, onPick }: { name: string; color: string; o
 	return (
 		<button type="button" aria-pressed={on} data-testid={`theme-${name.toLowerCase()}`} onClick={onPick} className="lh-press flex flex-col items-center gap-1.5">
 			<span
-				className={cn("flex h-16 w-full flex-col gap-1.5 rounded-[3px] p-2.5", on ? "border-2 border-ink" : "border")}
+				className={cn("flex h-16 w-full flex-col gap-1.5 rounded p-2.5", on ? "border-2 border-ink" : "border")}
 				style={{ background: color, borderColor: on ? undefined : p["--border"] }}
 			>
 				<span className="h-[5px] w-10" style={{ background: p["--foreground"] }} />
@@ -162,7 +162,7 @@ function ThemeTile({ name, color, on, onPick }: { name: string; color: string; o
 function IconTile({ name, picture, on, onPick }: { name: string; picture: string; on: boolean; onPick: () => void }) {
 	return (
 		<button type="button" aria-pressed={on} data-testid={`app-icon-${picture}`} onClick={onPick} className="lh-press flex flex-col items-center gap-1.5">
-			<span className={cn("rounded-[18px] border-2 p-1", on ? "border-ink" : "border-transparent")}>
+			<span className={cn("lh-icon-ring border-2 p-1", on ? "border-ink" : "border-transparent")}>
 				<img src={`/app-icons/${picture}.svg`} alt="" className="block size-16" />
 			</span>
 			<span className={cn("text-sm text-ink", on && "font-medium")}>{name}</span>
@@ -261,7 +261,7 @@ function FontPicker({ family, onPick }: { family: string | null; onPick: (family
 				aria-expanded={open}
 				data-testid="font-trigger"
 				onClick={toggle}
-				className="lh-press flex h-10 w-full items-center justify-between gap-2.5 lh-well rounded px-3 text-left text-[15px] font-medium text-ink hover:bg-tone"
+				className="lh-press flex h-10 w-full items-center justify-between gap-2.5 lh-well rounded px-3 text-left text-ui font-medium text-ink hover:bg-tone"
 			>
 				<span className="min-w-0 truncate" style={{ fontFamily: family ? `"${family}"` : undefined }}>
 					{family || DEFAULT_READING_FONT}

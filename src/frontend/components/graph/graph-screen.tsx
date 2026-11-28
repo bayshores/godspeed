@@ -117,7 +117,7 @@ function GraphScreenBody() {
 					) : progress.error ? (
 						<LoadFailed message="Couldn't load your graph." onRetry={refresh} className="py-10" />
 					) : (
-						<LoadingLine className="justify-center py-10 text-[15px]" />
+						<LoadingLine className="justify-center py-10 text-ui" />
 					)}
 				</div>
 			</div>

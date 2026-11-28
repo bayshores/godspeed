@@ -227,7 +227,7 @@ export function YourTurn({
 	const empty = !pending && !shownProblem && !kept && !nextLine && !notes && !reviewRefused;
 
 	const nextRow = nextLine && (
-		<p data-testid="turn-next-line" className={cn("font-prose text-[18px] leading-[28px]", next?.dim ? "text-ink-2" : "text-ink")}>
+		<p data-testid="turn-next-line" className={cn("font-prose text-tab leading-7", next?.dim ? "text-ink-2" : "text-ink")}>
 			{nextLine}
 		</p>
 	);
@@ -279,7 +279,7 @@ export function YourTurn({
 										<div data-testid={keptProblem ? "kept-problem" : undefined} inert={keptProblem !== null} className={cn("flex flex-col gap-7", keptProblem && "opacity-60")}>
 											<OpenProblemPane statement={shownProblem.statement} piece={shownProblem.piece} printed={printed} onPieceFail={() => setPieceFailed(shownProblem.toolCallId)} part={shownPart} picks={problem ? picks : null} />
 											{keptProblem?.discarded && (
-												<p data-testid="kept-problem-discarded" className="text-[18px] leading-[28px]">
+												<p data-testid="kept-problem-discarded" className="text-tab leading-7">
 													Discarded
 												</p>
 											)}
@@ -316,12 +316,12 @@ export function YourTurn({
 				</JobFailure>
 			)}
 			{askError && (
-				<p role="alert" data-testid="notes-ask-error" className="text-[15px] text-ans-wrong">
+				<p role="alert" data-testid="notes-ask-error" className="text-ui text-ans-wrong">
 					{askError}
 				</p>
 			)}
 			{ask && over > 0 && (
-				<p role="status" data-testid="notes-ask-over" className="text-[15px] text-ink-2">
+				<p role="status" data-testid="notes-ask-over" className="text-ui text-ink-2">
 					Shorten it by {over} characters.
 				</p>
 			)}

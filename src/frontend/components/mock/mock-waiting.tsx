@@ -50,12 +50,12 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 		const time = mock.format.minutes === undefined ? "" : "The time starts when you start and keeps running if you leave, unless you pause it. ";
 		body = (
 			<>
-				<p className="text-[28px] leading-tight text-ink">Mock {mock.n} is ready</p>
+				<p className="text-ask leading-tight text-ink">Mock {mock.n} is ready</p>
 				<p className="max-w-[520px] text-lg leading-snug text-ink-2">
 					{size}. {time}{teacher} stays quiet until it ends, then grades everything.
 				</p>
 				{fromAbout && (
-					<p data-testid="mock-from-about" className="max-w-[520px] text-[17px] leading-snug text-ink-2">
+					<p data-testid="mock-from-about" className="max-w-[520px] text-item leading-snug text-ink-2">
 						{fromAbout}
 					</p>
 				)}
@@ -67,24 +67,24 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 	} else if (view.working) {
 		body = (
 			<>
-				<p className="flex items-center gap-3 text-[23px] leading-snug text-ink">
+				<p className="flex items-center gap-3 text-head leading-snug text-ink">
 					<BrailleSpinner className="h-5" label={state === "writing" ? "Writing the mock" : "Grading the mock"} />
 					{state === "writing" ? `${teacher} is writing Mock ${mock.n}` : `${teacher} is grading Mock ${mock.n}`}
 				</p>
-				<p className="text-[17px] text-ink-2">
+				<p className="text-item text-ink-2">
 					{state === "writing" ? `${size}. ` : endedByTime(mock) ? <span data-testid="mock-time-up">The time is up. </span> : ""}This takes a few minutes. You can leave this page and come back.
 				</p>
 			</>
 		);
 	} else {
 		const removeKey = state === "writing" && (
-			<Key data-testid="mock-remove" busy={pending === "remove"} disabled={pending !== null} onClick={() => void remove()} className="text-[15px]">
+			<Key data-testid="mock-remove" busy={pending === "remove"} disabled={pending !== null} onClick={() => void remove()} className="text-ui">
 				Remove this mock
 			</Key>
 		);
 		body = (
 			<div role="alert" className="flex flex-col items-center gap-3.5">
-				<p className="text-[23px] leading-snug text-ink">{state === "writing" ? "The mock wasn't written" : "The mock wasn't graded"}</p>
+				<p className="text-head leading-snug text-ink">{state === "writing" ? "The mock wasn't written" : "The mock wasn't graded"}</p>
 				{/* The agent can't run: the compact card says why with the key that fixes it, and Try again waits for it. */}
 				{compactShown ? (
 					<>
@@ -93,7 +93,7 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 					</>
 				) : (
 					<>
-						<p className="text-[17px] text-ink-2">{view.error ? `What went wrong: ${view.error}.` : "The request stopped before the answer came back."}</p>
+						<p className="text-item text-ink-2">{view.error ? `What went wrong: ${view.error}.` : "The request stopped before the answer came back."}</p>
 						<div className="flex items-center gap-2.5">
 							<Key data-testid="mock-retry" busy={pending === "retry"} disabled={pending !== null} onClick={() => void act("retry")} className="lh-btn-main">
 								Try again
@@ -109,7 +109,7 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 		<div data-testid={`mock-${state}`} className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3.5 overflow-y-auto p-8 text-center">
 			{body}
 			{error && (
-				<p role="alert" className="text-[15px] text-ans-wrong">
+				<p role="alert" className="text-ui text-ans-wrong">
 					{error}
 				</p>
 			)}

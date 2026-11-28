@@ -62,11 +62,11 @@ function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; 
 					<CheckRow key={o.id ?? "none"} radio="move-target" label={o.name} note={o.id === from ? "current" : undefined} checked={target === o.id} disabled={busy} onToggle={() => setTarget(o.id)} />
 				))}
 			</div>
-			<p className="text-[15px] text-ink-2">
+			<p className="text-ui text-ink-2">
 				Its facts leave the current space&apos;s graph (facts another lesson or file also taught stay) and are rebuilt in the new space&apos;s graph. Rebuilding is done by your agent.
 			</p>
 			{error && (
-				<p role="alert" className="text-[15px] text-ans-wrong">
+				<p role="alert" className="text-ui text-ans-wrong">
 					{error}
 				</p>
 			)}

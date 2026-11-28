@@ -63,8 +63,8 @@ export function StartTiles({ ways, color, wide, onAddDeadline }: { ways: readonl
 								<PixelIcon name={t.icon} className={wide ? "h-[13px]" : "h-[11px]"} />
 							</span>
 							<span className="flex min-w-0 flex-col">
-								<span className={cn("text-ink", wide ? "text-[19px]" : "text-[17px]")}>{t.title}</span>
-								{wide && <span className="text-[17px] text-ink-2">{t.line}</span>}
+								<span className={cn("text-ink", wide ? "text-xl" : "text-item")}>{t.title}</span>
+								{wide && <span className="text-item text-ink-2">{t.line}</span>}
 							</span>
 							{wide && <PixelIcon name="chevron" className="ml-auto shrink-0 text-ink-2" />}
 						</>

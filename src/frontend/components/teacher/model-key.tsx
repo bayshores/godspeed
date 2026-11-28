@@ -35,7 +35,7 @@ export function ModelKey({ models, current, onPick }: { models: readonly AgentMo
 							onPick(m.id);
 							setOpen(false);
 						}}
-						className={cn("lh-press flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-[15px] text-ink hover:bg-tone", m.id === shown.id && "bg-tone")}
+						className={cn("lh-press flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-ui text-ink hover:bg-tone", m.id === shown.id && "bg-tone")}
 					>
 						<span className="min-w-0 flex-1 truncate">{m.name}</span>
 						{m.id === shown.id && <PixelIcon name="check" />}

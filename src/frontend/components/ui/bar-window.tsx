@@ -44,7 +44,7 @@ export function BarWindow({
 	const docked = height === null;
 	const corners = docked ? 0 : right === 0 ? "0 0 0 var(--lh-hang-r)" : undefined;
 	return (
-		<div data-state={state} style={{ right, ...(docked && { "--lh-hang-r": "0px" }) } as CSSProperties} className={cn("lh-hang fixed top-(--lh-bar-h) z-[41]", docked && "lh-dock bottom-0")}>
+		<div data-state={state} style={{ right, ...(docked && { "--lh-hang-r": "0px" }) } as CSSProperties} className={cn("lh-hang fixed top-(--lh-bar-h) z-(--lh-z-panel)", docked && "lh-dock bottom-0")}>
 			<section
 				{...section}
 				data-state={state}

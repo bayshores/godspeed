@@ -69,7 +69,7 @@ export function PagePiece({
 		return text ? (
 			<ToolContentResponse>{text}</ToolContentResponse>
 		) : (
-			<p data-testid="page-piece-failed" className="text-[15px] text-ink-2">
+			<p data-testid="page-piece-failed" className="text-ui text-ink-2">
 				The page could not be loaded.
 			</p>
 		);

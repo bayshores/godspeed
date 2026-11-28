@@ -30,9 +30,9 @@ export function NotePage({ note, obsidian, asked, landing }: { note: VaultNote; 
 	const body = (
 		<>
 			<span className={cn("shrink-0 leading-snug break-words text-ink", nameSize(note.name))}>{note.name}</span>
-			{note.recall && <span className="line-clamp-3 shrink-0 text-[15px] leading-snug text-ink-2">{note.recall}</span>}
+			{note.recall && <span className="line-clamp-3 shrink-0 text-ui leading-snug text-ink-2">{note.recall}</span>}
 			<span className="mt-auto flex items-end justify-between gap-2 pb-1.5">
-				<span className="text-[15px] text-ink-2">
+				<span className="text-ui text-ink-2">
 					{mark && <span className="group-hover:hidden group-focus-visible:hidden">{mark}</span>}
 					<span className={cn("text-ink underline underline-offset-2", mark ? "hidden group-hover:inline group-focus-visible:inline" : "invisible group-hover:visible group-focus-visible:visible")}>{label}</span>
 				</span>

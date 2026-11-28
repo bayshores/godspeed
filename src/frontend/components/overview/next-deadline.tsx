@@ -68,7 +68,7 @@ export const NextDeadline = memo(function NextDeadline({
 	if (!d && starts) {
 		return (
 			<Pane data-testid="next-deadline-none" className="lh-card">
-				<p className="text-[17px] text-ink-2">{none}</p>
+				<p className="text-item text-ink-2">{none}</p>
 				{starts}
 			</Pane>
 		);
@@ -76,7 +76,7 @@ export const NextDeadline = memo(function NextDeadline({
 	if (!d) {
 		return (
 			<Pane data-testid="next-deadline-none" className="lh-card flex-row flex-wrap items-center justify-end gap-4">
-				<p className="min-w-0 flex-1 basis-[160px] text-[17px] text-ink-2">{none}</p>
+				<p className="min-w-0 flex-1 basis-[160px] text-item text-ink-2">{none}</p>
 				<button type="button" data-testid="next-deadline-add" onClick={onAddDeadline} className="lh-btn shrink-0">
 					<PixelIcon name="plus" />
 					Add a deadline
@@ -98,7 +98,7 @@ export const NextDeadline = memo(function NextDeadline({
 				<div className="lh-card min-w-0 flex-1 gap-4 @[480px]:flex-row @[480px]:flex-wrap @[480px]:items-end @[480px]:justify-end @[480px]:gap-x-6">
 					<div className="flex min-w-0 flex-1 flex-col gap-4 @[480px]:basis-[260px]">
 						<div className="flex flex-col gap-1">
-							<Link to={deadlineHref(d.id)} data-testid="next-deadline-open" title={d.name} className={cn("line-clamp-2 text-[28px] leading-[1.3] text-ink hover:underline", d.done && "line-through")}>
+							<Link to={deadlineHref(d.id)} data-testid="next-deadline-open" title={d.name} className={cn("line-clamp-2 text-ask leading-ask text-ink hover:underline", d.done && "line-through")}>
 								{d.name}
 							</Link>
 							<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -115,7 +115,7 @@ export const NextDeadline = memo(function NextDeadline({
 							{/* How far it is, then the key that says it is all done. */}
 							<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
 								{words && (
-									<p data-testid="next-deadline-progress" className="text-[15px] text-ink">
+									<p data-testid="next-deadline-progress" className="text-ui text-ink">
 										{words}
 									</p>
 								)}

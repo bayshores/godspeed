@@ -16,7 +16,7 @@ const SIDE_BY_SIDE = 4;
 /** A choice's letter, the name the teacher and the keyboard call it by; quiet until picked. */
 export function OptionMark({ picked, children }: { picked: boolean; children?: React.ReactNode }) {
 	return (
-		<span aria-hidden className={cn("w-5 shrink-0 font-count text-[17px] leading-7", !picked && "text-ink-2")}>
+		<span aria-hidden className={cn("w-5 shrink-0 font-count text-item leading-7", !picked && "text-ink-2")}>
 			{children}
 		</span>
 	);
@@ -24,7 +24,7 @@ export function OptionMark({ picked, children }: { picked: boolean; children?: R
 
 /** The line under a question whose choices may be several. */
 export function SelectAllHint() {
-	return <p className="-mt-4 text-[15px] text-ink-2">Select all that apply</p>;
+	return <p className="-mt-4 text-ui text-ink-2">Select all that apply</p>;
 }
 
 /**

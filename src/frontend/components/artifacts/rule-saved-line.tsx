@@ -17,7 +17,7 @@ function Line({ saved }: { saved: SaveRuleResult }) {
 	const api = useSavedRule(saved.where, saved.rule);
 	const { mode } = api;
 	return (
-		<div data-testid="rule-saved" className="my-2 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[15px] text-ink">
+		<div data-testid="rule-saved" className="my-2 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 text-ui text-ink">
 			{mode.kind === "removed" ? (
 				<span>Removed the rule: {api.rule}</span>
 			) : mode.kind === "editing" ? (

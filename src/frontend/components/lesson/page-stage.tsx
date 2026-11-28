@@ -94,12 +94,12 @@ function TextPage({ start, lines, from, to }: { start: number; lines: string[]; 
 			</div>
 		);
 	};
-	if (!ranged) return <div className="text-[12px] leading-[1.55]">{lines.map(row)}</div>;
+	if (!ranged) return <div className="text-xs leading-normal">{lines.map(row)}</div>;
 	const a = Math.max(0, from - start);
 	const b = Math.min(lines.length, to - start + 1);
-	const faded = "opacity-40 transition-opacity duration-500";
+	const faded = "opacity-40 transition-opacity duration-(--lh-dur-page)";
 	return (
-		<div className="text-[12px] leading-[1.55]">
+		<div className="text-xs leading-normal">
 			{a > 0 && <div className={faded}>{lines.slice(0, a).map(row)}</div>}
 			{b > a && (
 				<div className="lh-read-mark -ml-5 pl-5 text-[#111]">

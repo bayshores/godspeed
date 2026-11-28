@@ -10,7 +10,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { prefersReducedMotion } from "@/frontend/components/presence";
+import { PAGE_MS as LEAVE_MS, prefersReducedMotion } from "@/frontend/components/presence";
 import { useMinute } from "@/frontend/components/countdown";
 import { byDue } from "@/frontend/components/deadlines-model";
 import { Constellation } from "@/frontend/components/onboarding/constellation";
@@ -26,7 +26,6 @@ import { bootLines, lookUpgraded } from "./welcome-model";
 
 /** When the button has risen (.wl-rise in globals.css). */
 const ANIMATION_MS = 2800;
-const LEAVE_MS = 400;
 /** When the boot log starts, and how fast it types. */
 const BOOT_START_MS = 2200;
 const LETTER_MS = 12;
@@ -83,7 +82,7 @@ function WelcomeScreen({ leaving, onClose, upgraded }: { leaving: boolean; onClo
 			data-testid="welcome"
 			onClick={() => !ready && setSkipped(true)}
 			className={cn(
-				"ob-root fixed inset-0 z-[60] flex flex-col items-center justify-center gap-[30px] overflow-y-auto bg-background px-4 transition-opacity duration-[400ms]",
+				"ob-root fixed inset-0 z-(--lh-z-welcome) flex flex-col items-center justify-center gap-[30px] overflow-y-auto bg-background px-4 transition-opacity duration-(--lh-dur-page)",
 				skipped && "ob-skip",
 				leaving && "pointer-events-none opacity-0",
 			)}
@@ -132,7 +131,7 @@ function BootLog({ lines, skipped }: { lines: readonly string[]; skipped: boolea
 	const shown = instant ? total : Math.min(typed, total);
 	let left = shown;
 	return (
-		<div data-testid="welcome-status" className="flex min-h-[78px] flex-col items-center gap-1.5 font-count text-base leading-[22px] text-ink-2">
+		<div data-testid="welcome-status" className="flex min-h-[78px] flex-col items-center gap-1.5 font-count text-base leading-5.5 text-ink-2">
 			<span className="sr-only">{lines.join(", ")}</span>
 			{lines.map((line, i) => {
 				const part = line.slice(0, Math.max(0, left));

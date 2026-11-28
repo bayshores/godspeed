@@ -50,7 +50,7 @@ export function AppShell({
 							<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
 							{/* The page puts its own words into the top bar. */}
 							<BarSlotsProvider>
-								<a href="#lh-page" className="lh-btn sr-only focus:not-sr-only focus:fixed focus:top-1.5 focus:left-1.5 focus:z-50">
+								<a href="#lh-page" className="lh-btn sr-only focus:not-sr-only focus:fixed focus:top-1.5 focus:left-1.5 focus:z-(--lh-z-dialog)">
 									Skip to the page
 								</a>
 								<MagnifierProvider>

@@ -70,7 +70,7 @@ export function TopicPane({
 				</p>
 				{list.length > 0 && <TopicMoons key={topic.id} facts={list} onOpen={onOpenFact} size={36} stepFrom={rowStart(motion, 2)} />}
 				{note && (
-					<p data-testid="topic-note" className={`text-[15px] leading-snug text-ink-2 ${laterStep.className}`} style={laterStep.style}>
+					<p data-testid="topic-note" className={`text-ui leading-snug text-ink-2 ${laterStep.className}`} style={laterStep.style}>
 						{note}
 					</p>
 				)}

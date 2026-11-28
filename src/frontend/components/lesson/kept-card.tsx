@@ -46,7 +46,7 @@ export function KeptSource({ cite }: { cite: FileCite }) {
 					setOpen(true);
 					blurAfterPointerClick(e);
 				}}
-				className="min-w-0 truncate text-left text-[15px] text-ink underline underline-offset-2 hover:text-ink-max"
+				className="min-w-0 truncate text-left text-ui text-ink underline underline-offset-2 hover:text-ink-max"
 			>
 				{citeLabel(cite)}
 			</button>
@@ -144,7 +144,7 @@ export function KeptCard({ kept, answer: savedAnswer, input, toolCallId }: { kep
 					<div className="flex flex-col gap-2 pt-2.5">
 						<div className="flex flex-wrap items-center gap-2.5">
 							<ResultTag tone="right">Right</ResultTag>
-							<span className="font-count text-[15px] text-ink-2">
+							<span className="font-count text-ui text-ink-2">
 								{questionKindLabel(answer.tool ?? "quiz", answer.questionType)}
 								{answer.confidence != null && `, sure ${confidenceLevel(answer.confidence)} of 5`}
 							</span>

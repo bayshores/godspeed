@@ -115,11 +115,11 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 				<header className="flex flex-col @[640px]/head:flex-row @[640px]/head:items-center">
 					<DeadlineBlock deadline={d} color={props.color} nowMs={nowMs} size="head" />
 					<div className="flex min-w-0 flex-1 flex-col gap-3 px-(--lh-inset) py-4">
-						<p data-testid="deadline-when" className="text-[28px] leading-tight text-ink">
+						<p data-testid="deadline-when" className="text-ask leading-tight text-ink">
 							{whenLine(d)}
 						</p>
 						{progress && (d.problems || d.topics.length === 0) && (
-							<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[17px] text-ink-2">
+							<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-item text-ink-2">
 								{d.problems && <StepBlocks done={d.problems.done} total={d.problems.total} />}
 								<span data-testid="deadline-progress">{progress}</span>
 							</div>
@@ -130,7 +130,7 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 				</header>
 			</Pane>
 			{props.startError && (
-				<p role="alert" data-testid="deadline-start-error" className="text-[15px] text-ans-wrong">
+				<p role="alert" data-testid="deadline-start-error" className="text-ui text-ans-wrong">
 					{props.startError}
 				</p>
 			)}
@@ -199,7 +199,7 @@ function TopicStrip({ deadline: d, tallies, ready }: { deadline: DeadlineProgres
 			</div>
 			<div className="flex flex-wrap items-center gap-x-[18px] gap-y-1 text-base text-ink-2">
 				{ready && (
-					<span data-testid="deadline-progress" className="text-[17px] text-ink">
+					<span data-testid="deadline-progress" className="text-item text-ink">
 						{ready}
 					</span>
 				)}

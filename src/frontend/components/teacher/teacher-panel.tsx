@@ -120,7 +120,7 @@ export function TeacherPanel({
 				blocked={blocked}
 			/>
 			{popError && (
-				<p role="alert" className="shrink-0 px-[18px] pb-2 text-[15px] text-ans-wrong">
+				<p role="alert" className="shrink-0 px-[18px] pb-2 text-ui text-ans-wrong">
 					{popError}
 				</p>
 			)}

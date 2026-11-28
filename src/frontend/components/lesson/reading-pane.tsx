@@ -115,7 +115,7 @@ export function ReadingPane({
 					<section key={sheetKey(sheet.rows)} ref={newest ? sheetRef : undefined} data-testid="lesson-sheet" className="flex min-w-0 flex-col gap-4">
 						{/* With one step on the page the step line already says which it is. */}
 						{sheet.label && sheets.length > 1 && (
-							<h3 data-testid="sheet-step" className="flex items-center gap-3 text-[18px] leading-7 text-ink-2">
+							<h3 data-testid="sheet-step" className="flex items-center gap-3 text-tab leading-7 text-ink-2">
 								<span className={STEP_TAB} style={{ background: spaceColor ? spaceColorVar(spaceColor) : "var(--color-ink-2)" }}>
 									{sheet.counts === "Problem" ? `Problem ${sheet.label}` : <><span className="sr-only">Step </span>{sheet.label}</>}
 								</span>
@@ -172,7 +172,7 @@ function teachSeam(messages: readonly LhViewMessage[], phases: readonly Phase3[]
 }
 
 /** The step's number on a block of the space's color, before its name. */
-const STEP_TAB = "grid h-7 min-w-9 shrink-0 place-items-center px-2 font-count text-[18px] leading-none text-on-space";
+const STEP_TAB = "grid h-7 min-w-9 shrink-0 place-items-center px-2 font-count text-tab leading-none text-on-space";
 
 /**
  * The desk under the newest sheet glides to its new place when that sheet is a new one: a reply that starts a sheet of its own,

@@ -59,7 +59,7 @@ export function LessonMenu({
 			testid="lesson-menu"
 			preferredSide="down"
 			hang={bar}
-			menuClass="lh-popup flex w-[250px] flex-col p-1.5 text-[15px]"
+			menuClass="lh-popup flex w-[250px] flex-col p-1.5 text-ui"
 		>
 			{exit && (
 				<button role="menuitem" type="button" data-testid={exit.testId} onClick={exit.onPick} className={`${ITEM} text-ink`}>

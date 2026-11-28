@@ -5,7 +5,7 @@ import { cn } from "@/frontend/lib/utils";
 import { ACTIVITY_ROW, ACTIVITY_ROWS } from "./activity-look";
 import { agoLabel } from "./activity-model";
 
-const ROW = cn(ACTIVITY_ROW, "flex w-full items-baseline gap-3 py-2 text-[15px]");
+const ROW = cn(ACTIVITY_ROW, "flex w-full items-baseline gap-3 py-2 text-ui");
 
 /**
  * What building a space's graph took, at the end of the teacher's
@@ -21,11 +21,11 @@ export function GraphCosts({ costs, space }: { costs: GraphCostSummary; space: s
 	const unpriced = displayUnpricedRuns(costs);
 	return (
 		<section data-testid="graph-costs" className="flex flex-col gap-3">
-			<h3 className="truncate text-[17px] font-normal text-ink">
+			<h3 className="truncate text-item font-normal text-ink">
 				Graph costs
 				{space && <span className="text-ink-2">, {space}</span>}
 			</h3>
-			<p className="text-[15px] text-ink-2">
+			<p className="text-ui text-ink-2">
 				{planLine(costs)}
 				{unpriced > 0 && ` ${unpriced} ${unpriced === 1 ? "run" : "runs"} unpriced.`}
 			</p>

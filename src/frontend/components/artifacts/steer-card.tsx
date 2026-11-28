@@ -38,7 +38,7 @@ export function SubagentSteerCard({ message }: { message: LhViewMessage }) {
 			| undefined;
 		if (aborted?.data) return <AbortedBadge kind={aborted.data.kind ?? "job"} />;
 		return (
-			<div className={cn(CARD, "text-[15px] text-ink-2")}>
+			<div className={cn(CARD, "text-ui text-ink-2")}>
 				A job finished, but its result could not be displayed.
 			</div>
 		);
@@ -68,7 +68,7 @@ export function SubagentSteerCard({ message }: { message: LhViewMessage }) {
  * this just marks what happened. */
 function AbortedBadge({ kind }: { kind: string }) {
 	return (
-		<div data-testid="job-aborted-badge" className="flex items-center gap-2.5 text-[15px] text-ink-2">
+		<div data-testid="job-aborted-badge" className="flex items-center gap-2.5 text-ui text-ink-2">
 			<PixelIcon name="close" className="text-ans-wrong" />
 			<span className="text-ink">{kind}</span>
 			<span>aborted by the learner</span>

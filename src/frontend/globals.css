@@ -8,8 +8,8 @@
  * THE SKIN. Design tokens, the single place to restyle the app.
  *
  *   - Tailwind's built-in 0.25rem (4px) spacing scale is the rhythm.
- *   - The type scale below is a declared ladder (each --text-* token
- *     carries its own line-height); components never invent pixel sizes.
+ *   - The type scale below is a declared ladder; components never invent
+ *     pixel sizes (lint fails one).
  *   - Corners are near-square: every radius token is 2px.
  *   - No heavy interface text: every weight above medium draws as medium.
  *   - Emphasis colors live in tokens (--lh-ink-strong / --lh-ink-italic) so
@@ -65,6 +65,19 @@
 	--lh-title: clamp(34px, (100vw - var(--lh-strip) - var(--lh-dock-push, 0px) - 899px) * 999, 44px);
 	color-scheme: dark;
 	--radius: 2px;
+	/* The round corners: a pop-up's box, a row in it, and a box that hangs from a bar or the strip. */
+	--lh-pop-r: 12px;
+	--lh-pop-row-r: 8px;
+	--lh-round: 14px;
+	/* What lies over what in the window, from the lowest: Follow's slip, a cover over the page, the
+	   teacher's panel, the strip, the strip's peek, a dialog or a tooltip, the welcome screen. */
+	--lh-z-slip: 35;
+	--lh-z-cover: 40;
+	--lh-z-panel: 41;
+	--lh-z-strip: 42;
+	--lh-z-peek: 45;
+	--lh-z-dialog: 50;
+	--lh-z-welcome: 60;
 	--background: #161616;
 	--foreground: #e6e6e6;
 	--card: #1e1e1e;
@@ -223,7 +236,7 @@
 	--lh-tint: var(--lh-bar-ink);
 	--lh-mark-bg: var(--lh-highlight);
 	--lh-well: var(--card);
-	border-radius: 12px;
+	border-radius: var(--lh-pop-r);
 	background-color: var(--lh-bar);
 	color: var(--lh-bar-ink);
 }
@@ -279,7 +292,7 @@
 	color: var(--foreground);
 }
 .lh-popup [role="menuitem"] {
-	border-radius: 8px;
+	border-radius: var(--lh-pop-row-r);
 }
 
 @theme inline {
@@ -308,6 +321,18 @@
 	--text-2xl--line-height: 1.3;
 	--text-3xl: 34px;
 	--text-3xl--line-height: 1.2;
+	/* Rungs that set the size alone, so the line height stays the box's own: interface words, the
+	   name of a thing in a row or on a big key, a tab, a pop-up's title, what is asked. lib/utils.ts
+	   names them to the class merger, which would read an unknown text-* as a color. */
+	--text-ui: 15px;
+	--text-item: 17px;
+	--text-tab: 18px;
+	--text-head: 22px;
+	--text-ask: 28px;
+	/* Line heights with a size of their own: a title or a count, what is asked, a key's or a tag's words. */
+	--leading-title: 1.2;
+	--leading-ask: 1.3;
+	--leading-ui: 1.4;
 	/* No heavy interface text: every rung above medium draws as medium. */
 	--font-weight-semibold: 500;
 	--font-weight-bold: 500;
@@ -522,7 +547,7 @@ body {
 	}
 	.lh-card-title {
 		min-width: 0;
-		font-size: 20px;
+		font-size: var(--text-xl);
 		line-height: 1.375;
 		color: var(--foreground);
 	}
@@ -539,7 +564,7 @@ body {
 		gap: 7px;
 		border-bottom: 2px solid transparent;
 		padding: 10px 14px;
-		font-size: 18px;
+		font-size: var(--text-tab);
 		line-height: 28px;
 		white-space: nowrap;
 		color: var(--muted-foreground);
@@ -692,7 +717,7 @@ body {
 		border-radius: 0;
 		background: none;
 		font-family: var(--font-ui);
-		font-size: 15px;
+		font-size: var(--text-ui);
 		font-weight: 450;
 		line-height: 1.4;
 		white-space: nowrap;
@@ -734,7 +759,7 @@ body {
 		--lh-pad: 10px;
 		gap: 6px;
 		height: 30px;
-		font-size: 14px;
+		font-size: var(--text-base);
 	}
 	.lh-btn-main,
 	.lh-btn-danger {
@@ -797,6 +822,11 @@ body {
 	.lh-btn-flush {
 		margin-left: calc(var(--lh-pad) * -1);
 	}
+}
+
+/* The ring round an app icon in Settings follows the icon's own corner. */
+.lh-icon-ring {
+	border-radius: 18px;
 }
 
 /* The small raised number after a sentence the teacher backed with a source. */
@@ -1086,7 +1116,7 @@ body {
 .lh-kind {
 	background: var(--color-highlight);
 	padding: 2px 8px;
-	font-size: 15px;
+	font-size: var(--text-ui);
 	line-height: 1.4;
 	color: var(--color-ink);
 }
@@ -1548,7 +1578,7 @@ body:has(.lh-own-bar) .lh-app-bar {
    after it, top first. The body is clipped while it grows, so the two
    curves sit on .lh-hang, around it. */
 .lh-hang {
-	--lh-hang-r: 14px;
+	--lh-hang-r: var(--lh-round);
 	/* What it hangs from: the top bar, or the teacher panel's head. */
 	--lh-hang-fill: var(--lh-bar);
 }
@@ -1616,7 +1646,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 	top: var(--lh-bar-h);
 	right: 0;
 	bottom: 0;
-	z-index: 42;
+	z-index: var(--lh-z-strip);
 	width: var(--lh-strip);
 }
 .lh-strip::before {
@@ -1691,7 +1721,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 	left: 0;
 	right: calc(var(--lh-dock-width, 0px) + var(--lh-strip));
 	bottom: 0;
-	z-index: 35;
+	z-index: var(--lh-z-slip);
 	border-radius: 0;
 }
 .lh-follow-slip::before {
@@ -1719,7 +1749,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 	right: 16px;
 }
 .lh-peek-body {
-	border-radius: 14px;
+	border-radius: var(--lh-round);
 	animation: lh-pop-in var(--lh-dur) var(--lh-ease-out) both;
 }
 .lh-peek[data-state="closed"] > .lh-peek-body {
@@ -1753,7 +1783,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 	animation: lh-fade-out var(--lh-dur-fast) var(--lh-ease-in) both;
 }
 :root:has(.lh-strip) .lh-peek-body {
-	border-radius: 0 0 0 14px;
+	border-radius: 0 0 0 var(--lh-round);
 	box-shadow: none;
 	animation: lh-side-in var(--lh-dur-slow) var(--lh-ease-out) both;
 }
@@ -1841,7 +1871,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 .lh-sheet-wrap {
 	position: fixed;
 	inset: 0;
-	z-index: 50;
+	z-index: var(--lh-z-dialog);
 	display: flex;
 	align-items: flex-start;
 	justify-content: center;

@@ -1,8 +1,6 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
-import { EASE_OUT, prefersReducedMotion } from "@/frontend/components/presence";
+import { DUR_MS as FADE_MS, EASE_OUT, prefersReducedMotion } from "@/frontend/components/presence";
 
-/** The old look fading out (--lh-dur). */
-const FADE_MS = 160;
 /** The longest the old look waits for the new pictures before it fades anyway. */
 const WAIT_MS = 1500;
 

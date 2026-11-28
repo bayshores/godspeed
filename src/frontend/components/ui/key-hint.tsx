@@ -4,7 +4,7 @@ import { ariaKeyShortcuts, bindingForAction, IS_MAC, keyHintText, type KeyAction
  *  text colour, so it reads on the dark top bar and on light keys alike. */
 export function KeyHint({ action }: { action: KeyAction }) {
 	return (
-		<kbd aria-hidden className="rounded-[2px] bg-[color-mix(in_srgb,currentColor_14%,transparent)] px-[5px] font-[inherit] text-[13px] leading-[1.4]">
+		<kbd aria-hidden className="rounded bg-[color-mix(in_srgb,currentColor_14%,transparent)] px-[5px] font-[inherit] text-sm leading-ui">
 			{keyHintText(bindingForAction(action), IS_MAC)}
 		</kbd>
 	);

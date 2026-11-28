@@ -40,7 +40,7 @@ export function PageExcerpt({ cite, onOpen }: { cite: FileCite; onOpen: () => vo
 				type="button"
 				data-testid="page-excerpt"
 				onClick={onOpen}
-				className="block w-full border-l-2 border-tone-2 pl-4 text-left font-prose text-[length:var(--lh-prose-size)] leading-[var(--lh-prose-leading)] whitespace-pre-wrap text-ink-2"
+				className="block w-full border-l-2 border-tone-2 pl-4 text-left font-prose text-(length:--lh-prose-size) leading-(--lh-prose-leading) whitespace-pre-wrap text-ink-2"
 			>
 				<MarkedText {...quote} />
 			</button>

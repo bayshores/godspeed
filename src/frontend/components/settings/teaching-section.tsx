@@ -105,7 +105,7 @@ function AreaButton({ id, label, on, onPick }: { id: AreaPick; label: string; on
 			data-testid={`area-${id}`}
 			aria-current={on}
 			onClick={onPick}
-			className={cn("lh-press rounded-sm px-3 py-2.5 text-left text-[15px] text-ink", on ? "bg-highlight font-medium" : "hover:bg-tone")}
+			className={cn("lh-press rounded-sm px-3 py-2.5 text-left text-ui text-ink", on ? "bg-highlight font-medium" : "hover:bg-tone")}
 		>
 			{label}
 		</button>

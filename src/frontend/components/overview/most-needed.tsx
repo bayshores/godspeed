@@ -13,7 +13,7 @@ export const MostNeeded = memo(function MostNeeded({ needed, busyOn, onStudy }: 
 			</div>
 			<div className="flex items-end gap-3.5">
 				<span className="flex min-w-0 flex-1 flex-col gap-0.5">
-					<span title={needed.name} className="line-clamp-2 text-[17px] leading-snug text-ink">
+					<span title={needed.name} className="line-clamp-2 text-item leading-snug text-ink">
 						{needed.name}
 					</span>
 					<span className="text-base text-ink-2">On {joinAnd(needed.deadlines)}</span>

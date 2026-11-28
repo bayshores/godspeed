@@ -78,7 +78,7 @@ export function FactPane({
 	const words = (
 		<>
 			{!sameWords(fact.name, fact.statement) && (
-				<p data-testid="fact-statement" className={`max-w-[72ch] text-[17px] leading-relaxed text-ink ${wordsStep.className}`} style={wordsStep.style}>
+				<p data-testid="fact-statement" className={`max-w-[72ch] text-item leading-relaxed text-ink ${wordsStep.className}`} style={wordsStep.style}>
 					<InlineMath text={fact.statement} />
 				</p>
 			)}

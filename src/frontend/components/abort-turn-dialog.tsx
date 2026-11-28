@@ -74,7 +74,7 @@ export function AbortTurnBody({
 						type="button"
 						data-testid="abort-turn-confirm"
 						onClick={onConfirm}
-						className={`lh-btn text-[15px] ${mode === "problem" ? "lh-btn-danger" : "lh-btn-main"}`}
+						className={`lh-btn text-ui ${mode === "problem" ? "lh-btn-danger" : "lh-btn-main"}`}
 					>
 						{copy.action}
 					</button>

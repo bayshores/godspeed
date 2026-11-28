@@ -39,25 +39,25 @@ export function ProbeDoneCard({ part }: { part: { input?: unknown; output?: unkn
 		<div data-testid="probe-done-card" className={cn(CARD, "my-3 flex flex-col gap-2.5")}>
 			<div className="text-lg text-ink">Warm-up done: what you already know</div>
 			{output && !output.ok ? (
-				<p className="font-prose text-[16px] text-ink-2">The teacher tried again: {output.error}</p>
+				<p className="font-prose text-(length:--text-lg) text-ink-2">The teacher tried again: {output.error}</p>
 			) : state === "output-error" ? (
-				<p className="font-prose text-[16px] text-ink-2">
+				<p className="font-prose text-(length:--text-lg) text-ink-2">
 					The assessment was malformed. The teacher tried again with a corrected one.
 				</p>
 			) : strands ? (
 				<div className="flex flex-col gap-2">
 					{strands.map((s, i) => (
 						<div key={i} className="rounded-sm bg-panel px-3 py-2">
-							<div className="text-[15px] font-medium text-ink">{s.strand}</div>
-							<div className="mt-0.5 font-prose text-[16px] text-ink-2">{s.assessment}</div>
+							<div className="text-ui font-medium text-ink">{s.strand}</div>
+							<div className="mt-0.5 font-prose text-(length:--text-lg) text-ink-2">{s.assessment}</div>
 						</div>
 					))}
 					{assessment?.summary && (
-						<p className="px-1 font-prose text-[16px] text-ink-2">{assessment.summary}</p>
+						<p className="px-1 font-prose text-(length:--text-lg) text-ink-2">{assessment.summary}</p>
 					)}
 				</div>
 			) : (
-				<p className="font-prose text-[16px] text-ink-2">Writing the assessment…</p>
+				<p className="font-prose text-(length:--text-lg) text-ink-2">Writing the assessment…</p>
 			)}
 		</div>
 	);

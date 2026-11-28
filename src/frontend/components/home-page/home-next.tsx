@@ -65,14 +65,14 @@ export function HomeNext({
 								>
 									<span className="flex items-start gap-2.5">
 										<Square color={color} />
-										<span title={lesson.title} className="line-clamp-2 min-w-0 flex-1 text-[17px] leading-snug text-ink">
+										<span title={lesson.title} className="line-clamp-2 min-w-0 flex-1 text-item leading-snug text-ink">
 											{lesson.title}
 										</span>
 									</span>
 									{blocks && (
 										<span className="flex items-center gap-2.5 pl-[22px]">
 											<StepBlocks done={blocks.done} total={blocks.total} />
-											<span className="font-count text-[15px] text-ink-2">
+											<span className="font-count text-ui text-ink-2">
 												{blocks.done} of {blocks.total}
 											</span>
 										</span>
@@ -97,10 +97,10 @@ export function HomeNext({
 								<button type="button" data-testid="today-topic-row" disabled={busyOn !== null} onClick={() => onStudyTopic(t.spaceId, t.topicId)} className={cn(ROW, ROW_CLASS)}>
 									<span className="flex items-start gap-2.5">
 										<Square color={t.color} />
-										<span className="min-w-0 flex-1 truncate text-[17px] leading-snug text-ink">
+										<span className="min-w-0 flex-1 truncate text-item leading-snug text-ink">
 											<InlineMath text={t.name} />
 										</span>
-										<span className="shrink-0 text-[15px] leading-snug text-ink-2">{STATUS_LEGEND.find((s) => s.key === t.status)?.label}</span>
+										<span className="shrink-0 text-ui leading-snug text-ink-2">{STATUS_LEGEND.find((s) => s.key === t.status)?.label}</span>
 									</span>
 									<span className="flex pl-[22px]">
 										<ProgressBar share={t.rate ?? 0} className="max-w-[240px] flex-1" />

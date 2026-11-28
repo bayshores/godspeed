@@ -64,7 +64,7 @@ function MockBoxForm({ onWrite }: { onWrite: (questions: number, minutes: number
 			</div>
 			{limited && <Stepper label="Minutes" range={MINUTES} value={minutes} disabled={busy} testid="mock-box-minutes" onChange={setMinutes} />}
 			{error && (
-				<p role="alert" data-testid="mock-box-error" className="text-[15px] text-ans-wrong">
+				<p role="alert" data-testid="mock-box-error" className="text-ui text-ans-wrong">
 					{error}
 				</p>
 			)}

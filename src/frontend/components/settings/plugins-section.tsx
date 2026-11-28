@@ -126,7 +126,7 @@ export function PluginsSection() {
 						</button>
 					)}
 					{!sheetOpen && problem?.at === "add" && (
-						<p role="alert" data-testid="plugins-add-error" className="px-3.5 pt-2 text-[15px] whitespace-pre-wrap text-ans-wrong">
+						<p role="alert" data-testid="plugins-add-error" className="px-3.5 pt-2 text-ui whitespace-pre-wrap text-ans-wrong">
 							{problem.text}
 						</p>
 					)}

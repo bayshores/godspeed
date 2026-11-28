@@ -72,7 +72,7 @@ export function ThinkingBlock({
 			data-testid={testId}
 			data-commit={dataCommit === undefined ? undefined : dataCommit ? "true" : "false"}
 			// Arrival motion rides the transcript (lesson/arrivals.tsx), so a reopened lesson doesn't replay it per row.
-			className={cn("w-full font-ui text-[15px]", inCard ? "py-1" : "lh-well my-1 rounded px-4 py-2.5")}
+			className={cn("w-full font-ui text-ui", inCard ? "py-1" : "lh-well my-1 rounded px-4 py-2.5")}
 		>
 			<button
 				type="button"
@@ -90,7 +90,7 @@ export function ThinkingBlock({
 			{fold.mounted && (
 				<div className="lh-collapse" data-state={fold.state}>
 					<div>
-						<span className="mt-2 block whitespace-pre-wrap border-l-2 border-tone-2 pl-3 font-prose text-[16px] leading-normal italic text-ink-2">
+						<span className="mt-2 block whitespace-pre-wrap border-l-2 border-tone-2 pl-3 font-prose text-lg leading-normal italic text-ink-2">
 							<InlineMath text={text} />
 						</span>
 					</div>

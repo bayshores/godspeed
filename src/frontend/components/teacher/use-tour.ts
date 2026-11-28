@@ -6,13 +6,13 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { isAgentEntry, type AgentAction } from "@/shared/core";
-import { prefersReducedMotion } from "@/frontend/components/presence";
+import { FAST_MS, prefersReducedMotion } from "@/frontend/components/presence";
 import { useSpaces } from "@/frontend/components/space-context";
 import type { LessonPresence } from "./teacher-context";
 import { STEP_MS, nextStep, targetKey } from "./tour";
 import { followMoves, followPause, OPEN_SHEET_EVENT, openWaits, safePage, sheetDeadline, type FollowEvent, type FollowPause, type FollowState } from "./follow";
 import { dialogOpen, isInView, learnerDialogOpen, pickTarget, sleep, targetElements, waitForTarget } from "./dom";
-import { dropLeft, LEAVE_MS, letGo, lightUp, type Lit } from "./lit-model";
+import { dropLeft, letGo, lightUp, type Lit } from "./lit-model";
 
 /** Follow waits, and why; `waiting` is the change it waits to show on another page. */
 export interface TourPause {
@@ -30,7 +30,7 @@ function useLit(pathname: string) {
 	const leaving = [...lit.values()].some((m) => m.leaving);
 	useEffect(() => {
 		if (!leaving) return;
-		const t = setTimeout(() => setLit(dropLeft), prefersReducedMotion() ? 0 : LEAVE_MS);
+		const t = setTimeout(() => setLit(dropLeft), prefersReducedMotion() ? 0 : FAST_MS);
 		return () => clearTimeout(t);
 	}, [leaving, lit]);
 	// The pointer over a lit thing lets its mark go: one listener for the page.

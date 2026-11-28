@@ -39,7 +39,7 @@ function SettingControl({ setting, value, onChange }: { setting: PluginSetting; 
 /** A failed save or removal, where the action was. */
 function ErrorLine({ text }: { text: string }) {
 	return (
-		<p role="alert" data-testid="plugin-error" className="pt-3 text-[15px] whitespace-pre-wrap text-ans-wrong">
+		<p role="alert" data-testid="plugin-error" className="pt-3 text-ui whitespace-pre-wrap text-ans-wrong">
 			{text}
 		</p>
 	);
@@ -118,7 +118,7 @@ export function PluginSheet({
 						/>
 					) : (
 						<>
-							<span className="max-w-full shrink-0 text-[15px] text-ink-2">
+							<span className="max-w-full shrink-0 text-ui text-ink-2">
 								{manifest.version} by {manifest.author}
 							</span>
 							<span className="flex flex-wrap items-center justify-end gap-2">

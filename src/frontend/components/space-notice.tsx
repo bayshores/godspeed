@@ -121,7 +121,7 @@ function ChangeCard({ check, onDone }: { check: SpaceCheck; onDone: () => void }
 				)}
 			</button>
 			{mode.kind === "error" && (
-				<p role="alert" className="text-[13px] text-ans-wrong">
+				<p role="alert" className="text-(length:--text-sm) text-ans-wrong">
 					{mode.message}
 				</p>
 			)}
@@ -157,7 +157,7 @@ function OverdueCard({ deadline: d }: { deadline: OpenDeadline }) {
 			}
 		>
 			{error && (
-				<p role="alert" className="text-[13px] text-ans-wrong">
+				<p role="alert" className="text-(length:--text-sm) text-ans-wrong">
 					{error}
 				</p>
 			)}

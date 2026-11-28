@@ -73,7 +73,7 @@ function PictureOverlay({ src, state, onClose }: { src: string; state: "open" | 
 			aria-label="Picture"
 			data-state={state}
 			onClick={onClose}
-			className="lh-fade lh-no-drag fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-background/90 p-8"
+			className="lh-fade lh-no-drag fixed inset-0 z-(--lh-z-dialog) flex cursor-zoom-out items-center justify-center bg-background/90 p-8"
 		>
 			<img src={src} alt="Your picture" className="max-h-full max-w-full object-contain" />
 		</div>,

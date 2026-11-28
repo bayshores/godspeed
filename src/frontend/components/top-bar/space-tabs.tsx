@@ -36,7 +36,7 @@ export function SpaceTabs({ selected }: { selected: string }) {
 	const { pathname } = useLocation();
 	const paper = useLitMarker(navRef, "[data-lit]", `${selected} ${pathname}`);
 	const { crumbRef } = useBarHosts();
-	const crumb = <span ref={crumbRef} data-testid="bar-crumb" className="flex shrink-[9999] items-center gap-4 pr-4 text-[15px] font-medium whitespace-nowrap text-ink empty:hidden" />;
+	const crumb = <span ref={crumbRef} data-testid="bar-crumb" className="flex shrink-[9999] items-center gap-4 pr-4 text-ui font-medium whitespace-nowrap text-ink empty:hidden" />;
 	return (
 		// Starts squeezed (every unlit name at its few letters) and grows to full
 		// names with the room the bar's chips leave; below squeezed, the tabs scroll.

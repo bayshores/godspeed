@@ -135,7 +135,7 @@ export function MermaidOverlay({
 			aria-label={`${rawSvg === undefined ? "Diagram" : "Figure"} focus`}
 		>
 			<div className="mb-2 flex items-center gap-2">
-				<span className="text-[15px] font-medium text-ink">{rawSvg === undefined ? "Diagram" : "Figure"}</span>
+				<span className="text-ui font-medium text-ink">{rawSvg === undefined ? "Diagram" : "Figure"}</span>
 				<span className="text-sm text-ink-2">from this lesson</span>
 				<button
 					type="button"
@@ -178,7 +178,7 @@ export function MermaidOverlay({
 								transition:
 									panning || !settled
 										? "none"
-										: "transform 180ms ease-out, opacity 160ms ease-out",
+										: "transform var(--lh-dur) var(--lh-ease-out), opacity var(--lh-dur) var(--lh-ease-out)",
 							}}
 						>
 							{/* A figure stays in its image document here too. Mermaid keeps
@@ -199,7 +199,7 @@ export function MermaidOverlay({
 						<ZoomControls fitLabel="Fit diagram to view" onStep={stepZoom} onFit={fitView} />
 					</>
 				) : (
-					<div className="flex h-full items-center justify-center gap-2 text-[15px] text-ink-2">
+					<div className="flex h-full items-center justify-center gap-2 text-ui text-ink-2">
 						<span className="inline-block size-4 animate-spin motion-reduce:animate-none rounded-full border border-current border-b-2" />
 						Rendering diagram…
 					</div>

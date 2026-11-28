@@ -112,7 +112,7 @@ export const FileRow = memo(function FileRow({
 	// A state with a control of its own sits beside the button.
 	const slotOutside = state.kind === "failed" || !!link;
 	const name = (
-		<span title={file.origin === "linked" ? undefined : file.name} className="min-w-0 truncate text-[17px] text-ink">
+		<span title={file.origin === "linked" ? undefined : file.name} className="min-w-0 truncate text-item text-ink">
 			{file.name}
 		</span>
 	);

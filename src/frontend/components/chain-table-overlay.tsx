@@ -77,7 +77,7 @@ export function ChainTableOverlay({
 	return (
 		<>
 			{/* Fixed under the top bar; the right edge follows the docked panel's push. */}
-			<div data-testid="chain-table-overlay" data-state={presence.state} className="lh-fade lh-dots fixed top-(--lh-bar-h) right-[calc(var(--lh-dock-push,0px)+var(--lh-strip))] bottom-0 left-0 z-40 flex flex-col bg-background">
+			<div data-testid="chain-table-overlay" data-state={presence.state} className="lh-fade lh-dots fixed top-(--lh-bar-h) right-[calc(var(--lh-dock-push,0px)+var(--lh-strip))] bottom-0 left-0 z-(--lh-z-cover) flex flex-col bg-background">
 				<ChainTableBody
 					nodes={nodes}
 					chains={chains}

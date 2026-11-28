@@ -65,17 +65,17 @@ function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 			}
 		>
 			{mode.kind === "editing" ? (
-				<div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px] text-ink">
+				<div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-(length:--text-sm) text-ink">
 					<RuleEditBox api={api} draft={mode.draft} />
 				</div>
 			) : (
 				<>
-					<p className={cn("lh-well rounded px-2.5 py-2 text-[15px] text-ink", mode.kind === "removed" && "text-ink-2 line-through")}>{api.rule}</p>
+					<p className={cn("lh-well rounded px-2.5 py-2 text-ui text-ink", mode.kind === "removed" && "text-ink-2 line-through")}>{api.rule}</p>
 					<NoticeText>{saved.label}</NoticeText>
 				</>
 			)}
 			{mode.kind === "error" && (
-				<p role="alert" className="text-[13px] text-ans-wrong">
+				<p role="alert" className="text-(length:--text-sm) text-ans-wrong">
 					{mode.message}
 				</p>
 			)}

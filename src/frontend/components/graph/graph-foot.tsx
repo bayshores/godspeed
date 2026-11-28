@@ -17,7 +17,7 @@ function Count({ n, word }: { n: number; word: string }) {
 	return (
 		<span className="inline-flex items-baseline gap-2 whitespace-nowrap">
 			<span className="font-count text-lg leading-none text-ink">{n}</span>
-			<span className="text-[15px] text-ink-2">{n === 1 ? word : `${word}s`}</span>
+			<span className="text-ui text-ink-2">{n === 1 ? word : `${word}s`}</span>
 		</span>
 	);
 }
@@ -47,7 +47,7 @@ export function GraphFoot({
 			type="button"
 			data-testid="graph-whole-space"
 			onClick={onWholeSpace}
-			className="lh-fade border-b-2 border-transparent pb-1 text-[15px] text-ink-2 transition-colors hover:border-foreground hover:text-ink"
+			className="lh-fade border-b-2 border-transparent pb-1 text-ui text-ink-2 transition-colors hover:border-foreground hover:text-ink"
 		>
 			Whole space
 		</button>
@@ -59,7 +59,7 @@ export function GraphFoot({
 					// Mounted while a query is typed, so a screen reader hears each change.
 					<span role="status" data-testid="graph-find-status" className="shrink-0 border-b-2 border-transparent pb-1">
 						{matches.topics.size === 0 ? (
-							<span data-testid="graph-no-match" className="text-[15px] text-ink-2">
+							<span data-testid="graph-no-match" className="text-ui text-ink-2">
 								Nothing matches
 							</span>
 						) : (
@@ -73,14 +73,14 @@ export function GraphFoot({
 					<>
 						{/* Plain words: the in-view counts open nothing, so All facts stays one click away at the whole space. */}
 						<span data-testid="graph-in-view" className="flex items-baseline gap-6 border-b-2 border-transparent pb-1">
-							{inView.name ? <span className="whitespace-nowrap text-[15px] text-ink">{inView.name}</span> : <Count n={inView.topics} word="topic" />}
+							{inView.name ? <span className="whitespace-nowrap text-ui text-ink">{inView.name}</span> : <Count n={inView.topics} word="topic" />}
 							{/* One topic in view reads how much of it is lit. */}
 							{inView.name ? (
 								<span className="inline-flex items-baseline gap-2 whitespace-nowrap">
 									<span className="font-count text-lg leading-none text-ink">{inView.lit}</span>
-									<span className="text-[15px] text-ink-2">of</span>
+									<span className="text-ui text-ink-2">of</span>
 									<span className="font-count text-lg leading-none text-ink">{inView.facts}</span>
-									<span className="text-[15px] text-ink-2">lit</span>
+									<span className="text-ui text-ink-2">lit</span>
 								</span>
 							) : (
 								<Count n={inView.facts} word="fact" />

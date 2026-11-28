@@ -232,7 +232,7 @@ export function PlanPopup({
 	if (typeof document === "undefined") return null;
 	return createPortal(
 		<DialogSheet title="The plan" state={state} testid="plan-popup" onClose={onClose} className="w-[640px]">
-			<p className="text-[14px] text-ink-2">Updates as you answer</p>
+			<p className="text-(length:--text-base) text-ink-2">Updates as you answer</p>
 			{tree ? (
 				<div
 					ref={viewportRef}
@@ -250,7 +250,7 @@ export function PlanPopup({
 							// effect (after paint), so the diagram can never flash at the
 							// initial top-left zoom:1 state.
 							opacity: settled ? 1 : 0,
-							transition: panning || !settled ? "none" : "transform 180ms ease-out, opacity 160ms ease-out",
+							transition: panning || !settled ? "none" : "transform var(--lh-dur) var(--lh-ease-out), opacity var(--lh-dur) var(--lh-ease-out)",
 						}}
 					>
 						<PlanDiagram nodes={tree.nodes} edges={tree.edges} statusOf={statusOf} markerId={markerId} pad={GRAPH_PAD} />
@@ -258,7 +258,7 @@ export function PlanPopup({
 					<ZoomControls fitLabel="Fit plan to screen" fitTestId="plan-popup-fit" onStep={stepZoom} onFit={fitView} />
 				</div>
 			) : (
-				<p className="text-[15px] text-ink-2">No plan in this lesson yet.</p>
+				<p className="text-ui text-ink-2">No plan in this lesson yet.</p>
 			)}
 		</DialogSheet>,
 		document.body,

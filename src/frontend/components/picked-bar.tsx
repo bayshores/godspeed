@@ -53,7 +53,7 @@ export function PickedBar({
 				className="lh-pop pointer-events-auto flex min-h-14 w-fit max-w-[min(880px,100%)] min-w-[min(560px,100%)] items-center gap-2.5 rounded-sm bg-ink py-2 pr-2.5 pl-5 text-background"
 			>
 				{failure ? (
-					<span role="alert" data-testid={`${testids.line}-failure`} className="line-clamp-2 min-w-0 flex-1 text-[15px]">
+					<span role="alert" data-testid={`${testids.line}-failure`} className="line-clamp-2 min-w-0 flex-1 text-ui">
 						{failure}
 					</span>
 				) : (

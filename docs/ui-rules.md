@@ -79,6 +79,7 @@ The Mac app draws with WebKit, not Chrome; a page right in a browser can overlap
 - Before calling a UI change finished, look at it in the real app window (the debug shell) at 1440, 1100 and 640 points wide; 640 is the narrowest the window goes. A browser screenshot does not count.
 - Check each state the change touches, scrolled a little and at the scroll end too, for text on text, text under another box, content spilling out of its box and sideways scrolling.
 - Anything that sticks out of its own box (a tag, a badge, a pop-up) sits on a layer above what can move under it, or does not stick out at all. Pop-ups go through `MenuShell` or a dialog, which no box can clip.
+- What lies over what in the window has a name, `--lh-z-*` in `globals.css`, from the lowest: Follow's slip, a cover over the page, the teacher's panel, the strip, the strip's peek, a dialog or a tooltip, the welcome screen. A fixed box takes one of them (`z-(--lh-z-dialog)`); a small step (`z-10`) orders things inside one box only.
 - `npm run layout` checks the screens in `scripts/layout-screens.mjs` in the real window at all three widths, each as it opens, scrolled 80 px, scrolled to the end and, where it opened scrolled, at its top, for overlapping text, text or a control another box is drawn over, spills, sideways scrolling, hidden text, cut-off letters, a page that scrolls into empty room under the last thing it holds and a question in "Your turn" that opens scrolled past its first line. CI runs it on the Mac; `npm run check` does not. Run it yourself before calling a UI change finished. A new screen or state gets an entry there.
 
 ## Top bar
@@ -160,6 +161,7 @@ Every page, the lesson page included, uses one column and one set of spacing, so
 The app moves in one register, quick and quiet, like an e-ink page redrawing. The tokens and classes live in the motion blocks of `src/frontend/globals.css`.
 
 - Motion is part of every UI change, built in the same change without being asked: for each new or changed thing, decide how it arrives, leaves, changes size, swaps what it holds, and answers the pointer and a press. Nothing pops in, vanishes or snaps. A UI change is finished only when its motion has been filmed and watched frame by frame; pictures of it at rest are not enough.
+- The timings are `--lh-dur-fast` (110 ms), `--lh-dur` (160), `--lh-dur-slow` (220) and `--lh-dur-page` (420), the curves `--lh-ease-out` and `--lh-ease-in`. Code reads the same numbers from `components/presence.ts` (`tests/frontend/motion-times.test.ts` holds the two equal) and never writes its own.
 - Things enter in `--lh-dur` (160 ms) and leave in `--lh-dur-fast` (110 ms). A leaving thing is held on screen by presence (`usePresence`, `useLastWhileClosing`) until its exit has played; nothing pops away.
 - Anything that replaces part of a page appears stepped (`.lh-block-in`, `.lh-set`), top to bottom, one thing moving at a time. A teacher's reply is drawn as it is written, with the writing mark at its end.
 - A page change is the one large move (`--lh-dur-page`, 420 ms): the pages are sheets lying side by side (`Travel`, `components/travel/`). A still copy of the old page leaves while the new one arrives.
@@ -193,7 +195,25 @@ The app moves in one register, quick and quiet, like an e-ink page redrawing. Th
 
 Interface and lesson text are one face, Literata, so they stay apart by size, weight and color, as a book sets its running text apart from its headings and notes.
 
-- Lesson text is the reading size (17 px at 100%) in the body ink. Interface text is 15 px or smaller, titles 22 px and up at regular weight, labels medium. Nothing in the interface is heavier than medium, except the legend of a main or danger key.
+- Lesson text is the reading size (17 px at 100%) in the body ink. Interface words are 15 px or smaller and titles are regular weight, labels medium. Nothing in the interface is heavier than medium, except the legend of a main or danger key.
+- Every text size is a rung of the ladder in `globals.css` (`@theme`). A component never sets a size, a line height, a corner, a timing or a layer of its own: lint fails `text-[15px]`, `leading-[1.4]`, `rounded-[3px]`, `duration-300`, `ease-out` and `z-[41]`. Text from 30 px up is a display size (a count block's numeral, the wordmark) and is set where it is drawn.
+
+| Class | Size | For |
+|---|---|---|
+| `text-xs` | 12 | A key's shortcut mark, a page number |
+| `text-sm` | 13 | A count or a date beside a name, code |
+| `text-base` | 14 | A quiet line under a name |
+| `text-ui` | 15 | Interface words: rows, fields, keys |
+| `text-lg` | 16 | A sentence in a card |
+| `text-item` | 17 | The name of a thing in a row or tile, a big key's legend |
+| `text-tab` | 18 | A tab |
+| `text-xl` | 20 | A card's title |
+| `text-head` | 22 | A pop-up's title, a long question |
+| `text-2xl` | 26 | A space's signature |
+| `text-ask` | 28 | What is asked |
+| `text-3xl` | 34 | What is asked on a page of its own |
+
+- `text-ui`, `text-item`, `text-tab`, `text-head` and `text-ask` set the size alone; the others set their line height too. Where one of the others must leave the line height to its box (a key, a line inside reading text), take its size alone: `text-(length:--text-sm)`. A size added to the ladder is also named in `lib/utils.ts`, or the class merger reads it as a color (`tests/frontend/type-ladder.test.ts`).
 - Settings, Appearance, Reading font changes lesson text only; the interface stays Literata.
 - Dates and counts are DotGothic16 (`font-count`). Code and the agent's screen are the system monospace.
 - Italic only where a book would set it (a work's title, a term as it is defined), never for decoration.

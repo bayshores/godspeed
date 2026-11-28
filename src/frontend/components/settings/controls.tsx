@@ -69,8 +69,8 @@ export function SettingsRow({
 	return (
 		<div data-testid={testid} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-3.5">
 			<span className={cn("min-w-0", hint ? "flex-[1_1_14rem]" : "flex-[1_1_7rem]")}>
-				<span className="block text-[17px] leading-snug text-ink">{label}</span>
-				{hint && <span className="block pt-0.5 text-[15px] text-ink-2">{hint}</span>}
+				<span className="block text-item leading-snug text-ink">{label}</span>
+				{hint && <span className="block pt-0.5 text-ui text-ink-2">{hint}</span>}
 			</span>
 			{children}
 		</div>
@@ -102,7 +102,7 @@ export function Toggle({
 			<span className="text-base font-medium text-ink">{checked ? "On" : "Off"}</span>
 			<span
 				className={cn(
-					"relative h-[22px] w-10 rounded-[3px]",
+					"relative h-[22px] w-10 rounded",
 					// On is a filled track with the knob at the right; off is an
 					// empty track (a 3:1 edge) with the knob at the left.
 					checked ? "bg-ink" : "shadow-[inset_0_0_0_1.5px_var(--lh-edge)] group-hover:shadow-[inset_0_0_0_1.5px_var(--lh-ink-3)]",
@@ -168,7 +168,7 @@ export function Slider({
 				style={{ "--fill": `${((shown - min) / (max - min)) * 100}%` } as React.CSSProperties}
 				className="lh-press h-4 min-w-0 flex-1 cursor-pointer appearance-none bg-transparent [&::-webkit-slider-runnable-track]:h-0.5 [&::-webkit-slider-runnable-track]:bg-[linear-gradient(to_right,var(--foreground)_var(--fill),var(--lh-edge)_var(--fill))] [&::-webkit-slider-thumb]:-mt-1.5 [&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-xs [&::-webkit-slider-thumb]:bg-ink"
 			/>
-			<span className="w-[120px] shrink-0 whitespace-nowrap text-[15px] tabular-nums text-ink">{label(shown)}</span>
+			<span className="w-[120px] shrink-0 whitespace-nowrap text-ui tabular-nums text-ink">{label(shown)}</span>
 		</span>
 	);
 }
@@ -227,7 +227,7 @@ export function CommitInput({
 					e.currentTarget.blur();
 				}
 			}}
-			className="h-10 w-[200px] lh-well rounded px-3 font-ui text-[15px] text-ink placeholder:text-ink-3"
+			className="h-10 w-[200px] lh-well rounded px-3 font-ui text-ui text-ink placeholder:text-ink-3"
 		/>
 	);
 }

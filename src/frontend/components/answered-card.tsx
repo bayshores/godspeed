@@ -40,7 +40,7 @@ export function QuizWhy({ answer }: { answer: QuestionAnswerData }) {
 	return (
 		<>
 			{(answer.options?.length ?? 0) > 0 && (
-				<div className="flex flex-col gap-1 text-[15px]">
+				<div className="flex flex-col gap-1 text-ui">
 					{answer.options?.map((opt) => {
 						const sel = selectedIdx.has(opt.index);
 						const key = correctIdx.has(opt.index);
@@ -69,7 +69,7 @@ export function QuizWhy({ answer }: { answer: QuestionAnswerData }) {
 			)}
 			{thinking && <ThinkingBlock testId="your-thinking" text={thinking} inCard />}
 			{answer.explanation && (
-				<div data-testid="tucked-explanation" className="rounded-sm bg-panel px-3 py-2 text-[15px] text-ink-2">
+				<div data-testid="tucked-explanation" className="rounded-sm bg-panel px-3 py-2 text-ui text-ink-2">
 					<ToolContentResponse className="[&>p:first-child]:mt-0">{answer.explanation}</ToolContentResponse>
 				</div>
 			)}
@@ -111,7 +111,7 @@ export function AnsweredCard({
 	const fold = useFold(open);
 	if (answer.dismissed) {
 		return (
-			<div data-testid="answered-card" className="flex items-baseline gap-1.5 text-[15px] text-ink-2">
+			<div data-testid="answered-card" className="flex items-baseline gap-1.5 text-ui text-ink-2">
 				<span className="shrink-0">Skipped:</span>
 				<div className={cn(ONE_LINE, "flex-1")}>
 					<ToolContentResponse>{answer.questionText}</ToolContentResponse>
@@ -193,7 +193,7 @@ export function AnsweredCard({
 			{fold.mounted && (
 				<div className="lh-collapse" data-state={fold.state} data-testid="answer-details">
 					<div className="flex flex-col gap-2.5 px-4 pb-4">
-						<span className="font-count text-[15px] text-ink-2">
+						<span className="font-count text-ui text-ink-2">
 							<span data-testid="answer-kind">{kindWords(answeredKindLabel(answer))}</span>
 							{isQuiz && !answer.dontKnow && answer.confidence != null && <span data-testid="answered-confidence">, sure {confidenceLevel(answer.confidence)} of 5</span>}
 						</span>
@@ -203,7 +203,7 @@ export function AnsweredCard({
 								<MessageResponse>{fencedCode(answer.code, answer.language ?? "")}</MessageResponse>
 							</div>
 						)}
-						{(isCode || isExplain) && answer.dontKnow && <div className="text-[15px] text-ink-2">Answered “I don't know”.</div>}
+						{(isCode || isExplain) && answer.dontKnow && <div className="text-ui text-ink-2">Answered “I don't know”.</div>}
 						{parsedDetails && (
 							<div className="text-ink-2" style={proseVars(15, 22, "var(--muted-foreground)")}>
 								<ToolContentResponse>{parsedDetails}</ToolContentResponse>
@@ -214,7 +214,7 @@ export function AnsweredCard({
 						) : (
 							<>
 								{isAsk && descByIndex.size > 0 && (
-									<div className="flex flex-col gap-1 text-[15px]">
+									<div className="flex flex-col gap-1 text-ui">
 										{/* The wrappers keep each text block's height auto: inside the
 										    fold's grid, the renderer's full height would otherwise fill
 										    the row and push the description under the next option. */}
@@ -234,7 +234,7 @@ export function AnsweredCard({
 								)}
 								{thinking && <ThinkingBlock testId="your-thinking" text={thinking} inCard />}
 								{isExplain && answer.committed && (
-									<div data-testid="committed-answer" className="rounded-sm bg-panel px-3 py-2 text-[15px] text-ink-2">
+									<div data-testid="committed-answer" className="rounded-sm bg-panel px-3 py-2 text-ui text-ink-2">
 										<span className="font-medium text-ink">The answer: </span>
 										<ToolContentResponse className="inline [&>p:first-child]:m-0 [&>p:first-child]:inline">{answer.committed}</ToolContentResponse>
 									</div>

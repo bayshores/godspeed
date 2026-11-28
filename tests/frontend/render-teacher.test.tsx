@@ -114,7 +114,7 @@ describe("the panel", () => {
 	});
 	it("runs from the top bar to the window's bottom, sliding out of the strip, made of the bar's sheet, with no blur", () => {
 		const html = renderToStaticMarkup(panel());
-		assert.match(html, /^<div data-state="open" style="right:0;--lh-hang-r:0px" class="lh-hang fixed top-\(--lh-bar-h\) z-\[41\] lh-dock bottom-0"><section[^>]*data-testid="teacher-panel"/);
+		assert.match(html, /^<div data-state="open" style="right:0;--lh-hang-r:0px" class="lh-hang fixed top-\(--lh-bar-h\) z-\(--lh-z-panel\) lh-dock bottom-0"><section[^>]*data-testid="teacher-panel"/);
 		const section = /<section[^>]*>/.exec(html)![0];
 		assert.match(section, /class="lh-popup lh-hang-body /);
 		assert.match(section, new RegExp(`width:${PANEL_WIDTH.initial}px;height:100%`));

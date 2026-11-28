@@ -72,13 +72,13 @@ export function DocumentPanel({
 							<PixelIcon name="chevron" className={SELECT_ARROW} />
 						</div>
 						{count && (
-							<span data-testid="document-dock-page" className="shrink-0 px-1 text-[15px] text-ink-2">
+							<span data-testid="document-dock-page" className="shrink-0 px-1 text-ui text-ink-2">
 								{count}
 							</span>
 						)}
 					</div>
 				) : (
-					<span data-testid="document-dock-page" className="min-w-0 flex-1 truncate px-1 text-[15px] font-medium text-ink">
+					<span data-testid="document-dock-page" className="min-w-0 flex-1 truncate px-1 text-ui font-medium text-ink">
 						{count}
 					</span>
 				)

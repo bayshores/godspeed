@@ -12,7 +12,7 @@ export function SpaceMenuItems({ spaces, testidPrefix, onPick }: { spaces: reado
 			type="button"
 			data-testid={`${testidPrefix}-${c.id}`}
 			onClick={() => onPick(c.id)}
-			className="lh-press flex w-full items-center gap-2.5 px-2.5 py-1.5 text-left text-[15px] text-ink hover:bg-tone"
+			className="lh-press flex w-full items-center gap-2.5 px-2.5 py-1.5 text-left text-ui text-ink hover:bg-tone"
 		>
 			<span aria-hidden className="size-3 shrink-0" style={{ background: spaceColorVar(c.color) }} />
 			<span title={c.name} className="min-w-0 flex-1 truncate">

@@ -15,7 +15,7 @@ import { useStrip, type StripState } from "./use-strip";
 /** Words set down the strip, read from the top. */
 const DOWN = "[writing-mode:vertical-rl] whitespace-nowrap";
 /** One row of the peek. */
-const ROW = "flex min-h-11 items-center gap-3 px-[18px] py-2 text-left text-[17px]";
+const ROW = "flex min-h-11 items-center gap-3 px-[18px] py-2 text-left text-item";
 /** A row that does something when clicked. */
 const ROW_KEY = cn(ROW, "lh-press hover:bg-accent");
 /** What waits for the learner, on the highlighter. */
@@ -96,7 +96,7 @@ export function Strip() {
 					}}
 					onFocus={() => keyboardFocus() && lists && peekKeyboard(true)}
 					onBlur={(e) => !(e.relatedTarget instanceof Element && e.relatedTarget.closest("[data-peek]")) && peekKeyboard(false)}
-					className="lh-press flex size-full flex-col items-center gap-3 pt-4 pb-3 font-mono text-[13px] hover:bg-bar-ink/10"
+					className="lh-press flex size-full flex-col items-center gap-3 pt-4 pb-3 font-mono text-(length:--text-sm) hover:bg-bar-ink/10"
 				>
 					{!panelOpen && (
 						<>
@@ -118,7 +118,7 @@ export function Strip() {
 						)}
 						{strip.waiting > 0 && (
 							// A new count is a new box, so it lights once as a notice arrives.
-							<span key={strip.waiting} data-testid="strip-waiting" title={noticeCount(strip.waiting)} className="lh-strip-count font-count flex h-5 min-w-5 items-center justify-center bg-bar-ink/20 px-1 text-[13px] leading-none">
+							<span key={strip.waiting} data-testid="strip-waiting" title={noticeCount(strip.waiting)} className="lh-strip-count font-count flex h-5 min-w-5 items-center justify-center bg-bar-ink/20 px-1 text-sm leading-none">
 								{strip.waiting}
 							</span>
 						)}

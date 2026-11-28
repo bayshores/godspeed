@@ -71,7 +71,7 @@ export function ToolCallCard({ part }: ArtifactPartProps) {
 				type="button"
 				aria-expanded={open}
 				onClick={() => setOpen((v) => !v)}
-				className="flex w-full cursor-pointer items-center gap-2.5 text-left text-[15px] text-ink-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-ink"
+				className="flex w-full cursor-pointer items-center gap-2.5 text-left text-ui text-ink-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-ink"
 			>
 				<span className={failed ? "text-ans-wrong" : "text-ink"}>
 					{DONE_LABEL[tool] ?? tool}
@@ -85,35 +85,35 @@ export function ToolCallCard({ part }: ArtifactPartProps) {
 						<div className={cn(CARD, "mt-2 flex flex-col gap-3 py-3")}>
 							{p.input != null && (
 								<div>
-									<div className="mb-1 text-[15px] text-ink-2">
+									<div className="mb-1 text-ui text-ink-2">
 										Input
 									</div>
-									<pre className="max-h-32 overflow-auto whitespace-pre-wrap break-all font-mono text-[13px] leading-relaxed text-ink">
+									<pre className="max-h-32 overflow-auto whitespace-pre-wrap break-all font-mono text-sm leading-relaxed text-ink">
 										{JSON.stringify(p.input, null, 2)}
 									</pre>
 								</div>
 							)}
 							{typeof p.errorText === "string" ? (
 								<div>
-									<div className="mb-1 text-[15px] text-ink-2">
+									<div className="mb-1 text-ui text-ink-2">
 										Error
 									</div>
-									<pre className="whitespace-pre-wrap break-all font-mono text-[13px] text-ans-wrong">
+									<pre className="whitespace-pre-wrap break-all font-mono text-(length:--text-sm) text-ans-wrong">
 										{p.errorText}
 									</pre>
 								</div>
 							) : out != null ? (
 								<div>
-									<div className="mb-1 text-[15px] text-ink-2">
+									<div className="mb-1 text-ui text-ink-2">
 										Output
 									</div>
-									<pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all font-mono text-[13px] leading-relaxed text-ink">
+									<pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all font-mono text-sm leading-relaxed text-ink">
 										{out}
 									</pre>
 								</div>
 							) : (
 								p.state !== "output-available" && (
-									<div className="text-[15px] italic text-ink-2">running…</div>
+									<div className="text-ui italic text-ink-2">running…</div>
 								)
 							)}
 						</div>

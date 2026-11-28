@@ -28,19 +28,19 @@ export function LessonStats({ open, anchorRef, usage }: { open: boolean; anchorR
 	const providers = pricing?.subscriptionProviders ?? subscriptionLabels(turns.map((turn) => turn.model));
 	return (
 		<MenuShell open={open} anchorRef={anchorRef} testid="stats-detail" role="dialog" label="Lesson stats" preferredSide="down" align="right" hang menuClass="lh-popup flex w-[340px] flex-col gap-1 px-4 py-3.5">
-			<h3 className="text-[17px] text-ink">Lesson stats</h3>
+			<h3 className="text-item text-ink">Lesson stats</h3>
 			{size !== null && <StatRow label="Lesson size" value={size} testId="stats-size" />}
 			<StatRow label="Replies" value={String(turns.length)} />
 			<StatRow label="Paid by" value={planCostLabel(providers)} testId="stats-cost" />
 			{/* What the size is held against, said once. */}
-			{summarizeAt !== null && summarizeAt > 0 && <p className="pt-1 text-[15px] text-ink-2">Past {pagesLabel(summarizeAt)}, the earlier part is summarized.</p>}
+			{summarizeAt !== null && summarizeAt > 0 && <p className="pt-1 text-ui text-ink-2">Past {pagesLabel(summarizeAt)}, the earlier part is summarized.</p>}
 		</MenuShell>
 	);
 }
 
 function StatRow({ label, value, testId }: { label: string; value: string; testId?: string }) {
 	return (
-		<div className="flex items-center justify-between gap-2 py-[7px] text-[15px] text-ink">
+		<div className="flex items-center justify-between gap-2 py-[7px] text-ui text-ink">
 			<span className="min-w-0 truncate">{label}</span>
 			<span data-testid={testId} className="shrink-0 font-count text-ink-2">
 				{value}

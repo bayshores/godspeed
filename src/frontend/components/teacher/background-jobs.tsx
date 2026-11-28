@@ -68,9 +68,9 @@ export function BackgroundJobs({ feed, chats }: { feed: ActivityFeed; chats: rea
 	return (
 		<section data-testid="activity-section" className="flex flex-col gap-3">
 			<div className="flex items-baseline gap-2">
-				<h3 className="min-w-0 flex-1 text-[17px] font-normal text-ink">Running in the background</h3>
+				<h3 className="min-w-0 flex-1 text-item font-normal text-ink">Running in the background</h3>
 				{blobs.length > 0 && (
-					<span data-testid="activity-total-cost" title="Total running cost" className="shrink-0 font-count text-[15px] text-ink-2">
+					<span data-testid="activity-total-cost" title="Total running cost" className="shrink-0 font-count text-ui text-ink-2">
 						{planCostLabel(subscriptionLabels(blobs.map((blob) => blob.model)))}
 					</span>
 				)}

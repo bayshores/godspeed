@@ -19,12 +19,14 @@
  * A finding prints the screen (", opening" for the first pass), the width, the check and the
  * elements, and saves a picture in its part's folder; the report is target/layout/report.txt and
  * each part's own output target/layout/part-N.log. With `LAYOUT_STATES` set to
- * a folder, every lesson screen is also photographed there as it opens, at each width. With
+ * a folder, every screen is also photographed there as it opens, at each width. With
  * `LAYOUT_ONLY` set to words, only the screens whose name holds them are walked (several, split by
  * commas): for a second look at a fix, never in place of the whole run. An opening is still watched
  * only on the first screen of the whole list at its address, as in the whole run; what a skipped
  * screen's `before` or `setup` leaves behind is missing. With `LAYOUT_SHARE` set to "2/4", only the
- * second of four parts is walked: CI gives each part its own runner. Mac only:
+ * second of four parts is walked: CI gives each part its own runner. With `LAYOUT_FILM` set to a
+ * script, nothing is checked: each walked screen is loaded, the script is run in its page and what
+ * it starts is filmed at each width into target/layout/film (layout-film.mjs). Mac only:
  * elsewhere it passes at once. Two runs in one worktree share that folder, so run one at a time.
  */
 import { execFileSync, spawn } from "node:child_process";
@@ -32,6 +34,7 @@ import * as fs from "node:fs";
 import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
+import { film } from "./layout-film.mjs";
 import { seed } from "./layout-seed.mjs";
 import { HTTP_OK, SCREENS, widthsOf } from "./layout-screens.mjs";
 
@@ -169,6 +172,9 @@ const SHARE = process.env.LAYOUT_SHARE?.split("/").map(Number);
 /** `LAYOUT_ONLY`'s words, and whether a screen is walked. */
 const ONLY = (process.env.LAYOUT_ONLY ?? "").toLowerCase().split(",").map((word) => word.trim()).filter(Boolean);
 const walked = (screen) => ONLY.length === 0 || ONLY.some((word) => screen.name.toLowerCase().includes(word));
+
+/** `LAYOUT_FILM`: the script whose move is filmed on each walked screen, in place of the checks. */
+const FILM = process.env.LAYOUT_FILM;
 
 /** A file name for a screen's picture. */
 export function snapName(screen, width) {
@@ -501,6 +507,12 @@ async function main() {
 		console.error(`${[...failures, ...errors].join("\n")}\nlayout: the run stopped before its end; ${checked}. Report: ${report}`);
 		process.exit(1);
 	}
+	if (FILM) {
+		const films = path.join(TOP, "film");
+		const clips = fs.readdirSync(films).filter((name) => name.endsWith(".mp4"));
+		console.log(`layout: nothing checked; filmed ${clips.map((name) => path.join(films, name)).join(", ")}`);
+		return;
+	}
 	if (failures.length > 0) {
 		console.error(`${failures.join("\n")}\nlayout: broken layout found; ${checked}. Report: ${report}`);
 		process.exit(1);
@@ -573,6 +585,7 @@ async function walkPart(mine) {
 				}
 				const all = widthsOf(screen);
 				const widths = all.filter((width) => mine.has(width));
+				let show;
 				try {
 					// Each screen sees the stand-in agent in its `agent` state, the rest in ready.
 					const state = screen.agent ?? "ready";
@@ -590,7 +603,7 @@ async function walkPart(mine) {
 						opened.add(url);
 						// The opening pass leaves the window at the screen's narrowest width.
 						left = `${Math.min(...all)} ${screen.height ?? HEIGHT}`;
-						const openings = openingWidths(all).filter((width) => mine.has(width));
+						const openings = FILM ? [] : openingWidths(all).filter((width) => mine.has(width));
 						if (openings.length > 0) {
 							watched.push(screen.name);
 							const opening = await watchOpenings(app, screen, url, ids, pageSource, openings);
@@ -598,14 +611,17 @@ async function walkPart(mine) {
 							warnings.push(...opening.warnings);
 						}
 					}
-					if (left) await app.value(`size ${left}`);
-					await app.value("eval window.__layoutLeft = true");
-					await app.value(`nav ${app.origin}${url}`);
-					await app.ready(fill(screen.ready, ids));
-					await installPage(app, pageSource);
-					if (screen.setup) await app.run(fill(screen.setup, ids));
-					if (screen.helper) await tellHelper(screen.helper);
-					if (screen.shows) await app.ready(fill(screen.shows, ids));
+					show = async () => {
+						if (left) await app.value(`size ${left}`);
+						await app.value("eval window.__layoutLeft = true");
+						await app.value(`nav ${app.origin}${url}`);
+						await app.ready(fill(screen.ready, ids));
+						await installPage(app, pageSource);
+						if (screen.setup) await app.run(fill(screen.setup, ids));
+						if (screen.helper) await tellHelper(screen.helper);
+						if (screen.shows) await app.ready(fill(screen.shows, ids));
+					};
+					await show();
 				} catch (err) {
 					const snap = path.join(RUN, snapName(`${screen.name} not shown`, widths[0] ?? all[0]));
 					await app.send(`snap ${snap}`);
@@ -613,6 +629,8 @@ async function walkPart(mine) {
 				}
 				for (const width of widths) {
 					const height = screen.height ?? HEIGHT;
+					// A film leaves its page slowed and moved: each width after the first films a page loaded again.
+					if (FILM && width !== widths[0]) await show();
 					await app.value(`size ${width} ${height}`);
 					await sleep(SETTLE_MS);
 					// A screen smaller than the window squeezes it, and the check would judge another size.
@@ -626,13 +644,17 @@ async function walkPart(mine) {
 					// A menu is opened from a key in view; a narrower window may have pushed its row out of the window.
 					const menuOpen = await app.value(evalLine(OPENER_IN_VIEW));
 					if (menuOpen) await sleep(SETTLE_MS);
+					if (FILM) {
+						await film(app, path.join(TOP, "film", path.parse(snapName(screen.name, width)).name), FILM);
+						continue;
+					}
 					// A screen that opens scrolled (a lesson, at its rest) is checked at its top too, last. Not one the
 					// walk itself scrolled to an open menu's key: at its top the menu would lie outside the window.
 					const opensScrolled = !menuOpen && (await app.value(inPage("scrolledAt()"))) > 1;
 					for (const at of opensScrolled ? [...SCROLL_TO, "top"] : SCROLL_TO) {
 						if (at !== 0 && !(await app.value(scrollTo(at === "top" ? 0 : at)))) continue;
 						const findings = await checkScreen(app);
-						if (states && at === 0 && screen.url.startsWith("/chat/")) await app.value(`snap ${path.join(states, snapName(screen.name, width))}`);
+						if (states && at === 0) await app.value(`snap ${path.join(states, snapName(screen.name, width))}`);
 						if (findings.length === 0) continue;
 						const name = at === 0 ? screen.name : `${screen.name}, ${scrolledWords(at)}`;
 						const snap = path.join(RUN, snapName(name, width));

@@ -59,7 +59,7 @@ export function ClosedSpacesMenu({ lit, onAdd }: { lit: boolean; onAdd: () => vo
 					{closed.length > 0 && (
 						<div role="group" aria-labelledby="closed-spaces-word" className="flex flex-col">
 							<div aria-hidden className="h-2.5" />
-							<span id="closed-spaces-word" className="px-3 pt-1 pb-1 text-[15px] text-ink-2">
+							<span id="closed-spaces-word" className="px-3 pt-1 pb-1 text-ui text-ink-2">
 								Closed
 							</span>
 							{closed.map((s) => (
@@ -84,7 +84,7 @@ export function ClosedSpacesMenu({ lit, onAdd }: { lit: boolean; onAdd: () => vo
 					)}
 					<LessonsWithNoSpace onPick={close} />
 					{error && (
-						<p role="alert" data-testid="spaces-plus-error" className="px-3 py-2 text-[15px] whitespace-pre-wrap text-ans-wrong">
+						<p role="alert" data-testid="spaces-plus-error" className="px-3 py-2 text-ui whitespace-pre-wrap text-ans-wrong">
 							{error}
 						</p>
 					)}

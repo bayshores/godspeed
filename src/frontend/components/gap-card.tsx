@@ -56,7 +56,7 @@ export function GapCard({ gap, onUpdate }: { gap: SpaceGap; onUpdate: () => void
 		>
 			<NoticeText>{gap.line}</NoticeText>
 			{error && (
-				<p role="alert" className="text-[13px] text-ans-wrong">
+				<p role="alert" className="text-(length:--text-sm) text-ans-wrong">
 					{error}
 				</p>
 			)}

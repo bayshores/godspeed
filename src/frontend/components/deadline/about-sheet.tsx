@@ -5,7 +5,7 @@ import { RequestLine } from "./request-line";
 import type { About } from "./use-deadline-about";
 
 /** The teacher's Markdown; its headings stay under the sheet's title. */
-const ABOUT_TEXT = "font-prose text-[17px] leading-relaxed text-ink [--lh-heading-weight:500] [&_:is(h1,h2,h3)]:text-lg [&_:is(h1,h2,h3)]:leading-snug";
+const ABOUT_TEXT = "font-prose text-item leading-relaxed text-ink [--lh-heading-weight:500] [&_:is(h1,h2,h3)]:text-lg [&_:is(h1,h2,h3)]:leading-snug";
 
 /**
  * WHAT IT'S LIKE: what the teacher wrote about the deadline (its file
@@ -39,7 +39,7 @@ export function AboutSheet({
 				</div>
 			) : about.state === "failed" ? (
 				<div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2">
-					<p className="min-w-0 flex-1 text-[17px] text-ink">Couldn&apos;t load what it&apos;s like.</p>
+					<p className="min-w-0 flex-1 text-item text-ink">Couldn&apos;t load what it&apos;s like.</p>
 					<button type="button" data-testid="deadline-about-retry" onClick={onRetry} className="lh-btn">
 						Try again
 					</button>

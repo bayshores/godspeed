@@ -41,7 +41,7 @@ export function FailureRow({
 }) {
 	return (
 		<div role="alert" data-testid={testid} className="flex flex-wrap items-center gap-2.5">
-			<span className="min-w-0 flex-1 basis-[200px] text-[15px] text-ans-wrong">{failure}</span>
+			<span className="min-w-0 flex-1 basis-[200px] text-ui text-ans-wrong">{failure}</span>
 			<button type="button" data-testid={retryTestid} onClick={onRun} disabled={busy} className="lh-btn">
 				Try again
 			</button>

@@ -30,7 +30,7 @@ export function MockResults({ view }: { view: MockView }) {
 					<section className="flex min-w-0 flex-1 basis-[460px] flex-col gap-2">
 						<div className="lh-card-head">
 							<h2 className="lh-card-title">How Mock {mock.n} went</h2>
-							{mock.endedAt && <p className="text-[15px] text-ink-2">{longDay(localDay(new Date(mock.endedAt)))}</p>}
+							{mock.endedAt && <p className="text-ui text-ink-2">{longDay(localDay(new Date(mock.endedAt)))}</p>}
 						</div>
 						<ol className="flex flex-col">
 							{mock.questions.map((q, i) => (
@@ -40,17 +40,17 @@ export function MockResults({ view }: { view: MockView }) {
 					</section>
 
 					<Pane className="lh-card w-full shrink-0 gap-1 sm:sticky sm:top-6 sm:w-[292px]">
-						<p data-testid="mock-solved" className="font-count text-[34px] leading-tight text-ink">
+						<p data-testid="mock-solved" className="font-count text-3xl leading-tight text-ink">
 							{solvedCount(mock)} of {mock.questions.length} right
 						</p>
-						{used !== null && <p className="text-[15px] text-ink-2">{usedLine(used, mock.format)}</p>}
+						{used !== null && <p className="text-ui text-ink-2">{usedLine(used, mock.format)}</p>}
 						{paused && (
-							<p data-testid="mock-pauses" className="text-[15px] text-ink-2">
+							<p data-testid="mock-pauses" className="text-ui text-ink-2">
 								{paused}
 							</p>
 						)}
 						{lesson.error && (
-							<p role="alert" className="pt-3 text-[15px] text-ans-wrong">
+							<p role="alert" className="pt-3 text-ui text-ans-wrong">
 								{lesson.error}
 							</p>
 						)}
@@ -78,31 +78,31 @@ function QuestionRow({ n, question: q, view, teacher, busyOn, onGoOver }: { n: n
 			<div className="flex min-w-0 flex-1 flex-col gap-2">
 				<div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5">
 					<h3 className="min-w-0 flex-1 basis-[200px] text-lg leading-snug text-ink">{q.title}</h3>
-					<span data-testid="mock-result-word" className={cn("shrink-0 text-[15px]", result === "right" ? "text-ans-right" : result === "blank" ? "text-ink-2" : "text-ans-wrong")}>
+					<span data-testid="mock-result-word" className={cn("shrink-0 text-ui", result === "right" ? "text-ans-right" : result === "blank" ? "text-ink-2" : "text-ans-wrong")}>
 						{RESULT_WORD[result]}
 					</span>
-					{answer && answer.seconds > 0 && <span className="shrink-0 text-[15px] text-ink-2">{spentText(answer.seconds)}</span>}
+					{answer && answer.seconds > 0 && <span className="shrink-0 text-ui text-ink-2">{spentText(answer.seconds)}</span>}
 				</div>
 				{grade && (
-					<div data-testid="mock-feedback" className="max-w-(--lh-measure) font-prose text-[16px] leading-relaxed text-ink">
+					<div data-testid="mock-feedback" className="max-w-(--lh-measure) font-prose text-lg leading-relaxed text-ink">
 						<MessageResponse>{grade.feedback}</MessageResponse>
 					</div>
 				)}
 				{grade && answer && (
-					<div className="text-[15px] text-ink-2">
+					<div className="text-ui text-ink-2">
 						<button type="button" aria-expanded={wroteOpen} onClick={() => setWroteOpen((v) => !v)} className="lh-press cursor-pointer select-none text-left hover:text-ink">
 							What you wrote{q.kind === "code" && answer.language ? ` in ${MOCK_LANGUAGES[answer.language]}` : ""}
 						</button>
 						{wrote.mounted && (
 							<div className="lh-collapse" data-state={wrote.state}>
 								<div>
-									<pre className={cn("mt-1.5 overflow-x-auto lh-well rounded-sm px-3 py-2 leading-relaxed whitespace-pre-wrap text-ink", q.kind === "code" ? "font-mono text-[13.5px]" : "font-prose text-[15px]")}>{answer.text}</pre>
+									<pre className={cn("mt-1.5 overflow-x-auto lh-well rounded-sm px-3 py-2 leading-relaxed whitespace-pre-wrap text-ink", q.kind === "code" ? "font-mono text-(length:--text-sm)" : "font-prose text-ui")}>{answer.text}</pre>
 								</div>
 							</div>
 						)}
 					</div>
 				)}
-				<Key data-testid="mock-go-over" busy={busyOn === q.id} disabled={busyOn !== null} onClick={onGoOver} className="self-start text-[15px]">
+				<Key data-testid="mock-go-over" busy={busyOn === q.id} disabled={busyOn !== null} onClick={onGoOver} className="self-start text-ui">
 					Go over it with {teacher}
 				</Key>
 			</div>

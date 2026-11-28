@@ -64,7 +64,7 @@ export function TopicMoons({
 				<span
 					aria-hidden
 					data-testid="fact-moon-tag"
-					className="lh-fade lh-sheet pointer-events-none absolute z-40 whitespace-nowrap px-2.5 text-sm leading-[30px] text-ink"
+					className="lh-fade lh-sheet pointer-events-none absolute z-40 whitespace-nowrap px-2.5 text-sm leading-7.5 text-ink"
 					style={{ top: tag.top, ...(tag.fromRight ? { right: tag.left } : { left: tag.left }) }}
 				>
 					<InlineMath text={pointed.name} />

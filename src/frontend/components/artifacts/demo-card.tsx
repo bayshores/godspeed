@@ -103,7 +103,7 @@ export function DemoOutputCard({
 	const result = output as DemoResult | undefined;
 	if (!result || typeof result.html !== "string" || typeof result.title !== "string") {
 		return (
-			<div className={cn(CARD, "text-[15px] text-ink-2")}>
+			<div className={cn(CARD, "text-ui text-ink-2")}>
 				Demo completed, but the result could not be displayed.
 			</div>
 		);
@@ -116,7 +116,7 @@ export function DemoOutputCard({
 					Interactive demo
 					<ResultTag tone="wrong">failed</ResultTag>
 				</div>
-				<p className="text-[15px] text-ink-2">{result.notes ?? "The demo could not be built."}</p>
+				<p className="text-ui text-ink-2">{result.notes ?? "The demo could not be built."}</p>
 			</div>
 		);
 	}
@@ -221,7 +221,7 @@ function DemoErrorChip({
 }) {
 	return (
 		<div
-			className="flex flex-wrap items-center gap-2.5 rounded-sm bg-tone px-3 py-2 text-[15px] text-ans-wrong"
+			className="flex flex-wrap items-center gap-2.5 rounded-sm bg-tone px-3 py-2 text-ui text-ans-wrong"
 			data-testid="demo-error-chip"
 		>
 			<span className="font-medium">This demo threw an error</span>

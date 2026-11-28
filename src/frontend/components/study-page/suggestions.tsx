@@ -10,7 +10,7 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import { suggestionKey, suggestionLine, type Suggestion } from "./suggestions-model";
 
-const ACTION = "shrink-0 text-[15px]";
+const ACTION = "shrink-0 text-ui";
 
 /**
  * "Suggested for <space>": Continue (the newest unfinished lesson, Open), Next up
@@ -101,7 +101,7 @@ const SuggestionRow = memo(function SuggestionRow({
 	return (
 		<li data-testid={`home-suggestion-${s.kind}`} className="flex w-full items-center gap-3.5">
 			<span className="flex min-w-0 flex-1 flex-col gap-1">
-				<span className="truncate text-[17px] leading-tight text-ink">
+				<span className="truncate text-item leading-tight text-ink">
 					<InlineMath text={title} />
 				</span>
 				<span className="flex min-w-0 items-center gap-2.5 text-base text-ink-2">

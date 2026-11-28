@@ -23,7 +23,7 @@ export function WorkFrame({ frame, onPage, children }: { frame: Frame | null; on
 					<div data-testid="work-frame" className="lh-work-stripes flex h-10 justify-end border-2 border-b-0 border-line pr-[22px]">
 						{/* Its right edge lines up with the page's column, where the space head ends its tabs. */}
 						<div data-testid="work-frame-tag" className="flex min-w-0 items-center gap-3 border-x-2 border-line bg-highlight px-3.5 text-ink">
-							<span title={frame.text} className="truncate text-[15px]">
+							<span title={frame.text} className="truncate text-ui">
 								{frame.text}
 							</span>
 							<span className="shrink-0 font-count text-base">{frame.count}</span>

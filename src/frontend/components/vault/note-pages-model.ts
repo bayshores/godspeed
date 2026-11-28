@@ -47,7 +47,7 @@ export function askLine(name: string): string {
 
 /** The page name's size, smaller as the name grows, so it wraps to two lines and is never cut. */
 export function nameSize(name: string): string {
-	return name.length <= 22 ? "text-[18px]" : name.length <= 34 ? "text-[16px]" : "text-[15px]";
+	return name.length <= 22 ? "text-tab" : name.length <= 34 ? "text-(length:--text-lg)" : "text-ui";
 }
 
 /** The note's mark in its corner: the learner's own notes say so. */

@@ -29,7 +29,7 @@ export function Segmented<T extends string>({
 					data-testid={`${testid}-${o.value}`}
 					disabled={disabled}
 					onClick={() => onChange(o.value)}
-					className={cn("px-3.5 py-2 text-[15px] leading-tight", value === o.value ? "bg-tint text-background" : "text-ink hover:bg-tone")}
+					className={cn("px-3.5 py-2 text-ui leading-tight", value === o.value ? "bg-tint text-background" : "text-ink hover:bg-tone")}
 				>
 					{o.label}
 				</button>

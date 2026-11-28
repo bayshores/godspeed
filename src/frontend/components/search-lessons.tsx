@@ -85,10 +85,10 @@ function Results({ onClose }: { onClose: () => void }) {
 				failed ? (
 					<LoadFailed message="Couldn't load your lessons." onRetry={() => void refresh()} className="py-3" />
 				) : (
-					<LoadingLine className="py-3 text-[15px]" />
+					<LoadingLine className="py-3 text-ui" />
 				)
 			) : shown.length === 0 ? (
-				<p className="py-3 text-[15px] text-ink-2">{query.trim() ? "No lessons match." : "No lessons yet."}</p>
+				<p className="py-3 text-ui text-ink-2">{query.trim() ? "No lessons match." : "No lessons yet."}</p>
 			) : (
 				<div ref={listRef} className="flex flex-col">
 					{shown.map((c, i) => {
@@ -104,7 +104,7 @@ function Results({ onClose }: { onClose: () => void }) {
 							>
 								<span aria-hidden className="w-2 shrink-0 self-stretch bg-ink-3" style={space && { background: spaceColorVar(space.color) }} />
 								<span className="flex min-w-0 flex-1 flex-col gap-0.5">
-									<span className="truncate text-[17px] text-ink">{c.title}</span>
+									<span className="truncate text-item text-ink">{c.title}</span>
 									<span className="truncate text-sm text-ink-2">{spaceName(spaces, c.spaceId)}</span>
 								</span>
 								<span className="font-count shrink-0 text-sm text-ink-2">{lessonAge(c.updatedAt)}</span>
