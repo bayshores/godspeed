@@ -21,7 +21,7 @@ use super::reply;
 type Call = Arc<dyn Fn(Request, Arc<App>) -> BoxFuture<'static, Response> + Send + Sync>;
 
 #[derive(Default)]
-pub struct ApiRoute {
+pub(crate) struct ApiRoute {
 	calls: Vec<(Method, Call)>,
 }
 

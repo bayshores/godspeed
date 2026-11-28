@@ -6,7 +6,7 @@ use gs_json::{Json, json};
 use super::reply::{failure, result};
 use super::{ToolCall, space_arg};
 
-pub fn remember(call: &ToolCall<'_>, args: &Json) -> Json {
+pub(crate) fn remember(call: &ToolCall<'_>, args: &Json) -> Json {
 	let scope = match space_arg(call.app, args["space_id"].as_str()) {
 		Ok(scope) => scope,
 		Err(error) => return failure(&error),
@@ -17,7 +17,7 @@ pub fn remember(call: &ToolCall<'_>, args: &Json) -> Json {
 	}
 }
 
-pub fn forget(call: &ToolCall<'_>, args: &Json) -> Json {
+pub(crate) fn forget(call: &ToolCall<'_>, args: &Json) -> Json {
 	let id = args["note_id"].str_or_empty();
 	match call.app.stores.agent_notes.remove_agent_note(id) {
 		Ok(true) => result(&json!({ "removed": id })),
@@ -26,7 +26,7 @@ pub fn forget(call: &ToolCall<'_>, args: &Json) -> Json {
 	}
 }
 
-pub fn save_rule(call: &ToolCall<'_>, args: &Json) -> Json {
+pub(crate) fn save_rule(call: &ToolCall<'_>, args: &Json) -> Json {
 	let scope = match space_arg(call.app, args["space_id"].as_str()) {
 		Ok(scope) => scope,
 		Err(error) => return failure(&error),

@@ -35,7 +35,7 @@ pub fn web_tools() -> Vec<Arc<dyn Tool>> {
 }
 
 /// Tavily search with the person's key, for the research job while a key is saved.
-pub fn web_search_tool(key: String) -> Arc<dyn Tool> {
+pub(crate) fn web_search_tool(key: String) -> Arc<dyn Tool> {
 	FnTool::server(
 		"web_search",
 		"Search the web. Returns up to 5 results, each a title, an address and a short snippet. Read a result with web_fetch.".to_owned(),

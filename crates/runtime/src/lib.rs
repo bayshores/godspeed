@@ -23,8 +23,7 @@ mod test_peer;
 mod update;
 
 pub use event::{Ask, End, Part, SessionEvent, ToolCall, ToolReply, Usage, Verdict};
-pub use health::{AgentHealth, Check, Outcome, Problem, Row};
+pub use health::{AgentHealth, Check, Outcome, Problem};
 pub use login::{Login, LoginControl};
-pub use models::Model;
 pub use session::{Runtime, Session, SessionSpec, ToolSpec};
 pub use update::Update;

@@ -302,7 +302,7 @@ pub fn sync_shortcuts_safely(app: &App, folder: &Path, clear: bool) {
 
 /// Re-syncs about 2 s after spaces change (a burst of changes syncs once), once per process.
 /// `folder` is read on each sync, so moving the folder needs no restart.
-pub fn watch_shortcuts(app: &Arc<App>, folder: impl Fn(&App) -> Option<PathBuf> + Send + 'static) {
+pub(crate) fn watch_shortcuts(app: &Arc<App>, folder: impl Fn(&App) -> Option<PathBuf> + Send + 'static) {
 	if app.spaces.shortcut_watch.swap(true, Ordering::SeqCst) {
 		return;
 	}

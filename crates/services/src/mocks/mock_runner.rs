@@ -50,7 +50,7 @@ fn platform() -> &'static str {
 /// A Python that only stands in for one: without Apple's developer tools the Mac's
 /// /usr/bin/python3 opens their install dialog, and without Python Windows' WindowsApps
 /// python.exe opens the Store.
-pub fn is_stand_in_python(file: &str, platform: &str, has_dev_tools: &dyn Fn() -> bool) -> bool {
+pub(crate) fn is_stand_in_python(file: &str, platform: &str, has_dev_tools: &dyn Fn() -> bool) -> bool {
 	match platform {
 		"darwin" => file == "/usr/bin/python3" && !has_dev_tools(),
 		"win32" => file.to_lowercase().contains("\\windowsapps\\"),
@@ -100,7 +100,7 @@ pub enum Stop {
 	Command(Vec<String>),
 }
 
-pub fn stop_command(pid: u32, platform: &str, running: bool) -> Option<Stop> {
+pub(crate) fn stop_command(pid: u32, platform: &str, running: bool) -> Option<Stop> {
 	if platform != "win32" {
 		return Some(Stop::Group(pid));
 	}
@@ -220,7 +220,7 @@ async fn aborted(signal: Option<&Abort>) {
 
 /// Runs the learner's code on a code question's examples: a run outcome (core `read_run`).
 /// `signal` stops it, as does dropping the future.
-pub async fn run_examples(tmp: &Path, question: &Json, code: &str, language: MockLanguage, signal: Option<&Abort>) -> Result<Json, String> {
+pub(crate) async fn run_examples(tmp: &Path, question: &Json, code: &str, language: MockLanguage, signal: Option<&Abort>) -> Result<Json, String> {
 	let command = match command_for(language) {
 		Ok(command) => command,
 		Err(missing) => return Ok(stopped(missing)),

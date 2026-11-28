@@ -11,7 +11,7 @@ use super::fn_tool::FnTool;
 /// Searches the lesson's graph for a query (none: newest facts), giving facts and chains.
 pub type SearchGraph = Arc<dyn Fn(Option<String>) -> BoxFuture<'static, Result<Json, String>> + Send + Sync>;
 
-pub fn search_graph_tool(search: SearchGraph) -> FnTool {
+pub(crate) fn search_graph_tool(search: SearchGraph) -> FnTool {
 	let parameters = object(&[], vec![("query", string("What to look for, plain words (matched by meaning and keywords)."))]);
 	let description = "Search this lesson's knowledge graph: what his files and earlier lessons cover, as facts (id, name, statement, from: files, lessons or both, asked: his latest answer on it, or never) and the reasoning chains connecting them. No query: most recent facts.";
 	FnTool::server("search_graph", description, parameters, move |args, _ctx| {

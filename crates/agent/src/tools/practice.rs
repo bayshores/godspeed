@@ -32,7 +32,7 @@ use super::side::{LessonSide, file_tools, filter_enabled};
 pub type GraphNodes = Arc<dyn Fn() -> Vec<Json> + Send + Sync>;
 
 /// The plan's node ids, read fresh per call.
-pub type PlanNodes = Arc<dyn Fn() -> Vec<String> + Send + Sync>;
+pub(crate) type PlanNodes = Arc<dyn Fn() -> Vec<String> + Send + Sync>;
 
 /// What the practice tools close over.
 #[derive(Clone)]
@@ -56,7 +56,7 @@ pub(super) fn record_messages(chat_store: &Arc<dyn ChatPort>, chat_id: &str) -> 
 }
 
 /// Whether a problem is open in the stored record.
-pub fn problem_is_active(chat_store: &Arc<dyn ChatPort>, chat_id: &str) -> bool {
+pub(crate) fn problem_is_active(chat_store: &Arc<dyn ChatPort>, chat_id: &str) -> bool {
 	active_problem_of(&record_messages(chat_store, chat_id)).is_some()
 }
 
@@ -69,7 +69,7 @@ pub(super) struct TopicEnd {
 
 /// One turn's gate, shared by problem, conclude and topic_done. It starts from the record, which
 /// only updates when the turn ends, so the tools keep their own copy for the rest of the turn.
-pub struct TurnGate {
+pub(crate) struct TurnGate {
 	problem_active: Mutex<bool>,
 	topic_ended: Mutex<Option<TopicEnd>>,
 }
@@ -344,7 +344,7 @@ fn study_conclude_tool(gate: &Arc<TurnGate>, record: PlanContext, list: Option<A
 /// A study session's problem and conclude, under the turn gate topic_done shares. The problem
 /// names its plan node like a quiz does. A lesson on files has its first file's problem list
 /// (`list`): post_problems fills it, a pose may name one of it, and conclude marks it done.
-pub fn study_problem_tools(gate: &Arc<TurnGate>, record: PlanContext, graph_nodes: Option<GraphNodes>, plan: (PlanNodes, Arc<PlanOrder>), pages: &Arc<dyn ProblemPages>, list: Option<&Arc<dyn ProblemList>>) -> Vec<FnTool> {
+pub(crate) fn study_problem_tools(gate: &Arc<TurnGate>, record: PlanContext, graph_nodes: Option<GraphNodes>, plan: (PlanNodes, Arc<PlanOrder>), pages: &Arc<dyn ProblemPages>, list: Option<&Arc<dyn ProblemList>>) -> Vec<FnTool> {
 	let mut tools = Vec::new();
 	if let Some(list) = list {
 		tools.push(post_problems_tool(list.clone(), pages.clone()));
@@ -367,7 +367,7 @@ pub fn practice_tools(ctx: &PracticeToolContext, enabled: Option<&Json>) -> Vec<
 /// The rarely needed set practice and homework share: the learner's files, the research and pdf
 /// jobs (demo stays teach-only) and the lesson's side tools. The teacher's Settings
 /// switches apply to them.
-pub fn practice_side_tools(jobs: Option<&JobToolContext>, side: &LessonSide, enabled: Option<&Json>) -> Vec<FnTool> {
+pub(crate) fn practice_side_tools(jobs: Option<&JobToolContext>, side: &LessonSide, enabled: Option<&Json>) -> Vec<FnTool> {
 	let mut tools = file_tools();
 	if let Some(jobs) = jobs {
 		tools.extend([research_tool(jobs), pdf_tool(jobs)]);

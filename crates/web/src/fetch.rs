@@ -5,14 +5,14 @@ use reqwest::Url;
 
 use crate::{http, jina, markdown};
 
-pub const USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+pub(crate) const USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 const MAX_RESPONSE_BYTES: u64 = 5 * 1024 * 1024;
 const PDF_POINTER: &str = "web_fetch: this URL is a PDF document \u{2014} call web_fetch_pdf on it to download and read it.";
 
 /// A URL whose path ends in .pdf counts as a PDF whatever its content type: S3 and university
 /// servers often send PDFs as octet-stream.
-pub fn is_pdf_url(url: &str) -> bool {
+pub(crate) fn is_pdf_url(url: &str) -> bool {
 	Url::parse(url).is_ok_and(|u| u.path().to_ascii_lowercase().ends_with(".pdf"))
 }
 

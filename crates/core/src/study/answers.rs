@@ -12,7 +12,7 @@ use crate::session::practice_outcomes::practice_outcomes;
 use crate::session::question_core::{confidence_level, normalize_quiz_type};
 
 /// How much a problem solved with hints counts toward a rate: one alone reads shaky, not strong.
-pub const HINTED_WEIGHT: f64 = 0.6;
+const HINTED_WEIGHT: f64 = 0.6;
 
 /// A practice outcome as an answer: solved is right, solved with hints is "hinted" (counted at
 /// HINTED_WEIGHT), giving up or moving on is wrong.
@@ -191,7 +191,7 @@ pub fn facts_for_answer(answer: &Json, index: &HashMap<String, Vec<String>>) -> 
 }
 
 /// A compact reference to one answer (what the UI's answer blocks need).
-pub fn answer_ref(a: &Json) -> Json {
+pub(crate) fn answer_ref(a: &Json) -> Json {
 	let mut r = Obj::new();
 	r.insert("chatId", a["chatId"].clone());
 	r.insert("toolCallId", a["toolCallId"].clone());
@@ -205,7 +205,7 @@ pub fn answer_ref(a: &Json) -> Json {
 
 /// The counts over graded answers and their right rate ("I don't know" counts as not right, a
 /// problem solved with hints as HINTED_WEIGHT of a right one).
-pub struct Tally {
+pub(crate) struct Tally {
 	pub answered: usize,
 	pub right: usize,
 	pub hinted: usize,
@@ -251,7 +251,7 @@ impl Tally {
 
 /// Overconfident: at least 2 answers given at level 4-5, right less often than those answers
 /// claimed (each answer claims level x 20 %).
-pub fn is_overconfident(answers: &[&Json]) -> bool {
+pub(crate) fn is_overconfident(answers: &[&Json]) -> bool {
 	let sure: Vec<(&Json, i64)> = answers.iter().filter(|a| a["outcome"].as_str() != Some("dontKnow")).filter_map(|a| a["level"].as_i64().filter(|&l| l >= 4).map(|l| (*a, l))).collect();
 	if sure.len() < 2 {
 		return false;

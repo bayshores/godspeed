@@ -25,7 +25,7 @@ const ANALOGY_WORDS: usize = 8;
 /// The opener-answer marker's content: [Resumed] first when due, then what he picked, or that he
 /// skipped it (a null `answer`), the plot reminder while the topic has none, then the questions
 /// from earlier he answered since the agent last heard of them.
-pub fn opener_answer_text(record: &Json, topic_done_call_id: &str, answer: &Json) -> String {
+pub(crate) fn opener_answer_text(record: &Json, topic_done_call_id: &str, answer: &Json) -> String {
 	let node_id = opener_node(record, topic_done_call_id);
 	let topic = node_title(record, &node_id);
 	let line = if answer.is_null() { format!("[Opener] {topic}: he skipped it.") } else { format!("[Opener] {topic}: {}", picked_words(answer)) };

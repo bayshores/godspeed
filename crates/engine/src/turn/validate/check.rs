@@ -8,13 +8,13 @@ use gs_json::{Json, js_number, lone::to_utf16};
 use super::graphemes::{is_max_length, is_min_length};
 
 /// One error as pi prints it: `<path>: <message>`.
-pub struct Failure {
+pub(crate) struct Failure {
 	pub path: String,
 	pub message: String,
 }
 
 #[derive(Default)]
-pub struct Errors {
+pub(crate) struct Errors {
 	pub list: Vec<Failure>,
 }
 
@@ -81,7 +81,7 @@ fn bound(ok: bool, path: &str, message: String, errors: &mut Errors) -> bool {
 }
 
 /// `ErrorSchema`: true when `value` passes; failures go to `errors`.
-pub fn walk(schema: &Json, value: &Json, path: &str, errors: &mut Errors) -> bool {
+pub(crate) fn walk(schema: &Json, value: &Json, path: &str, errors: &mut Errors) -> bool {
 	if errors.full() {
 		return false;
 	}
@@ -166,6 +166,6 @@ fn any_of(members: &[Json], value: &Json, path: &str, errors: &mut Errors) -> bo
 }
 
 /// `Check`: the value passes the schema.
-pub fn check(schema: &Json, value: &Json) -> bool {
+pub(crate) fn check(schema: &Json, value: &Json) -> bool {
 	walk(schema, value, "", &mut Errors::default())
 }

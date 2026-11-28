@@ -11,7 +11,7 @@ use crate::contracts::space::base_name;
 pub(super) const CHANGE_TOOLS: [&str; 4] = ["Edit", "MultiEdit", "Write", "NotebookEdit"];
 
 /// What a card's subject is, by name, in `Subject` order (the window's `APPROVAL_SUBJECTS`).
-pub const APPROVAL_SUBJECTS: [&str; 6] = ["command", "file", "site", "search", "tool", "words"];
+const APPROVAL_SUBJECTS: [&str; 6] = ["command", "file", "site", "search", "tool", "words"];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Subject {

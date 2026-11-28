@@ -17,8 +17,8 @@ use super::file_state::{FileKind, FileStatus};
 use super::space_deadlines::{file_ids_of, new_deadline};
 use crate::contracts::space::{compare_deadlines, is_calendar_date};
 
-pub const ABOUT_FILE_NAME: &str = "What it's like.md";
-pub const GUIDE_FILE_NAME: &str = "Study guide.md";
+pub(crate) const ABOUT_FILE_NAME: &str = "What it's like.md";
+pub(crate) const GUIDE_FILE_NAME: &str = "Study guide.md";
 
 /// A file the upgrade writes into the space's own folder.
 #[derive(Debug, PartialEq)]

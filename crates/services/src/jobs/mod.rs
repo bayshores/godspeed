@@ -14,9 +14,10 @@ use gs_agent::subagents::aborts::JobAborts;
 use gs_agent::subagents::bg_llm_semaphore::BgLlmSlots;
 
 pub use lifecycle::{AbortRefusal, abort_job, list_all_jobs, list_jobs};
-pub use wake::{
-	JobRespawn, TurnRunner, deliver_job_result, discard_chat_deliveries, live_agent, note_steers_durable, reconcile_user_steers, register_live_agent, set_job_respawn,
-	set_turn_runner, settle_steers, steer_live_chat, unregister_live_agent,
+pub use wake::{note_steers_durable, steer_live_chat};
+pub(crate) use wake::{
+	deliver_job_result, discard_chat_deliveries, live_agent, reconcile_user_steers, register_live_agent, set_job_respawn, set_turn_runner, settle_steers,
+	unregister_live_agent,
 };
 
 /// The jobs' live state inside `App`.

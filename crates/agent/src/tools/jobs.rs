@@ -43,7 +43,7 @@ fn job_tool(ctx: &JobToolContext, kind: JobKind, description: &str, parameters: 
 	})
 }
 
-pub fn research_tool(ctx: &JobToolContext) -> FnTool {
+pub(crate) fn research_tool(ctx: &JobToolContext) -> FnTool {
 	job_tool(
 		ctx,
 		JobKind::Research,
@@ -62,7 +62,7 @@ pub fn research_tool(ctx: &JobToolContext) -> FnTool {
 	)
 }
 
-pub fn demo_tool(ctx: &JobToolContext) -> FnTool {
+pub(crate) fn demo_tool(ctx: &JobToolContext) -> FnTool {
 	job_tool(
 		ctx,
 		JobKind::Demo,
@@ -88,7 +88,7 @@ pub fn demo_tool(ctx: &JobToolContext) -> FnTool {
 	)
 }
 
-pub fn pdf_tool(ctx: &JobToolContext) -> FnTool {
+pub(crate) fn pdf_tool(ctx: &JobToolContext) -> FnTool {
 	job_tool(
 		ctx,
 		JobKind::Pdf,

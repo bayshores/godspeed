@@ -44,20 +44,20 @@ struct Inner {
 }
 
 #[derive(Default)]
-pub struct TopicGrouping(Mutex<Inner>);
+pub(crate) struct TopicGrouping(Mutex<Inner>);
 
 /// The dock and abort key of a space's grouping run.
-pub fn topic_run_key(space_id: &str) -> String {
+fn topic_run_key(space_id: &str) -> String {
 	format!("topics:{space_id}")
 }
 
 /// True while a grouping run for the space is going.
-pub fn topic_grouping_running(app: &App, space_id: &str) -> bool {
+pub(crate) fn topic_grouping_running(app: &App, space_id: &str) -> bool {
 	app.graph.topics.0.lock().running.contains(space_id)
 }
 
 /// True while a grouping run for the space waits to start or is going.
-pub fn topic_grouping_pending(app: &App, space_id: &str) -> bool {
+pub(crate) fn topic_grouping_pending(app: &App, space_id: &str) -> bool {
 	let inner = app.graph.topics.0.lock();
 	inner.timers.contains_key(space_id) || inner.running.contains(space_id)
 }
@@ -83,13 +83,13 @@ pub fn schedule_topic_grouping(app: &Arc<App>, space_id: &str) {
 }
 
 /// Asks for a run that groups every fact, after a file import.
-pub fn schedule_whole_topic_grouping(app: &Arc<App>, space_id: &str) {
+pub(crate) fn schedule_whole_topic_grouping(app: &Arc<App>, space_id: &str) {
 	app.graph.topics.0.lock().whole.insert(space_id.to_owned());
 	schedule_topic_grouping(app, space_id);
 }
 
 /// Drops a pending run and stops a running one (the space is being deleted).
-pub fn cancel_topic_grouping(app: &App, space_id: &str) {
+pub(crate) fn cancel_topic_grouping(app: &App, space_id: &str) {
 	{
 		let mut inner = app.graph.topics.0.lock();
 		if let Some(timer) = inner.timers.remove(space_id) {

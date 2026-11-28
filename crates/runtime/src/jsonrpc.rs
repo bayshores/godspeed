@@ -8,18 +8,18 @@ use crate::pending::Pending;
 
 /// What the agent sent that is not an answer to us.
 #[derive(Debug, PartialEq)]
-pub enum Incoming {
+pub(crate) enum Incoming {
 	Request { id: Json, method: String, params: Json },
 	Notification { method: String, params: Json },
 }
 
 /// Method not found: a request this side does not handle.
-pub const UNKNOWN_METHOD: i64 = -32601;
+pub(crate) const UNKNOWN_METHOD: i64 = -32601;
 
 /// Why every request fails once the connection has ended.
 const CLOSED: &str = "the agent's connection closed";
 
-pub struct Rpc {
+pub(crate) struct Rpc {
 	out: mpsc::UnboundedSender<String>,
 	/// The agent's result or error, by request id.
 	pending: Pending<u64, Result<Json, String>>,

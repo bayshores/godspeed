@@ -117,10 +117,10 @@ const TALK_REPLACED: &str = "Talk was replaced by the teacher panel's chats";
 /// What a talk chat answers an input that is not a message or Try again.
 const TALK_TAKES_TEXT: &str = "A talk chat takes a message or Try again";
 
-pub type ReplyFuture = Pin<Box<dyn Future<Output = ChatReply> + Send>>;
+type ReplyFuture = Pin<Box<dyn Future<Output = ChatReply> + Send>>;
 
 /// A new lesson's first message, sent as the learner's text; Err holds the refusal's body text.
-pub fn send_first_message(app: &Arc<App>) -> SendFirstMessage {
+pub(crate) fn send_first_message(app: &Arc<App>) -> SendFirstMessage {
 	let app = app.clone();
 	Arc::new(move |chat_id, text| {
 		let sent = handle_chat_input(&app, &chat_id, TurnInput::Chat(ChatInput::Text { text, attachments: None, about: None }));

@@ -13,7 +13,7 @@ use gs_core::session::schema::{object, one_of_literals};
 /// or the refusal as text.
 pub type SaveRule = Arc<dyn Fn(&str, &str, Option<&str>) -> Json + Send + Sync>;
 
-pub fn save_rule_tool(save_rule: SaveRule) -> FnTool {
+pub(crate) fn save_rule_tool(save_rule: SaveRule) -> FnTool {
 	let area_ids: Vec<&str> = TEACHING_AREAS.iter().map(|a| a.id).collect();
 	let parameters = object(
 		&["rule", "for"],

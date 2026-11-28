@@ -4,7 +4,7 @@ use gs_base::re::collapse_spaces;
 use gs_base::text;
 use gs_json::{Json, Obj, json};
 
-pub const UNGROUPED_TOPIC_ID: &str = "ungrouped";
+const UNGROUPED_TOPIC_ID: &str = "ungrouped";
 const UNGROUPED_TOPIC_NAME: &str = "Ungrouped";
 
 /// The repair's catch-all for facts with no grouped neighbor.

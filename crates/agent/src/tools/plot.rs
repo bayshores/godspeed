@@ -87,7 +87,7 @@ impl Tool for Plot {
 }
 
 /// The tool for one Study turn, drawn as its hook decides.
-pub fn plot_tool(parts: &Arc<LessonParts>) -> FnTool {
+pub(crate) fn plot_tool(parts: &Arc<LessonParts>) -> FnTool {
 	FnTool::from_tool(Arc::new(Plot { parameters: parameters(), parts: parts.clone() }))
 }
 

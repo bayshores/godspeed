@@ -8,7 +8,7 @@ use gs_base::fsx;
 use gs_base::locks::{LockKey, Locks};
 use gs_json::{Json, Obj};
 
-pub struct AppFile {
+pub(crate) struct AppFile {
 	file: PathBuf,
 	name: &'static str,
 	version: i64,
@@ -57,7 +57,7 @@ impl AppFile {
 
 /// Writes a record that carries its own stamp: as it is when it already has `version`, otherwise
 /// with the stamp set (in its place if it has one, at the end if not).
-pub fn write_stamped(file: &std::path::Path, record: &Json, version: i64) -> Result<(), String> {
+pub(crate) fn write_stamped(file: &std::path::Path, record: &Json, version: i64) -> Result<(), String> {
 	if record.as_obj().is_some() && record["version"].as_f64() == Some(version as f64) {
 		return fsx::write_json_atomic(file, record);
 	}

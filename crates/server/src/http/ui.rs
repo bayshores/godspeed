@@ -42,7 +42,7 @@ fn file_reply(body: Vec<u8>, content_type: &'static str, cache: &'static str) ->
 
 /// Every path no route answers: a path with a file extension is that file, any other the page
 /// (index.html), so the UI's router picks the screen. /api paths stay a 404.
-pub async fn page(State(app): State<Arc<App>>, uri: Uri) -> Response {
+pub(crate) async fn page(State(app): State<Arc<App>>, uri: Uri) -> Response {
 	let parts = decoded_segments(uri.path()).unwrap_or_default();
 	let root = app.paths.resources.join("ui");
 	match ui_file(&root, &parts).await {
@@ -88,7 +88,7 @@ static PDFJS: LazyLock<Vec<(Re, &'static str, &'static str)>> = LazyLock::new(||
 });
 
 /// GET /pdfjs/<file>.
-pub async fn pdfjs(State(app): State<Arc<App>>, uri: Uri) -> Response {
+pub(crate) async fn pdfjs(State(app): State<Arc<App>>, uri: Uri) -> Response {
 	let parts = decoded_segments(uri.path()).unwrap_or_default();
 	let name = parts.get(1..).unwrap_or_default().join("/");
 	let Some((_, dir, ty)) = PDFJS.iter().find(|(re, _, _)| re.test(&name)) else { return reply::text(404, "Not found") };

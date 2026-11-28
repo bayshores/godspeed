@@ -94,11 +94,11 @@ const HIT_CAP: usize = 40;
 const UNREAD_FINISH_MESSAGE: &str = "You finished without consulting any page of the PDF — your brief would be invention, not reading. Extract or render the relevant pages first, then write the brief from what you actually saw.";
 
 /// Keeps one page's Markdown.
-pub type KeepPage = Box<dyn Fn(u32, &str) -> Result<(), String> + Send + Sync>;
+type KeepPage = Box<dyn Fn(u32, &str) -> Result<(), String> + Send + Sync>;
 
 /// A space PDF's kept pages and the way to keep one more. With it the reader offers save_page,
 /// and the brief cites the file's pages as their marks.
-pub struct Keeper {
+pub(crate) struct Keeper {
 	pub file_id: String,
 	pub pages: BTreeMap<u32, String>,
 	pub keep: KeepPage,
@@ -225,7 +225,7 @@ impl Tool for PdfTool {
 
 /// Reads the PDF at `path` (resolved like the file tools: `~` and relative mean home) for
 /// `question`. Never fails: a failure is a brief starting "PDF failed:".
-pub async fn run_pdf_reader_agent(path: &str, question: &str, pdf: &Pdf, keeper: Option<Keeper>, opts: &JobAgentOptions) -> Json {
+pub(crate) async fn run_pdf_reader_agent(path: &str, question: &str, pdf: &Pdf, keeper: Option<Keeper>, opts: &JobAgentOptions) -> Json {
 	let pdf_path = resolve_source_path(Some(path));
 	let shown = pdf_path.to_string_lossy().into_owned();
 	let keeping = keeper.is_some();

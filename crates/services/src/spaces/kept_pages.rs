@@ -17,7 +17,7 @@ use crate::app::reading_pages::is_pdf;
 
 /// The ready space PDF at `path` (through any link to it) whose content is still the version it
 /// was read as, with that version's kept pages.
-pub async fn kept_pages_at(app: &App, path: &Path) -> Option<KeptPages> {
+pub(crate) async fn kept_pages_at(app: &App, path: &Path) -> Option<KeptPages> {
 	let wanted = tokio::fs::canonicalize(path).await.ok()?;
 	for record in app.stores.spaces.list_space_records() {
 		for file in record["files"].items() {
@@ -42,7 +42,7 @@ pub async fn kept_pages_at(app: &App, path: &Path) -> Option<KeptPages> {
 
 /// Keeps one page of the file, unless the file changed since the job looked it up, and starts
 /// putting it into search.
-pub fn keep_page(app: &Arc<App>, file: &KeptPages, page: u32, markdown: &str) -> Result<(), String> {
+pub(crate) fn keep_page(app: &Arc<App>, file: &KeptPages, page: u32, markdown: &str) -> Result<(), String> {
 	let record = app.stores.spaces.get_space(&file.space_id);
 	if record.as_ref().and_then(|r| file_in(r, &file.file_id)).is_none_or(|f| f["contentFp"].str_or_empty() != file.fp) {
 		return Err("the file changed or was removed while it was read, so nothing was saved".to_owned());

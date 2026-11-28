@@ -11,7 +11,7 @@ use crate::spaces::gaps::gaps_in;
 
 /// The briefing, at most `max_chars` long. A note or lesson with a time that isn't one cannot be
 /// saved, so the briefing has no failure to report.
-pub fn current_agent_briefing(app: &App, max_chars: usize) -> String {
+pub(crate) fn current_agent_briefing(app: &App, max_chars: usize) -> String {
 	let records = app.stores.spaces.list_space_records();
 	let now_ms = clock::now_ms();
 	let gaps = gaps_in(app, &records, now_ms);

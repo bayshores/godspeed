@@ -27,7 +27,7 @@ fn vault_picked_at_start(app: &App, chat_id: &str, record: &Json) -> bool {
 
 /// The tool for the lesson `chat_id`, which writes for the lesson's space. A topic left out is
 /// the topic of the lesson's current step.
-pub fn lesson_vault_tool(app: &Arc<App>, chat_id: &str, record: &Json) -> Option<WriteVaultNote> {
+pub(crate) fn lesson_vault_tool(app: &Arc<App>, chat_id: &str, record: &Json) -> Option<WriteVaultNote> {
 	let space_id = record["spaceId"].as_str()?.to_owned();
 	if !vault_picked_at_start(app, chat_id, record) {
 		return None;

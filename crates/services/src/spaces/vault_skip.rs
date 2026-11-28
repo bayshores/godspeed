@@ -15,7 +15,7 @@ use gs_json::Json;
 use crate::App;
 
 /// The skip lists for the linked folder at `root`.
-pub fn vault_skip(app: &App, root: &Path) -> Skip {
+pub(crate) fn vault_skip(app: &App, root: &Path) -> Skip {
 	let settings = app.stores.settings.read_settings().ok().flatten();
 	let Some(vault) = resolve_vault(settings.as_ref()).0 else { return Skip::default() };
 	skip_in(root, Path::new(&vault), &app.stores.vault_notes.read())

@@ -7,14 +7,14 @@ use htmd::element_handler::{HandlerResult, Handlers};
 use htmd::{Element, HtmlToMarkdown};
 
 /// Shorter than this many characters is not worth returning.
-pub const MIN_USEFUL_CONTENT: usize = 200;
+pub(crate) const MIN_USEFUL_CONTENT: usize = 200;
 
-pub struct Extracted {
+pub(crate) struct Extracted {
 	pub title: String,
 	pub content: String,
 }
 
-pub fn html_to_markdown(html: &str) -> Option<Extracted> {
+pub(crate) fn html_to_markdown(html: &str) -> Option<Extracted> {
 	let article = Readability::new(html, None, None).ok()?.parse().ok()?;
 	if article.content.is_empty() {
 		return None;

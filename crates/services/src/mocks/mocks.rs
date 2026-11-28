@@ -280,7 +280,7 @@ pub fn delete_mock(app: &App, space_id: &str, mock_id: &str) -> Outcome<()> {
 }
 
 /// Removes every mock of a removed deadline; how many there were.
-pub fn remove_deadline_mocks(app: &App, space_id: &str, deadline_id: &str) -> Result<usize, String> {
+pub(crate) fn remove_deadline_mocks(app: &App, space_id: &str, deadline_id: &str) -> Result<usize, String> {
 	let _guard = app.locks.lock(LockKey::Space(space_id));
 	let mocks: Vec<Json> = app.stores.mocks.list_mocks(space_id)?.into_iter().filter(|m| m["deadlineId"].as_str() == Some(deadline_id)).collect();
 	for mock in &mocks {
@@ -296,7 +296,7 @@ pub fn remove_deadline_mocks(app: &App, space_id: &str, deadline_id: &str) -> Re
 
 /// Every graded mock of a space as answers for the facts its questions test (core
 /// `mock_answers`). Read without the space's lock: progress is read under a lesson's.
-pub fn space_mock_answers(app: &App, space_id: &str) -> Vec<Json> {
+pub(crate) fn space_mock_answers(app: &App, space_id: &str) -> Vec<Json> {
 	app.stores.mocks.list_mocks_unlocked(space_id).unwrap_or_default().iter().flat_map(gs_core::mocks::mock::mock_answers).collect()
 }
 

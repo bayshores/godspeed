@@ -4,7 +4,7 @@
 use gs_json::Json;
 
 /// The cosine between two "name: statement" texts at or above which a new proposition is flagged.
-pub const DUPLICATE_SCORE: f32 = 0.92;
+const DUPLICATE_SCORE: f32 = 0.92;
 
 /// Candidates shown per flagged proposition.
 const MAX_CANDIDATES: usize = 3;

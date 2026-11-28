@@ -88,7 +88,7 @@ impl JobHost for AppJobs {
 /// before the tool call is saved. Like Node's `void runJob()`, the job runs here up to its first
 /// wait (a job that fails its checks has failed when this returns), then goes on in the
 /// background once its lesson's running turn has called the model again.
-pub fn run_job(app: &Arc<App>, job_id: &str, input: Option<Json>) {
+pub(crate) fn run_job(app: &Arc<App>, job_id: &str, input: Option<Json>) {
 	let runner = create_job_runner(Arc::new(AppJobs(app.clone())));
 	let mut job = Box::pin(runner.run_job(job_id.to_owned(), input));
 	if job.as_mut().poll(&mut Context::from_waker(noop_waker_ref())).is_pending() {

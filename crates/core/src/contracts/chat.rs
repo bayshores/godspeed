@@ -48,7 +48,7 @@ pub fn extracts_facts(kind: Option<&str>) -> bool {
 	matches!(kind, None | Some("teach" | "study"))
 }
 
-pub const HANDOFF_TEXT: &str = concat!(
+pub(crate) const HANDOFF_TEXT: &str = concat!(
 	"Next: plan the full teaching arc from my current understanding to the goal understanding. ",
 	"Apply the teaching methodology in your system prompt, and find the optimal way to teach me this. ",
 	"Find the unconditional truths, plan the motivated derivations/discoveries, so every reasoning step has to land as obviously true. ",
@@ -72,10 +72,10 @@ pub const TOPIC_DONE_STORED_TEXT: &str = "Stored. He sees the stop now; the open
 /// topic_done's result text when it carries no opener, as after the lesson's last topic.
 pub const TOPIC_DONE_NO_OPENER_TEXT: &str = "Stored. He sees the stop now.";
 
-pub const NEXT_PROBLEM_TEXT: &str = "[NEXT PROBLEM] — the learner's explicit go-ahead: pose the next problem now per the selection rules, or wrap the session in text if the arc is complete.";
+pub(crate) const NEXT_PROBLEM_TEXT: &str = "[NEXT PROBLEM] — the learner's explicit go-ahead: pose the next problem now per the selection rules, or wrap the session in text if the arc is complete.";
 
 /// The learner's pick from the homework's problem list, as the teacher reads it.
-pub fn open_problem_text(number: &str) -> String {
+pub(crate) fn open_problem_text(number: &str) -> String {
 	format!("[OPEN PROBLEM {number}] The learner picked problem {number} in the problem list. Open exactly that one now per the session rules, even if it is done.")
 }
 

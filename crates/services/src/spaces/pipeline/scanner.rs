@@ -17,7 +17,7 @@ const STARTUP_SCAN_DELAY_MS: i64 = 10_000;
 const SCAN_PERIOD_MS: i64 = 60_000;
 
 /// Queues every file left waiting or unfinished (app start, the graph turned back on).
-pub fn queue_waiting_files(app: &Arc<App>) {
+pub(crate) fn queue_waiting_files(app: &Arc<App>) {
 	for record in app.stores.spaces.list_space_records() {
 		if record["closed"].truthy() {
 			continue;

@@ -19,16 +19,16 @@ use crate::subagents::job_agent::JobAgent;
 use crate::subagents::pi_run::{SubagentRunOptions, run_subagent};
 
 /// Defaults for omitted optional fields, applied to the schema-valid input.
-pub type Fill = Box<dyn Fn(Json) -> Json + Send + Sync>;
+type Fill = Box<dyn Fn(Json) -> Json + Send + Sync>;
 /// A pipeline law the schema cannot state: `Some(problem)` goes back to the model as an error
 /// result and it tries again within its model calls. May read files.
-pub type Validate = Box<dyn Fn(&Json) -> BoxFuture<'static, Option<String>> + Send + Sync>;
+type Validate = Box<dyn Fn(&Json) -> BoxFuture<'static, Option<String>> + Send + Sync>;
 /// Asked once, of the first submit that passes `validate`: `Some(text)` goes back to the model as
 /// a plain result, not an error, and its next valid submit is final. The model call this adds does
 /// not count against `max_calls`.
-pub type Notice = Box<dyn Fn(&Json) -> BoxFuture<'static, Option<String>> + Send + Sync>;
+pub(crate) type Notice = Box<dyn Fn(&Json) -> BoxFuture<'static, Option<String>> + Send + Sync>;
 
-pub struct SubmitAgentOptions {
+pub(crate) struct SubmitAgentOptions {
 	pub tool_name: String,
 	pub tool_description: String,
 	/// The submit tool's JSON Schema, as TypeBox emits it.
@@ -118,7 +118,7 @@ fn reminder(tool_name: &str) -> String {
 }
 
 /// Runs the agent until it makes one valid submit, and returns the (filled) value.
-pub async fn run_submit_agent(agent: &dyn JobAgent, opts: SubmitAgentOptions) -> Result<Json, RunError> {
+pub(crate) async fn run_submit_agent(agent: &dyn JobAgent, opts: SubmitAgentOptions) -> Result<Json, RunError> {
 	let submitted = Arc::new(Mutex::new(None));
 	let noticed = Arc::new(AtomicBool::new(false));
 	let notice_call = usize::from(opts.notice.is_some());

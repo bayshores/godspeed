@@ -8,7 +8,7 @@ use gs_json::Json;
 use crate::App;
 use crate::graph::progress::{progress_for, space_reviews};
 
-pub struct TopicFacts {
+pub(crate) struct TopicFacts {
 	pub id: String,
 	pub name: String,
 	pub status: TopicStatus,
@@ -23,7 +23,7 @@ pub struct TopicFacts {
 }
 
 /// The grouped topics of a space; None when the space does not exist.
-pub fn space_topics(app: &App, space_id: &str) -> Result<Option<Vec<TopicFacts>>, String> {
+pub(crate) fn space_topics(app: &App, space_id: &str) -> Result<Option<Vec<TopicFacts>>, String> {
 	let Some(progress) = progress_for(app, space_id, None)? else { return Ok(None) };
 	let reviews = space_reviews(app, space_id);
 	let open: Vec<&Json> = progress["deadlines"].items().iter().filter(|d| !d["done"].truthy()).collect();

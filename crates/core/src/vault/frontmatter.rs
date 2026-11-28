@@ -64,7 +64,7 @@ fn eol_of(text: &str) -> &'static str {
 
 /// `text` with line endings as `\n` and no trailing whitespace, the form kept to compare a
 /// block or section with what godspeed last wrote.
-pub fn normal(text: &str) -> String {
+pub(crate) fn normal(text: &str) -> String {
 	text.replace("\r\n", "\n").trim_end().to_owned()
 }
 
@@ -159,7 +159,7 @@ pub fn scalar_block(key: &str, value: &str) -> String {
 }
 
 /// `key:` with one `  - item` line each, or `key: []` with no items.
-pub fn list_block(key: &str, items: &[String]) -> String {
+pub(crate) fn list_block(key: &str, items: &[String]) -> String {
 	if items.is_empty() {
 		return format!("{key}: []");
 	}

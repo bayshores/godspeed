@@ -44,7 +44,7 @@ struct Readout {
 }
 
 #[derive(Default)]
-pub struct Readouts(Mutex<HashMap<String, Arc<Readout>>>);
+pub(crate) struct Readouts(Mutex<HashMap<String, Arc<Readout>>>);
 
 fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 	let version = app.stores.chats.chat_version(chat_id)?;
@@ -69,7 +69,7 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 }
 
 /// Whether the lesson's plan reached its end ("Done for today").
-pub fn lesson_ended(app: &App, chat_id: &str) -> bool {
+pub(crate) fn lesson_ended(app: &App, chat_id: &str) -> bool {
 	lesson_readout(app, chat_id).and_then(|r| r.plan.as_ref().map(|plan| plan.contains_key("endedAt"))).unwrap_or(false)
 }
 
@@ -100,7 +100,7 @@ fn plan_state(tree: &Json, messages: &[Json]) -> Obj {
 /// What the review schedule reads from a space's lessons: every graded answer, every problem
 /// outcome, every question from earlier, every kept sentence and each time one came back.
 #[derive(Default)]
-pub struct SpaceReviews {
+pub(crate) struct SpaceReviews {
 	pub answers: Vec<Json>,
 	pub outcomes: Vec<Json>,
 	pub items: Vec<Json>,
@@ -108,7 +108,7 @@ pub struct SpaceReviews {
 	pub comebacks: Vec<(String, i64)>,
 }
 
-pub fn space_reviews(app: &App, space_id: &str) -> SpaceReviews {
+pub(crate) fn space_reviews(app: &App, space_id: &str) -> SpaceReviews {
 	let mut out = SpaceReviews::default();
 	for readout in app.stores.chats.list_space_chats(space_id).iter().filter_map(|c| lesson_readout(app, c["id"].str_or_empty())) {
 		out.answers.extend(readout.answers.iter().cloned());
@@ -121,7 +121,7 @@ pub fn space_reviews(app: &App, space_id: &str) -> SpaceReviews {
 }
 
 /// Which topic each fact is in, and the facts each answer counts for.
-pub struct TopicLookup {
+struct TopicLookup {
 	index: HashMap<String, Vec<String>>,
 	topic_of: HashMap<String, String>,
 	/// The grouped topics' ids.
@@ -152,7 +152,7 @@ impl TopicLookup {
 }
 
 /// `progress` is `progress_for` of the space.
-pub fn topic_lookup(app: &App, space_id: &str, progress: &Json) -> Result<TopicLookup, String> {
+fn topic_lookup(app: &App, space_id: &str, progress: &Json) -> Result<TopicLookup, String> {
 	Ok(TopicLookup {
 		index: facts_by_message(&get_graph(graph_store_for(app, Some(space_id)).as_ref())?.nodes),
 		topic_of: progress["facts"].items().iter().filter_map(|f| Some((f["id"].as_str()?.to_owned(), f["topicId"].as_str()?.to_owned()))).collect(),
@@ -167,7 +167,7 @@ fn mistake_id(chat_id: &str, call_id: &str) -> String {
 
 /// The space's mistakes: answers given wrong and problems solved only with hints, each with an
 /// id and the topics its facts are in (the cheat sheet's Watch out block, and the vault notes).
-pub fn space_mistakes(app: &App, space_id: &str, progress: &Json) -> Result<Vec<Json>, String> {
+pub(crate) fn space_mistakes(app: &App, space_id: &str, progress: &Json) -> Result<Vec<Json>, String> {
 	let lookup = topic_lookup(app, space_id, progress)?;
 	let mut out = Vec::new();
 	for c in app.stores.chats.list_space_chats(space_id) {
@@ -187,7 +187,7 @@ pub fn space_mistakes(app: &App, space_id: &str, progress: &Json) -> Result<Vec<
 
 /// The grouped topics a lesson's answers since `since` (an ISO time) count for, each with how
 /// many answers, the most answered first.
-pub fn lesson_answered_topics(app: &App, chat_id: &str, since: Option<&str>) -> Result<Vec<(String, usize)>, String> {
+pub(crate) fn lesson_answered_topics(app: &App, chat_id: &str, since: Option<&str>) -> Result<Vec<(String, usize)>, String> {
 	let Some(space_id) = app.stores.chats.get_chat(chat_id).and_then(|c| c["spaceId"].as_str().map(str::to_owned)) else { return Ok(Vec::new()) };
 	let Some(readout) = lesson_readout(app, chat_id) else { return Ok(Vec::new()) };
 	let Some(progress) = progress_for(app, space_id.as_str(), None)? else { return Ok(Vec::new()) };
@@ -227,7 +227,7 @@ pub(super) fn progress_files(record: Option<&Json>) -> Vec<Json> {
 }
 
 /// Each fact's place in the space's order.
-pub fn space_order_for(app: &App, space_id: &str, progress: &Json) -> HashMap<String, usize> {
+pub(crate) fn space_order_for(app: &App, space_id: &str, progress: &Json) -> HashMap<String, usize> {
 	let record = app.stores.spaces.get_space(space_id);
 	fact_space_order(progress["facts"].items(), &progress_files(record.as_ref()))
 }

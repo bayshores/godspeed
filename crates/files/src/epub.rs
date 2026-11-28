@@ -327,7 +327,7 @@ fn book_text(buf: Vec<u8>) -> Result<String, String> {
 
 /// An .epub file's text. The error is a plain message for files that aren't really EPUB books,
 /// are copy-protected or have only pictures.
-pub fn epub_text(file: &Path) -> Result<String, String> {
+pub(crate) fn epub_text(file: &Path) -> Result<String, String> {
 	book_text(read_file(file)?)
 }
 

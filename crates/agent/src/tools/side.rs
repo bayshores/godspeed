@@ -69,11 +69,11 @@ impl LessonSide {
 }
 
 /// The read-only tools over the learner's own files, in every agent's registry.
-pub fn file_tools() -> Vec<FnTool> {
+pub(crate) fn file_tools() -> Vec<FnTool> {
 	[read_tool(), ls_tool(), find_tool(), grep_tool()].into_iter().map(FnTool::from_tool).collect()
 }
 
 /// Drops every tool the resolved settings switch off, keeping the order of the rest.
-pub fn filter_enabled(tools: Vec<FnTool>, enabled: Option<&Json>) -> Vec<FnTool> {
+pub(crate) fn filter_enabled(tools: Vec<FnTool>, enabled: Option<&Json>) -> Vec<FnTool> {
 	filter_enabled_tools(tools.into_iter().map(|t| (t.name().to_owned(), t)).collect(), enabled).into_iter().map(|(_, tool)| tool).collect()
 }

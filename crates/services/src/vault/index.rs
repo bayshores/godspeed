@@ -14,10 +14,10 @@ use gs_files::walk::walk_markdown;
 use gs_search::vault::{MAX_NOTE_CHARS, VaultEntry, VaultHit, VaultIndex, VaultOwner, first_chars};
 
 /// The most notes read; a bigger vault is read in folder order up to this many.
-pub const MAX_VAULT_NOTES: usize = 5_000;
+const MAX_VAULT_NOTES: usize = 5_000;
 
 /// What the reader keeps of one note.
-pub struct Note {
+pub(crate) struct Note {
 	modified: Option<SystemTime>,
 	size: u64,
 	/// The file name without `.md`.
@@ -30,7 +30,7 @@ pub struct Note {
 	pub standing: Option<String>,
 }
 
-pub struct VaultReader {
+pub(crate) struct VaultReader {
 	root: PathBuf,
 	notes: HashMap<String, Note>,
 	/// The vault holds more notes than `MAX_VAULT_NOTES`.

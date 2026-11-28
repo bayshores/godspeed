@@ -5,7 +5,7 @@ use gs_engine::turn::messages::text_block;
 use gs_json::{Json, json, stringify};
 
 /// Compact JSON (indentation costs the agent tokens and tells it nothing); a string as is.
-pub fn result(value: &Json) -> Json {
+pub(crate) fn result(value: &Json) -> Json {
 	let text = match value {
 		Json::Str(s) => s.clone(),
 		other => stringify(other),

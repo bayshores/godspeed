@@ -26,7 +26,7 @@ use crate::http::paths::{param, query};
 use crate::http::reply::{self, Unhandled, error, fields, json_body};
 use crate::http::route::ApiRoute;
 
-pub fn routes() -> Router<Arc<App>> {
+pub(crate) fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/boot", ApiRoute::new().get(boot).into_route())
 		.route("/api/settings", ApiRoute::new().get(settings).into_route())

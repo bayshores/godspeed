@@ -123,7 +123,7 @@ fn space_tool(actions: &SpaceActions, name: &'static str) -> FnTool {
 }
 
 /// The deadline changes a lesson may make.
-pub fn lesson_space_change_tools(actions: &SpaceActions) -> Vec<FnTool> {
+pub(crate) fn lesson_space_change_tools(actions: &SpaceActions) -> Vec<FnTool> {
 	LESSON_CHANGES.iter().map(|name| space_tool(actions, name)).collect()
 }
 
@@ -137,7 +137,7 @@ pub fn deadline_request_tools(actions: &SpaceActions, files: bool) -> Vec<FnTool
 
 /// What a space check reads and changes: the space's deadlines, and with `path` its path and
 /// description.
-pub fn space_check_tool_names(path: bool) -> Vec<&'static str> {
+fn space_check_tool_names(path: bool) -> Vec<&'static str> {
 	let writes: &[&'static str] = if path { &["add_space_deadline", "update_space_deadline", "update_space"] } else { &["add_space_deadline", "update_space_deadline"] };
 	READS.iter().chain(writes).copied().collect()
 }

@@ -21,7 +21,7 @@ const LABEL: &str = "claude helper";
 /// Why a question fails once the helper has gone.
 const STOPPED: &str = "the Claude helper stopped";
 
-pub struct Connection {
+pub(crate) struct Connection {
 	state: Arc<State>,
 	program: ClaudeProgram,
 	reader: Reader,
@@ -89,7 +89,7 @@ impl Connection {
 }
 
 /// A session's hold on its query in the helper.
-pub struct SessionLink {
+pub(crate) struct SessionLink {
 	connection: Arc<Connection>,
 	key: String,
 }

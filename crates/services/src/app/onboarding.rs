@@ -16,7 +16,7 @@ use crate::App;
 /// The outside door's access token an older godspeed made.
 const OLD_TOKEN: &str = "mcp-token";
 
-pub fn onboarding_needed(app: &App) -> Result<bool, String> {
+pub(crate) fn onboarding_needed(app: &App) -> Result<bool, String> {
 	let _guard = app.locks.lock(LockKey::AppFile("settings.json"));
 	let record = app.stores.settings.read_settings()?;
 	let token = app.paths.data.join(OLD_TOKEN);

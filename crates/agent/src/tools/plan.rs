@@ -22,7 +22,7 @@ pub struct PlanContext {
 /// Rides plan_init's slim result: the moment the ids become load-bearing.
 const PLAN_NODE_IDS_REMINDER: &str = "These are the plan's node ids \u{2014} the only valid nodeId values for every quiz and explain call from here on. Reference them exactly.";
 
-pub fn plan_init_tool(ctx: &PlanContext) -> FnTool {
+pub(crate) fn plan_init_tool(ctx: &PlanContext) -> FnTool {
 	let ctx = ctx.clone();
 	let parameters = object(
 		&["mermaid"],

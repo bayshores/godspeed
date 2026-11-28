@@ -10,7 +10,7 @@ pub fn active_compaction_of(messages: &[Json]) -> Option<&Json> {
 }
 
 /// Where the marker's first kept message is; None when it is gone (TypeScript's -1).
-pub fn kept_index_for(messages: &[Json], marker: &Json) -> Option<usize> {
+pub(crate) fn kept_index_for(messages: &[Json], marker: &Json) -> Option<usize> {
 	let id = marker["details"]["firstKeptMessageId"].as_str()?;
 	messages.iter().position(|m| m["id"].as_str() == Some(id))
 }

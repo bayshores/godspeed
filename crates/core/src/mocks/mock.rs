@@ -61,8 +61,8 @@ impl MockLanguage {
 /// The record format this build writes, stamped as "version".
 pub const MOCK_FORMAT_VERSION: u32 = 2;
 
-pub const MOCK_QUESTIONS: RangeInclusive<i64> = 1..=10;
-pub const MOCK_MINUTES: RangeInclusive<i64> = 5..=240;
+const MOCK_QUESTIONS: RangeInclusive<i64> = 1..=10;
+const MOCK_MINUTES: RangeInclusive<i64> = 5..=240;
 
 /// The deadline kinds a mock can be taken for: the ones with a sitting to practice.
 pub fn takes_mocks(kind: &Json) -> bool {
@@ -452,7 +452,7 @@ pub fn mock_answers(mock: &Json) -> Vec<Json> {
 
 /// How many times the mock was paused and for how long in all (ms), an open pause up to
 /// `now_ms`.
-pub fn pause_total(mock: &Json, now_ms: i64) -> (usize, f64) {
+pub(crate) fn pause_total(mock: &Json, now_ms: i64) -> (usize, f64) {
 	let mut spans: Vec<(f64, f64)> = mock["pauses"].items().iter().map(|p| (time::date_ms(&p["from"]), time::date_ms(&p["to"]))).collect();
 	if mock["paused"].truthy() {
 		spans.push((time::date_ms(&mock["paused"]["at"]), now_ms as f64));

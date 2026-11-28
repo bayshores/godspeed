@@ -6,7 +6,7 @@ use image::RgbaImage;
 
 /// A rectangle of the page image in pixels, `x0 <= x < x1` and `y0 <= y < y1`.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct PixelBox {
+pub(crate) struct PixelBox {
 	pub x0: u32,
 	pub y0: u32,
 	pub x1: u32,
@@ -38,7 +38,7 @@ const SAMPLES: u32 = 40_000;
 
 /// Recolors `image` (a page on white, fully opaque) for a theme whose text is `ink`. `pictures`
 /// are the boxes of the images the page paints.
-pub fn recolor(image: &mut RgbaImage, ink: [u8; 3], pictures: &[PixelBox]) {
+pub(crate) fn recolor(image: &mut RgbaImage, ink: [u8; 3], pictures: &[PixelBox]) {
 	let whole = PixelBox { x0: 0, y0: 0, x1: image.width(), y1: image.height() };
 	let (mut photos, mut scan_paper) = (Vec::new(), 1.0_f32);
 	for picture in pictures.iter().map(|p| clamp(*p, whole)).filter(|p| p.area() > 0.0) {

@@ -15,7 +15,7 @@ use crate::App;
 const BEFORE_WHATS_NEW: &str = "0.4.0";
 
 /// The version the learner last saw notes for, when `current` has newer ones to show.
-pub fn whats_new_since(app: &App, current: &str) -> Result<Option<String>, String> {
+pub(crate) fn whats_new_since(app: &App, current: &str) -> Result<Option<String>, String> {
 	if !is_version(&Json::from(current)) {
 		return Ok(None);
 	}

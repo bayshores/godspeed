@@ -17,7 +17,7 @@ const LIST_VERSION: i64 = 1;
 
 /// The well-formed entries of the list in `text`, the first of each id; empty for text that isn't
 /// JSON or a list of an unknown version. A bad entry is left out.
-pub fn parse_list(text: &str) -> Json {
+fn parse_list(text: &str) -> Json {
 	let Ok(raw) = gs_json::parse(text) else { return no_list("it isn't JSON") };
 	if raw["version"].as_i64() != Some(LIST_VERSION) {
 		return no_list("its version is unknown");
@@ -95,13 +95,13 @@ pub fn read_list_from(app: &App, file: PathBuf) {
 
 /// The entry for the plugin `id` in the last list this run read, so an install takes what the
 /// Add sheet or the Update key showed.
-pub fn listed_entry(app: &App, id: &str) -> Option<Json> {
+pub(crate) fn listed_entry(app: &App, id: &str) -> Option<Json> {
 	last_list(app).items().iter().find(|e| e["id"].as_str() == Some(id)).cloned()
 }
 
 /// Ok when the downloaded manifest has the `id`, `uses`, `network`, `lesson` and `space` the entry
 /// was reviewed with, so a tag can't carry more access than the list shows or show elsewhere.
-pub fn same_as_reviewed(entry: &Json, manifest: &Json) -> Result<(), String> {
+pub(crate) fn same_as_reviewed(entry: &Json, manifest: &Json) -> Result<(), String> {
 	fn set(list: &Json) -> Vec<&str> {
 		let mut items = list.strs();
 		items.sort_unstable();

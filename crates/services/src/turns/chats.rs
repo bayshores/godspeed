@@ -52,7 +52,7 @@ pub struct Deleted {
 }
 
 /// The 409 when a turn or a live background job runs in this lesson.
-pub fn running_work_blocker(app: &Arc<App>, chat_id: &str) -> Option<Refusal> {
+pub(crate) fn running_work_blocker(app: &Arc<App>, chat_id: &str) -> Option<Refusal> {
 	if is_turn_running(app, chat_id) {
 		return Some(Refusal { status: 409, code: "turn_in_flight", error: "A turn is running in this lesson. Try again when it finishes.", job_ids: Some(Vec::new()) });
 	}
@@ -89,7 +89,7 @@ fn winding_down() -> Refusal {
 /// Quiesces one lesson before a graph rewrite (a delete or a space move): refuses while a turn or
 /// job runs, aborts and waits out its extraction. None: take the lesson's lock and check
 /// `rewrite_blocker` under it, since a turn or an extraction may start before the lock is taken.
-pub async fn quiesce_chat_for_rewrite(app: &Arc<App>, chat_id: &str) -> Option<Refusal> {
+pub(crate) async fn quiesce_chat_for_rewrite(app: &Arc<App>, chat_id: &str) -> Option<Refusal> {
 	if let Some(blocker) = running_work_blocker(app, chat_id) {
 		return Some(blocker);
 	}
@@ -108,7 +108,7 @@ pub async fn quiesce_chat_for_rewrite(app: &Arc<App>, chat_id: &str) -> Option<R
 
 /// The last check before a rewrite, under the lesson's lock: a turn begins under it and an
 /// extraction reads the lesson under it, so neither can start until the rewrite is done.
-pub fn rewrite_blocker(app: &Arc<App>, chat_id: &str) -> Option<Refusal> {
+pub(crate) fn rewrite_blocker(app: &Arc<App>, chat_id: &str) -> Option<Refusal> {
 	running_work_blocker(app, chat_id).or_else(|| extracting(app, chat_id).then(winding_down))
 }
 

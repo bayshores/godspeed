@@ -10,12 +10,12 @@ use crate::models::Model;
 use crate::session::SessionSpec;
 
 /// The helper's MCP server for godspeed's tools; Claude Code names them `mcp__<server>__<tool>`.
-pub const TOOL_SERVER: &str = "godspeed";
+pub(crate) const TOOL_SERVER: &str = "godspeed";
 
 /// How Claude Code starts: the learner's own `claude`, or the learner's own command, which the
 /// helper runs through a shell with Claude Code's arguments after it.
 #[derive(Clone, Debug, PartialEq)]
-pub enum ClaudeProgram {
+pub(crate) enum ClaudeProgram {
 	Path(String),
 	Command(String),
 }
@@ -28,7 +28,7 @@ fn set_program(message: &mut Json, program: &ClaudeProgram) {
 	}
 }
 
-pub fn open(session: &str, spec: &SessionSpec, program: &ClaudeProgram) -> Json {
+pub(crate) fn open(session: &str, spec: &SessionSpec, program: &ClaudeProgram) -> Json {
 	let tools: Json = spec.tools.iter().map(|tool| json!({ "name": tool.name, "description": tool.description, "inputSchema": tool.input_schema })).collect();
 	let mut message = json!({
 		"type": "open",
@@ -46,7 +46,7 @@ pub fn open(session: &str, spec: &SessionSpec, program: &ClaudeProgram) -> Json 
 }
 
 /// Asks Claude Code for the models it offers, with no session and no model call.
-pub fn models(id: &str, program: &ClaudeProgram) -> Json {
+pub(crate) fn models(id: &str, program: &ClaudeProgram) -> Json {
 	let mut message = json!({ "type": "models", "id": id });
 	set_program(&mut message, program);
 	message
@@ -59,7 +59,7 @@ fn model_list(models: &Json) -> Vec<Model> {
 }
 
 /// Whether an SDK message says Claude Code's sign-in was refused.
-pub fn signed_out(message: &Json) -> bool {
+pub(crate) fn signed_out(message: &Json) -> bool {
 	message["type"].as_str() == Some("assistant") && message["error"].as_str() == Some("authentication_failed")
 }
 
@@ -74,24 +74,24 @@ fn content(parts: &[Part]) -> Json {
 		.collect()
 }
 
-pub fn send(session: &str, parts: &[Part]) -> Json {
+pub(crate) fn send(session: &str, parts: &[Part]) -> Json {
 	json!({ "type": "send", "session": session, "content": content(parts) })
 }
 
-pub fn interrupt(session: &str) -> Json {
+pub(crate) fn interrupt(session: &str) -> Json {
 	json!({ "type": "interrupt", "session": session })
 }
 
-pub fn model(session: &str, model: &str) -> Json {
+pub(crate) fn model(session: &str, model: &str) -> Json {
 	json!({ "type": "model", "session": session, "model": model })
 }
 
-pub fn close(session: &str) -> Json {
+pub(crate) fn close(session: &str) -> Json {
 	json!({ "type": "close", "session": session })
 }
 
 /// A tool's result as MCP content.
-pub fn tool_result(id: &str, reply: &ToolReply) -> Json {
+pub(crate) fn tool_result(id: &str, reply: &ToolReply) -> Json {
 	let content: Json = reply
 		.content
 		.iter()
@@ -103,7 +103,7 @@ pub fn tool_result(id: &str, reply: &ToolReply) -> Json {
 	json!({ "type": "tool_result", "id": id, "content": content, "isError": reply.is_error, "endTurn": reply.ends_turn })
 }
 
-pub fn approval(id: &str, verdict: &Verdict) -> Json {
+pub(crate) fn approval(id: &str, verdict: &Verdict) -> Json {
 	// The SDK passes a refusal's message to Claude, and needs one.
 	let message = match &verdict.message {
 		None if !verdict.allow => Verdict::refused().message,
@@ -114,7 +114,7 @@ pub fn approval(id: &str, verdict: &Verdict) -> Json {
 
 /// A line from the helper.
 #[derive(Debug, PartialEq)]
-pub enum FromHelper {
+pub(crate) enum FromHelper {
 	Opened { session: String, native_id: String },
 	Sdk { session: String, message: Json },
 	ToolCall { id: String, session: String, call: ToolCall },
@@ -126,7 +126,7 @@ pub enum FromHelper {
 	Error { session: Option<String>, message: String },
 }
 
-pub fn from_helper(line: &str) -> Result<FromHelper, String> {
+pub(crate) fn from_helper(line: &str) -> Result<FromHelper, String> {
 	let mut message = gs_json::parse(line).map_err(|err| format!("not JSON ({err})"))?;
 	let text = |key: &str| message[key].str_or_empty().to_owned();
 	Ok(match message["type"].as_str() {
@@ -144,7 +144,7 @@ pub fn from_helper(line: &str) -> Result<FromHelper, String> {
 
 /// What one turn's reading keeps between SDK messages.
 #[derive(Default)]
-pub struct Reading {
+pub(crate) struct Reading {
 	/// Claude Code's own tool calls still running, by tool-use id.
 	own: HashMap<String, (String, Json)>,
 	/// The model call under way: what it read, until its output count arrives.
@@ -160,7 +160,7 @@ fn godspeed_tool(name: &str) -> Option<&str> {
 
 /// The events one SDK message makes, and the turn's end when it is the result. Messages from a
 /// subagent (`parent_tool_use_id`) are not the reply.
-pub fn read_sdk(message: &Json, reading: &mut Reading) -> (Vec<SessionEvent>, Option<End>) {
+pub(crate) fn read_sdk(message: &Json, reading: &mut Reading) -> (Vec<SessionEvent>, Option<End>) {
 	let mut events = Vec::new();
 	if !message["parent_tool_use_id"].is_null() {
 		return (events, None);

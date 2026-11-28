@@ -18,7 +18,7 @@ use parking_lot::Mutex;
 use tokenizers::Tokenizer;
 use tokio::sync::oneshot;
 
-pub const MODEL_ID: &str = "Snowflake/snowflake-arctic-embed-xs";
+pub(crate) const MODEL_ID: &str = "Snowflake/snowflake-arctic-embed-xs";
 pub const DIMS: usize = 384;
 /// The model reads at most this many tokens.
 const MAX_TOKENS: usize = 512;

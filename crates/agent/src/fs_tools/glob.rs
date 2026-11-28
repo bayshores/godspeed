@@ -42,7 +42,7 @@ enum Alternative {
 	Path(Re),
 }
 
-pub struct GlobMatcher(Vec<Alternative>);
+pub(crate) struct GlobMatcher(Vec<Alternative>);
 
 impl GlobMatcher {
 	pub fn new(pattern: &str) -> GlobMatcher {

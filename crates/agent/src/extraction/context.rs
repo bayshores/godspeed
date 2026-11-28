@@ -12,21 +12,21 @@ use gs_json::Json;
 
 /// The extraction view: only learner-facing teacher prose (and graded questions), each line
 /// labeled with its message id, exactly the lines the coverage fingerprints hash.
-pub fn prose_view(messages: &[&Json], title: Option<&str>, failed: &HashSet<String>) -> String {
+pub(crate) fn prose_view(messages: &[&Json], title: Option<&str>, failed: &HashSet<String>) -> String {
 	let lines: Vec<String> = messages.iter().flat_map(|m| message_view_lines(m, message_id(m), Some(failed))).collect();
 	let head = title.filter(|t| !t.is_empty()).map(|t| format!("# {t}\n\n")).unwrap_or_default();
 	head + &lines.join("\n\n")
 }
 
 /// The raw source view of a notes chunk: the path, then the text verbatim.
-pub fn notes_view(file_path: &str, text: &str, part: Option<(usize, usize)>) -> String {
+pub(crate) fn notes_view(file_path: &str, text: &str, part: Option<(usize, usize)>) -> String {
 	let part = part.filter(|(_, n)| *n > 1).map(|(i, n)| format!(" (part {i}/{n})")).unwrap_or_default();
 	format!("SOURCE (the author's personal notes): {file_path}{part}\n\n{text}")
 }
 
 /// Notes text cut under the token budget (chars / 4), greedily by line; a line over the budget
 /// rides alone and is never split.
-pub fn chunk_notes(source: &str, budget: f64) -> Vec<String> {
+pub(crate) fn chunk_notes(source: &str, budget: f64) -> Vec<String> {
 	if text::trim(source).is_empty() {
 		return Vec::new();
 	}
@@ -52,7 +52,7 @@ fn node_line(n: &Json) -> String {
 
 /// THE GRAPH SO FAR (this source's ideas and chains) and RELATED IDEAS (other sources' ideas the
 /// search picked), ids verbatim. Empty when there is nothing to show.
-pub fn graph_context(graph: &DerivedGraph, source_id: &str, related_ids: &[String]) -> String {
+pub(crate) fn graph_context(graph: &DerivedGraph, source_id: &str, related_ids: &[String]) -> String {
 	let name_of: HashMap<&str, &str> = graph.nodes.iter().map(|n| (n["id"].str_or_empty(), n["name"].str_or_empty())).collect();
 	let by_id: HashMap<&str, &Json> = graph.nodes.iter().map(|n| (n["id"].str_or_empty(), n)).collect();
 	let ours: Vec<&Json> = graph.nodes.iter().filter(|n| touches(n, source_id)).collect();

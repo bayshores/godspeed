@@ -71,7 +71,7 @@ struct CheckRun {
 
 /// The checks' state, in memory only: Undo is gone after a restart.
 #[derive(Default)]
-pub struct SpaceChecksState {
+pub(crate) struct SpaceChecksState {
 	/// Spaces whose last check failed, and when they may be checked again.
 	cooling: Mutex<HashMap<String, i64>>,
 	/// The newest runs that changed something, oldest first.

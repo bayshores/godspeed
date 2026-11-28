@@ -7,7 +7,7 @@ use gs_base::text::trim;
 use gs_json::{Json, MAX_SAFE, Obj, js_number};
 
 /// The checked arguments, or the issues as the SDK words them.
-pub fn check_arguments(tool: &str, schema: &Json, args: &Json) -> Result<Json, String> {
+pub(crate) fn check_arguments(tool: &str, schema: &Json, args: &Json) -> Result<Json, String> {
 	let mut issues = Vec::new();
 	let parsed = check(schema, Some(args), &mut Vec::new(), &mut issues);
 	match parsed {

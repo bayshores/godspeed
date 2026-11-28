@@ -26,7 +26,7 @@ use crate::graph::extraction::extraction;
 use crate::graph::topics::schedule_whole_topic_grouping;
 
 /// Queues one file for processing (once while it waits).
-pub fn enqueue_file(app: &Arc<App>, space_id: &str, file_id: &str) {
+pub(crate) fn enqueue_file(app: &Arc<App>, space_id: &str, file_id: &str) {
 	if !app.spaces.queued.lock().insert(format!("{space_id}:{file_id}")) {
 		return;
 	}

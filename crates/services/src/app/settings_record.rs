@@ -7,12 +7,12 @@ use gs_json::{Json, json};
 use crate::App;
 
 /// The saved record, or the bare one a first write starts from.
-pub fn record_or_new(record: Option<Json>) -> Json {
+pub(crate) fn record_or_new(record: Option<Json>) -> Json {
 	record.unwrap_or_else(|| json!({ "version": CURRENT_SETTINGS_VERSION }))
 }
 
 /// `{ ...record, [section]: { ...record[section], [key]: value } }`.
-pub fn with_field(mut record: Json, section: &str, key: &str, value: impl Into<Json>) -> Json {
+pub(crate) fn with_field(mut record: Json, section: &str, key: &str, value: impl Into<Json>) -> Json {
 	let mut fields = record[section].as_obj().cloned().unwrap_or_default();
 	fields.insert(key, value);
 	if let Some(obj) = record.as_obj_mut() {
@@ -23,13 +23,13 @@ pub fn with_field(mut record: Json, section: &str, key: &str, value: impl Into<J
 
 /// The teacher's name, as the learner set it: what the teacher and its background work are called.
 /// Settings that cannot be read leave the usual name.
-pub fn teacher_name(app: &App) -> String {
+pub(crate) fn teacher_name(app: &App) -> String {
 	let settings = app.stores.settings.effective_settings();
 	settings.ok().and_then(|s| s["general"]["teacherName"].as_str().map(str::to_owned)).unwrap_or_else(|| DEFAULT_TEACHER_NAME.to_owned())
 }
 
 /// A `general` switch that is on unless the saved record says exactly `false`.
-pub fn general_switch_on(app: &App, key: &str) -> bool {
+pub(crate) fn general_switch_on(app: &App, key: &str) -> bool {
 	let record = app.stores.settings.read_settings().ok().flatten();
 	record.is_none_or(|r| r["general"][key].as_bool() != Some(false))
 }

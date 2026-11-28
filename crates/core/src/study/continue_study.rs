@@ -43,7 +43,7 @@ fn last_worked<'a>(deadline_id: &str, sessions: &'a [Json]) -> Option<&'a Json> 
 /// Whether a lesson's plan state (`{ step?, total?, stop?, endedAt? }`) is finished: it reached
 /// its end, or it is at its last step with no stop left to go on from (a lesson from before stops
 /// ends no other way).
-pub fn plan_finished(state: &Json) -> bool {
+pub(crate) fn plan_finished(state: &Json) -> bool {
 	let (step, total) = (state["step"].as_f64(), state["total"].as_f64());
 	// `step >= total` is false when either is missing, so a lesson with no count stays open.
 	let at_last = matches!((step, total), (Some(s), Some(t)) if s >= t) && !state["stop"].truthy();
@@ -52,7 +52,7 @@ pub fn plan_finished(state: &Json) -> bool {
 
 /// Whether the deadline's session last worked in reached its end on `today` (the learner's day,
 /// YYYY-MM-DD).
-pub fn ended_today_for(deadline_id: &str, sessions: &[Json], today: &str) -> bool {
+pub(crate) fn ended_today_for(deadline_id: &str, sessions: &[Json], today: &str) -> bool {
 	let ended_at = last_worked(deadline_id, sessions).and_then(|s| s["endedAt"].as_str()).and_then(time::parse_date);
 	ended_at.is_some_and(|ms| local_day(ms) == today)
 }

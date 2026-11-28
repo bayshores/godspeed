@@ -4,7 +4,7 @@
 use gs_base::{num, time};
 use gs_json::Json;
 
-pub use super::answers::{Tally, collect_answers, facts_by_message, facts_for_answer};
+pub use super::answers::{collect_answers, facts_by_message, facts_for_answer};
 pub use super::derive_progress::derive_progress;
 pub use super::fact_progress::{fact_from, fact_mark, topic_facts};
 
@@ -70,7 +70,7 @@ fn month_offset(y: i64, m: i64) -> i64 {
 }
 
 /// A quiz answer's outcome: "right", "wrong", "dontKnow", or None (not graded or dismissed).
-pub fn answer_outcome(ad: &Json) -> Option<&'static str> {
+pub(crate) fn answer_outcome(ad: &Json) -> Option<&'static str> {
 	if ad["dismissed"].truthy() || ad["kind"].as_str() != Some("quiz") {
 		return None;
 	}
@@ -81,7 +81,7 @@ pub fn answer_outcome(ad: &Json) -> Option<&'static str> {
 }
 
 /// An object with a string `kind`.
-pub fn is_answer_data(v: &Json) -> bool {
+pub(crate) fn is_answer_data(v: &Json) -> bool {
 	v["kind"].as_str().is_some()
 }
 

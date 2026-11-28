@@ -7,7 +7,7 @@ use gs_json::{Json, json};
 use super::file_state::{FileKind, FileStatus};
 
 /// A study file the teacher still has to read.
-pub fn is_waiting_file(file: &Json) -> bool {
+pub(crate) fn is_waiting_file(file: &Json) -> bool {
 	FileKind::of(file) == Some(FileKind::Study) && FileStatus::of(file).is_some_and(FileStatus::is_waiting)
 }
 

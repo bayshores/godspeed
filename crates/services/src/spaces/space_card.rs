@@ -30,7 +30,7 @@ pub fn space_file_path(app: &App, record: &Json, file: &Json) -> Option<String> 
 
 /// Where a space file's text is on this computer: a recording's is its transcript (its lecture's
 /// transcript file, or the one made from it). None when there is none to read.
-pub fn readable_path(app: &App, record: &Json, file: &Json) -> Option<String> {
+pub(crate) fn readable_path(app: &App, record: &Json, file: &Json) -> Option<String> {
 	let covering = file["transcriptId"].as_str().filter(|t| !t.is_empty()).and_then(|t| record["files"].items().iter().find(|f| f["id"].as_str() == Some(t)));
 	if let Some(covering) = covering {
 		return space_file_path(app, record, covering);
@@ -44,7 +44,7 @@ pub fn readable_path(app: &App, record: &Json, file: &Json) -> Option<String> {
 
 /// Where a recording's transcript is kept (inside the app's own space folder: a linked folder is
 /// never written to).
-pub fn transcript_path_of(app: &App, space_id: &str, file_id: &str) -> Option<PathBuf> {
+pub(crate) fn transcript_path_of(app: &App, space_id: &str, file_id: &str) -> Option<PathBuf> {
 	Some(app.stores.spaces.files_dir(space_id).ok()?.join("transcripts").join(format!("{file_id}.txt")))
 }
 
@@ -83,7 +83,7 @@ pub fn space_card_for(app: &App, record: &Json) -> Result<Json, String> {
 }
 
 /// The space graph's topics with how many facts each holds.
-pub fn space_topics(app: &App, space_id: &str) -> Result<Vec<Json>, String> {
+pub(crate) fn space_topics(app: &App, space_id: &str) -> Result<Vec<Json>, String> {
 	let graph = get_graph(graph_store_for(app, Some(space_id)).as_ref())?;
 	let snapshot = app.stores.graphs.read_topics(Some(space_id))?;
 	let fact_ids: Vec<String> = graph.nodes.iter().filter_map(|n| n["id"].as_str().map(str::to_owned)).collect();
@@ -93,7 +93,7 @@ pub fn space_topics(app: &App, space_id: &str) -> Result<Vec<Json>, String> {
 /// Puts (or replaces, or removes) a lesson's space card: the first space-context marker is
 /// swapped for the new space's card; with no space it is dropped; a lesson without one gets it as
 /// its first message. Under the lesson's lock, so a message saved meanwhile is not written over.
-pub fn apply_space_card(app: &App, chat_id: &str, record: Option<&Json>) -> Result<(), String> {
+pub(crate) fn apply_space_card(app: &App, chat_id: &str, record: Option<&Json>) -> Result<(), String> {
 	let _held = app.locks.lock(LockKey::Chat(chat_id));
 	let Some(chat) = app.stores.chats.get_chat(chat_id) else { return Ok(()) };
 	let mut messages = chat["messages"].as_arr().cloned().unwrap_or_default();

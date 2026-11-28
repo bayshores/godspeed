@@ -69,7 +69,7 @@ fn clusters_up_to(units: &[u16], stop: usize) -> usize {
 	count
 }
 
-pub fn is_min_length(units: &[u16], min: usize) -> bool {
+pub(crate) fn is_min_length(units: &[u16], min: usize) -> bool {
 	if min == 0 {
 		return true;
 	}
@@ -88,7 +88,7 @@ pub fn is_min_length(units: &[u16], min: usize) -> bool {
 	}
 }
 
-pub fn is_max_length(units: &[u16], max: usize) -> bool {
+pub(crate) fn is_max_length(units: &[u16], max: usize) -> bool {
 	if units.len() <= max {
 		return true;
 	}

@@ -18,7 +18,7 @@ use gs_services::turns::turn_work::teacher_work;
 use crate::http::reply::{self, Unhandled, error, fields};
 use crate::http::route::ApiRoute;
 
-pub fn routes() -> Router<Arc<App>> {
+pub(crate) fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/teacher-work", ApiRoute::new().get(round).into_route())
 		.route("/api/turns", ApiRoute::new().get(turns).into_route())

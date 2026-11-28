@@ -12,7 +12,7 @@ use gs_services::App;
 use super::paths::{param, query};
 use super::reply;
 
-pub async fn login(app: Arc<App>, uri: Uri, cookie: Option<HeaderValue>) -> Response {
+pub(crate) async fn login(app: Arc<App>, uri: Uri, cookie: Option<HeaderValue>) -> Response {
 	let params = query(&uri);
 	let token = param(&params, "token").unwrap_or_default();
 	let (Some(shell), Some(cookie)) = (&app.shell, cookie) else { return super::refused() };

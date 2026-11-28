@@ -7,7 +7,7 @@ use std::path::Path;
 use gs_base::{fsx, ids, text};
 
 /// `fs.mkdirSync(dir, { recursive: true })`.
-pub fn make_dir(dir: &Path) -> Result<(), String> {
+pub(crate) fn make_dir(dir: &Path) -> Result<(), String> {
 	std::fs::create_dir_all(dir).map_err(|err| {
 		// Windows says "already exists" for a file in the way of a longer path; Node says ENOTDIR.
 		let blocked = cfg!(windows) && err.kind() == io::ErrorKind::AlreadyExists && !dir.exists();
@@ -17,7 +17,7 @@ pub fn make_dir(dir: &Path) -> Result<(), String> {
 
 /// write-file-atomic.ts: a temp file beside the target, synced, then a rename. The temp file's
 /// name is in the error text, which `fsx::write_atomic` does not give.
-pub fn write_file_atomic(file: &Path, content: &str) -> Result<(), String> {
+pub(crate) fn write_file_atomic(file: &Path, content: &str) -> Result<(), String> {
 	if let Some(dir) = file.parent() {
 		make_dir(dir)?;
 	}
@@ -37,7 +37,7 @@ pub fn write_file_atomic(file: &Path, content: &str) -> Result<(), String> {
 
 /// `fs.rmSync(path, { recursive: true, force: true })`: what can go is removed, and a failure
 /// names the path with the OS's own text ("ENOTEMPTY, Directory not empty: '...'").
-pub fn remove_all(path: &Path) -> Result<(), String> {
+pub(crate) fn remove_all(path: &Path) -> Result<(), String> {
 	let Ok(meta) = std::fs::symlink_metadata(path) else { return Ok(()) };
 	let removed = if meta.is_dir() {
 		for entry in std::fs::read_dir(path).into_iter().flatten().flatten() {

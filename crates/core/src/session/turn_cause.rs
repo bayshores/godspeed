@@ -8,15 +8,15 @@ use crate::messages::native_messages::active_problem_of;
 use crate::messages::role::Role;
 
 /// The causes by name, in `TurnCause` order (the window's `TURN_CAUSES`).
-pub const TURN_CAUSES: [&str; 9] = ["first", "answer", "problem", "ask", "next", "retry", "open_problem", "job", "talk"];
+const TURN_CAUSES: [&str; 9] = ["first", "answer", "problem", "ask", "next", "retry", "open_problem", "job", "talk"];
 
 /// The lines the hint and simpler keys send under an open problem (the window's `HELP_LINES`):
 /// asks, never work on it.
-pub const HELP_LINES: [&str; 2] = ["Give me a hint", "Explain it simpler"];
+const HELP_LINES: [&str; 2] = ["Give me a hint", "Explain it simpler"];
 
 /// The line the "I don't know" key sends under an open problem (the window's `DONT_KNOW`): the
 /// teacher writes the next step.
-pub const DONT_KNOW: &str = "I don't know";
+const DONT_KNOW: &str = "I don't know";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TurnCause {

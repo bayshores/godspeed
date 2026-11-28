@@ -5,7 +5,7 @@ use gs_base::re::Re;
 use gs_base::text::trim;
 
 /// `+text`: NaN when the text is not a number literal.
-pub fn string_to_number(text: &str) -> f64 {
+pub(crate) fn string_to_number(text: &str) -> f64 {
 	let t = trim(text);
 	if t.is_empty() {
 		return 0.0;
@@ -41,7 +41,7 @@ fn radix_number(digits: &str, radix: u32) -> f64 {
 }
 
 /// TypeBox's last try for a string number: `"12n"` reads as 12 when it is a safe integer.
-pub fn bigint_literal(text: &str) -> Option<f64> {
+pub(crate) fn bigint_literal(text: &str) -> Option<f64> {
 	let digits = text.strip_suffix('n')?;
 	if !Re::new(r"^-?(0|[1-9]\d*)$", "").test(digits) {
 		return None;

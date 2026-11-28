@@ -109,7 +109,7 @@ impl KeywordIndex {
 }
 
 /// Ids in BM25+ order for the query's words (any word may match), at most `n`.
-pub fn keyword_ranking(index: &KeywordIndex, query: &str, n: usize) -> Vec<String> {
+pub(crate) fn keyword_ranking(index: &KeywordIndex, query: &str, n: usize) -> Vec<String> {
 	index.search(query).into_iter().take(n).map(|(id, _)| id.to_owned()).collect()
 }
 

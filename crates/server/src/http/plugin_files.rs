@@ -46,7 +46,7 @@ fn file_type(ext: &str) -> &'static str {
 	}
 }
 
-pub async fn plugin_file(State(app): State<Arc<App>>, Path((id, file)): Path<(String, String)>, headers: HeaderMap) -> Response {
+pub(crate) async fn plugin_file(State(app): State<Arc<App>>, Path((id, file)): Path<(String, String)>, headers: HeaderMap) -> Response {
 	let host = headers.get(header::HOST).and_then(|h| h.to_str().ok()).unwrap_or_default();
 	let Some(port) = plugin_files_port(host) else { return reply::not_found() };
 	let Some((bytes, manifest)) = served_file(&app, &id, &file).await else { return reply::not_found() };
@@ -67,7 +67,7 @@ fn is_font_name(name: &str) -> bool {
 	name.len() > 6 && name.ends_with(".woff2") && !name.starts_with('.') && name.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
 }
 
-pub async fn plugin_font(State(app): State<Arc<App>>, Path(file): Path<String>, headers: HeaderMap) -> Response {
+pub(crate) async fn plugin_font(State(app): State<Arc<App>>, Path(file): Path<String>, headers: HeaderMap) -> Response {
 	let host = headers.get(header::HOST).and_then(|h| h.to_str().ok()).unwrap_or_default();
 	if plugin_files_port(host).is_none() || !is_font_name(&file) || headers.contains_key(header::COOKIE) {
 		return reply::not_found();

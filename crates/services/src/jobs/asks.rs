@@ -32,12 +32,12 @@ struct Waiting {
 
 /// The questions waiting, oldest first.
 #[derive(Default)]
-pub struct JobAsks(Mutex<Vec<Waiting>>);
+pub(crate) struct JobAsks(Mutex<Vec<Waiting>>);
 
 const DENY: Verdict = Verdict { allow: false, message: None };
 
 /// A job's `approve`: its questions wait on `on` for the learner's answer.
-pub fn approve_on(app: &Arc<App>, on: AskedOn) -> Approve {
+pub(crate) fn approve_on(app: &Arc<App>, on: AskedOn) -> Approve {
 	let app = Arc::downgrade(app);
 	Arc::new(move |ask: Ask| {
 		let (app, on) = (app.clone(), on.clone());
@@ -86,7 +86,7 @@ pub fn answer_job_ask(app: &App, on: &AskedOn, id: &str, allow: bool) -> bool {
 }
 
 /// The cards of the questions waiting on `on`, oldest first.
-pub fn asks_on(app: &App, on: &AskedOn) -> Vec<Json> {
+pub(crate) fn asks_on(app: &App, on: &AskedOn) -> Vec<Json> {
 	app.jobs.asks.0.lock().iter().filter(|w| w.on == *on).map(|w| w.card.clone()).collect()
 }
 

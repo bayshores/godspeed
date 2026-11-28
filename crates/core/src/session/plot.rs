@@ -39,7 +39,7 @@ pub(crate) fn number(v: &Json) -> Option<f64> {
 
 /// A short number for the agent: whole when it has 3 digits or more before the point, else 3
 /// significant digits, with trailing zeros cut; a million or more, or under 0.0001, in e form.
-pub fn short(v: f64) -> String {
+pub(crate) fn short(v: f64) -> String {
 	if !v.is_finite() {
 		return "none".to_owned();
 	}
@@ -520,7 +520,7 @@ fn two_figures(v: f64) -> f64 {
 }
 
 /// Whether an option's words name `value` to 2 significant figures.
-pub fn option_names_value(label: &str, value: f64) -> bool {
+pub(crate) fn option_names_value(label: &str, value: f64) -> bool {
 	let want = two_figures(value);
 	value.is_finite() && named_numbers(label).into_iter().any(|n| (two_figures(n) - want).abs() <= 1e-9 * want.abs().max(1e-300))
 }

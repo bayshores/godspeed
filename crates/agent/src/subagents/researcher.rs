@@ -72,7 +72,7 @@ const WEB_SEARCH: &str = "For each facet, search with web_search, then read the 
 /// Model calls allowed.
 const MAX_TURNS: usize = 12;
 
-pub struct ResearcherRunOptions<'a> {
+pub(crate) struct ResearcherRunOptions<'a> {
 	pub pdf: &'a Pdf,
 	/// The job's temporary folder: web_fetch_pdf downloads land here and every PDF tool is
 	/// scoped to it. The runner makes and removes it.
@@ -100,7 +100,7 @@ fn research_tools(pdf: &Pdf, pdf_dir: &Path, search_key: Option<String>) -> Vec<
 }
 
 /// Runs the researcher to the end: its last text is the brief.
-pub async fn run_researcher_agent(agent: &dyn JobAgent, prompt: &str, opts: ResearcherRunOptions<'_>) -> Result<String, RunError> {
+pub(crate) async fn run_researcher_agent(agent: &dyn JobAgent, prompt: &str, opts: ResearcherRunOptions<'_>) -> Result<String, RunError> {
 	let system_prompt = instructions(opts.search_key.is_some());
 	let tools = research_tools(opts.pdf, opts.pdf_dir, opts.search_key);
 	let mut run = SubagentRunOptions::new(opts.label, &system_prompt, Json::from(prompt), MAX_TURNS);

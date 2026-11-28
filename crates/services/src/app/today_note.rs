@@ -33,12 +33,12 @@ fn note_space(app: &App, space_id: Option<&str>) -> Option<Json> {
 }
 
 /// The note as it stands now, for read_space.
-pub fn current_today_note(app: &App, space_id: Option<&str>) -> String {
+pub(crate) fn current_today_note(app: &App, space_id: Option<&str>) -> String {
 	today_note_text(clock::now_ms(), note_space(app, space_id).as_ref())
 }
 
 /// The note to append before the learner's next message, or None.
-pub fn today_note_for(app: &App, record: &Json) -> Option<Json> {
+pub(crate) fn today_note_for(app: &App, record: &Json) -> Option<Json> {
 	let now = clock::now_ms();
 	let text = today_note_text(now, note_space(app, record["spaceId"].as_str()).as_ref());
 	today_note_to_append(record["messages"].items(), &text, &wall_clock(now).day)

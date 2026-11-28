@@ -16,8 +16,8 @@ pub mod test_support;
 pub mod text;
 pub mod worker;
 
-pub use info::{PdfInfo, PdfPageInfo, may_hold_broken_formulas};
+pub use info::{PdfInfo, may_hold_broken_formulas};
 pub use ops::{PdfSearchHit, PdfShape};
-pub use piece::{Found, Piece, PieceLabel, PiecePart};
+pub use piece::{Found, Piece};
 pub use render::{PageCrop, RenderedPdfPage};
 pub use worker::Pdf;

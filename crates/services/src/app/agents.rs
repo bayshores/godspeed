@@ -34,7 +34,7 @@ pub struct AgentsState {
 
 /// The runtime of the agent picked now. A new pick or start command makes a new one; a session
 /// opened on the old one keeps it until the session closes.
-pub fn runtime(app: &Arc<App>) -> Arc<Runtime> {
+pub(crate) fn runtime(app: &Arc<App>) -> Arc<Runtime> {
 	let (agent, own) = agent_with_command(app);
 	let mut held = app.agents.runtime.lock();
 	if let Some((made_for, command, runtime)) = held.as_ref()

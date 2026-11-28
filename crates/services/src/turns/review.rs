@@ -61,14 +61,14 @@ fn skipped(app: &App, chat_id: &str, record: &Json, now: i64) -> HashSet<String>
 
 /// The open question from earlier in a Study lesson of a space: the next pick for this sitting,
 /// whether or not the window may show one now.
-pub fn open_question(app: &App, chat_id: &str, record: &Json) -> Result<Option<Json>, String> {
+fn open_question(app: &App, chat_id: &str, record: &Json) -> Result<Option<Json>, String> {
 	Ok(sitting_picks(app, chat_id, record)?.into_iter().next())
 }
 
 /// The question from earlier `of` names while it is still one this sitting may ask. The one on
 /// screen may have moved down the picks since it was served (a skip forgotten, a topic stopped,
 /// midnight), and is still his to answer, skip or ask about.
-pub fn askable(app: &App, chat_id: &str, record: &Json, of: &Json) -> Result<Option<Json>, String> {
+pub(crate) fn askable(app: &App, chat_id: &str, record: &Json, of: &Json) -> Result<Option<Json>, String> {
 	Ok(sitting_picks(app, chat_id, record)?.into_iter().find(|q| item_key(&q["of"]) == item_key(of)))
 }
 

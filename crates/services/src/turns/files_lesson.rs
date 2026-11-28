@@ -19,7 +19,7 @@ use crate::graph::progress::progress_for;
 use crate::spaces::space_actions::{CLOSED_SPACE, no_space_text};
 
 /// Most files one lesson works from.
-pub const MAX_LESSON_FILES: usize = 8;
+pub(crate) const MAX_LESSON_FILES: usize = 8;
 
 /// The lesson on `file_ids` (first file first) in `space_id`, or in the space that holds them;
 /// `deadline_id` ties a new one to that deadline. Ok(Err) is the refusal, in words for the

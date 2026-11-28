@@ -6,7 +6,7 @@ use gs_json::json;
 use super::fn_tool::FnTool;
 use gs_core::session::schema::object;
 
-pub fn work_plan_tool() -> FnTool {
+pub(crate) fn work_plan_tool() -> FnTool {
 	let parameters = object(
 		&["items", "done"],
 		vec![

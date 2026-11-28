@@ -22,7 +22,7 @@ const BRIEFING_MAX_CHARS: usize = 8_000;
 /// The talk session's instructions and tools on `agent`. No tool ends the turn: the agent ends it
 /// when it has answered. Each tool is godspeed's data tool as the agent calls it; the agent's name
 /// is what the activity log and saved rules show.
-pub fn talk_setup(app: &Arc<App>, agent: FolderAgent) -> LessonSetup {
+pub(crate) fn talk_setup(app: &Arc<App>, agent: FolderAgent) -> LessonSetup {
 	let caller = agent.label();
 	let tools: Vec<Arc<dyn Tool>> = tool_list()
 		.items()
@@ -45,6 +45,6 @@ pub fn talk_setup(app: &Arc<App>, agent: FolderAgent) -> LessonSetup {
 }
 
 /// The first message of a new talk session: where the learner is now.
-pub fn talk_opening(app: &App) -> String {
+pub(crate) fn talk_opening(app: &App) -> String {
 	current_agent_briefing(app, BRIEFING_MAX_CHARS)
 }

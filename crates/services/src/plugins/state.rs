@@ -26,7 +26,7 @@ fn checked_value(setting: &Json, value: &Json) -> Result<Json, String> {
 }
 
 /// Whether the plugin is on, and every setting's value.
-pub fn resolve_state(manifest: &Json, entry: &Json) -> (bool, Json) {
+pub(crate) fn resolve_state(manifest: &Json, entry: &Json) -> (bool, Json) {
 	let enabled = entry["enabled"].as_bool().unwrap_or(true);
 	let mut values = Obj::new();
 	for setting in manifest["settings"].items() {
@@ -38,7 +38,7 @@ pub fn resolve_state(manifest: &Json, entry: &Json) -> (bool, Json) {
 }
 
 /// The plugin's saved entry (null when there is none).
-pub fn saved_entry(app: &App, id: &str) -> Result<Json, String> {
+pub(crate) fn saved_entry(app: &App, id: &str) -> Result<Json, String> {
 	Ok(app.stores.settings.read_settings()?.map(|record| record[SECTION][id].clone()).unwrap_or(Json::Null))
 }
 
@@ -85,7 +85,7 @@ pub fn set_state(app: &App, id: &str, manifest: &Json, body: &Json) -> Outcome<(
 }
 
 /// Drops a removed plugin's entry.
-pub fn forget_state(app: &App, id: &str) -> Result<(), String> {
+pub(crate) fn forget_state(app: &App, id: &str) -> Result<(), String> {
 	let _held = app.locks.lock(LockKey::AppFile("settings.json"));
 	let Some(mut record) = app.stores.settings.read_settings()? else { return Ok(()) };
 	let Some(section) = record.get_mut(SECTION).and_then(Json::as_obj_mut) else { return Ok(()) };

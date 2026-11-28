@@ -21,7 +21,7 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 const PING_MS: i64 = 25_000;
 
-pub async fn stream(State(app): State<Arc<App>>, method: Method) -> Response {
+pub(crate) async fn stream(State(app): State<Arc<App>>, method: Method) -> Response {
 	// Subscribed before answering, so no event can fall in between.
 	let mut rx = app.events.subscribe();
 	let mut due = clock::now_ms() + PING_MS;

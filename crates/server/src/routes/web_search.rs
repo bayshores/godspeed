@@ -14,7 +14,7 @@ use gs_services::app::web_search::{KeyError, remove_search_key, save_search_key,
 use crate::http::reply::{self, Unhandled, error, fields};
 use crate::http::route::ApiRoute;
 
-pub fn routes() -> Router<Arc<App>> {
+pub(crate) fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/web-search", ApiRoute::new().get(view).into_route())
 		.route("/api/web-search/key", ApiRoute::new().put(save_key).delete(remove_key).into_route())

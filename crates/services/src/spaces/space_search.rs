@@ -20,7 +20,7 @@ fn space_files(app: &App, space_id: &str) -> Vec<Json> {
 
 /// With `formula_notes` (a lesson's with the `pdf` tool on) a result that shows a PDF page whose
 /// formulas may read broken says so.
-pub fn space_search(app: &Arc<App>, space_id: &str, formula_notes: bool) -> SpaceSearch {
+pub(crate) fn space_search(app: &Arc<App>, space_id: &str, formula_notes: bool) -> SpaceSearch {
 	let (search_app, search_space) = (app.clone(), space_id.to_owned());
 	let (read_app, read_space) = (app.clone(), space_id.to_owned());
 	SpaceSearch {

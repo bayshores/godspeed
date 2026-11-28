@@ -30,7 +30,7 @@ impl Drop for WorkDir {
 }
 
 /// The agent the server's jobs run on.
-pub fn job_agent(app: &Arc<App>) -> Arc<dyn JobAgent> {
+pub(crate) fn job_agent(app: &Arc<App>) -> Arc<dyn JobAgent> {
 	Arc::new(AppJobAgent(app.clone()))
 }
 

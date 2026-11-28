@@ -38,12 +38,12 @@ impl fmt::Display for RunError {
 }
 
 /// Called with each model call's tokens.
-pub type OnUsage = Arc<dyn Fn(Usage) + Send + Sync>;
+type OnUsage = Arc<dyn Fn(Usage) + Send + Sync>;
 /// Called before a godspeed tool runs, with its name and arguments. An `Err` ends the job with
 /// that failure before the tool runs.
 pub type OnToolStart = Arc<dyn Fn(&str, &Json) -> Result<(), String> + Send + Sync>;
 /// Called when one of the agent's own tools starts, with its name and input.
-pub type OnOwnTool = Arc<dyn Fn(&str, &Json) + Send + Sync>;
+type OnOwnTool = Arc<dyn Fn(&str, &Json) + Send + Sync>;
 /// The learner's answer to one of the agent's permission questions.
 pub type Approve = Arc<dyn Fn(Ask) -> BoxFuture<'static, Verdict> + Send + Sync>;
 /// Asked once, when the first turn ends, with its last text: input for one more turn, or None.

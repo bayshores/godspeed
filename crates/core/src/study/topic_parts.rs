@@ -56,7 +56,7 @@ pub fn reply_topic(messages: &[Json], first_topic: Option<&str>, reply: &Json) -
 pub const NO_PLOT_YET: &str = "No plot yet in this topic. If its idea is a curve, open with `plot`.";
 
 /// Whether the lesson showed a plot on this topic.
-pub fn has_plot(messages: &[Json], first_topic: Option<&str>, node_id: &str) -> bool {
+pub(crate) fn has_plot(messages: &[Json], first_topic: Option<&str>, node_id: &str) -> bool {
 	visits(messages, first_topic).iter().any(|v| v.plot && v.node_id == node_id)
 }
 

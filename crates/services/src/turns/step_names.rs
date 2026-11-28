@@ -5,7 +5,7 @@ use gs_core::session::teacher_steps::StepNames;
 
 use crate::App;
 
-pub struct AppStepNames<'a>(pub &'a App);
+pub(crate) struct AppStepNames<'a>(pub &'a App);
 
 impl StepNames for AppStepNames<'_> {
 	fn space(&self, id: &str) -> Option<String> {

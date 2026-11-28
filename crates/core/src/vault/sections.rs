@@ -83,7 +83,7 @@ fn starts(line: &str, after_quote: bool) -> Option<Kind> {
 }
 
 /// A section is godspeed's only while this hash is the one it last wrote.
-pub fn hash(text: &str) -> String {
+pub(crate) fn hash(text: &str) -> String {
 	sha256_text(&normal(text))
 }
 
@@ -189,24 +189,24 @@ impl Sections {
 }
 
 /// The text godspeed writes for each section, with `\n` line ends and no trailing newline.
-pub fn recall_text(question: &str) -> String {
+pub(crate) fn recall_text(question: &str) -> String {
 	let lines: Vec<String> = question.trim().lines().map(|l| format!("> {l}")).collect();
 	format!("> [!recall] Without looking at your notes\n{}", lines.join("\n"))
 }
 
-pub fn in_short_text(text: &str) -> String {
+pub(crate) fn in_short_text(text: &str) -> String {
 	format!("## In short\n{}", text.trim())
 }
 
-pub fn my_words_text(words: &str) -> String {
+pub(crate) fn my_words_text(words: &str) -> String {
 	format!("## My words\n{}", words.trim())
 }
 
-pub fn mistakes_text(lines: &[String]) -> String {
+pub(crate) fn mistakes_text(lines: &[String]) -> String {
 	format!("## Mistakes to remember\n{}", lines.join("\n"))
 }
 
-pub fn related_text(names: &[String]) -> String {
+pub(crate) fn related_text(names: &[String]) -> String {
 	let items: Vec<String> = names.iter().map(|n| format!("- [[{n}]]")).collect();
 	format!("## Related\n{}", items.join("\n"))
 }

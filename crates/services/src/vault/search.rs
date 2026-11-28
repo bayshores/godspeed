@@ -19,7 +19,7 @@ fn owner_word(owned_by_godspeed: bool) -> &'static str {
 	if owned_by_godspeed { "godspeed" } else { "you" }
 }
 
-pub fn search_vault(app: &App, args: &Json) -> Result<Json, String> {
+pub(crate) fn search_vault(app: &App, args: &Json) -> Result<Json, String> {
 	let vault = super::setup::setting(app)?.path.ok_or(NO_VAULT)?;
 	match rescan(app) {
 		Ok(_) => {}

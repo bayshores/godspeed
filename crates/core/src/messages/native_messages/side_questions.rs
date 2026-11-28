@@ -12,7 +12,7 @@ use crate::messages::tool_calls;
 
 /// The model's result for a question the learner asked a side question around: providers need a
 /// result right after the call, and the real answer comes later.
-pub const SIDE_PENDING_TEXT: &str = "Not answered yet. The learner asked a side question first. Answer it. The question stays open in their window, so don't repeat it or ask another.";
+pub(crate) const SIDE_PENDING_TEXT: &str = "Not answered yet. The learner asked a side question first. Answer it. The question stays open in their window, so don't repeat it or ask another.";
 
 /// How that later answer (or skip) reaches the model, at its own place.
 pub const SIDE_ANSWER_LEAD: &str = "The learner answered your open question: ";

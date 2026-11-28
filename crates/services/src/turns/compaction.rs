@@ -37,7 +37,7 @@ const REFINE_QUIET_MS: i64 = 5 * 60_000;
 
 /// What a compaction needs from its host (the chat handler builds it per chat).
 #[derive(Clone)]
-pub struct CompactionDeps {
+pub(crate) struct CompactionDeps {
 	/// `provider:id` of the lesson's model, also the summarizer's.
 	pub model_id: String,
 	/// min(the fixed threshold, context window - reserve).
@@ -50,7 +50,7 @@ pub fn summarize_at_tokens(effective: &Json, model: &Json) -> f64 {
 }
 
 /// Builds a chat's deps from its record as it is then; none when the chat is gone.
-pub type BuildDeps = Arc<dyn Fn() -> Option<CompactionDeps> + Send + Sync>;
+type BuildDeps = Arc<dyn Fn() -> Option<CompactionDeps> + Send + Sync>;
 
 /// Cuts the record and adds godspeed's own short version of what was cut, when the lesson's
 /// transcript is over the threshold. Never while a turn owns the chat.
@@ -103,13 +103,13 @@ fn shorten_logged(app: &App, deps: &CompactionDeps, chat_id: &str) {
 }
 
 /// The turn-start gate: a turn starts on a record that fits.
-pub fn ensure_compacted(app: &App, deps: &CompactionDeps, chat_id: &str) {
+pub(crate) fn ensure_compacted(app: &App, deps: &CompactionDeps, chat_id: &str) {
 	shorten_logged(app, deps, chat_id);
 }
 
 /// The settle kick: shortens now if the turn pushed the lesson over, and (re)starts the quiet wait
 /// for the real summary.
-pub fn kick_compaction(app: &Arc<App>, build_deps: BuildDeps, chat_id: &str) {
+pub(crate) fn kick_compaction(app: &Arc<App>, build_deps: BuildDeps, chat_id: &str) {
 	let Some(deps) = build_deps() else { return };
 	shorten_logged(app, &deps, chat_id);
 	refine_when_quiet(app, build_deps, chat_id, REFINE_QUIET_MS);
@@ -156,7 +156,7 @@ impl Drop for Refining<'_> {
 
 /// Replaces the chat's local shortening with the model's summary of the same messages. Keeps the
 /// record as it is when the summary fails or comes back empty, or when a newer marker took over.
-pub async fn refine(app: &Arc<App>, deps: &CompactionDeps, chat_id: &str) {
+async fn refine(app: &Arc<App>, deps: &CompactionDeps, chat_id: &str) {
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return };
 	let messages = record["messages"].items();
 	let Some(marker) = active_compaction_of(messages).filter(|m| m["details"]["local"].truthy()).cloned() else { return };

@@ -6,14 +6,14 @@ use axum::http::Uri;
 
 /// What to do with a request target (`/path?query`).
 #[derive(Debug, PartialEq)]
-pub enum Target {
+pub(crate) enum Target {
 	/// Redirect here (path and query).
 	Redirect(String),
 	/// Route this path (still percent-encoded, dot segments resolved) with this query (`?…` or "").
 	Route { path: String, query: String },
 }
 
-pub fn normalize(target: &str) -> Target {
+pub(crate) fn normalize(target: &str) -> Target {
 	let (path, query) = target.find('?').map_or((target, ""), |i| target.split_at(i));
 	let messy = path.contains('\\') || path.contains("//");
 	let mut clean = if messy { collapse_slashes(&path.replace('\\', "/")) } else { path.to_string() };
@@ -74,7 +74,7 @@ fn resolve_dots(path: &str) -> String {
 }
 
 /// `decodeURIComponent`: None where it would throw (a bad `%` escape or bytes that are not UTF-8).
-pub fn decode_component(s: &str) -> Option<String> {
+fn decode_component(s: &str) -> Option<String> {
 	let bytes = s.as_bytes();
 	let mut out = Vec::with_capacity(bytes.len());
 	let mut i = 0;
@@ -92,12 +92,12 @@ pub fn decode_component(s: &str) -> Option<String> {
 }
 
 /// The path's segments decoded, as Next hands them to a catch-all route; None when one fails.
-pub fn decoded_segments(path: &str) -> Option<Vec<String>> {
+pub(crate) fn decoded_segments(path: &str) -> Option<Vec<String>> {
 	path.split('/').filter(|s| !s.is_empty()).map(decode_component).collect()
 }
 
 /// `URLSearchParams`: `+` is a space and bad escapes or bytes become U+FFFD instead of failing.
-pub fn search_params(query: &str) -> Vec<(String, String)> {
+pub(crate) fn search_params(query: &str) -> Vec<(String, String)> {
 	let decode = |s: &str| {
 		let s = s.replace('+', " ");
 		let bytes = s.as_bytes();
@@ -129,12 +129,12 @@ pub fn search_params(query: &str) -> Vec<(String, String)> {
 }
 
 /// The request's query as `URLSearchParams` reads it.
-pub fn query(uri: &Uri) -> Vec<(String, String)> {
+pub(crate) fn query(uri: &Uri) -> Vec<(String, String)> {
 	search_params(uri.query().unwrap_or_default())
 }
 
 /// `URLSearchParams.get`: the first value for `key`.
-pub fn param<'a>(params: &'a [(String, String)], key: &str) -> Option<&'a str> {
+pub(crate) fn param<'a>(params: &'a [(String, String)], key: &str) -> Option<&'a str> {
 	params.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
 }
 

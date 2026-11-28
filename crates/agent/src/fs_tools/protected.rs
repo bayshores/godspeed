@@ -111,7 +111,7 @@ fn parts(path: &Path) -> Vec<String> {
 
 /// The path with symlinks settled. A part that does not exist yet stays as written, below the
 /// real form of the nearest folder that does.
-pub fn real_path(path: &Path) -> PathBuf {
+pub(crate) fn real_path(path: &Path) -> PathBuf {
 	if let Ok(real) = std::fs::canonicalize(path) {
 		return fsx::without_long_prefix(real);
 	}

@@ -14,7 +14,7 @@ pub fn is_plugin_id(id: &str) -> bool {
 }
 
 /// A setting value as stored: a boolean, a finite number or a string.
-pub fn is_setting_value(value: &Json) -> bool {
+fn is_setting_value(value: &Json) -> bool {
 	match value {
 		Json::Bool(_) | Json::Str(_) => true,
 		Json::Num(n) => n.is_finite(),
@@ -36,7 +36,7 @@ fn sanitize_entry(raw: &Json) -> Json {
 }
 
 /// The section with entries for plugin ids only, each an object.
-pub fn sanitize_plugin_settings(raw: &Json) -> Json {
+pub(crate) fn sanitize_plugin_settings(raw: &Json) -> Json {
 	let Some(entries) = raw.as_obj() else { return Json::Obj(Obj::new()) };
 	Json::Obj(entries.iter().filter(|(id, entry)| is_plugin_id(id) && entry.as_obj().is_some()).map(|(id, entry)| (id.clone(), sanitize_entry(entry))).collect())
 }

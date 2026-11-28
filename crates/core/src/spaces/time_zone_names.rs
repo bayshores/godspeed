@@ -796,7 +796,7 @@ static ZONES: [(&str, u16); 597] = [
 ];
 
 /// The generic name of a zone, or None when Intl has none.
-pub fn generic_name(zone: &str) -> Option<&'static str> {
+pub(crate) fn generic_name(zone: &str) -> Option<&'static str> {
 	ZONES.binary_search_by_key(&zone, |(name, _)| name).ok().map(|at| LABELS[usize::from(ZONES[at].1)])
 }
 

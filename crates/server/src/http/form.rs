@@ -4,21 +4,14 @@
 
 use crate::http::paths::search_params;
 
-pub struct Entry {
+pub(crate) struct Entry {
 	pub name: String,
 	/// Set for a file part (a part with a filename).
 	pub file_name: Option<String>,
 	pub value: Vec<u8>,
 }
 
-impl Entry {
-	/// A text entry's value (UTF-8 without taking off a BOM, bad bytes as U+FFFD).
-	pub fn text(&self) -> String {
-		String::from_utf8_lossy(&self.value).into_owned()
-	}
-}
-
-pub fn parse(content_type: &str, body: &[u8]) -> Option<Vec<Entry>> {
+pub(crate) fn parse(content_type: &str, body: &[u8]) -> Option<Vec<Entry>> {
 	let (essence, params) = content_type_of(content_type)?;
 	if essence == "application/x-www-form-urlencoded" {
 		let text = String::from_utf8_lossy(body);
@@ -397,7 +390,7 @@ mod tests {
 						.iter()
 						.map(|e| match &e.file_name {
 							Some(file_name) => gs_json::json!({ "name": e.name.as_str(), "fileName": file_name.as_str(), "hex": hex(&e.value) }),
-							None => gs_json::json!({ "name": e.name.as_str(), "text": e.text() }),
+							None => gs_json::json!({ "name": e.name.as_str(), "text": String::from_utf8_lossy(&e.value) }),
 						})
 						.collect(),
 				)

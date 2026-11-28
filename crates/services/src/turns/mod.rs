@@ -40,9 +40,8 @@ use parking_lot::Mutex;
 use tokio::sync::Notify;
 
 pub use agent_catch_up::catch_up;
-pub use attachments::{AttachmentError, store_attachments};
-pub use chat_handler::{ChatReply, handle_chat_input, send_first_message};
-pub use chats::{Refusal, quiesce_chat_for_rewrite, running_work_blocker};
+pub use chat_handler::{ChatReply, handle_chat_input};
+pub(crate) use chat_handler::send_first_message;
 pub use lesson_setup::every_turn_rules_for;
 pub use lessons::create_lesson;
 pub use turn_liveness::is_turn_running;

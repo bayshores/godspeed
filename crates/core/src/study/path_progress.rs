@@ -13,7 +13,7 @@ use super::study::study_tier;
 /// `{goal, topics: [{id, name, covers, answered, right[, hinted], wrong, dontKnow, rate, status,
 /// color}], nextId}` for a saved path, over every graded answer of the space and the plan nodes
 /// of today's Study sessions.
-pub fn path_progress(path: &Json, answers: &[&Json], studied_today: &HashSet<String>) -> Json {
+pub(crate) fn path_progress(path: &Json, answers: &[&Json], studied_today: &HashSet<String>) -> Json {
 	let mut by_node: HashMap<&str, Vec<&Json>> = HashMap::new();
 	for a in answers {
 		if let Some(node) = a["nodeId"].as_str() {

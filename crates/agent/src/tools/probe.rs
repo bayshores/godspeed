@@ -24,12 +24,12 @@ pub struct ProbeDoneContext {
 /// This turn's probe state. The stored record only updates when the turn ends, so it cannot see a
 /// question or a probe_done from earlier in the same turn.
 #[derive(Default)]
-pub struct ProbeGate {
+pub(crate) struct ProbeGate {
 	pub question_posed: AtomicBool,
 	pub concluded: AtomicBool,
 }
 
-pub fn probe_done_tool(ctx: &ProbeDoneContext, gate: &Arc<ProbeGate>) -> FnTool {
+pub(crate) fn probe_done_tool(ctx: &ProbeDoneContext, gate: &Arc<ProbeGate>) -> FnTool {
 	let (ctx, gate) = (ctx.clone(), gate.clone());
 	let description = "Conclude the probing phase and hand off to the teaching phase. Call this ONCE, when the probe is \
 		complete: every strand the lesson depends on is bracketed (a floor he reliably gets right AND a \

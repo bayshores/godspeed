@@ -25,13 +25,14 @@ mod to_llm;
 mod turn_input;
 
 pub use context_cards::{space_card_text, space_files_text, new_space_context_message, new_graph_context_message, new_study_context_message};
-pub use scans::{ActiveProblem, DanglingQuestion, active_problem_of, dangling_question_of, has_probe_done, pending_problem_dismissal_of, problem_input_for_conclude, retry_context};
-pub use side_questions::{HeldQuestion, SIDE_ANSWER_LEAD, SIDE_PENDING_TEXT, is_side_turn, open_question_held, side_held_questions};
+pub use scans::{active_problem_of, dangling_question_of, has_probe_done, pending_problem_dismissal_of, problem_input_for_conclude, retry_context};
+pub(crate) use scans::ActiveProblem;
+pub use side_questions::{SIDE_ANSWER_LEAD, is_side_turn, open_question_held, side_held_questions};
 pub use summary_guard::summary_folds_throw;
 pub use to_llm::to_llm_messages;
 pub use turn_input::turn_input;
 
-pub const SEND_TO_USER_TOOL: &str = "send_to_user";
+pub(crate) const SEND_TO_USER_TOOL: &str = "send_to_user";
 
 /// The practice agent's two tools (the conclude-before-next-problem gate's vocabulary).
 pub const PRACTICE_PROBLEM_TOOL: &str = "problem";
@@ -173,7 +174,7 @@ pub fn new_next_message() -> Json {
 }
 
 /// The learner's pick of a homework problem: a go-ahead naming the one to open.
-pub fn new_open_problem_message(number: &str) -> Json {
+pub(crate) fn new_open_problem_message(number: &str) -> Json {
 	Json::Obj(marker(new_message_id(), "practice-next", open_problem_text(number), true, json!({ "number": number })))
 }
 

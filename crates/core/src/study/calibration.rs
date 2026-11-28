@@ -5,7 +5,7 @@ use gs_json::{Json, Obj, json};
 
 /// Per confidence level the right rate against what the level claims, and the newest 5 wrong
 /// answers given at level 4-5. `answers` are the space's graded answers.
-pub fn calibration(answers: &[&Json], title_of: impl Fn(&str) -> String) -> Json {
+pub(crate) fn calibration(answers: &[&Json], title_of: impl Fn(&str) -> String) -> Json {
 	let levels: Vec<Json> = (1..=5)
 		.map(|level| {
 			let at: Vec<&&Json> = answers.iter().filter(|a| a["level"].as_i64() == Some(level) && a["outcome"].as_str() != Some("dontKnow")).collect();

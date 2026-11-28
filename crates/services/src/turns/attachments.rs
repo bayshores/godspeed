@@ -23,7 +23,7 @@ pub enum AttachmentError {
 }
 
 /// `save_pdf(file_name, bytes)`: saves a PDF and returns its path.
-pub type SavePdf<'a> = dyn FnMut(&str, &[u8]) -> Result<String, String> + 'a;
+type SavePdf<'a> = dyn FnMut(&str, &[u8]) -> Result<String, String> + 'a;
 
 /// Stores the files in order, each PDF's note worded for `reader`. A PDF listed before a bad file
 /// is already saved when the error comes back, as in the TS.
@@ -47,7 +47,7 @@ fn pdf_part(name: &str, bytes: &[u8], reader: PdfReader, save_pdf: &mut SavePdf)
 
 /// The learner's own name for a PDF they attached in a chat, from the note beside it in that
 /// chat's record: the saved file's name starts with its content's hash. None for any other path.
-pub fn attached_pdf_name(app: &App, path: &str) -> Option<String> {
+pub(crate) fn attached_pdf_name(app: &App, path: &str) -> Option<String> {
 	let at = resolve(Path::new(path));
 	let chat_dir = at.parent().filter(|dir| dir.parent() == Some(resolve(&app.paths.chats).as_path()))?;
 	let record = app.stores.chats.get_chat(chat_dir.file_name()?.to_str()?)?;

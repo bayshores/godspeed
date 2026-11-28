@@ -13,9 +13,9 @@ use super::fn_tool::FnTool;
 use gs_core::session::schema::{boolean, object, string, string_min};
 
 /// Saves the space note and gives the tool's reply.
-pub type SetNote = Arc<dyn Fn(&str) -> String + Send + Sync>;
+type SetNote = Arc<dyn Fn(&str) -> String + Send + Sync>;
 /// Searches the space's files for a query, at most `limit` passages.
-pub type SearchFiles = Box<dyn Fn(String, usize) -> BoxFuture<'static, Result<String, String>> + Send + Sync>;
+type SearchFiles = Box<dyn Fn(String, usize) -> BoxFuture<'static, Result<String, String>> + Send + Sync>;
 
 /// What the space tools close over. Present only for lessons in a space.
 #[derive(Clone)]
@@ -38,7 +38,7 @@ pub struct SpaceSearch {
 }
 
 /// read_space, then the note tool and the search tools when their readers exist.
-pub fn space_tools(ctx: &SpaceToolContext) -> Vec<FnTool> {
+pub(crate) fn space_tools(ctx: &SpaceToolContext) -> Vec<FnTool> {
 	let mut tools = vec![read_space_tool(ctx)];
 	if let Some(set_note) = &ctx.set_note {
 		tools.push(set_space_note_tool(set_note.clone()));

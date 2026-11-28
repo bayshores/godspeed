@@ -28,7 +28,7 @@ use super::practice::record_messages;
 use super::questions::{node_ids_in, study_quiz_call};
 
 /// The tools whose calls it may hold: the plot, and the quiz as a guess.
-pub const HOLDS: [&str; 2] = [PLOT_TOOL, QUIZ_TOOL];
+pub(crate) const HOLDS: [&str; 2] = [PLOT_TOOL, QUIZ_TOOL];
 
 /// What the agent reads for a plot the hook never decided on, which only a plot tool run without
 /// its hook can meet.

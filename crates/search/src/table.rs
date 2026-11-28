@@ -15,7 +15,7 @@ use crate::keyword::KeywordIndex;
 /// Bump when the stored rows change shape.
 const FORMAT: f64 = 1.0;
 
-pub struct Table {
+pub(crate) struct Table {
 	/// Passages `{ id, fileId, range, from, to, text, hash }` or facts `{ id, hash }`, kept as read.
 	/// A table written from another shares its rows, as the TS's filtered arrays share objects.
 	pub rows: Vec<Arc<Json>>,
@@ -75,7 +75,7 @@ fn with_suffix(base: &Path, suffix: &str) -> PathBuf {
 
 /// The table at `base`; empty when absent, unreadable, from another model or format, or when its
 /// two files disagree.
-pub fn load(base: &Path) -> Table {
+pub(crate) fn load(base: &Path) -> Table {
 	let Ok(text) = fsx::read_text(&with_suffix(base, ".json")) else { return Table::empty() };
 	let Ok(mut meta) = parse(&text) else { return Table::empty() };
 	drop(text);
@@ -99,7 +99,7 @@ pub fn load(base: &Path) -> Table {
 /// into place, as the TS's writeTable does. Both stream to disk: the text is written row by row, as
 /// `JSON.stringify` of `{ format, model, rows, files? }` would. An index rebuild writes its table
 /// once per file, and whole copies of it lingered as freed memory.
-pub fn save(base: &Path, table: &Table) -> io::Result<()> {
+pub(crate) fn save(base: &Path, table: &Table) -> io::Result<()> {
 	let vectors = |out: &mut dyn Write| table.vectors.iter().try_for_each(|v| out.write_all(&v.to_le_bytes()));
 	let rows = |out: &mut dyn Write| {
 		write!(out, "{{\"format\":{},\"model\":{},\"rows\":[", js_number(FORMAT), quote(MODEL_ID))?;

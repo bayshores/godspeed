@@ -38,7 +38,7 @@ impl Drop for Asking {
 }
 
 /// The running requests, as the activity feed's request rows: `{ id, title, startedAt }`.
-pub fn plugin_ask_rows(app: &App) -> Vec<Json> {
+pub(crate) fn plugin_ask_rows(app: &App) -> Vec<Json> {
 	app.plugins.asking.lock().values().cloned().collect()
 }
 

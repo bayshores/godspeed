@@ -10,7 +10,7 @@ use gs_engine::turn::tool_execute::server_execute;
 use gs_json::Json;
 
 /// What a call does: the validated arguments in, pi's result record (or a throw) out.
-pub type Run = Arc<dyn Fn(Json, ToolContext) -> BoxFuture<'static, Result<Json, String>> + Send + Sync>;
+pub(crate) type Run = Arc<dyn Fn(Json, ToolContext) -> BoxFuture<'static, Result<Json, String>> + Send + Sync>;
 type Prepare = Arc<dyn Fn(Json) -> Result<Json, String> + Send + Sync>;
 
 #[derive(Clone)]

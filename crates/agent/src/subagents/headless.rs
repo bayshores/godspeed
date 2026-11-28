@@ -43,7 +43,7 @@ pub trait HeadlessApi: Send + Sync {
 }
 
 /// What the Node server said when it found neither its browser helper nor a Chrome.
-pub const NO_CHROME_MESSAGE: &str = "No render engine available: the app's own browser helper failed to start and no system Chrome/Chromium was found. Install Google Chrome or set CHROME_PATH to a Chrome executable. (Verification is mandatory — demos are never delivered untested.)";
+pub(crate) const NO_CHROME_MESSAGE: &str = "No render engine available: the app's own browser helper failed to start and no system Chrome/Chromium was found. Install Google Chrome or set CHROME_PATH to a Chrome executable. (Verification is mandatory — demos are never delivered untested.)";
 
 /// The server's checks; `pdf` renders PDF pages and `shell` runs pages in the app's browser.
 pub fn get_headless(pdf: &Pdf, shell: Option<&ShellLink>) -> Arc<dyn HeadlessApi> {

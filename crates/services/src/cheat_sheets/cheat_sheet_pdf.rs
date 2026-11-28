@@ -27,7 +27,7 @@ fn real_path(path: &Path) -> Option<PathBuf> {
 	std::fs::canonicalize(path).ok().map(fsx::without_long_prefix)
 }
 
-pub async fn take_sheet_pdf(app: &App, folder: &Path, pdf_path: &str) -> Result<TakenPdf, String> {
+pub(crate) async fn take_sheet_pdf(app: &App, folder: &Path, pdf_path: &str) -> Result<TakenPdf, String> {
 	let file = inside(folder, pdf_path)?;
 	let stat = std::fs::metadata(&file).map_err(|e| node_error_message(&e, "stat", &file))?;
 	if !stat.is_file() {

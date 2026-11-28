@@ -26,18 +26,18 @@ struct Runs {
 
 /// The live state inside `App`.
 #[derive(Default)]
-pub struct MockRunsState(Mutex<Runs>);
+pub(crate) struct MockRunsState(Mutex<Runs>);
 
 /// The key of a mock's request.
-pub fn mock_run_key(space_id: &str, mock_id: &str) -> String {
+pub(crate) fn mock_run_key(space_id: &str, mock_id: &str) -> String {
 	format!("{space_id}/{mock_id}")
 }
 
-pub fn is_running(app: &App, key: &str) -> bool {
+pub(crate) fn is_running(app: &App, key: &str) -> bool {
 	app.mocks.runs.0.lock().running.contains_key(key)
 }
 
-pub fn run_error(app: &App, key: &str) -> Option<String> {
+pub(crate) fn run_error(app: &App, key: &str) -> Option<String> {
 	app.mocks.runs.0.lock().failed.get(key).cloned()
 }
 
@@ -69,7 +69,7 @@ impl Drop for RunEnd {
 }
 
 /// Starts `work` under `key`; false when that key's request is still out.
-pub fn start_run<F>(app: &Arc<App>, space_id: &str, key: &str, work: impl FnOnce(Abort) -> F) -> bool
+pub(crate) fn start_run<F>(app: &Arc<App>, space_id: &str, key: &str, work: impl FnOnce(Abort) -> F) -> bool
 where
 	F: Future<Output = Result<(), String>> + Send + 'static,
 {
@@ -102,7 +102,7 @@ where
 }
 
 /// Stops one key's request and forgets its failure.
-pub fn cancel_run(app: &App, key: &str) {
+pub(crate) fn cancel_run(app: &App, key: &str) {
 	let stopped = {
 		let mut runs = app.mocks.runs.0.lock();
 		runs.failed.remove(key);
@@ -115,7 +115,7 @@ pub fn cancel_run(app: &App, key: &str) {
 }
 
 /// Stops everything a deleted space's mocks had out.
-pub fn cancel_mock_runs(app: &App, space_id: &str) {
+pub(crate) fn cancel_mock_runs(app: &App, space_id: &str) {
 	let keys: Vec<String> = {
 		let runs = app.mocks.runs.0.lock();
 		let mine = |key: &&String| key.strip_prefix(space_id).is_some_and(|rest| rest.starts_with('/'));

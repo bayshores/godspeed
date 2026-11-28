@@ -16,7 +16,7 @@ const CLAUDE_FLOOR: &str = "2.1.331";
 /// The oldest Codex whose app-server has client tools as godspeed uses them.
 const CODEX_FLOOR: &str = "0.169.0";
 /// The oldest version of `agent` godspeed runs.
-pub fn floor(agent: FolderAgent) -> &'static str {
+pub(crate) fn floor(agent: FolderAgent) -> &'static str {
 	match agent {
 		FolderAgent::Claude => CLAUDE_FLOOR,
 		FolderAgent::Codex => CODEX_FLOOR,

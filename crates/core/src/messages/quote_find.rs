@@ -5,7 +5,7 @@
 use gs_json::lone::to_utf16;
 
 /// The longest quote, in UTF-16 units.
-pub const QUOTE_MAX: usize = 80;
+const QUOTE_MAX: usize = 80;
 
 /// Why a quote is not marked.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -68,7 +68,7 @@ fn is_hyphen(unit: u16) -> bool {
 /// The text as it is matched, for each of its units the offset in `text` it came from, and
 /// whether a hyphen was dropped right before it. A run of spaces and line ends is one space, none
 /// at either end; a hyphen that splits a word at a line end is dropped with the line end.
-pub fn fold_for_match(text: &str) -> (Vec<u16>, Vec<usize>, Vec<bool>) {
+fn fold_for_match(text: &str) -> (Vec<u16>, Vec<usize>, Vec<bool>) {
 	let units = to_utf16(text);
 	let (mut folded, mut from) = (Vec::with_capacity(units.len()), Vec::with_capacity(units.len()));
 	let mut soft = Vec::with_capacity(units.len());

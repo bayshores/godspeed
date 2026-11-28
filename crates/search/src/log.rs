@@ -51,7 +51,7 @@ const LN2: Dd = Dd(std::f64::consts::LN_2, 2.319_046_813_846_299_6e-17);
 const TERMS: u32 = 24;
 
 /// `Math.log(x)`.
-pub fn js_log(x: f64) -> f64 {
+pub(crate) fn js_log(x: f64) -> f64 {
 	if x.is_nan() || x < 0.0 {
 		return f64::NAN;
 	}

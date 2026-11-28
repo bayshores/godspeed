@@ -40,7 +40,7 @@ pub fn is_latest_wrong(status: &str, latest: Option<&str>) -> bool {
 }
 
 /// Whether a progress topic's newest answer was wrong on a topic still weak (see `is_latest_wrong`).
-pub fn is_topic_latest_wrong(t: &Json) -> bool {
+pub(crate) fn is_topic_latest_wrong(t: &Json) -> bool {
 	is_latest_wrong(t["status"].str_or_empty(), t["answers"].items().last().and_then(|a| a["outcome"].as_str()))
 }
 
@@ -154,7 +154,7 @@ pub fn nearest_topics(hits: &[String], topics: &[Json]) -> Vec<Json> {
 
 /// Where a topic stands on a Study click that moves on, lowest first: not strong and not studied
 /// today, then not strong but studied today, then strong.
-pub fn study_tier(status: &str, id: &str, studied_today: &HashSet<String>) -> u8 {
+pub(crate) fn study_tier(status: &str, id: &str, studied_today: &HashSet<String>) -> u8 {
 	if status == "strong" {
 		2
 	} else if studied_today.contains(id) {

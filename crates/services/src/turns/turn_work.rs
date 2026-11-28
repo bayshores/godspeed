@@ -86,7 +86,7 @@ fn round_changed(app: &App) {
 }
 
 /// One step: its words, the reply's tool call it stands for, the file and place it reads.
-pub fn note_step(app: &App, chat_id: &str, step: TeacherStep, call: Option<&str>, reads: Option<Json>) {
+fn note_step(app: &App, chat_id: &str, step: TeacherStep, call: Option<&str>, reads: Option<Json>) {
 	let mut desk = step_head(step.text, clock::now_ms());
 	desk.insert("call", call);
 	desk.insert("reads", reads);

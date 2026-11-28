@@ -20,7 +20,7 @@ use std::sync::Arc;
 use axum::Router;
 use gs_services::App;
 
-pub fn api() -> Router<Arc<App>> {
+pub(crate) fn api() -> Router<Arc<App>> {
 	Router::new()
 		.merge(agent::routes())
 		.merge(app::routes())

@@ -52,7 +52,7 @@ pub fn wall_clock(ms: i64) -> WallClock {
 }
 
 /// `wall_clock` of an ISO time, or `new Date(iso)`'s "Invalid time value" when it isn't one.
-pub fn wall_clock_of_iso(iso: &str) -> Result<WallClock, String> {
+pub(crate) fn wall_clock_of_iso(iso: &str) -> Result<WallClock, String> {
 	time::parse_date(iso).map(wall_clock).ok_or_else(|| "Invalid time value".to_owned())
 }
 
@@ -139,7 +139,7 @@ pub fn when_label(deadline: &Json) -> String {
 }
 
 /// "today", "tomorrow" or "in 3 days".
-pub fn relative_day(days: i64) -> String {
+fn relative_day(days: i64) -> String {
 	match days {
 		0 => "today".to_owned(),
 		1 => "tomorrow".to_owned(),

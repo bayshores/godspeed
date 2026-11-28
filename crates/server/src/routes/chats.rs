@@ -50,7 +50,7 @@ use crate::http::paths::{param, query};
 use crate::http::reply::{self, Unhandled, error, fields, json_body};
 use crate::http::route::ApiRoute;
 
-pub fn routes() -> Router<Arc<App>> {
+pub(crate) fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/chat", ApiRoute::new().post(chat).into_route())
 		.route("/api/chats", ApiRoute::new().get(list).post(create).into_route())

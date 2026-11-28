@@ -17,6 +17,6 @@ impl From<String> for Stop {
 
 pub type Outcome<T> = Result<T, Stop>;
 
-pub fn refuse<T>(status: u16, error: impl Into<String>) -> Outcome<T> {
+pub(crate) fn refuse<T>(status: u16, error: impl Into<String>) -> Outcome<T> {
 	Err(Stop::Refuse(status, error.into()))
 }

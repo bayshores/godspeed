@@ -101,7 +101,7 @@ fn worked(list: &Json) -> (usize, usize) {
 /// file is not in the space keeps its own. When two deadlines name one file, the list with more
 /// done marks stays on it (then the longer one, then the first), since the other is the less
 /// worked copy of the same sheet.
-pub fn move_lists_to_files(files: &mut [Json], deadlines: &mut [Json]) {
+pub(crate) fn move_lists_to_files(files: &mut [Json], deadlines: &mut [Json]) {
 	for deadline in deadlines.iter_mut() {
 		let Some(f) = assignment_at(files, deadline) else { continue };
 		let Some(list) = deadline.as_obj_mut().and_then(|d| d.remove("problems")) else { continue };

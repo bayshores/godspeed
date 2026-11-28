@@ -16,7 +16,7 @@ use gs_services::plugins::{ask_agent, install_from_folder, install_from_list, in
 use crate::http::reply::{self, Unhandled, error, json, json_body};
 use crate::http::route::ApiRoute;
 
-pub fn routes() -> Router<Arc<App>> {
+pub(crate) fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/plugins", ApiRoute::new().get(list).post(install).into_route())
 		.route("/api/plugins/{id}", ApiRoute::new().put(change).delete(remove).into_route())

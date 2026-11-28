@@ -32,7 +32,7 @@ const LONG_PROBLEM_MINUTES: i64 = 25;
 /// and a gap of 30 minutes or more starts a new sitting, which counts from zero. The caller passes
 /// the times since the last stop (its `at` first), so the count runs from the sitting start or the
 /// last stop, whichever is later. Whole minutes, rounded down.
-pub fn active_minutes(timestamps: &[f64], now_ms: f64) -> i64 {
+fn active_minutes(timestamps: &[f64], now_ms: f64) -> i64 {
 	let mut points: Vec<f64> = timestamps.iter().copied().filter(|t| *t <= now_ms).collect();
 	points.sort_by(f64::total_cmp);
 	points.push(now_ms);
@@ -220,7 +220,7 @@ pub fn topic_done_stored(messages: &[Json], node_id: &str) -> bool {
 /// Whether the agent should get the [Resumed] line with the learner's next input: the newest stop
 /// was kept going in a later sitting, and no input of his has reached the agent since that Keep
 /// going.
-pub fn resume_due(messages: &[Json]) -> bool {
+pub(crate) fn resume_due(messages: &[Json]) -> bool {
 	let Some(last) = record_stops(messages).pop() else { return false };
 	let Some((index, keep)) = keep_going_markers(messages).find(|(_, k)| k["stopOf"].as_str() == Some(last.stop_of)) else { return false };
 	let times: Vec<f64> = messages.iter().filter_map(|m| m["timestamp"].as_f64()).collect();
@@ -301,7 +301,7 @@ fn stored_openers(messages: &[Json]) -> Vec<StoredOpener<'_>> {
 }
 
 /// The topics the lesson finished: the nodes of its topic stops.
-pub fn ended_topics(messages: &[Json]) -> HashSet<String> {
+pub(crate) fn ended_topics(messages: &[Json]) -> HashSet<String> {
 	record_stops(messages).into_iter().filter(|s| s.stop["kind"].as_str() == Some("topic")).filter_map(|s| s.node_id).collect()
 }
 
@@ -326,7 +326,7 @@ pub fn has_opener(messages: &[Json], stop_of: &str) -> bool {
 
 /// The node ids of shown openers' questions, by topic_done call id (the native plan position reads
 /// them).
-pub fn opener_nodes(messages: &[Json]) -> HashMap<String, String> {
+pub(crate) fn opener_nodes(messages: &[Json]) -> HashMap<String, String> {
 	shown_openers(messages).iter().filter_map(|(id, opener)| opener["quiz"]["nodeId"].as_str().map(|node| (id.clone(), node.to_owned()))).collect()
 }
 

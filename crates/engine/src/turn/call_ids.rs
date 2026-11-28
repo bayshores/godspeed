@@ -32,7 +32,7 @@ pub fn collect_tool_call_ids(messages: &[Json]) -> Vec<String> {
 	ids
 }
 
-pub struct ToolCallIdUniquifier {
+pub(crate) struct ToolCallIdUniquifier {
 	seen: HashSet<String>,
 	tables: Vec<HashMap<String, String>>,
 	/// The current assistant message's table.

@@ -16,7 +16,7 @@ use crate::graph::extraction::extraction;
 use super::reply::{failure, result};
 use super::{ToolCall, space_arg};
 
-pub async fn search_graph(call: &ToolCall<'_>, args: &Json) -> Json {
+pub(crate) async fn search_graph(call: &ToolCall<'_>, args: &Json) -> Json {
 	let app = call.app;
 	let scope = match space_arg(app, args["space_id"].as_str()) {
 		Ok(scope) => scope,
@@ -29,7 +29,7 @@ pub async fn search_graph(call: &ToolCall<'_>, args: &Json) -> Json {
 	}
 }
 
-pub fn import_notes(call: &ToolCall<'_>, args: &Json) -> Json {
+pub(crate) fn import_notes(call: &ToolCall<'_>, args: &Json) -> Json {
 	let app = call.app;
 	let scope = match space_arg(app, args["space_id"].as_str()) {
 		Ok(scope) => scope,

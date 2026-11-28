@@ -25,13 +25,13 @@ use crate::App;
 const NEVER_ASKED: &str = "never";
 
 /// One scope's graph ledgers: None is "No space", a space id its own graph.
-pub fn graph_store_for<'a>(app: &'a App, scope: Option<&'a str>) -> Box<dyn GraphStore + 'a> {
+pub(crate) fn graph_store_for<'a>(app: &'a App, scope: Option<&'a str>) -> Box<dyn GraphStore + 'a> {
 	Box::new(ScopedGraph::new(&app.stores.graphs, scope))
 }
 
 /// A lesson's facts and bookkeeping leave the scope's graph. The rewrite replaces whole ledgers
 /// from what it read, so it holds the graph's lock: a merge appending meanwhile would be erased.
-pub fn delete_chat_from_graph(app: &App, scope: Option<&str>, chat_id: &str, mode: ChatDeleteMode) -> Result<ChatDeletionStats, String> {
+pub(crate) fn delete_chat_from_graph(app: &App, scope: Option<&str>, chat_id: &str, mode: ChatDeleteMode) -> Result<ChatDeletionStats, String> {
 	let _held = app.locks.lock(LockKey::Graph(scope));
 	delete_chat_traces(graph_store_for(app, scope).as_ref(), chat_id, mode)
 }
@@ -44,7 +44,7 @@ pub fn graph_view(app: &App, scope: Option<&str>) -> Result<Json, String> {
 /// One scope's facts for `query` (newest first without one), at most `limit`, each with where it
 /// comes from and the learner's latest answer on it, and the chains whose conclusion or a premise
 /// is among them, at most `limit` too.
-pub async fn search_graph(app: &App, scope: Option<&str>, query: Option<&str>, limit: usize) -> Result<Json, String> {
+pub(crate) async fn search_graph(app: &App, scope: Option<&str>, query: Option<&str>, limit: usize) -> Result<Json, String> {
 	let graph = get_graph(graph_store_for(app, scope).as_ref())?;
 	let found: Vec<&Json> = match query.filter(|q| !text::trim(q).is_empty()) {
 		Some(query) => {
@@ -119,7 +119,7 @@ fn graph_dir_for(app: &App, scope: Option<&str>) -> Option<PathBuf> {
 
 /// The newest modified time (ms) of the scope's ledgers: it moves on any graph write and never on
 /// a read. Deletions return it so the view knows to read again.
-pub fn graph_revision(app: &App, scope: Option<&str>) -> f64 {
+pub(crate) fn graph_revision(app: &App, scope: Option<&str>) -> f64 {
 	let Some(dir) = graph_dir_for(app, scope) else { return 0.0 };
 	let files = GraphFiles::new(&dir);
 	[&files.nodes, &files.chains, &files.sessions, &files.coverage, &files.topics]

@@ -22,12 +22,12 @@ pub fn clear_turn_failure(app: &App, chat_id: &str) {
 	app.turns.failures.lock().remove(chat_id);
 }
 
-pub fn register_turn(app: &App, chat_id: &str, handle: TurnHandle) {
+pub(crate) fn register_turn(app: &App, chat_id: &str, handle: TurnHandle) {
 	app.turns.runs.lock().insert(chat_id.to_owned(), handle);
 	app.turns.attachable.notify_waiters();
 }
 
-pub fn unregister_turn(app: &App, chat_id: &str) {
+pub(crate) fn unregister_turn(app: &App, chat_id: &str) {
 	app.turns.runs.lock().remove(chat_id);
 }
 

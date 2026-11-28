@@ -4,12 +4,12 @@ pub fn is_question_tool(name: &str) -> bool {
 	QUESTION_TOOLS.contains(&name)
 }
 
-pub fn is_graded_tool(name: &str) -> bool {
+pub(crate) fn is_graded_tool(name: &str) -> bool {
 	name == "quiz" || name == "probe"
 }
 
 /// The question kind a tool asks: "quiz", "explain", "code" or "ask".
-pub fn tool_question_kind(tool: &str) -> &'static str {
+fn tool_question_kind(tool: &str) -> &'static str {
 	match tool {
 		"quiz" | "probe" => "quiz",
 		"explain" | "recall" => "explain",
@@ -19,6 +19,6 @@ pub fn tool_question_kind(tool: &str) -> &'static str {
 }
 
 /// Whether an answer to this tool may carry pictures and files.
-pub fn answer_takes_files(tool: &str) -> bool {
+pub(crate) fn answer_takes_files(tool: &str) -> bool {
 	matches!(tool_question_kind(tool), "explain" | "ask")
 }

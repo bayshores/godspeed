@@ -6,7 +6,7 @@
 /// How the teacher marks what it read, which the teacher panel's chat is told as well.
 pub const SOURCE_MARKS: &str = include_str!("../../prompts/shared/13-source-marks.md");
 
-pub const SOURCES: [(&str, &str); 27] = [
+pub(crate) const SOURCES: [(&str, &str); 27] = [
 	("system-prompt.md", include_str!("../../prompts/system-prompt.md")),
 	("homework/00-base.md", include_str!("../../prompts/homework/00-base.md")),
 	("practice/00-base.md", include_str!("../../prompts/practice/00-base.md")),

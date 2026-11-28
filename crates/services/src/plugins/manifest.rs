@@ -10,9 +10,9 @@ use gs_core::records::plugin_settings::is_plugin_id;
 use gs_core::records::teaching_areas::clean_line;
 use gs_json::{Json, Obj, json};
 
-pub const MANIFEST_FILE: &str = "manifest.json";
+pub(crate) const MANIFEST_FILE: &str = "manifest.json";
 /// The folder inside a plugin's folder that holds its stored JSON, so no plugin file may use it.
-pub const DATA_FOLDER: &str = "data";
+pub(crate) const DATA_FOLDER: &str = "data";
 
 const MANIFEST_MAX_BYTES: u64 = 64 * 1024;
 const NAME_MAX: usize = 40;
@@ -24,7 +24,7 @@ const SETTINGS_MAX: usize = 20;
 const OPTIONS_MAX: usize = 12;
 const NETWORK_MAX: usize = 10;
 /// The longest text setting value.
-pub const TEXT_MAX: usize = 500;
+pub(crate) const TEXT_MAX: usize = 500;
 /// What a plugin may ask for: the agent's work (`ask_agent`) and the open space's facts.
 const USES: [&str; 2] = ["agent", "space"];
 
@@ -46,7 +46,7 @@ fn short_text(raw: &Json, field: &str, max: usize) -> Checked {
 
 /// A path inside the plugin's folder, written with `/`: no `..`, `.`, hidden or empty parts, no
 /// drive or root, and not in the data folder.
-pub fn is_inside_path(path: &str) -> bool {
+pub(crate) fn is_inside_path(path: &str) -> bool {
 	!path.is_empty()
 		&& path.len() <= PATH_MAX
 		&& !path.contains(['\\', ':', '\0'])
@@ -177,7 +177,7 @@ fn settings(raw: &Json) -> Checked {
 
 /// The fields a list entry copies from the manifest (`plugins::list`): `id`, `name`,
 /// `description`, `lesson`, `space`, `network` and `uses`, each checked as the manifest's are.
-pub fn check_listed(raw: &Json) -> Result<Obj, String> {
+pub(crate) fn check_listed(raw: &Json) -> Result<Obj, String> {
 	let Some(id) = raw["id"].as_str().filter(|id| is_plugin_id(id)) else { return Err(problem("id", "must be lowercase letters, digits and dashes, like meme-cards")) };
 	let lesson = place(&raw["lesson"], "lesson")?;
 	let space = place(&raw["space"], "space")?;
@@ -204,7 +204,7 @@ pub fn check_listed(raw: &Json) -> Result<Obj, String> {
 }
 
 /// The manifest as godspeed keeps it, or the first thing wrong with it.
-pub fn check_manifest(raw: &Json) -> Checked {
+fn check_manifest(raw: &Json) -> Checked {
 	if raw.as_obj().is_none() {
 		return Err("manifest.json must be a JSON object".to_owned());
 	}
@@ -229,7 +229,7 @@ pub fn check_manifest(raw: &Json) -> Checked {
 }
 
 /// The checked manifest of the plugin in `dir`, whose entry must be a file there.
-pub fn read_manifest(dir: &Path) -> Checked {
+pub(crate) fn read_manifest(dir: &Path) -> Checked {
 	let file = dir.join(MANIFEST_FILE);
 	let size = std::fs::metadata(&file).map_err(|_| "The folder has no manifest.json.".to_owned())?.len();
 	if size > MANIFEST_MAX_BYTES {
@@ -245,12 +245,12 @@ pub fn read_manifest(dir: &Path) -> Checked {
 }
 
 /// Whether the manifest's `uses` names `what`.
-pub fn uses(manifest: &Json, what: &str) -> bool {
+pub(crate) fn uses(manifest: &Json, what: &str) -> bool {
 	manifest["uses"].items().iter().any(|u| u.as_str() == Some(what))
 }
 
 /// The manifest's setting with this key.
-pub fn setting_of<'a>(manifest: &'a Json, key: &str) -> Option<&'a Json> {
+pub(crate) fn setting_of<'a>(manifest: &'a Json, key: &str) -> Option<&'a Json> {
 	manifest["settings"].items().iter().find(|s| s["key"].as_str() == Some(key))
 }
 

@@ -14,7 +14,7 @@ use gs_services::vault::{Ask, AskReply, answer_ask, change_vault, lesson_vault_n
 use crate::http::reply::{self, Unhandled, error, fields, json};
 use crate::http::route::ApiRoute;
 
-pub fn routes() -> Router<Arc<App>> {
+pub(crate) fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/vault", ApiRoute::new().get(get_vault).patch(patch_vault).into_route())
 		.route("/api/vault/retry", ApiRoute::new().post(post_retry).into_route())

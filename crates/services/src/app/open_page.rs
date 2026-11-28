@@ -125,7 +125,7 @@ fn with_space(page: &PageTarget) -> String {
 }
 
 /// Opens the page for `caller`; the answer says where it went.
-pub fn open_page(app: &App, caller: Option<&str>, args: &Json) -> ToolOutcome {
+pub(crate) fn open_page(app: &App, caller: Option<&str>, args: &Json) -> ToolOutcome {
 	let page = match page_for(app, args) {
 		Ok(page) => page,
 		Err(refused) => return ToolOutcome::Err(refused),
@@ -146,7 +146,7 @@ pub fn open_page(app: &App, caller: Option<&str>, args: &Json) -> ToolOutcome {
 }
 
 /// open_page for a lesson's teacher or the cheat sheet's agent, named as the teacher.
-pub fn agent_open_page(app: &Arc<App>) -> OpenPage {
+pub(crate) fn agent_open_page(app: &Arc<App>) -> OpenPage {
 	let app = app.clone();
 	Arc::new(move |args| match open_page(&app, Some(&teacher_name(&app)), args) {
 		ToolOutcome::Ok { value, .. } => Ok(value["note"].str_or_empty().to_owned()),

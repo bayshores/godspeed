@@ -12,7 +12,7 @@ use crate::App;
 
 /// Sets one field of the vault section (`path` or `words`); null removes it. A value the section
 /// does not accept is refused, and nothing is saved.
-pub fn set_vault_field(app: &Arc<App>, key: &str, value: Json) -> Result<(), String> {
+pub(crate) fn set_vault_field(app: &Arc<App>, key: &str, value: Json) -> Result<(), String> {
 	// The merge and the save share one hold, so no other settings save lands between them.
 	let _held = app.locks.lock(LockKey::AppFile("settings.json"));
 	let mut record = record_or_new(app.stores.settings.read_settings()?);

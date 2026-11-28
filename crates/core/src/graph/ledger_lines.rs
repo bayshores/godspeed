@@ -5,13 +5,13 @@ use gs_json::Json;
 
 /// A chain's merge key: sorted premises + conclusion, the identity a re-stated argument merges
 /// under.
-pub fn chain_key(premises: &[&str], conclusion: &str) -> String {
+pub(crate) fn chain_key(premises: &[&str], conclusion: &str) -> String {
 	let mut sorted = premises.to_vec();
 	sorted.sort_by(|a, b| cmp16(a, b));
 	format!("{}>{conclusion}", sorted.join("+"))
 }
 
-pub fn chain_key_of(line: &Json) -> String {
+pub(crate) fn chain_key_of(line: &Json) -> String {
 	chain_key(&line["premises"].strs(), line["conclusion"].str_or_empty())
 }
 
@@ -25,7 +25,7 @@ pub fn touches(line: &Json, chat_id: &str) -> bool {
 }
 
 /// Adds the points of `incoming` that `target` does not hold yet, in order.
-pub fn union_points(target: &mut Json, incoming: &Json) {
+pub(crate) fn union_points(target: &mut Json, incoming: &Json) {
 	let fresh: Vec<Json> = {
 		let mut held: Vec<&Json> = target["provenance"].items().iter().collect();
 		let mut fresh = Vec::new();

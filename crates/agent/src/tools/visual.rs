@@ -20,7 +20,7 @@ use crate::subagents::headless::HeadlessApi;
 
 /// The colors a figure may name. The window swaps in the theme's values, so a figure reads on
 /// Graphite and on Paper.
-pub const FIGURE_COLORS: [&str; 4] = ["var(--ink)", "var(--soft)", "var(--accent)", "var(--paper)"];
+const FIGURE_COLORS: [&str; 4] = ["var(--ink)", "var(--soft)", "var(--accent)", "var(--paper)"];
 
 /// What the names are in the render the teacher gets back: dark on white.
 const CHECK_COLORS: [&str; 4] = ["#24231f", "#6d6b62", "#3f6787", "#ffffff"];
@@ -239,7 +239,7 @@ async fn draw(headless: &dyn HeadlessApi, args: &Json) -> Json {
 	}
 }
 
-pub fn visual_tool(headless: &Arc<dyn HeadlessApi>) -> FnTool {
+pub(crate) fn visual_tool(headless: &Arc<dyn HeadlessApi>) -> FnTool {
 	let headless = headless.clone();
 	let parameters = object(&["svg"], vec![("svg", string("The complete <svg viewBox=\"0 0 W H\">…</svg>."))]);
 	FnTool::immediate_async(VISUAL_TOOL, DESCRIPTION, parameters, move |args| {

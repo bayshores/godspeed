@@ -51,7 +51,7 @@ impl From<String> for SettleError {
 }
 
 /// `on_settle_failure(error, reported_error_text)`.
-pub type SettleFailureFn = Box<dyn Fn(&SettleError, Option<&str>) + Send + Sync>;
+type SettleFailureFn = Box<dyn Fn(&SettleError, Option<&str>) + Send + Sync>;
 
 pub struct TurnSpec {
 	/// The turn, built from the record.

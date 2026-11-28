@@ -4,7 +4,7 @@ use gs_base::re::Re;
 
 /// Strips the copy syntax a model glues onto a membership value (`":value"`, `` `value` ``):
 /// surrounding whitespace, colons, periods, quotes and backticks. Never use on free text.
-pub fn strip_model_value_debris(value: &str) -> String {
+pub(crate) fn strip_model_value_debris(value: &str) -> String {
 	static LEAD: LazyLock<Re> = LazyLock::new(|| Re::new(r#"^[\s:."'`]+"#, ""));
 	static TRAIL: LazyLock<Re> = LazyLock::new(|| Re::new(r#"[\s:."'`]+$"#, ""));
 	TRAIL.replace(&LEAD.replace(value, ""), "")

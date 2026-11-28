@@ -18,7 +18,7 @@ use super::agents::runtime;
 use crate::App;
 
 #[derive(Default)]
-pub struct LoginState {
+pub(crate) struct LoginState {
 	signing: Mutex<Signing>,
 	/// Held while a sign-in starts, so two starts never make two.
 	starting: tokio::sync::Mutex<()>,

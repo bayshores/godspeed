@@ -9,8 +9,8 @@ const RRF_K: f64 = 60.0;
 
 /// The embedding ranking counts double the keyword one: equal weights did worse on questions
 /// worded unlike the material.
-pub const VECTOR_WEIGHT: f64 = 1.0;
-pub const KEYWORD_WEIGHT: f64 = 0.5;
+pub(crate) const VECTOR_WEIGHT: f64 = 1.0;
+pub(crate) const KEYWORD_WEIGHT: f64 = 0.5;
 
 /// Rows of `vectors` (row-major, `dims` floats each, normalized) by their best cosine against any
 /// of `queries`, best first, at most `n`. Dots add up in f64 and are kept as f32 like the TS's
@@ -37,7 +37,7 @@ pub fn vector_ranking(queries: &[&[f32]], vectors: &[f32], dims: usize, n: usize
 
 /// Rows of `vectors` (as in `vector_ranking`) by their cosine with `query`, best first, at most
 /// `n`, with the cosines.
-pub fn cosine_ranking(query: &[f32], vectors: &[f32], dims: usize, n: usize) -> Vec<(usize, f32)> {
+pub(crate) fn cosine_ranking(query: &[f32], vectors: &[f32], dims: usize, n: usize) -> Vec<(usize, f32)> {
 	let mut scored: Vec<(usize, f32)> = vectors.chunks_exact(dims).map(|row| dot(query, row) as f32).enumerate().collect();
 	scored.sort_by(|a, b| b.1.total_cmp(&a.1));
 	scored.truncate(n);

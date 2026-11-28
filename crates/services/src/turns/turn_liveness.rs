@@ -21,7 +21,7 @@ pub fn begin_turn(app: &App, chat_id: &str) -> bool {
 
 /// "turn-started", sent once the write-ahead is saved, so a view that reads the record on it sees
 /// the input. Its handle comes a moment later: `attach_turn` waits for it.
-pub fn turn_started(app: &App, chat_id: &str) {
+pub(crate) fn turn_started(app: &App, chat_id: &str) {
 	app.events.emit(EventKind::TurnStarted, json!({ "chatId": chat_id }));
 }
 

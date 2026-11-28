@@ -56,7 +56,7 @@ pub(super) struct Running {
 
 /// The live requests, kept in memory only: a request does not outlive the server.
 #[derive(Default)]
-pub struct DeadlineRequestsState {
+pub(crate) struct DeadlineRequestsState {
 	pub(super) running: Mutex<Running>,
 	/// Each running request's row in the activity feed, by its deadline's id (a check's by its
 	/// space's).

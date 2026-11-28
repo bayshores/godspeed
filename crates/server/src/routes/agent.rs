@@ -17,7 +17,7 @@ use gs_services::app::agent_update::start_update;
 use crate::http::reply::{self, Unhandled, error, fields};
 use crate::http::route::ApiRoute;
 
-pub fn routes() -> Router<Arc<App>> {
+pub(crate) fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/agent/health", ApiRoute::new().get(health).post(check_again).into_route())
 		.route("/api/agent/login", ApiRoute::new().post(login).into_route())

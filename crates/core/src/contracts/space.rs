@@ -91,17 +91,17 @@ pub fn is_calendar_date(date: &Json) -> bool {
 }
 
 /// `HH:mm`, 00:00 to 23:59.
-pub fn is_clock_time(time: &Json) -> bool {
+pub(crate) fn is_clock_time(time: &Json) -> bool {
 	static SHAPE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^([01]\d|2[0-3]):[0-5]\d$", ""));
 	time.as_str().is_some_and(|t| SHAPE.test(t))
 }
 
-pub fn is_deadline_kind(kind: &Json) -> bool {
+pub(crate) fn is_deadline_kind(kind: &Json) -> bool {
 	kind.as_str().is_some_and(|k| DEADLINE_KINDS.contains(&k))
 }
 
 /// When a deadline is due: its time, or 23:59.
-pub fn deadline_due_at(deadline: &Json) -> (String, String) {
+pub(crate) fn deadline_due_at(deadline: &Json) -> (String, String) {
 	(deadline["date"].str_or_empty().to_owned(), deadline["time"].as_str().unwrap_or("23:59").to_owned())
 }
 
@@ -225,7 +225,7 @@ pub fn is_office_file(name: &str) -> bool {
 	has_extension(name, &OFFICE_EXTENSIONS)
 }
 
-pub fn is_recording_or_captions(name: &str) -> bool {
+pub(crate) fn is_recording_or_captions(name: &str) -> bool {
 	is_recording_file(name) || is_transcript_file(name)
 }
 

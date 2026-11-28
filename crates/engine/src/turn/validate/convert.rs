@@ -8,7 +8,7 @@ use super::to_number::{bigint_literal, string_to_number};
 
 /// `Value.Convert(schema, args)` with its result thrown away, as pi calls it: only an object's
 /// properties change, in place.
-pub fn convert_in_place(schema: &Json, args: &mut Json) {
+pub(crate) fn convert_in_place(schema: &Json, args: &mut Json) {
 	if kind(schema) == Kind::Object {
 		convert_properties(schema, args);
 	}
@@ -158,7 +158,7 @@ fn try_null(value: &Json) -> bool {
 
 /// As pi does: an optional property sent as null that may not be null is
 /// dropped, at any depth.
-pub fn normalize_optional_nulls(value: &mut Json, schema: &Json) {
+pub(crate) fn normalize_optional_nulls(value: &mut Json, schema: &Json) {
 	match value {
 		Json::Arr(items) => match &schema["items"] {
 			Json::Arr(schemas) => {

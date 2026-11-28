@@ -33,7 +33,7 @@ use crate::http::paths::{param, query};
 use crate::http::reply::{self, Unhandled, error, fields, read_body};
 use crate::http::route::ApiRoute;
 
-pub fn routes() -> Router<Arc<App>> {
+pub(crate) fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/spaces", ApiRoute::new().get(list).post(create).into_route())
 		.route("/api/spaces/{id}", ApiRoute::new().get(read).put(edit).delete(remove).into_route())

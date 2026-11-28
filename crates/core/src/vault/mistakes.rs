@@ -23,7 +23,7 @@ struct Entry {
 
 /// A kind as stored: trimmed, and with a capital first letter lowered unless the second is a
 /// capital too ("Bar count" is "bar count", "NFA design" stays).
-pub fn normal_kind(kind: &str) -> String {
+fn normal_kind(kind: &str) -> String {
 	let kind = kind.split_whitespace().collect::<Vec<_>>().join(" ");
 	let mut chars = kind.chars();
 	match (chars.next(), chars.next()) {
@@ -83,7 +83,7 @@ fn same_kind(a: &str, b: &str) -> bool {
 /// The lines for a godspeed-owned section: the old lines with `new` merged in, oldest first. A
 /// kind that came back moves to the end, and past six kinds the oldest drop. `new` is oldest
 /// first, so a later one has the newest wording.
-pub fn merge_owned(old_lines: &[String], new: &[Mistake]) -> Vec<String> {
+pub(crate) fn merge_owned(old_lines: &[String], new: &[Mistake]) -> Vec<String> {
 	let mut entries: Vec<Entry> = old_lines.iter().filter(|l| l.trim_start().starts_with("- ")).map(|l| Entry::parse(l)).collect();
 	for m in new {
 		let kind = normal_kind(&m.kind);
@@ -107,7 +107,7 @@ pub fn merge_owned(old_lines: &[String], new: &[Mistake]) -> Vec<String> {
 
 /// The lines to add at the end of a section the learner owns: only kinds it does not show yet,
 /// and none once it holds six. The learner's own lines are never read for wording or changed.
-pub fn append_new(old_lines: &[String], new: &[Mistake]) -> Vec<String> {
+pub(crate) fn append_new(old_lines: &[String], new: &[Mistake]) -> Vec<String> {
 	let mut kinds: Vec<String> = old_lines.iter().filter_map(|l| line_kind(l)).collect();
 	let mut count = old_lines.iter().filter(|l| l.trim_start().starts_with("- ")).count();
 	let mut out = Vec::new();

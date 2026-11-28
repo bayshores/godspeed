@@ -124,7 +124,7 @@ fn shown(id: &str, keep: &Json, analogy_shown: bool, check_source: &dyn Fn(&str)
 }
 
 /// The notes the keeps of these quizzes left for the teacher, read after his answers to them.
-pub fn keep_notes<'a>(messages: &'a [Json], quiz_call_ids: &[&str]) -> Vec<&'a str> {
+pub(crate) fn keep_notes<'a>(messages: &'a [Json], quiz_call_ids: &[&str]) -> Vec<&'a str> {
 	let verdicts = verdicts(messages);
 	quiz_call_ids.iter().filter_map(|id| verdicts.get(id)?["note"].as_str()).collect()
 }

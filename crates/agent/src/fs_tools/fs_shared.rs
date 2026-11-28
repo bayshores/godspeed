@@ -11,10 +11,10 @@ use gs_base::{fsx, num, posix, text};
 use gs_json::Json;
 
 /// The output ceiling for every fs tool.
-pub const MAX_OUTPUT_BYTES: usize = 50 * 1024;
-pub const GREP_MAX_LINE_LENGTH: usize = 500;
+pub(crate) const MAX_OUTPUT_BYTES: usize = 50 * 1024;
+pub(crate) const GREP_MAX_LINE_LENGTH: usize = 500;
 /// Wall-clock budget for tree walks (find and grep over a whole home folder).
-pub const WALK_TIMEOUT_MS: i64 = 10_000;
+pub(crate) const WALK_TIMEOUT_MS: i64 = 10_000;
 
 /// A path argument: absolute stays, a leading `~` means home, relative or absent means home.
 pub fn resolve_source_path(p: Option<&str>) -> PathBuf {
@@ -36,34 +36,34 @@ fn home_join(home: &Path, rest: &str) -> PathBuf {
 }
 
 /// Runs blocking file work on its own thread, so a long walk never holds the server's workers.
-pub async fn off_thread(work: impl FnOnce() -> Result<Json, String> + Send + 'static) -> Result<Json, String> {
+pub(crate) async fn off_thread(work: impl FnOnce() -> Result<Json, String> + Send + 'static) -> Result<Json, String> {
 	gs_base::tasks::spawn_blocking("fs", work).await.map_err(|e| e.to_string())?
 }
 
 /// 50 KB prints as "50.0KB".
-pub fn format_size(bytes: u64) -> String {
+pub(crate) fn format_size(bytes: u64) -> String {
 	if bytes >= 1024 { format!("{}KB", num::to_fixed(bytes as f64 / 1024.0, 1)) } else { format!("{bytes}B") }
 }
 
 /// The output ceiling as the tools print it, "50.0KB".
-pub fn output_limit() -> String {
+pub(crate) fn output_limit() -> String {
 	format_size(MAX_OUTPUT_BYTES as u64)
 }
 
 /// Refuses a path that is not a directory, in the words ls and find share.
-pub fn existing_dir(dir: &Path) -> Result<(), String> {
+pub(crate) fn existing_dir(dir: &Path) -> Result<(), String> {
 	let shown = dir.display();
 	let meta = std::fs::metadata(dir).map_err(|_| format!("Path not found: {shown}"))?;
 	if meta.is_dir() { Ok(()) } else { Err(format!("Not a directory: {shown}")) }
 }
 
 /// `Buffer.byteLength(s, "utf-8")`.
-pub fn byte_len(s: &str) -> usize {
+pub(crate) fn byte_len(s: &str) -> usize {
 	text::utf8_bytes(s).len()
 }
 
 /// Caps output to `MAX_OUTPUT_BYTES` on whole lines.
-pub fn cap_output(lines: &[String]) -> (String, bool) {
+pub(crate) fn cap_output(lines: &[String]) -> (String, bool) {
 	let mut out: Vec<&str> = Vec::new();
 	let mut bytes = 0;
 	for line in lines {
@@ -78,7 +78,7 @@ pub fn cap_output(lines: &[String]) -> (String, bool) {
 }
 
 /// True if the first 8 KB hold a NUL byte (a binary file). Err is Node's message.
-pub fn is_binary_file(file: &Path) -> Result<bool, String> {
+pub(crate) fn is_binary_file(file: &Path) -> Result<bool, String> {
 	let open = std::fs::File::open(file).map_err(|e| fsx::node_error_message(&e, "open", file))?;
 	let mut head = Vec::new();
 	open.take(8192).read_to_end(&mut head).map_err(|e| read_error(&e, file))?;
@@ -86,7 +86,7 @@ pub fn is_binary_file(file: &Path) -> Result<bool, String> {
 }
 
 /// A failed read of an open file: Node words it without the path.
-pub fn read_error(err: &io::Error, file: &Path) -> String {
+pub(crate) fn read_error(err: &io::Error, file: &Path) -> String {
 	let full = fsx::node_error_message(err, "read", file);
 	match full.strip_suffix(&format!(" '{}'", file.display())) {
 		Some(without_path) => without_path.to_owned(),
@@ -95,7 +95,7 @@ pub fn read_error(err: &io::Error, file: &Path) -> String {
 }
 
 /// A line cut to `GREP_MAX_LINE_LENGTH` UTF-16 units.
-pub fn truncate_grep_line(line: &str) -> (String, bool) {
+pub(crate) fn truncate_grep_line(line: &str) -> (String, bool) {
 	if line.len() <= GREP_MAX_LINE_LENGTH || text::len16(line) <= GREP_MAX_LINE_LENGTH {
 		return (line.to_owned(), false);
 	}

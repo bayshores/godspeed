@@ -21,7 +21,7 @@ const BODY_CUT_SHORT: &str = "terminated";
 /// What Node's fetch sends when the caller does not set these (Accept is reqwest's own default).
 const NODE_DEFAULTS: [(&str, &str); 3] = [("user-agent", "node"), ("accept-language", "*"), ("sec-fetch-mode", "cors")];
 
-pub async fn get(url: &str, headers: &[(&str, &str)]) -> Result<Response, String> {
+pub(crate) async fn get(url: &str, headers: &[(&str, &str)]) -> Result<Response, String> {
 	let parsed = Url::parse(url).map_err(|_| format!("Failed to parse URL from {url}"))?;
 	if !parsed.username().is_empty() || parsed.password().is_some() {
 		return Err(format!("Request cannot be constructed from a URL that includes credentials: {url}"));
@@ -45,30 +45,30 @@ pub async fn get(url: &str, headers: &[(&str, &str)]) -> Result<Response, String
 }
 
 /// `HTTP 404 Not Found`, for a status that is not 2xx.
-pub fn status_error(response: &Response) -> String {
+pub(crate) fn status_error(response: &Response) -> String {
 	let status = response.status();
 	format!("HTTP {} {}", status.as_u16(), status.canonical_reason().unwrap_or(""))
 }
 
 /// The address after redirects, without its fragment.
-pub fn final_url(response: &Response) -> String {
+pub(crate) fn final_url(response: &Response) -> String {
 	let mut url = response.url().clone();
 	url.set_fragment(None);
 	url.into()
 }
 
 /// `headers.get(name)`: several values join with ", " and bytes read as Latin-1.
-pub fn header(response: &Response, name: &str) -> Option<String> {
+pub(crate) fn header(response: &Response, name: &str) -> Option<String> {
 	let values: Vec<String> = response.headers().get_all(name).iter().map(|v| v.as_bytes().iter().map(|&b| char::from(b)).collect()).collect();
 	(!values.is_empty()).then(|| values.join(", "))
 }
 
 /// `Number(headers.get("content-length") ?? 0)`; the HTTP layer already refuses anything but digits.
-pub fn content_length(response: &Response) -> u64 {
+pub(crate) fn content_length(response: &Response) -> u64 {
 	header(response, "content-length").and_then(|v| v.trim().parse().ok()).unwrap_or(0)
 }
 
-pub async fn read_body(mut response: Response) -> Result<Vec<u8>, String> {
+pub(crate) async fn read_body(mut response: Response) -> Result<Vec<u8>, String> {
 	let mut body = Vec::new();
 	loop {
 		match clock::within(SILENCE_LIMIT_MS, response.chunk()).await {
@@ -80,7 +80,7 @@ pub async fn read_body(mut response: Response) -> Result<Vec<u8>, String> {
 }
 
 /// `response.text()`: UTF-8 whatever the charset says, a leading BOM dropped.
-pub async fn read_text(response: Response) -> Result<String, String> {
+pub(crate) async fn read_text(response: Response) -> Result<String, String> {
 	let body = read_body(response).await?;
 	let body = body.strip_prefix(&[0xEF, 0xBB, 0xBF]).unwrap_or(&body);
 	Ok(gs_base::text::from_utf8_lossy(body))

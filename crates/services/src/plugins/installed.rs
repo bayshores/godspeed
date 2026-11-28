@@ -12,22 +12,22 @@ use super::state::{forget_state, resolve_state, saved_entry};
 use crate::App;
 use crate::outcome::{Outcome, Stop, refuse};
 
-pub fn plugins_root(app: &App) -> PathBuf {
+pub(crate) fn plugins_root(app: &App) -> PathBuf {
 	app.paths.data.join("plugins")
 }
 
-pub fn plugin_dir(app: &App, id: &str) -> PathBuf {
+pub(crate) fn plugin_dir(app: &App, id: &str) -> PathBuf {
 	plugins_root(app).join(id)
 }
 
 /// The app-file lock name that covers one plugin's folder.
-pub fn plugin_lock(id: &str) -> String {
+pub(crate) fn plugin_lock(id: &str) -> String {
 	format!("plugins/{id}")
 }
 
 /// Beside a plugin installed from godspeed's list: `{ repo, tag, path? }`. Hidden, so no install copies
 /// one in from a plugin's own files and no file route serves it.
-pub const SOURCE_FILE: &str = ".source.json";
+pub(crate) const SOURCE_FILE: &str = ".source.json";
 
 const NO_SUCH_PLUGIN: &str = "No such plugin.";
 

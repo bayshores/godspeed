@@ -18,7 +18,7 @@ use super::headless::HeadlessApi;
 use super::job_agent::{JobAgent, Priority};
 
 /// Called with each model call's usage (pi's usage record) and the `provider:id` it ran on.
-pub type OnUsage = Arc<dyn Fn(&Json, &str) + Send + Sync>;
+pub(crate) type OnUsage = Arc<dyn Fn(&Json, &str) + Send + Sync>;
 
 pub struct SubagentRunOptions {
 	/// Names the job in the log ("Research: Bayes' rule").
@@ -59,7 +59,7 @@ impl SubagentRunOptions {
 }
 
 /// Called with each new activity line (the job record's progress).
-pub type OnActivity = Arc<dyn Fn(&str) + Send + Sync>;
+pub(crate) type OnActivity = Arc<dyn Fn(&str) + Send + Sync>;
 
 /// Hands an activity line to the job's listener, when it has one.
 pub(super) fn report_activity(on_activity: &Option<OnActivity>, line: &str) {

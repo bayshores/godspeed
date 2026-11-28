@@ -27,7 +27,7 @@ struct Step {
 	from: usize,
 }
 
-pub struct TranscriptBuilder {
+pub(crate) struct TranscriptBuilder {
 	/// The model record whose ids the assistant messages carry.
 	model: Json,
 	messages: Vec<Json>,
@@ -337,7 +337,7 @@ impl TranscriptBuilder {
 }
 
 /// Whether the turn wrote anything: words or a call.
-pub fn wrote_anything(messages: &[Json]) -> bool {
+pub(crate) fn wrote_anything(messages: &[Json]) -> bool {
 	messages.iter().filter(|m| Role::Assistant.is(m)).any(|m| !tool_calls(m).is_empty() || m["content"].items().iter().any(|b| !b["text"].str_or_empty().is_empty()))
 }
 

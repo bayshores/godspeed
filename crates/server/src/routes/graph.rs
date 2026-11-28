@@ -26,7 +26,7 @@ use crate::http::paths::{param, query};
 use crate::http::reply::{self, Unhandled, body_text, error, json, json_body, read_body};
 use crate::http::route::ApiRoute;
 
-pub fn routes() -> Router<Arc<App>> {
+pub(crate) fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/graph", ApiRoute::new().get(get_graph).into_route())
 		.route("/api/graph/costs", ApiRoute::new().get(get_costs).into_route())

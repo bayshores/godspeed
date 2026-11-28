@@ -28,7 +28,7 @@ use crate::graph::graph::graph_store_for;
 use crate::turns::attachments::attached_pdf_name;
 
 /// The extraction_running refusal for the agent.
-pub const AGENT_FILE_READING_REFUSAL: &str = "This file is still being turned into facts. Try again once that is done.";
+pub(crate) const AGENT_FILE_READING_REFUSAL: &str = "This file is still being turned into facts. Try again once that is done.";
 
 /// The notes-source id a space file's facts are born under: unique per space + file, so the same
 /// filename in two spaces never collides.
@@ -109,7 +109,7 @@ pub(super) fn patch_file(app: &Arc<App>, space_id: &str, file_id: &str, patch: P
 }
 
 /// Why a file can't be copied into a space; None when it can.
-pub fn copied_file_problem(name: &str, bytes: &[u8]) -> Option<String> {
+pub(crate) fn copied_file_problem(name: &str, bytes: &[u8]) -> Option<String> {
 	let clean = safe_name(name);
 	if is_readable_space_file(&clean, || Some(looks_like_text(bytes))) == Some(true) {
 		return None;
@@ -128,7 +128,7 @@ pub fn add_copied_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8])
 /// `written`: a later write by that name replaces only such a file and keeps its id, and the
 /// learner's own file by that name is never written over. Ok holds the file and whether it was
 /// replaced; Err is the words for the agent.
-pub fn write_agent_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: FileKind) -> Result<(Json, bool), String> {
+pub(crate) fn write_agent_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: FileKind) -> Result<(Json, bool), String> {
 	let record = app.stores.spaces.get_space(space_id);
 	let same = record.as_ref().and_then(|r| r["files"].as_arr()?.iter().find(|f| f["name"].str_or_empty() == name).cloned());
 	let written = match same {
@@ -186,7 +186,7 @@ fn add_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: Opti
 
 /// Writes new contents over a file the agent wrote, keeping its id so deadlines that cover it still
 /// do; its facts are rebuilt. The agent's kind stays, as when it was added.
-pub fn replace_copied_file(app: &Arc<App>, space_id: &str, file_id: &str, bytes: &[u8], kind: FileKind) -> SpaceOutcome<Json> {
+pub(crate) fn replace_copied_file(app: &Arc<App>, space_id: &str, file_id: &str, bytes: &[u8], kind: FileKind) -> SpaceOutcome<Json> {
 	// Held from the check to the list entry, as in `add_file`.
 	let _held = app.locks.lock(LockKey::Space(space_id));
 	let record = app.stores.spaces.get_space(space_id);
@@ -223,7 +223,7 @@ fn read_at(abs_path: &str) -> SpaceOutcome<Vec<u8>> {
 
 /// Copies a file from an absolute path on this computer (add_space_file), as the agent's kind. A
 /// PDF the learner attached in a chat keeps the name they gave it.
-pub fn add_file_from_path(app: &Arc<App>, space_id: &str, abs_path: &str, kind: FileKind) -> SpaceOutcome<Json> {
+pub(crate) fn add_file_from_path(app: &Arc<App>, space_id: &str, abs_path: &str, kind: FileKind) -> SpaceOutcome<Json> {
 	let name = attached_pdf_name(app, abs_path).unwrap_or_else(|| node_basename(abs_path));
 	add_file(app, space_id, &name, &read_at(abs_path)?, Some(kind), false)
 }
@@ -232,7 +232,7 @@ pub fn add_file_from_path(app: &Arc<App>, space_id: &str, abs_path: &str, kind: 
 /// It is the agent's own, as one it writes from text: adding it again by that name replaces it
 /// and keeps its id. `made_from` is where its source stays, from the godspeed folder, so a later
 /// session finds it to change and build again.
-pub fn add_made_file(app: &Arc<App>, space_id: &str, abs_path: &str, made_from: &str, kind: FileKind) -> Result<(Json, bool), String> {
+pub(crate) fn add_made_file(app: &Arc<App>, space_id: &str, abs_path: &str, made_from: &str, kind: FileKind) -> Result<(Json, bool), String> {
 	let bytes = read_at(abs_path).map_err(|failure| failure.error)?;
 	let (file, replaced) = write_agent_file(app, space_id, &node_basename(abs_path), &bytes, kind)?;
 	let kept = patch_file(app, space_id, file["id"].str_or_empty(), &[("madeFrom", Some(made_from.into()))]);
@@ -240,7 +240,7 @@ pub fn add_made_file(app: &Arc<App>, space_id: &str, abs_path: &str, made_from: 
 }
 
 /// Marks a file as made or added for a lesson, so the agent's briefing lists it with that lesson.
-pub fn tie_file_to_lesson(app: &Arc<App>, space_id: &str, file_id: &str, lesson_id: &str) -> Option<Json> {
+pub(crate) fn tie_file_to_lesson(app: &Arc<App>, space_id: &str, file_id: &str, lesson_id: &str) -> Option<Json> {
 	patch_file(app, space_id, file_id, &[("lessonId", Some(lesson_id.into()))])
 }
 

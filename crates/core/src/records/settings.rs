@@ -19,7 +19,7 @@ pub const OUTSIDE_AGENT_PROVIDER: &str = "agent";
 pub const OUTSIDE_AGENT_MODEL_ID: &str = "outside-agent";
 pub const OUTSIDE_AGENT_CONTEXT_WINDOW: i64 = 200_000;
 /// The longest teacher name kept.
-pub const TEACHER_NAME_MAX: usize = 40;
+const TEACHER_NAME_MAX: usize = 40;
 
 /// Names `key in {}` is true for in JavaScript: an unknown key like these never rides along.
 const OBJECT_PROTOTYPE_KEYS: [&str; 12] = [
@@ -135,8 +135,8 @@ fn sanitize_agent(raw: &Json) -> Json {
 }
 
 /// Who writes a note's "My words": the teacher, or the learner at a lesson's end.
-pub const VAULT_WORDS: [&str; 2] = ["teacher", "mine"];
-pub const DEFAULT_VAULT_WORDS: &str = "teacher";
+const VAULT_WORDS: [&str; 2] = ["teacher", "mine"];
+const DEFAULT_VAULT_WORDS: &str = "teacher";
 
 /// The vault section: the folder notes go in and who writes "My words". A bad value drops.
 pub fn sanitize_vault(raw: &Json) -> Json {

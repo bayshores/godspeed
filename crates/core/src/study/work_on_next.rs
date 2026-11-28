@@ -10,7 +10,7 @@ use super::progress::TopicStatus;
 use super::topic_links::TopicLink;
 
 /// What the recommendations read of a topic's progress.
-pub struct TopicView {
+pub(crate) struct TopicView {
 	pub id: String,
 	pub name: String,
 	pub status: TopicStatus,
@@ -37,7 +37,7 @@ impl TopicView {
 }
 
 /// How many topics are in each status: `{ strong, shaky, weak, untested }`.
-pub fn status_counts<'a>(statuses: impl IntoIterator<Item = &'a TopicStatus>) -> Json {
+pub(crate) fn status_counts<'a>(statuses: impl IntoIterator<Item = &'a TopicStatus>) -> Json {
 	let mut counts = [0usize; 4];
 	for s in statuses {
 		counts[*s as usize] += 1;
@@ -54,7 +54,7 @@ pub fn status_counts<'a>(statuses: impl IntoIterator<Item = &'a TopicStatus>) ->
 ///  4. untested topics (no reason: the status line already says "Not tested").
 ///
 /// Within a group: lowest right rate first, then earlier column, then name.
-pub fn work_on_next(topics: &[&TopicView], links: &[TopicLink]) -> Vec<Json> {
+pub(crate) fn work_on_next(topics: &[&TopicView], links: &[TopicLink]) -> Vec<Json> {
 	let in_set: HashMap<&str, &TopicView> = topics.iter().map(|t| (t.id.as_str(), *t)).collect();
 	let mut sorted: Vec<&TopicView> = topics.to_vec();
 	sorted.sort_by(|a, b| {

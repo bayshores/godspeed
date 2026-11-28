@@ -38,7 +38,7 @@ pub fn topic_facts<'a>(facts: &'a [Json], topic: &Json) -> Vec<&'a Json> {
 }
 
 /// A provenance point from a lesson (not a notes or file source).
-pub fn from_lesson(point: &Json) -> bool {
+pub(crate) fn from_lesson(point: &Json) -> bool {
 	!point["chatId"].str_or_empty().starts_with("src_")
 }
 
@@ -54,7 +54,7 @@ pub fn fact_from(fact: &Json) -> &'static str {
 
 /// Coverage for every study file, in the space's file order: `{ fileId, name, facts, inLessons,
 /// share }`.
-pub fn file_coverage(files: &[Json], facts: &[Json]) -> Vec<Json> {
+pub(crate) fn file_coverage(files: &[Json], facts: &[Json]) -> Vec<Json> {
 	let mut by_source: HashMap<&str, (usize, usize)> = HashMap::new();
 	for fact in facts {
 		let Some(born) = birth_session_of(fact).filter(|b| !b.is_empty()) else { continue };
@@ -82,7 +82,7 @@ pub fn file_coverage(files: &[Json], facts: &[Json]) -> Vec<Json> {
 }
 
 /// "Next up": the earliest study file that has facts but none of them came up in a lesson yet.
-pub fn next_up_file(coverage: &[Json]) -> Option<&Json> {
+pub(crate) fn next_up_file(coverage: &[Json]) -> Option<&Json> {
 	coverage.iter().find(|f| f["facts"].as_f64().is_some_and(|n| n > 0.0) && f["inLessons"].as_f64() == Some(0.0))
 }
 

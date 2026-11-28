@@ -6,7 +6,7 @@ use image::{DynamicImage, ImageBuffer, ImageFormat, LumaA, Pixel, Rgba};
 /// The size sharp gives a picture fit inside `max_side` (never enlarged). sharp decodes a big
 /// JPEG at 1/2, 1/4 or 1/8 scale and a big WebP at the exact scale first, and each step rounds,
 /// so the result can be a pixel away from a direct resize.
-pub fn fit_inside(width: u32, height: u32, max_side: u32, format: ImageFormat) -> (u32, u32) {
+pub(crate) fn fit_inside(width: u32, height: u32, max_side: u32, format: ImageFormat) -> (u32, u32) {
 	let (mut w, mut h) = (f64::from(width), f64::from(height));
 	let (hs, vs) = shrinks(w, h, max_side);
 	let shrink = hs.min(vs);
@@ -43,7 +43,7 @@ fn jpeg_shrink_on_load(shrink: f64) -> f64 {
 
 /// Resize an 8-bit picture with Lanczos. A picture with transparency is resized premultiplied, so a clear
 /// pixel's colour does not bleed into its neighbours.
-pub fn resize(image: DynamicImage, width: u32, height: u32) -> DynamicImage {
+pub(crate) fn resize(image: DynamicImage, width: u32, height: u32) -> DynamicImage {
 	match image {
 		DynamicImage::ImageRgba8(b) => DynamicImage::ImageRgba8(down(&resized_premultiplied(&up::<Rgba<u16>>(&b), width, height))),
 		DynamicImage::ImageLumaA8(b) => DynamicImage::ImageLumaA8(down(&resized_premultiplied(&up::<LumaA<u16>>(&b), width, height))),

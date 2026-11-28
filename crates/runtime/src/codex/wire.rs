@@ -8,18 +8,18 @@ use crate::event::{Ask, Part, ToolCall, ToolReply, Usage, Verdict, token_count};
 use crate::models::Model;
 use crate::session::SessionSpec;
 
-pub const INITIALIZE: &str = "initialize";
-pub const INITIALIZED: &str = "initialized";
-pub const ACCOUNT_READ: &str = "account/read";
-pub const LOGIN_START: &str = "account/login/start";
-pub const LOGIN_CANCEL: &str = "account/login/cancel";
-pub const MODEL_LIST: &str = "model/list";
-pub const THREAD_START: &str = "thread/start";
-pub const THREAD_RESUME: &str = "thread/resume";
-pub const THREAD_UNSUBSCRIBE: &str = "thread/unsubscribe";
-pub const TURN_START: &str = "turn/start";
-pub const TURN_STEER: &str = "turn/steer";
-pub const TURN_INTERRUPT: &str = "turn/interrupt";
+pub(crate) const INITIALIZE: &str = "initialize";
+pub(crate) const INITIALIZED: &str = "initialized";
+pub(crate) const ACCOUNT_READ: &str = "account/read";
+pub(crate) const LOGIN_START: &str = "account/login/start";
+pub(crate) const LOGIN_CANCEL: &str = "account/login/cancel";
+pub(crate) const MODEL_LIST: &str = "model/list";
+pub(crate) const THREAD_START: &str = "thread/start";
+pub(crate) const THREAD_RESUME: &str = "thread/resume";
+pub(crate) const THREAD_UNSUBSCRIBE: &str = "thread/unsubscribe";
+pub(crate) const TURN_START: &str = "turn/start";
+pub(crate) const TURN_STEER: &str = "turn/steer";
+pub(crate) const TURN_INTERRUPT: &str = "turn/interrupt";
 
 /// Codex's usual Auto: commands run without asking and may write only in the session's folder
 /// (the thread's cwd), and Codex asks the learner before it needs more than that.
@@ -27,7 +27,7 @@ const SANDBOX: &str = "workspace-write";
 const APPROVAL_POLICY: &str = "on-request";
 
 /// Client tools (`dynamicTools`) are behind the experimental flag.
-pub fn initialize(version: &str) -> Json {
+pub(crate) fn initialize(version: &str) -> Json {
 	json!({
 		"clientInfo": { "name": "godspeed", "title": "godspeed", "version": version },
 		"capabilities": { "experimentalApi": true, "requestAttestation": false },
@@ -47,21 +47,21 @@ fn thread_config() -> Json {
 	})
 }
 
-pub fn account_read() -> Json {
+pub(crate) fn account_read() -> Json {
 	json!({ "refreshToken": false })
 }
 
 /// A ChatGPT sign-in into godspeed's own Codex folder; Codex answers with a page to open.
-pub fn login_start() -> Json {
+pub(crate) fn login_start() -> Json {
 	json!({ "type": "chatgpt" })
 }
 
 /// The sign-in's id and the page to open, from `account/login/start`'s answer.
-pub fn login_started(result: &Json) -> Option<(String, String)> {
+pub(crate) fn login_started(result: &Json) -> Option<(String, String)> {
 	Some((result["loginId"].as_str()?.to_owned(), result["authUrl"].as_str()?.to_owned()))
 }
 
-pub fn login_cancel(login: &str) -> Json {
+pub(crate) fn login_cancel(login: &str) -> Json {
 	json!({ "loginId": login })
 }
 
@@ -82,14 +82,14 @@ fn settings(spec: &SessionSpec) -> Obj {
 	settings
 }
 
-pub fn thread_start(spec: &SessionSpec) -> Json {
+pub(crate) fn thread_start(spec: &SessionSpec) -> Json {
 	let mut params = settings(spec);
 	params.insert("dynamicTools", tools(spec));
 	params.insert("ephemeral", !spec.persist);
 	Json::Obj(params)
 }
 
-pub fn thread_resume(thread: &str, spec: &SessionSpec) -> Json {
+pub(crate) fn thread_resume(thread: &str, spec: &SessionSpec) -> Json {
 	let mut params = Obj::new();
 	params.insert("threadId", thread);
 	params.extend(settings(spec));
@@ -99,11 +99,11 @@ pub fn thread_resume(thread: &str, spec: &SessionSpec) -> Json {
 }
 
 /// The thread id in a `thread/start` or `thread/resume` result.
-pub fn thread_id(result: &Json) -> Option<String> {
+pub(crate) fn thread_id(result: &Json) -> Option<String> {
 	result["thread"]["id"].as_str().map(str::to_owned)
 }
 
-pub fn thread_unsubscribe(thread: &str) -> Json {
+pub(crate) fn thread_unsubscribe(thread: &str) -> Json {
 	json!({ "threadId": thread })
 }
 
@@ -118,7 +118,7 @@ fn input(parts: &[Part]) -> Json {
 }
 
 /// A model picked since the last turn goes with the next one, and stays for the turns after.
-pub fn turn_start(thread: &str, parts: &[Part], model: Option<&str>) -> Json {
+pub(crate) fn turn_start(thread: &str, parts: &[Part], model: Option<&str>) -> Json {
 	let mut params = json!({ "threadId": thread, "input": input(parts) });
 	if let Some(model) = model {
 		params.set("model", model);
@@ -127,20 +127,20 @@ pub fn turn_start(thread: &str, parts: &[Part], model: Option<&str>) -> Json {
 }
 
 /// The turn id in a `turn/start` result.
-pub fn turn_id(result: &Json) -> Option<String> {
+pub(crate) fn turn_id(result: &Json) -> Option<String> {
 	result["turn"]["id"].as_str().map(str::to_owned)
 }
 
-pub fn turn_steer(thread: &str, turn: &str, parts: &[Part]) -> Json {
+pub(crate) fn turn_steer(thread: &str, turn: &str, parts: &[Part]) -> Json {
 	json!({ "threadId": thread, "input": input(parts), "expectedTurnId": turn })
 }
 
-pub fn turn_interrupt(thread: &str, turn: &str) -> Json {
+pub(crate) fn turn_interrupt(thread: &str, turn: &str) -> Json {
 	json!({ "threadId": thread, "turnId": turn })
 }
 
 /// The answer to `item/tool/call`.
-pub fn tool_result(reply: &ToolReply) -> Json {
+pub(crate) fn tool_result(reply: &ToolReply) -> Json {
 	let items: Json = reply
 		.content
 		.iter()
@@ -154,7 +154,7 @@ pub fn tool_result(reply: &ToolReply) -> Json {
 
 /// Who is signed in to godspeed's Codex folder.
 #[derive(Debug, PartialEq)]
-pub enum Account {
+pub(crate) enum Account {
 	None,
 	/// A ChatGPT account, with its plan type.
 	Plan(Option<String>),
@@ -163,7 +163,7 @@ pub enum Account {
 }
 
 /// Who is signed in, from an `account/read` result.
-pub fn account(result: &Json) -> Account {
+pub(crate) fn account(result: &Json) -> Account {
 	let account = &result["account"];
 	match account["type"].as_str() {
 		None => Account::None,
@@ -173,13 +173,13 @@ pub fn account(result: &Json) -> Account {
 }
 
 /// One page of the models the picker lists, after `cursor`.
-pub fn model_list(cursor: Option<&str>) -> Json {
+pub(crate) fn model_list(cursor: Option<&str>) -> Json {
 	json!({ "cursor": cursor })
 }
 
 /// A page of `model/list`: each model's id (the name a thread starts with), its name, and whether
 /// it is Codex's default; and the cursor of the next page.
-pub fn models(result: &Json) -> (Vec<Model>, Option<String>) {
+pub(crate) fn models(result: &Json) -> (Vec<Model>, Option<String>) {
 	let models = result["data"].items().iter().filter(|model| !model["hidden"].truthy()).map(|model| Model { id: text(&model["model"]), name: text(&model["displayName"]), default: model["isDefault"].truthy() }).collect();
 	(models, result["nextCursor"].as_str().map(str::to_owned))
 }
@@ -192,7 +192,7 @@ fn signed_out(error: &Json) -> bool {
 
 /// One item of a turn, as godspeed tells them apart.
 #[derive(Debug, PartialEq)]
-pub enum Item {
+pub(crate) enum Item {
 	/// A reply, whole once the item completes.
 	Message { text: String },
 	/// A call of one of godspeed's tools.
@@ -217,7 +217,7 @@ fn item(item: &Json) -> Item {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum TurnStatus {
+pub(crate) enum TurnStatus {
 	Completed,
 	Interrupted,
 	Failed,
@@ -225,7 +225,7 @@ pub enum TurnStatus {
 
 /// A notification from app-server, read once here.
 #[derive(Debug, PartialEq)]
-pub enum Note {
+pub(crate) enum Note {
 	TurnStarted { thread: String, turn: String },
 	TextDelta { thread: String, text: String },
 	Item { thread: String, turn: String, item: Item, done: bool },
@@ -244,7 +244,7 @@ fn text(value: &Json) -> String {
 	value.str_or_empty().to_owned()
 }
 
-pub fn note(method: &str, params: &Json) -> Note {
+pub(crate) fn note(method: &str, params: &Json) -> Note {
 	let thread = text(&params["threadId"]);
 	match method {
 		"turn/started" => Note::TurnStarted { thread, turn: text(&params["turn"]["id"]) },
@@ -276,7 +276,7 @@ pub fn note(method: &str, params: &Json) -> Note {
 
 /// How an approval's answer is written: each request has its own shape.
 #[derive(Debug, PartialEq)]
-pub enum AnswerForm {
+pub(crate) enum AnswerForm {
 	/// `{decision}`, for commands and file changes.
 	Decision,
 	/// The asked-for permissions, granted for this turn, or none.
@@ -288,7 +288,7 @@ pub enum AnswerForm {
 
 /// A request app-server sends godspeed.
 #[derive(Debug, PartialEq)]
-pub enum ServerRequest {
+pub(crate) enum ServerRequest {
 	ToolCall { thread: String, call: ToolCall },
 	Approval { thread: String, ask: Ask, form: AnswerForm },
 	/// Requests godspeed does not answer (login token refresh, attestation, the old v1 approvals).
@@ -299,7 +299,7 @@ fn reason(params: &Json) -> Option<String> {
 	params["reason"].as_str().map(str::to_owned)
 }
 
-pub fn server_request(method: &str, params: &Json) -> ServerRequest {
+pub(crate) fn server_request(method: &str, params: &Json) -> ServerRequest {
 	let thread = text(&params["threadId"]);
 	let approval = |ask: Ask, form: AnswerForm| ServerRequest::Approval { thread: thread.clone(), ask, form };
 	match method {
@@ -319,7 +319,7 @@ pub fn server_request(method: &str, params: &Json) -> ServerRequest {
 	}
 }
 
-pub fn approval_answer(form: &AnswerForm, verdict: &Verdict) -> Json {
+pub(crate) fn approval_answer(form: &AnswerForm, verdict: &Verdict) -> Json {
 	let allow = verdict.allow;
 	match form {
 		AnswerForm::Decision => json!({ "decision": if allow { "accept" } else { "decline" } }),

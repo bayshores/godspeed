@@ -69,7 +69,7 @@ pub fn confidence_level(percent: f64) -> u8 {
 }
 
 /// A quiz's role in the teaching cycle, "predict" or "check", read past a model's copy debris.
-pub fn normalize_quiz_type(raw: &Json) -> Option<&'static str> {
+pub(crate) fn normalize_quiz_type(raw: &Json) -> Option<&'static str> {
 	match strip_model_value_debris(raw.as_str()?).as_str() {
 		"predict" => Some("predict"),
 		"check" => Some("check"),
@@ -278,7 +278,7 @@ fn keep_schema() -> Json {
 }
 
 /// A quiz's `keep` as an object: as sent, or decoded when a model sent it as a JSON string.
-pub fn keep_of(quiz: &Json) -> Option<Json> {
+pub(crate) fn keep_of(quiz: &Json) -> Option<Json> {
 	match &quiz["keep"] {
 		keep @ Json::Obj(_) => Some(keep.clone()),
 		Json::Str(raw) => parse(raw).ok().filter(|k| k.as_obj().is_some()),
@@ -297,7 +297,7 @@ fn keep_words<'a>(keep: &'a Json, field: &str) -> Result<Option<&'a str>, ()> {
 
 /// Why a keep is not stored at all, from its own fields: its quiz never fails for it, so the
 /// teacher reads this after his answer. None when its fields hold.
-pub fn keep_fields_note(keep: &Json) -> Option<String> {
+pub(crate) fn keep_fields_note(keep: &Json) -> Option<String> {
 	let not_stored = |why: String| Some(format!("keep not stored: {why}. Add it to a later quiz."));
 	if keep.as_obj().is_none() {
 		return not_stored("it is not an object with a text".to_owned());
@@ -319,7 +319,7 @@ pub fn keep_fields_note(keep: &Json) -> Option<String> {
 }
 
 /// Why a keep's memory phrase is not shown; the sentence stays.
-pub fn keep_phrase_note(keep: &Json) -> Option<String> {
+pub(crate) fn keep_phrase_note(keep: &Json) -> Option<String> {
 	match keep_words(keep, "phrase") {
 		Ok(None) => None,
 		Ok(Some(phrase)) if text::len16(phrase) <= KEEP_PHRASE_MAX => None,
@@ -383,7 +383,7 @@ pub fn explain_input_object() -> Json {
 
 /// The words of a posed problem: its `statement` argument, or when the teacher gave none (the
 /// problem is a piece of a page), the words of the piece in the result's `details`.
-pub fn posed_statement<'a>(arguments: &'a Json, details: &'a Json) -> &'a str {
+pub(crate) fn posed_statement<'a>(arguments: &'a Json, details: &'a Json) -> &'a str {
 	let given = arguments["statement"].str_or_empty();
 	if given.trim().is_empty() { details["text"].str_or_empty() } else { given }
 }

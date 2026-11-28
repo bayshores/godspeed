@@ -29,7 +29,7 @@ use crate::app_file::write_stamped;
 const UNTITLED: &str = "Untitled lesson";
 
 /// What a write to the old Talk chat answers.
-pub const TALK_KEPT: &str = "The Talk chat is kept as it was and can't be changed";
+const TALK_KEPT: &str = "The Talk chat is kept as it was and can't be changed";
 
 /// The old Talk chat, by its id.
 fn is_old_talk(id: &str) -> bool {

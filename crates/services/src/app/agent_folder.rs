@@ -110,7 +110,7 @@ fn picked_in(state: &Obj) -> Option<FolderAgent> {
 }
 
 /// The agent that runs the lessons: Claude Code until the learner picks Codex.
-pub fn folder_agent(app: &App) -> FolderAgent {
+pub(crate) fn folder_agent(app: &App) -> FolderAgent {
 	picked_in(&read_state(app)).unwrap_or(FolderAgent::Claude)
 }
 
@@ -219,7 +219,7 @@ fn tidy(folder: &str) -> PathBuf {
 
 /// Where cheat sheets' working folders go: the agent keeps each sheet's source there between
 /// requests.
-pub fn cheat_sheets_dir(app: &App) -> PathBuf {
+pub(crate) fn cheat_sheets_dir(app: &App) -> PathBuf {
 	Path::new(&agent_folder(app)).join("cheat-sheets")
 }
 
@@ -322,7 +322,7 @@ pub fn set_start_command(app: &Arc<App>, agent: FolderAgent, command: &str) -> R
 }
 
 /// Once per app start: bring an existing folder's files up to this version.
-pub fn refresh_agent_folder(app: &Arc<App>) {
+pub(crate) fn refresh_agent_folder(app: &Arc<App>) {
 	if app.misc.folder_refreshed.swap(true, Ordering::SeqCst) {
 		return;
 	}
@@ -387,7 +387,7 @@ pub fn shortcut_path_problem(app: &App, path: &str) -> Option<String> {
 
 /// Where a file sits from the godspeed folder ("made/Algebra/Practice test.pdf") when it is in
 /// the folder's made/, where the agent builds files for the learner. None for any other path.
-pub fn made_path(app: &App, path: &str) -> Option<String> {
+pub(crate) fn made_path(app: &App, path: &str) -> Option<String> {
 	let folder = resolve(Path::new(&agent_folder(app)));
 	let at = resolve(Path::new(path));
 	let from_folder = at.strip_prefix(&folder).ok()?;
@@ -404,7 +404,7 @@ fn watch_space_shortcuts(app: &Arc<App>) {
 
 /// The agent someone set up the old way (the plugin, or the Codex config) uses, while they
 /// haven't seen the "godspeed has its own folder now" notice; otherwise None.
-pub fn folder_notice_agent(app: &App) -> Option<&'static str> {
+pub(crate) fn folder_notice_agent(app: &App) -> Option<&'static str> {
 	if read_state(app).contains_key("noticeSeen") || is_set_up(&agent_folder(app)) {
 		return None;
 	}

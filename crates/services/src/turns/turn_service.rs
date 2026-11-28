@@ -25,7 +25,7 @@ use crate::graph::extraction_runs::runs;
 use crate::spaces::citations::check_cites;
 
 /// How long a lesson sits idle before its last stretch (under a chunk) is extracted.
-pub const LEFTOVER_IDLE_MS: i64 = 5 * 60_000;
+pub(crate) const LEFTOVER_IDLE_MS: i64 = 5 * 60_000;
 
 /// Appends the turn's own messages past `base_count`, even after an abort (the partial transcript
 /// is what makes resume work):
@@ -91,7 +91,7 @@ fn with_id(message: &Json) -> Json {
 /// Starts extraction once the lesson's uncovered tokens reach a chunk; less than that (or a run
 /// already going) waits for the lesson to sit idle. Fire and forget: failures are logged and the
 /// next trigger runs what is left.
-pub fn trigger_extraction(app: &Arc<App>, chat_id: &str, scope: Option<&str>, chunk_tokens: f64) {
+pub(crate) fn trigger_extraction(app: &Arc<App>, chat_id: &str, scope: Option<&str>, chunk_tokens: f64) {
 	let run = || -> Result<(), String> {
 		let uncovered = uncovered_tokens(app, chat_id, scope)?;
 		if uncovered >= chunk_tokens && !runs(app).in_flight(chat_id) {
@@ -110,7 +110,7 @@ pub fn trigger_extraction(app: &Arc<App>, chat_id: &str, scope: Option<&str>, ch
 
 /// Extracts what the lesson has left after `delay_ms`, unless a newer call resets the wait. A
 /// turn or an extraction still going pushes it back; the graph may be switched off by then.
-pub fn extract_when_idle(app: &Arc<App>, chat_id: &str, scope: Option<&str>, delay_ms: i64) {
+pub(crate) fn extract_when_idle(app: &Arc<App>, chat_id: &str, scope: Option<&str>, delay_ms: i64) {
 	let number = {
 		let mut count = app.turns.leftover_count.lock();
 		*count += 1;

@@ -8,7 +8,7 @@ use std::sync::atomic::Ordering;
 use crate::App;
 
 /// What the first page load of this server process opens with, then None.
-pub fn first_load_screen(app: &App) -> Option<&'static str> {
+pub(crate) fn first_load_screen(app: &App) -> Option<&'static str> {
 	if app.misc.first_load_done.swap(true, Ordering::SeqCst) {
 		return None;
 	}

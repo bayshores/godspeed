@@ -18,7 +18,7 @@ use super::agents::runtime;
 use crate::App;
 
 #[derive(Default)]
-pub struct UpdateState {
+pub(crate) struct UpdateState {
 	run: Mutex<Option<Run>>,
 	/// Held while an update starts, so two starts never make two.
 	starting: tokio::sync::Mutex<()>,

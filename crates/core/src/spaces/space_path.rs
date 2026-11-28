@@ -16,7 +16,7 @@ pub const PATH_COVERS_MAX: usize = 200;
 
 /// A saved path, field by field: `{goal, topics: [{id, name, covers}]}`, or None with no goal or
 /// no topic.
-pub fn read_path(v: &Json) -> Option<Json> {
+pub(crate) fn read_path(v: &Json) -> Option<Json> {
 	let goal = v["goal"].as_str().filter(|g| !g.is_empty())?;
 	let topics: Vec<Json> = v["topics"]
 		.items()

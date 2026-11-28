@@ -15,14 +15,14 @@ pub fn open_gaps(app: &App, now: i64) -> Vec<Gap> {
 }
 
 /// `open_gaps` for the space records already read.
-pub fn gaps_in(app: &App, records: &[Json], now: i64) -> Vec<Gap> {
+pub(crate) fn gaps_in(app: &App, records: &[Json], now: i64) -> Vec<Gap> {
 	let today = local_day(now);
 	let answered = read_record(app).gap_asked;
 	records.iter().filter_map(|space| space_gap(space, &today)).filter(|gap| !answered.contains(&gap.key)).collect()
 }
 
 /// The gap of one space record at `now`, unless the learner waved it off.
-pub fn open_gap_of(app: &App, space: &Json, now: i64) -> Option<Gap> {
+pub(crate) fn open_gap_of(app: &App, space: &Json, now: i64) -> Option<Gap> {
 	space_gap(space, &local_day(now)).filter(|gap| !read_record(app).gap_asked.contains(&gap.key))
 }
 

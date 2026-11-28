@@ -14,12 +14,12 @@ use super::{VaultError, maintain, notes_changed, rescan, with_reader};
 use crate::App;
 use crate::app::vault_settings::set_vault_field;
 
-pub struct Setting {
+pub(crate) struct Setting {
 	pub path: Option<String>,
 	pub words: &'static str,
 }
 
-pub fn setting(app: &App) -> Result<Setting, String> {
+pub(crate) fn setting(app: &App) -> Result<Setting, String> {
 	let record = app.stores.settings.read_settings()?;
 	let (path, words) = resolve_vault(record.as_ref());
 	Ok(Setting { path, words })
@@ -53,7 +53,7 @@ fn in_obsidian(listed: &[String], path: &str) -> bool {
 
 /// The learner's notes folder is one Obsidian knows. It only picks a word, so settings that can't
 /// be read count as no Obsidian.
-pub fn notes_in_obsidian(app: &App) -> bool {
+pub(crate) fn notes_in_obsidian(app: &App) -> bool {
 	setting(app).ok().and_then(|s| s.path).is_some_and(|path| in_obsidian(&listed_vaults(&app.paths.home), &path))
 }
 

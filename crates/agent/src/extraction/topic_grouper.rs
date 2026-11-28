@@ -18,7 +18,7 @@ use super::submit_agent::{SubmitAgentOptions, run_submit_agent};
 use crate::subagents::job_agent::JobAgent;
 
 /// The core grouping instruction, approved word for word: keep the wording.
-pub const TOPIC_GROUPING_RULE: &str = "Group these facts into the topics a learner would name when studying this space: 4\u{2013}20 facts per topic, a 1\u{2013}4 word name in the space's own terms (\"Expected value\", \"Conditional probability\"). Keep existing topics and names stable; only add, split, or merge when facts don't fit. Every fact goes in exactly one topic.";
+const TOPIC_GROUPING_RULE: &str = "Group these facts into the topics a learner would name when studying this space: 4\u{2013}20 facts per topic, a 1\u{2013}4 word name in the space's own terms (\"Expected value\", \"Conditional probability\"). Keep existing topics and names stable; only add, split, or merge when facts don't fit. Every fact goes in exactly one topic.";
 
 /// The core instruction when only new facts are placed, approved word for word: keep the wording.
 const TOPIC_PLACING_RULE: &str = "Place each new fact in the topic a learner would look for it under. Use an existing topic when one fits; start a new topic (a 1\u{2013}4 word name in the space's own terms) only when none does. Every new fact goes in exactly one topic.";

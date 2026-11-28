@@ -20,7 +20,7 @@ use super::agents::runtime;
 use crate::App;
 
 #[derive(Default)]
-pub struct HealthState(Mutex<Checks>);
+pub(crate) struct HealthState(Mutex<Checks>);
 
 #[derive(Default)]
 struct Checks {

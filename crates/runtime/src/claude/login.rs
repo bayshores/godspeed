@@ -21,7 +21,7 @@ const LINK_MS: i64 = 15_000;
 const LOGIN_MS: i64 = 5 * 60_000;
 
 /// A running `claude auth login`.
-pub struct ClaudeLogin {
+pub(crate) struct ClaudeLogin {
 	stdin: AsyncMutex<ChildStdin>,
 	/// Sending, or dropping it with the login, ends the child.
 	cancel: Mutex<Option<oneshot::Sender<()>>>,

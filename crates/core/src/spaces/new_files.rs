@@ -9,11 +9,11 @@ use super::file_series::group_file_series;
 
 /// How long an arrived file counts as new (the Files page's New mark, the sidebar dot, the
 /// agent's [Today] note), in days.
-pub const NEW_FILE_DAYS: i64 = 3;
+pub(crate) const NEW_FILE_DAYS: i64 = 3;
 
 /// How long an added or removed file shows in the Files page's Recent changes (and a removed one
 /// stays on the space record), in days.
-pub const RECENT_CHANGE_DAYS: i64 = 14;
+const RECENT_CHANGE_DAYS: i64 = 14;
 
 /// Whether an ISO time is within RECENT_CHANGE_DAYS of `now` (false for unreadable times, as
 /// NaN compares false).

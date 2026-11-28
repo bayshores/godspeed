@@ -24,10 +24,10 @@ use crate::App;
 
 /// Fires one server-side turn for a chat with this input (`{type: "steers", steers}`) and
 /// answers its HTTP status. A turn that crashed answers 500.
-pub type TurnRunner = Arc<dyn Fn(String, Json) -> Pin<Box<dyn Future<Output = u16> + Send>> + Send + Sync>;
+pub(crate) type TurnRunner = Arc<dyn Fn(String, Json) -> Pin<Box<dyn Future<Output = u16> + Send>> + Send + Sync>;
 
 /// Re-runs a job's sub-agent loop (recovery of a job whose process died).
-pub type JobRespawn = Arc<dyn Fn(String) + Send + Sync>;
+pub(crate) type JobRespawn = Arc<dyn Fn(String) + Send + Sync>;
 
 pub(super) struct QueuedSteer {
 	/// Tells entries apart while the lock is let go (the TS compares objects).
@@ -50,7 +50,7 @@ pub(super) struct UserSteer {
 }
 
 #[derive(Default)]
-pub struct Wake {
+pub(crate) struct Wake {
 	pub(super) turn_runner: Option<TurnRunner>,
 	pub(super) respawn: Option<JobRespawn>,
 	/// chat id → markers awaiting delivery, in arrival order.
@@ -103,12 +103,12 @@ pub(super) fn steer_id(steer: &Json) -> &str {
 }
 
 /// The chat handler wires its adapter around `handle_chat_input` here.
-pub fn set_turn_runner(app: &App, run: TurnRunner) {
+pub(crate) fn set_turn_runner(app: &App, run: TurnRunner) {
 	app.jobs.wake.lock().turn_runner = Some(run);
 }
 
 /// The chat handler wires its job runner's `run_job` here.
-pub fn set_job_respawn(app: &App, respawn: JobRespawn) {
+pub(crate) fn set_job_respawn(app: &App, respawn: JobRespawn) {
 	app.jobs.wake.lock().respawn = Some(respawn);
 }
 
@@ -134,7 +134,7 @@ pub(super) fn complete_entry(app: &App, chat_id: &str, seq: u64) {
 }
 
 /// A deleted chat drops its obligations and is never woken.
-pub fn discard_chat_deliveries(app: &App, chat_id: &str) {
+pub(crate) fn discard_chat_deliveries(app: &App, chat_id: &str) {
 	let mut wake = app.jobs.wake.lock();
 	wake.queues.remove(chat_id);
 	wake.user_steers.remove(chat_id);
@@ -148,7 +148,7 @@ pub(super) fn finalize_steer(app: &App, steer: &Json) {
 
 /// Queues one delivery per steer id (a duplicate shares the entry) and starts the pump. Nothing
 /// waits for it: the job record keeps the obligation until the marker is saved.
-pub fn deliver_job_result(app: &Arc<App>, steer: Json) {
+pub(crate) fn deliver_job_result(app: &Arc<App>, steer: Json) {
 	let chat_id = chat_id_of(app, &steer);
 	queue_steer(app, &chat_id, steer);
 	pump(app, chat_id);
@@ -185,7 +185,7 @@ pub(super) fn hand_off_eligible(app: &App, chat_id: &str, agent: &Arc<SessionTur
 /// Registers the agent of the turn about to stream (before it starts, so its first steering
 /// poll sees the markers) and steers pending markers into it. `allow_deferred` frees markers
 /// a failed wake left waiting; `wake_steer_ids` names the cargo this turn itself carries.
-pub fn register_live_agent(app: &App, chat_id: &str, agent: &Arc<SessionTurn>, allow_deferred: bool, wake_steer_ids: Option<&HashSet<String>>) -> Result<(), String> {
+pub(crate) fn register_live_agent(app: &App, chat_id: &str, agent: &Arc<SessionTurn>, allow_deferred: bool, wake_steer_ids: Option<&HashSet<String>>) -> Result<(), String> {
 	app.jobs.wake.lock().live_agents.insert(chat_id.to_owned(), agent.clone());
 	restore_pending_deliveries(app, chat_id)?;
 	if let Some(queue) = app.jobs.wake.lock().queues.get_mut(chat_id) {
@@ -203,7 +203,7 @@ pub fn register_live_agent(app: &App, chat_id: &str, agent: &Arc<SessionTurn>, a
 }
 
 /// The agent of the chat's turn, while one is registered.
-pub fn live_agent(app: &App, chat_id: &str) -> Option<Arc<SessionTurn>> {
+pub(crate) fn live_agent(app: &App, chat_id: &str) -> Option<Arc<SessionTurn>> {
 	app.jobs.wake.lock().live_agents.get(chat_id).cloned()
 }
 
@@ -218,7 +218,7 @@ pub fn steer_live_chat(app: &App, chat_id: &str, message: Json) -> bool {
 }
 
 /// At settlement: learner steers the run persisted drop, the rest stay parked.
-pub fn reconcile_user_steers(app: &App, chat_id: &str, persisted: &[Json]) {
+pub(crate) fn reconcile_user_steers(app: &App, chat_id: &str, persisted: &[Json]) {
 	let mut wake = app.jobs.wake.lock();
 	let Some(queue) = wake.user_steers.get_mut(chat_id) else { return };
 	let ids: HashSet<Option<&str>> = persisted.iter().map(|m| m["id"].as_str()).collect();
@@ -230,14 +230,14 @@ pub fn reconcile_user_steers(app: &App, chat_id: &str, persisted: &[Json]) {
 
 /// Clears the live agent at settlement, before `settle_steers`, so its re-pump cannot hand a
 /// marker to the dying agent.
-pub fn unregister_live_agent(app: &App, chat_id: &str) {
+pub(crate) fn unregister_live_agent(app: &App, chat_id: &str) {
 	app.jobs.wake.lock().live_agents.remove(chat_id);
 }
 
 /// At settlement, with the run's persisted messages: markers it delivered are acknowledged;
 /// markers handed to it (or carried by it) that never landed return to pending, deferred when
 /// the run failed, and the pump restarts.
-pub fn settle_steers(app: &Arc<App>, chat_id: &str, persisted: &[Json], failed: bool, settled_agent: Option<&Arc<SessionTurn>>) {
+pub(crate) fn settle_steers(app: &Arc<App>, chat_id: &str, persisted: &[Json], failed: bool, settled_agent: Option<&Arc<SessionTurn>>) {
 	let delivered_ids: HashSet<&str> = persisted.iter().filter_map(|m| m["id"].as_str()).filter(|id| !id.is_empty()).collect();
 	let (delivered, any_left) = {
 		let mut wake = app.jobs.wake.lock();

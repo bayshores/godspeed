@@ -23,15 +23,17 @@ use parking_lot::Mutex;
 use crate::App;
 use index::VaultReader;
 
-pub use lesson_tool::lesson_vault_tool;
+pub(crate) use lesson_tool::lesson_vault_tool;
 pub use maintain::{minute_check, reviewed};
 pub use notes_list::space_vault_notes;
-pub use pass::{Ask, AskReply, PassState, Taken, answer_ask, catch_up, lesson_left, lesson_vault_notes, queue_lesson, send_waiting, take_block};
-pub use search::search_vault;
-pub use setup::{change_vault, notes_in_obsidian, retry_vault, vault_status};
-pub use write::{picked_vault, write_vault_note, write_vault_words};
+pub use pass::{Ask, AskReply, answer_ask, catch_up, lesson_left, lesson_vault_notes, queue_lesson, send_waiting, take_block};
+pub(crate) use pass::PassState;
+pub(crate) use search::search_vault;
+pub use setup::{change_vault, retry_vault, vault_status};
+pub(crate) use setup::notes_in_obsidian;
+pub(crate) use write::write_vault_note;
 
-pub const NO_VAULT: &str = "No vault picked. The learner picks one in Settings.";
+pub(crate) const NO_VAULT: &str = "No vault picked. The learner picks one in Settings.";
 
 /// The vault's reader, opened on first use and again when the learner picks another folder.
 #[derive(Default)]
@@ -42,7 +44,7 @@ pub struct VaultState {
 
 /// Why the vault cannot be used now.
 #[derive(Debug, PartialEq)]
-pub enum VaultError {
+pub(crate) enum VaultError {
 	NoVault,
 	/// The folder is not there (an unplugged drive, a folder the learner moved).
 	Missing,

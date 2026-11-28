@@ -18,7 +18,7 @@ use gs_services::spaces::space_checks::undo_check;
 use crate::http::reply::{self, Unhandled, error, fields};
 use crate::http::route::ApiRoute;
 
-pub fn routes() -> Router<Arc<App>> {
+pub(crate) fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/spaces/{id}/deadlines/{deadline_id}/request", ApiRoute::new().get(view).post(start).into_route())
 		.route("/api/spaces/{id}/checks/{run}/undo", ApiRoute::new().post(undo).into_route())

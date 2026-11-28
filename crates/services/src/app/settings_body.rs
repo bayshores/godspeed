@@ -11,13 +11,13 @@ use gs_core::session::tool_switches::WRITABLE_TOOL_KEYS;
 use gs_json::{Json, Obj};
 
 /// PUT /api/settings/{section} takes these, in this order.
-pub const SETTINGS_SECTIONS: [&str; 4] = ["general", "agent", "appearance", "graph"];
+pub(crate) const SETTINGS_SECTIONS: [&str; 4] = ["general", "agent", "appearance", "graph"];
 
 /// The 400's message for a body that is not an object.
-pub const NOT_A_RECORD: &str = "Invalid JSON body";
+pub(crate) const NOT_A_RECORD: &str = "Invalid JSON body";
 
 /// The parsed section, or the 400's message.
-pub type Parsed = Result<Json, String>;
+type Parsed = Result<Json, String>;
 
 /// The section's parser, or None for a section that does not exist.
 pub fn parse_section(section: &str, body: &Json) -> Option<Parsed> {

@@ -20,7 +20,7 @@ use crate::session::{Session, SessionSpec, Trouble};
 
 const LABEL: &str = "codex app-server";
 
-pub struct Connection {
+pub(crate) struct Connection {
 	state: Arc<State>,
 	reader: Reader,
 }
@@ -123,7 +123,7 @@ impl Connection {
 }
 
 /// A session's hold on its thread.
-pub struct ThreadLink {
+pub(crate) struct ThreadLink {
 	connection: Arc<Connection>,
 	id: String,
 }

@@ -8,6 +8,7 @@ mod indexing;
 mod queue;
 mod scanner;
 
-pub use queue::enqueue_file;
+pub(crate) use queue::enqueue_file;
 pub(super) use indexing::reindex_kept_pages;
-pub use scanner::{queue_waiting_files, start_space_scanner};
+pub use scanner::start_space_scanner;
+pub(crate) use scanner::queue_waiting_files;

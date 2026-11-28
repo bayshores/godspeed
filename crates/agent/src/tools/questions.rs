@@ -35,7 +35,7 @@ fn verdict(name: &str, problems: &[String]) -> Json {
 	if problems.is_empty() { question_result() } else { invalid_input_result(name, problems) }
 }
 
-pub fn ask_user_question_tool() -> FnTool {
+pub(crate) fn ask_user_question_tool() -> FnTool {
 	let description = "Ask the learner a single question and pause until they answer. NOT graded \u{2014} there is no correct answer. \
 		Use when requirements are ambiguous, preferences are needed, a decision would materially affect the lesson, \
 		or you need an open-ended response. ONE question per turn: call a single ask_user_question, then end your \
@@ -131,16 +131,16 @@ fn explain_description(name: &str, with_node: bool) -> String {
 
 /// The prober's multiple-choice tool, named `probe` so a probe-phase call shape never carries
 /// into teaching.
-pub fn probe_quiz_tool() -> FnTool {
+pub(crate) fn probe_quiz_tool() -> FnTool {
 	FnTool::immediate("probe", quiz_description("probe", false), probe_quiz_input_schema(), |args| verdict("probe", &quiz_input_problems(&args))).sequential().prepared(prepare_question_arguments)
 }
 
 /// The prober's free-recall tool, named `recall` for the same reason.
-pub fn probe_explain_tool() -> FnTool {
+pub(crate) fn probe_explain_tool() -> FnTool {
 	FnTool::immediate("recall", explain_description("recall", false), explain_input_base(), |args| verdict("recall", &explain_input_problems(&args))).sequential().prepared(prepare_question_arguments)
 }
 
-pub fn write_code_tool() -> FnTool {
+pub(crate) fn write_code_tool() -> FnTool {
 	let description = "Ask the learner to WRITE CODE. He gets a code editor (line numbers, syntax highlighting) that starts with \
 		`starter`, an 'I don't know' choice, and an optional thinking field. The app never runs or grades the code: \
 		his answer returns to you as {\"kind\":\"code\",\"code\":...,\"language\":...} (plus dontKnow: true instead of code \
@@ -150,17 +150,17 @@ pub fn write_code_tool() -> FnTool {
 }
 
 /// The plan's node ids in a chat record.
-pub fn node_ids_in(record: Option<&Json>) -> Vec<String> {
+pub(crate) fn node_ids_in(record: Option<&Json>) -> Vec<String> {
 	record.iter().flat_map(|r| r["tree"]["nodes"].items().iter()).filter_map(|n| n["id"].as_str().map(str::to_owned)).collect()
 }
 
 /// The plan's node ids, read from the live chat record so mid-turn rewrites count.
-pub fn plan_node_ids(ctx: &PlanContext) -> Vec<String> {
+pub(crate) fn plan_node_ids(ctx: &PlanContext) -> Vec<String> {
 	node_ids_in(ctx.chat_store.get_chat(&ctx.chat_id).as_ref())
 }
 
 /// The refusal for a nodeId that is in none of the plan's `known` ids.
-pub fn node_id_problem(known: &[String], node_id: &str) -> Option<String> {
+pub(crate) fn node_id_problem(known: &[String], node_id: &str) -> Option<String> {
 	if known.iter().any(|id| id == node_id) {
 		return None;
 	}
@@ -176,7 +176,7 @@ pub fn node_id_problem(known: &[String], node_id: &str) -> Option<String> {
 /// A Study turn's plan-order check, shared by its question and its problem: the first tagged call
 /// on a node that skips an earlier node nothing in the lesson asked is refused, once a node, so a
 /// skip his answers justify goes through when sent again.
-pub struct PlanOrder {
+pub(crate) struct PlanOrder {
 	record: PlanContext,
 	warned: Mutex<HashSet<String>>,
 }
@@ -207,13 +207,13 @@ fn with_plan_checks(problems: Vec<String>, known: &[String], args: &Json, order:
 }
 
 /// The teach quiz: the shared authoring rules plus the plan-node check.
-pub fn teach_quiz_tool(ctx: &PlanContext) -> FnTool {
+pub(crate) fn teach_quiz_tool(ctx: &PlanContext) -> FnTool {
 	node_quiz_tool(ctx, quiz_input_object(), None)
 }
 
 /// The Study quiz: the teach quiz whose schema adds `standalone`, which marks a quiz godspeed may
 /// ask again weeks later, `onPlot` and `keep`, with the plan-order check.
-pub fn study_quiz_tool(ctx: &PlanContext, order: &Arc<PlanOrder>) -> FnTool {
+pub(crate) fn study_quiz_tool(ctx: &PlanContext, order: &Arc<PlanOrder>) -> FnTool {
 	node_quiz_tool(ctx, study_quiz_input_object(), Some(order.clone())).prepared(prepare_study_quiz)
 }
 
@@ -226,7 +226,7 @@ fn prepare_study_quiz(args: Json) -> Result<Json, String> {
 /// A Study quiz call as its tool takes it: the arguments after its preparation (and validation,
 /// when they pass it), and whether they pass every check. The lesson-parts hook reads a plot's
 /// guess this way.
-pub fn study_quiz_call(known: &[String], sent: &Json) -> (Json, bool) {
+pub(crate) fn study_quiz_call(known: &[String], sent: &Json) -> (Json, bool) {
 	let Ok(prepared) = prepare_study_quiz(sent.clone()) else { return (sent.clone(), false) };
 	match validate_tool_arguments("quiz", &study_quiz_input_object(), &prepared) {
 		Ok(args) => {
@@ -251,12 +251,12 @@ fn node_quiz_tool(ctx: &PlanContext, schema: Json, order: Option<Arc<PlanOrder>>
 }
 
 /// The teach free-recall tool, with the same plan-node check.
-pub fn teach_explain_tool(ctx: &PlanContext) -> FnTool {
+pub(crate) fn teach_explain_tool(ctx: &PlanContext) -> FnTool {
 	node_explain_tool(ctx, None)
 }
 
 /// The Study free-recall tool: the teach one with the plan-order check.
-pub fn study_explain_tool(ctx: &PlanContext, order: &Arc<PlanOrder>) -> FnTool {
+pub(crate) fn study_explain_tool(ctx: &PlanContext, order: &Arc<PlanOrder>) -> FnTool {
 	node_explain_tool(ctx, Some(order.clone()))
 }
 

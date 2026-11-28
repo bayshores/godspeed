@@ -16,7 +16,7 @@ use http_body_util::BodyExt;
 const BODY_LIMIT: usize = 210 * 1024 * 1024;
 
 /// A response with the given content type.
-pub fn typed(status: u16, body: impl Into<Body>, content_type: &'static str) -> Response {
+pub(crate) fn typed(status: u16, body: impl Into<Body>, content_type: &'static str) -> Response {
 	let mut res = Response::new(body.into());
 	*res.status_mut() = StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
 	res.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
@@ -24,35 +24,35 @@ pub fn typed(status: u16, body: impl Into<Body>, content_type: &'static str) -> 
 }
 
 /// `Response.json(body, { status })`.
-pub fn json(status: u16, body: &Json) -> Response {
+pub(crate) fn json(status: u16, body: &Json) -> Response {
 	typed(status, gs_json::stringify(body), "application/json")
 }
 
 /// `Response.json` with `Cache-Control: no-store`.
-pub fn json_no_store(status: u16, body: &Json) -> Response {
+pub(crate) fn json_no_store(status: u16, body: &Json) -> Response {
 	no_store(json(status, body))
 }
 
 /// `new Response(text, { status })`.
-pub fn text(status: u16, body: impl Into<String>) -> Response {
+pub(crate) fn text(status: u16, body: impl Into<String>) -> Response {
 	typed(status, body.into(), "text/plain;charset=UTF-8")
 }
 
 /// `new Response(null, { status })`.
-pub fn empty(status: u16) -> Response {
+pub(crate) fn empty(status: u16) -> Response {
 	let mut res = Response::new(Body::empty());
 	*res.status_mut() = StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
 	res
 }
 
-pub fn no_store(mut res: Response) -> Response {
+pub(crate) fn no_store(mut res: Response) -> Response {
 	res.headers_mut().insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
 	res
 }
 
 /// A service outcome as a response: a refusal answers `{ error }` with its status, a throw is
 /// the route's empty 500.
-pub fn answer<T>(outcome: Outcome<T>, ok: impl FnOnce(T) -> Response) -> Result<Response, Unhandled> {
+pub(crate) fn answer<T>(outcome: Outcome<T>, ok: impl FnOnce(T) -> Response) -> Result<Response, Unhandled> {
 	match outcome {
 		Ok(value) => Ok(ok(value)),
 		Err(Stop::Refuse(status, message)) => Ok(error(status, &message)),
@@ -61,28 +61,28 @@ pub fn answer<T>(outcome: Outcome<T>, ok: impl FnOnce(T) -> Response) -> Result<
 }
 
 /// `{ ok: true }`.
-pub fn ok() -> Response {
+pub(crate) fn ok() -> Response {
 	json(200, &gs_json::json!({ "ok": true }))
 }
 
 /// `{ error, code }` with `status`.
-pub fn coded(status: u16, message: &str, code: &str) -> Response {
+pub(crate) fn coded(status: u16, message: &str, code: &str) -> Response {
 	json(status, &gs_json::json!({ "error": message, "code": code }))
 }
 
-pub fn no_such_space() -> Response {
+pub(crate) fn no_such_space() -> Response {
 	error(404, "No such space")
 }
 
 /// The catch-all's 404 for a file or /api path nothing answers.
-pub fn not_found() -> Response {
+pub(crate) fn not_found() -> Response {
 	no_store(text(404, "Not found"))
 }
 
 /// An error a TS route did not catch: Next logs it and answers an empty 500. Handlers return
 /// `Result<Response, Unhandled>` and use `?` where the TS code would throw.
 #[derive(Debug)]
-pub struct Unhandled;
+pub(crate) struct Unhandled;
 
 tokio::task_local! {
 	/// "GET /api/spaces/spc_1", the request this task answers.
@@ -90,7 +90,7 @@ tokio::task_local! {
 }
 
 /// Runs the request with its method and path known to `Unhandled`, so a logged error names the route.
-pub async fn with_request_line(req: Request, next: Next) -> Response {
+pub(crate) async fn with_request_line(req: Request, next: Next) -> Response {
 	let line = format!("{} {}", req.method(), req.uri().path());
 	REQUEST.scope(line, next.run(req)).await
 }
@@ -117,7 +117,7 @@ impl IntoResponse for Unhandled {
 
 /// The whole body, cut at `BODY_LIMIT` (the rest is read and dropped). A body that breaks off
 /// gives what arrived.
-pub async fn read_body(body: Body) -> Bytes {
+pub(crate) async fn read_body(body: Body) -> Bytes {
 	let mut body = body;
 	let mut out = BytesMut::new();
 	while let Some(Ok(frame)) = body.frame().await {
@@ -130,19 +130,19 @@ pub async fn read_body(body: Body) -> Bytes {
 }
 
 /// `TextDecoder` (what `req.text()` uses): a leading BOM dropped, bad bytes as U+FFFD.
-pub fn body_text(bytes: &[u8]) -> String {
+pub(crate) fn body_text(bytes: &[u8]) -> String {
 	let bytes = bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes);
 	String::from_utf8_lossy(bytes).into_owned()
 }
 
 /// `await req.json()`, None where it would throw.
-pub async fn json_body(body: Body) -> Option<Json> {
+pub(crate) async fn json_body(body: Body) -> Option<Json> {
 	gs_json::parse(&body_text(&read_body(body).await)).ok()
 }
 
 /// `(await req.json().catch(() => ({})))` read for its fields: `{}` when the body is not JSON, and
 /// a throw (500) for `null`, whose fields cannot be read.
-pub async fn fields(body: Body) -> Result<Json, Unhandled> {
+pub(crate) async fn fields(body: Body) -> Result<Json, Unhandled> {
 	match json_body(body).await {
 		None => Ok(gs_json::json!({})),
 		Some(Json::Null) => Err(Unhandled::from("body is null")),
@@ -151,7 +151,7 @@ pub async fn fields(body: Body) -> Result<Json, Unhandled> {
 }
 
 /// `{ error }` with `status`.
-pub fn error(status: u16, message: &str) -> Response {
+pub(crate) fn error(status: u16, message: &str) -> Response {
 	json(status, &gs_json::json!({ "error": message }))
 }
 

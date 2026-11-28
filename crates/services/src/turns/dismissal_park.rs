@@ -14,13 +14,13 @@ pub fn park_dismissal(app: &App, chat_id: &str, input: DismissInput) {
 	app.turns.parked.lock().insert(chat_id.to_owned(), input);
 }
 
-pub fn take_parked_dismissal(app: &App, chat_id: &str) -> Option<DismissInput> {
+fn take_parked_dismissal(app: &App, chat_id: &str) -> Option<DismissInput> {
 	app.turns.parked.lock().remove(chat_id)
 }
 
 /// Applies the parked discard, if any, the way the dismiss route would have written it.
 /// "record-changed" goes out only when something was written.
-pub fn apply_parked_dismissal(app: &App, chat_id: &str) -> Result<(), String> {
+pub(crate) fn apply_parked_dismissal(app: &App, chat_id: &str) -> Result<(), String> {
 	let Some(input) = take_parked_dismissal(app, chat_id) else { return Ok(()) };
 	{
 		let _guard = app.locks.lock(LockKey::Chat(chat_id));

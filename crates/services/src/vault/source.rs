@@ -28,7 +28,7 @@ fn file_address(path: &str) -> String {
 
 /// The source for passage id `<file id>:<n>` of the space `record`; Err when the space holds no
 /// such passage.
-pub fn source_for(app: &App, record: &Json, vault: &Path, passage_id: &str) -> Result<Source, String> {
+pub(crate) fn source_for(app: &App, record: &Json, vault: &Path, passage_id: &str) -> Result<Source, String> {
 	let no_passage = || format!("There is no passage {passage_id} in this space.");
 	let (file_id, n) = passage_id.split_once(':').ok_or_else(no_passage)?;
 	let file = record["files"].items().iter().find(|f| f["id"].as_str() == Some(file_id)).ok_or_else(no_passage)?;

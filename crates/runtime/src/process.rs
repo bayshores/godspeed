@@ -176,7 +176,7 @@ fn shim_program(shim: &Path) -> Option<PathBuf> {
 
 /// A running agent program. Dropping it ends the program and everything it started: on macOS and
 /// Linux it leads its own process group, on Windows a job object holds it.
-pub struct AgentProcess {
+pub(crate) struct AgentProcess {
 	child: Child,
 	#[cfg(unix)]
 	pid: Option<u32>,

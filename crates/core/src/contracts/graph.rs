@@ -9,7 +9,7 @@ pub const CURRENT_GRAPH_FORMAT_VERSION: i64 = 1;
 /// The main work a topic asks of a learner; Study picks its opening move by it.
 pub const TOPIC_MATERIALS: [&str; 4] = ["term", "procedure", "concept", "proof"];
 
-pub const TITLE_MAX_CHARS: usize = 72;
+const TITLE_MAX_CHARS: usize = 72;
 
 /// A chat title from the learner's first message: one line, cut at a word boundary at or under
 /// TITLE_MAX_CHARS with "…" (one long word is cut at the cap, never inside an emoji).

@@ -22,7 +22,7 @@ use crate::http::route::ApiRoute;
 
 const SHEET: &str = "/api/spaces/{id}/deadlines/{deadline_id}/cheat-sheet";
 
-pub fn routes() -> Router<Arc<App>> {
+pub(crate) fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/spaces/{id}/cheat-sheets", ApiRoute::new().get(get_space_sheets).into_route())
 		.route(SHEET, ApiRoute::new().get(get_sheet).post(post_sheet).into_route())

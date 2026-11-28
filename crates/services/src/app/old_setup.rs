@@ -30,7 +30,7 @@ impl OldSetup {
 }
 
 /// Where the old setups live: Claude Code's plugins folder and Codex's config file.
-pub struct Locations {
+struct Locations {
 	plugins: PathBuf,
 	codex_config: PathBuf,
 }

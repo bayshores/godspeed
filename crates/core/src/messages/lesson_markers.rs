@@ -17,11 +17,11 @@ use super::native_messages::marker;
 pub const UI_ONLY_MARKERS: [&str; 7] = ["plan-block", "problem-dismissed", "keep-going", "review", KEEP_CHECK, ANALOGY_DROP, PHRASE_DROP];
 
 /// A Study quiz's kept sentence as checked when the turn was saved.
-pub const KEEP_CHECK: &str = "keep-check";
+pub(crate) const KEEP_CHECK: &str = "keep-check";
 /// He dropped a kept sentence's analogy lines, or brought them back.
-pub const ANALOGY_DROP: &str = "analogy-drop";
+pub(crate) const ANALOGY_DROP: &str = "analogy-drop";
 /// He dropped a kept sentence's memory phrase, or brought it back.
-pub const PHRASE_DROP: &str = "phrase-drop";
+pub(crate) const PHRASE_DROP: &str = "phrase-drop";
 
 /// Whether a marker's `customType` is one of UI_ONLY_MARKERS.
 pub fn is_ui_only(custom_type: Option<&str>) -> bool {
@@ -64,13 +64,13 @@ pub fn new_kept_drop_marker(custom_type: &str, of: &str, back: bool) -> Json {
 
 /// The learner's answer to an opener (or its skip). `content` is the model-facing lines
 /// (app_notes::opener_answer_text); `details` is `{topicDoneCallId, answer}`.
-pub fn new_opener_answer_marker(content: String, details: Json) -> Json {
+pub(crate) fn new_opener_answer_marker(content: String, details: Json) -> Json {
 	Json::Obj(marker(new_message_id(), "opener-answer", content, true, details))
 }
 
 /// Hidden lines for the agent about what happened in the app, joined by a newline. `details` is
 /// `{}`, or `{reviewOf}` naming the question from earlier he asked the teacher about.
-pub fn new_app_note_marker(lines: &[String], details: Json) -> Json {
+pub(crate) fn new_app_note_marker(lines: &[String], details: Json) -> Json {
 	Json::Obj(marker(new_message_id(), "app-note", lines.join("\n"), false, details))
 }
 

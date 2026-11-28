@@ -12,7 +12,7 @@ use crate::process::AgentProcess;
 
 /// What a start gives: the agent's output, its input and, for a real program, the process, which
 /// ends with the connection.
-pub struct Started {
+pub(crate) struct Started {
 	pub reader: Box<dyn AsyncRead + Send + Unpin>,
 	pub writer: Box<dyn AsyncWrite + Send + Unpin>,
 	pub process: Option<AgentProcess>,
@@ -20,7 +20,7 @@ pub struct Started {
 
 /// Writes each line sent on the returned channel. It stops when the channel closes or a write
 /// fails; the reader then sees the agent go.
-pub fn writer(label: &'static str, mut writer: Box<dyn AsyncWrite + Send + Unpin>) -> mpsc::UnboundedSender<String> {
+pub(crate) fn writer(label: &'static str, mut writer: Box<dyn AsyncWrite + Send + Unpin>) -> mpsc::UnboundedSender<String> {
 	let (tx, mut rx) = mpsc::unbounded_channel::<String>();
 	tasks::detach(label, async move {
 		while let Some(mut line) = rx.recv().await {
@@ -41,7 +41,7 @@ pub fn writer(label: &'static str, mut writer: Box<dyn AsyncWrite + Send + Unpin
 
 /// Reads the agent's output on a task of its own: each line goes to `each`, and once the agent
 /// has gone, `ended` hears why.
-pub fn serve(label: &'static str, reader: Box<dyn AsyncRead + Send + Unpin>, process: Option<AgentProcess>, each: impl FnMut(String) + Send + 'static, ended: impl FnOnce(&str) + Send + 'static) -> Reader {
+pub(crate) fn serve(label: &'static str, reader: Box<dyn AsyncRead + Send + Unpin>, process: Option<AgentProcess>, each: impl FnMut(String) + Send + 'static, ended: impl FnOnce(&str) + Send + 'static) -> Reader {
 	let alive = Arc::new(AtomicBool::new(true));
 	let reading = alive.clone();
 	let task = tasks::spawn(label, async move {
@@ -74,7 +74,7 @@ async fn read(reader: Box<dyn AsyncRead + Send + Unpin>, process: Option<AgentPr
 const EXIT_WAIT_MS: i64 = 2_000;
 
 /// The task that reads a connection; dropping the connection stops it, which drops the process.
-pub struct Reader {
+pub(crate) struct Reader {
 	task: JoinHandle<()>,
 	alive: Arc<AtomicBool>,
 }

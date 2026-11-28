@@ -22,7 +22,7 @@ use crate::jobs::job_agent::job_agent;
 /// How long past its time a running mock still takes the page's last save.
 const LATE_SAVE_MS: i64 = 10_000;
 
-pub fn mock_label(mock: &Json) -> String {
+pub(crate) fn mock_label(mock: &Json) -> String {
 	format!("Mock {}", js_number(mock["n"].as_f64().unwrap_or(f64::NAN)))
 }
 
@@ -34,19 +34,19 @@ fn with_grades_field(mock: &Json, grades: Json) -> Json {
 }
 
 /// The deadline a mock belongs to (`{name, kind}` as the requests name it); None once it is gone.
-pub fn deadline_of(app: &App, space_id: &str, mock: &Json) -> Option<Json> {
+pub(crate) fn deadline_of(app: &App, space_id: &str, mock: &Json) -> Option<Json> {
 	let record = app.stores.spaces.get_space(space_id)?;
 	record["deadlines"].as_arr()?.iter().find(|d| d["id"] == mock["deadlineId"]).cloned()
 }
 
 /// Every fact statement of the space's graph, by id.
-pub fn fact_statements(app: &App, space_id: &str) -> Result<HashMap<String, String>, String> {
+fn fact_statements(app: &App, space_id: &str) -> Result<HashMap<String, String>, String> {
 	let Some(progress) = progress_for(app, space_id, None)? else { return Ok(HashMap::new()) };
 	Ok(progress["facts"].items().iter().filter_map(|f| Some((f["id"].as_str()?.to_owned(), f["statement"].str_or_empty().to_owned()))).collect())
 }
 
 /// Asks the teacher for an ended mock's grades. With nothing answered there is nothing to ask.
-pub fn ask_grades(app: &Arc<App>, space_id: &str, mock: &Json) -> Result<(), String> {
+pub(crate) fn ask_grades(app: &Arc<App>, space_id: &str, mock: &Json) -> Result<(), String> {
 	let Some(deadline) = deadline_of(app, space_id, mock) else { return Ok(()) };
 	let answered: Vec<Json> = mock["questions"].items().iter().filter(|q| is_answered(&mock["answers"][q["id"].str_or_empty()])).cloned().collect();
 	if answered.is_empty() {
@@ -84,7 +84,7 @@ pub fn ask_grades(app: &Arc<App>, space_id: &str, mock: &Json) -> Result<(), Str
 /// Ends a running or paused mock and asks for its grades: the mock as it is now, None once it is
 /// removed. Read again under the lock, so a copy read before it is never written back: a mock
 /// removed meanwhile stays removed, and one ended meanwhile keeps its grades.
-pub fn finish(app: &Arc<App>, space_id: &str, seen: &Json) -> Result<Option<Json>, String> {
+pub(crate) fn finish(app: &Arc<App>, space_id: &str, seen: &Json) -> Result<Option<Json>, String> {
 	let _guard = app.locks.lock(LockKey::Space(space_id));
 	let Some(mock) = app.stores.mocks.read_mock(space_id, seen["id"].str_or_empty())? else { return Ok(None) };
 	if !matches!(mock_state(&mock), MockState::Running | MockState::Paused) {
@@ -105,17 +105,17 @@ pub fn finish(app: &Arc<App>, space_id: &str, seen: &Json) -> Result<Option<Json
 }
 
 /// A running timed mock whose time ran out, past the last save's grace. A paused one never is.
-pub fn is_over(mock: &Json) -> bool {
+pub(crate) fn is_over(mock: &Json) -> bool {
 	mock_state(mock) == MockState::Running && seconds_left(mock, (clock::now_ms() - LATE_SAVE_MS) as f64) == Some(0.0)
 }
 
 /// The mock, ended first when its time ran out; None once it is removed.
-pub fn end_if_over(app: &Arc<App>, space_id: &str, mock: Json) -> Result<Option<Json>, String> {
+pub(crate) fn end_if_over(app: &Arc<App>, space_id: &str, mock: Json) -> Result<Option<Json>, String> {
 	if is_over(&mock) { finish(app, space_id, &mock) } else { Ok(Some(mock)) }
 }
 
 /// The space's mocks by number, each ended first when its time ran out.
-pub fn current_mocks(app: &Arc<App>, space_id: &str) -> Vec<Json> {
+pub(crate) fn current_mocks(app: &Arc<App>, space_id: &str) -> Vec<Json> {
 	let mocks = app.stores.mocks.list_mocks(space_id).unwrap_or_default();
 	mocks
 		.into_iter()

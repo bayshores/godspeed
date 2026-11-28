@@ -13,7 +13,7 @@ use super::reply::{failure, outcome, result};
 use super::ToolCall;
 
 /// Runs one space tool; None for a name that is not one.
-pub async fn space_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Option<Json> {
+pub(crate) async fn space_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Option<Json> {
 	// The learner asked in godspeed itself, so the window opens what it starts even with Follow off.
 	let actions = space_actions(call.app, call.caller, send_first_message(call.app), Mark::Started);
 	match name {

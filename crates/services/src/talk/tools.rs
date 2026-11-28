@@ -24,7 +24,7 @@ use schema::check_arguments;
 static TOOLS: LazyLock<Json> = LazyLock::new(|| gs_json::parse(include_str!("tools.json")).unwrap_or_default());
 
 /// The tools: each one's name, title, description, annotations and JSON Schema.
-pub fn tool_list() -> &'static Json {
+pub(crate) fn tool_list() -> &'static Json {
 	&TOOLS
 }
 
@@ -40,7 +40,7 @@ pub struct ToolCall<'a> {
 
 /// A tool's space_id argument, checked: absent or "none" is No space; otherwise the space must
 /// exist. The scope, or the refusal text.
-pub fn space_arg(app: &App, space_id: Option<&str>) -> Result<Option<String>, String> {
+pub(crate) fn space_arg(app: &App, space_id: Option<&str>) -> Result<Option<String>, String> {
 	let Some(scope) = parse_space_scope(space_id) else {
 		return Err(format!("\"{}\" is not a space id. Use list_spaces.", space_id.unwrap_or_default()));
 	};

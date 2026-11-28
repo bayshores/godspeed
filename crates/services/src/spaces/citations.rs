@@ -37,7 +37,7 @@ fn passage_text(passages: &[Json]) -> String {
 /// passage); a mark that
 /// points at nothing is taken out and listed once, and a quote that does not hold (or would make the
 /// stored mark too long to read) is dropped and listed once. Web marks stay as written.
-pub fn check_cites(app: &App, text: &str) -> CheckedMarks {
+pub(crate) fn check_cites(app: &App, text: &str) -> CheckedMarks {
 	let (text, mut dropped) = cut_unreadable_quotes(text);
 	let mut removed: Vec<String> = Vec::new();
 	let records = LazyCell::new(|| app.stores.spaces.list_space_records());
@@ -113,7 +113,7 @@ pub async fn cited_passage(app: &App, file_id: &str, range: &str, quote: Option<
 }
 
 /// What the teacher is told about the marks its text lost: removed marks, then dropped quotes.
-pub fn mark_notes(checked: &CheckedMarks) -> String {
+pub(crate) fn mark_notes(checked: &CheckedMarks) -> String {
 	let removed = (!checked.removed.is_empty()).then(|| format!("Removed source marks that don't point at a passage of a space file: {}. Use ids from search_space_files.", checked.removed.join(", ")));
 	let dropped = checked.dropped.iter().map(|d| format!("Dropped quote \"{}\" from {}: {}", d.quote, d.mark, d.miss.reason()));
 	removed.into_iter().chain(dropped).collect::<Vec<_>>().join(" ")

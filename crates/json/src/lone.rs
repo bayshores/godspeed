@@ -9,11 +9,11 @@
 //! in that range read back as lone surrogates; no real text uses them.
 
 /// The stand-in for the lone surrogate 0xD800.
-pub const STANDIN_BASE: u32 = 0x10_F800;
+const STANDIN_BASE: u32 = 0x10_F800;
 
 /// The stand-in char for a lone surrogate unit (0xD800..=0xDFFF).
 #[expect(clippy::expect_used, reason = "STANDIN_BASE plus at most 0x7FF is a code point below 0x10FFFF and not a surrogate")]
-pub fn standin(unit: u16) -> char {
+pub(crate) fn standin(unit: u16) -> char {
 	debug_assert!((0xD800..=0xDFFF).contains(&unit));
 	char::from_u32(STANDIN_BASE + u32::from(unit - 0xD800)).expect("stand-ins are valid chars")
 }
@@ -25,7 +25,7 @@ pub fn unit_of(c: char) -> Option<u16> {
 }
 
 /// True when `s` holds no stand-in, so its UTF-8 bytes are what Node would write.
-pub fn is_well_formed(s: &str) -> bool {
+pub(crate) fn is_well_formed(s: &str) -> bool {
 	// Every stand-in starts with the UTF-8 lead byte 0xF4 followed by 0x8F 0xA0..=0xBF.
 	!s.as_bytes().windows(3).any(|w| w[0] == 0xF4 && w[1] == 0x8F && w[2] >= 0xA0)
 }

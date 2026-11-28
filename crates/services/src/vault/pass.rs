@@ -58,7 +58,7 @@ struct Waiting {
 /// What the pass knows in memory only: a restart finds the same lessons again from their
 /// markers.
 #[derive(Default)]
-pub struct PassState {
+pub(crate) struct PassState {
 	waiting: Mutex<HashMap<String, Waiting>>,
 	/// A space's topics whose block was sent and whose run has not ended.
 	sending: Mutex<HashMap<String, HashSet<String>>>,

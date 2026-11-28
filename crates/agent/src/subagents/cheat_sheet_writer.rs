@@ -60,11 +60,11 @@ pub struct TakenPdf {
 }
 
 /// Checks and reads the PDF at a path: it, or why it cannot be used.
-pub type TakePdf = Box<dyn Fn(String) -> BoxFuture<'static, Result<TakenPdf, String>> + Send + Sync>;
+type TakePdf = Box<dyn Fn(String) -> BoxFuture<'static, Result<TakenPdf, String>> + Send + Sync>;
 
 /// Checks the source marks in the reply text: the text to keep, and the marks that point at
 /// nothing.
-pub type CheckText = Box<dyn Fn(&str) -> (String, Vec<String>) + Send + Sync>;
+type CheckText = Box<dyn Fn(&str) -> (String, Vec<String>) + Send + Sync>;
 
 pub struct SheetRequest {
 	/// "CSE 21 Midterm": names the job in the log.

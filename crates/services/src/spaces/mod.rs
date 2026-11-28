@@ -29,13 +29,15 @@ mod text_cache;
 mod vault_skip;
 
 pub use deadlines::{add_space_deadline, deadline_about, deadline_with_space, list_deadlines_done_on, list_open_deadlines, list_space_deadlines, remove_space_deadline, update_space_deadline};
-pub use files::{AGENT_FILE_READING_REFUSAL, add_copied_file, add_file_from_path, add_made_file, copied_file_problem, remove_file, retry_file, set_file_kind, source_id_for, tie_file_to_lesson, write_agent_file};
+pub use files::{add_copied_file, remove_file, retry_file, set_file_kind, source_id_for};
+pub(crate) use files::{AGENT_FILE_READING_REFUSAL, add_file_from_path, add_made_file, tie_file_to_lesson, write_agent_file};
 pub use folder::{folder_status_of, link_folder, scan_linked_folder, unlink_folder};
-pub use kept_pages::{keep_page, kept_pages_at};
+pub(crate) use kept_pages::{keep_page, kept_pages_at};
 pub use lifecycle::{close_space_work, delete_space, move_chat_to_space, request_space_scope, update_space};
-pub use pipeline::{enqueue_file, queue_waiting_files, start_space_scanner};
+pub use pipeline::start_space_scanner;
+pub(crate) use pipeline::queue_waiting_files;
 pub use prep_upgrade::upgrade_old_preps;
-pub use state::SpacesState;
+pub(crate) use state::SpacesState;
 
 /// Why a space action was refused: the HTTP status, a machine code and the message.
 #[derive(Clone, Debug, PartialEq)]
@@ -57,7 +59,7 @@ impl SpaceFailure {
 }
 
 /// `{ ok: true, value } | { ok: false, status, code, error }`.
-pub type SpaceOutcome<T> = Result<T, SpaceFailure>;
+pub(crate) type SpaceOutcome<T> = Result<T, SpaceFailure>;
 
 pub(crate) fn fail<T>(status: u16, code: &str, error: impl Into<String>) -> SpaceOutcome<T> {
 	Err(SpaceFailure { status, code: code.to_owned(), error: error.into() })

@@ -5,7 +5,7 @@ const EOI: u8 = 0xd9;
 const SOS: u8 = 0xda;
 
 /// True when the file's markers run from the start marker to the end-of-image marker.
-pub fn is_complete(bytes: &[u8]) -> bool {
+pub(crate) fn is_complete(bytes: &[u8]) -> bool {
 	if !bytes.starts_with(&[0xff, 0xd8]) {
 		return false;
 	}

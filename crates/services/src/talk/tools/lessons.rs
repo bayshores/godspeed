@@ -9,7 +9,7 @@ use gs_json::{Json, Obj, json};
 use super::reply::{failure, result};
 use super::{ToolCall, space_arg};
 
-pub fn list_lessons(call: &ToolCall<'_>, args: &Json) -> Json {
+pub(crate) fn list_lessons(call: &ToolCall<'_>, args: &Json) -> Json {
 	let app = call.app;
 	let mut chats = app.stores.chats.list_chats();
 	if let Some(space_id) = args["space_id"].as_str() {
@@ -47,7 +47,7 @@ pub fn list_lessons(call: &ToolCall<'_>, args: &Json) -> Json {
 	result(&json!({ "lessons": lessons, "total": total }))
 }
 
-pub fn read_lesson(call: &ToolCall<'_>, args: &Json) -> Json {
+pub(crate) fn read_lesson(call: &ToolCall<'_>, args: &Json) -> Json {
 	let lesson_id = args["lesson_id"].str_or_empty();
 	let page = args["page"].as_i64().unwrap_or(1) as usize;
 	let Some(record) = call.app.stores.chats.get_chat(lesson_id) else {

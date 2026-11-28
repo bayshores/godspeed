@@ -250,7 +250,7 @@ impl Tool for TopicDone {
 }
 
 /// The tool for one Study turn, under the gate the study problem and conclude share.
-pub fn topic_done_tool(record: PlanContext, gate: &Arc<TurnGate>, check_marks: CheckMarks, plan_nodes: PlanNodes, multiple_choice: bool) -> FnTool {
+pub(crate) fn topic_done_tool(record: PlanContext, gate: &Arc<TurnGate>, check_marks: CheckMarks, plan_nodes: PlanNodes, multiple_choice: bool) -> FnTool {
 	let (parameters, check_schema) = (parameters(multiple_choice, false), parameters(multiple_choice, true));
 	FnTool::from_tool(Arc::new(TopicDone { description: description(multiple_choice), parameters, check_schema, multiple_choice, record, gate: gate.clone(), check_marks, plan_nodes }))
 }

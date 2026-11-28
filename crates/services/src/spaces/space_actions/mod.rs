@@ -63,9 +63,9 @@ fn local_now() -> String {
 }
 
 /// What an agent hears when it asks for something in a closed space.
-pub const CLOSED_SPACE: &str = "This space is closed. Ask the learner to reopen it first.";
+pub(crate) const CLOSED_SPACE: &str = "This space is closed. Ask the learner to reopen it first.";
 
-pub fn no_space_text(space_id: &str) -> String {
+pub(crate) fn no_space_text(space_id: &str) -> String {
 	format!("No space \"{space_id}\". Use list_spaces.")
 }
 

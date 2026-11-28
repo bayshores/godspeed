@@ -9,11 +9,11 @@ use gs_core::session::schema::{self, string, strings};
 use gs_json::{Json, Obj, json};
 
 /// The session-only anchor instruction. Approved word for word: keep the wording.
-pub const SESSION_MESSAGE_ID_RULE: &str = "For each new proposition, copy the message ID of the passage that most directly states or explains it into messageId.";
+const SESSION_MESSAGE_ID_RULE: &str = "For each new proposition, copy the message ID of the passage that most directly states or explains it into messageId.";
 
-pub const SESSION_PREAMBLE: &str = "You are the extraction stage of a learning app. You read one stretch of a source (a teaching session, rendered as the teacher's prose in reading order) and report what it teaches as findings for the learner's global knowledge graph, building on everything already extracted from this source.";
+const SESSION_PREAMBLE: &str = "You are the extraction stage of a learning app. You read one stretch of a source (a teaching session, rendered as the teacher's prose in reading order) and report what it teaches as findings for the learner's global knowledge graph, building on everything already extracted from this source.";
 
-pub const NOTES_PREAMBLE: &str = "You are the extraction stage of a learning app. You read one stretch of a source (the author's personal notes, rendered in reading order) and report what it teaches as findings for the learner's global knowledge graph, building on everything already extracted from this source.";
+const NOTES_PREAMBLE: &str = "You are the extraction stage of a learning app. You read one stretch of a source (the author's personal notes, rendered in reading order) and report what it teaches as findings for the learner's global knowledge graph, building on everything already extracted from this source.";
 
 /// What notes and lessons say differently: the goal and which ideas to select.
 const SESSION_GOAL: &str = "THE GOAL: uncover the source's CORE IDEAS and show how everything derives from the foundations. The
@@ -79,11 +79,11 @@ const SESSION_QUESTION_RULE: &str = "QUESTION [id] passages are questions the le
 /// Added for space files godspeed may sort by itself.
 const SPACE_INFO_RULE: &str = "This file is from a space folder. Logistics rather than material to learn from (announcements, emails, grade or submission notices, schedules, forum digests): submit spaceInfo: true with empty propositions, chains and reteaches.";
 
-pub fn extractor_instructions() -> String {
+pub(crate) fn extractor_instructions() -> String {
 	format!("{SESSION_PREAMBLE}\n\n{}\n\n{SESSION_MESSAGE_ID_RULE}\n\n{SESSION_QUESTION_RULE}", extraction_core(SESSION_GOAL, SESSION_SELECTION))
 }
 
-pub fn notes_extractor_instructions(may_be_space_info: bool) -> String {
+pub(crate) fn notes_extractor_instructions(may_be_space_info: bool) -> String {
 	let base = format!("{NOTES_PREAMBLE}\n\n{}", extraction_core(NOTES_GOAL, NOTES_SELECTION));
 	if may_be_space_info { format!("{base}\n\n{SPACE_INFO_RULE}") } else { base }
 }
@@ -147,7 +147,7 @@ fn base_fields(propositions: Vec<(&'static str, Json, bool)>) -> Vec<(&'static s
 }
 
 /// A notes file's submit; a space file godspeed may sort by itself adds the space-info verdict.
-pub fn notes_findings_schema(may_be_space_info: bool) -> Json {
+pub(crate) fn notes_findings_schema(may_be_space_info: bool) -> Json {
 	let mut fields = base_fields(proposition_props());
 	if may_be_space_info {
 		let verdict = json!({ "type": "boolean", "description": "true when this file is logistics, not material to learn from; then propositions, chains and reteaches stay empty." });
@@ -157,7 +157,7 @@ pub fn notes_findings_schema(may_be_space_info: bool) -> Json {
 }
 
 /// A lesson's submit: every proposition names its passage, and questions list what they test.
-pub fn session_findings_schema() -> Json {
+pub(crate) fn session_findings_schema() -> Json {
 	let mut props = proposition_props();
 	props.push((
 		"messageId",
@@ -177,7 +177,7 @@ pub fn session_findings_schema() -> Json {
 
 /// The notes door's boundary: a stray messageId (extra properties pass the schema) is dropped, so
 /// notes provenance stays file-level.
-pub fn fill_notes_findings(raw: Json) -> Json {
+pub(crate) fn fill_notes_findings(raw: Json) -> Json {
 	let mut out = raw;
 	if let Some(props) = out.get_mut("propositions").and_then(Json::as_arr_mut) {
 		for p in props.iter_mut().filter_map(Json::as_obj_mut) {
@@ -190,7 +190,7 @@ pub fn fill_notes_findings(raw: Json) -> Json {
 /// The chain laws: every endpoint is a submitted proposition id or an existing node id, a
 /// conclusion is never its own premise, and reteaches name existing ideas only. A problem goes
 /// back to the model as an error result; identical chains are not errors (the merge dedupes them).
-pub fn validate_findings_chains(value: &Json, existing: &HashSet<String>) -> Option<String> {
+pub(crate) fn validate_findings_chains(value: &Json, existing: &HashSet<String>) -> Option<String> {
 	if let Some(unknown) = value["reteaches"].items().iter().map(Json::str_or_empty).find(|id| !existing.contains(*id)) {
 		return Some(format!("reteaches: \"{unknown}\" is not an existing idea id from THE GRAPH SO FAR or RELATED IDEAS \u{2014} list only ids shown there."));
 	}
@@ -213,7 +213,7 @@ pub fn validate_findings_chains(value: &Json, existing: &HashSet<String>) -> Opt
 
 /// The session anchor law: every proposition, and every question test, names a passage of the
 /// batch being read (`batch_ids`), never one of another batch, chat or kind of message.
-pub fn validate_session_anchors(value: &Json, batch_ids: &HashSet<String>, existing: &HashSet<String>) -> Option<String> {
+pub(crate) fn validate_session_anchors(value: &Json, batch_ids: &HashSet<String>, existing: &HashSet<String>) -> Option<String> {
 	let local: HashSet<&str> = value["propositions"].items().iter().map(|p| p["id"].str_or_empty()).collect();
 	for test in value["tests"].items() {
 		let message_id = test["messageId"].str_or_empty();
@@ -241,7 +241,7 @@ const DUPLICATE_NOTICE_HEAD: &str = "Possible duplicates: the graph may already 
 const DUPLICATE_NOTICE_TAIL: &str = "Same idea as a listed one (even worded differently): leave it out of propositions, use that id in chains and tests, list it in reteaches. Different idea: keep it. Submit again; that submission is final.";
 
 /// The duplicate check's answer to a submit: each flagged proposition under its candidates.
-pub fn duplicate_notice(duplicates: &[Duplicate]) -> String {
+pub(crate) fn duplicate_notice(duplicates: &[Duplicate]) -> String {
 	let mut out = vec![DUPLICATE_NOTICE_HEAD.to_owned()];
 	for d in duplicates {
 		out.push(format!("  {} | {}", d.new.id, d.new.name));
@@ -252,7 +252,7 @@ pub fn duplicate_notice(duplicates: &[Duplicate]) -> String {
 }
 
 /// The submit as the merger takes it: omitted aliases become `[]`, `tests` rides along when sent.
-pub fn as_session_findings(raw: &Json) -> Json {
+pub(crate) fn as_session_findings(raw: &Json) -> Json {
 	let propositions: Vec<Json> = raw["propositions"].items()
 		.iter()
 		.map(|p| {

@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 /// A `Map<string, V>`: lookups by key, iteration in the order keys were first set.
-pub struct OrderedMap<V> {
+pub(crate) struct OrderedMap<V> {
 	entries: Vec<(String, V)>,
 	index: HashMap<String, usize>,
 }

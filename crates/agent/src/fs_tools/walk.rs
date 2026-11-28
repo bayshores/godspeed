@@ -33,7 +33,7 @@ struct Walk<'a, F> {
 /// Visits every file under `root` (symlinks and other kinds are not followed) with its full
 /// path (this OS's separators) and its path from `root` (`/` separators). `visit` returns true to stop. The walk
 /// stops by itself after `WALK_TIMEOUT_MS` or when the abort fires, keeping what it found.
-pub fn walk_files(root: &Path, abort: &Abort, guard: &Protected, visit: impl FnMut(&str, &str) -> bool) -> Walked {
+pub(crate) fn walk_files(root: &Path, abort: &Abort, guard: &Protected, visit: impl FnMut(&str, &str) -> bool) -> Walked {
 	let mut walk = Walk { abort, guard, real_root: real_path(root), deadline: clock::now_ms() + WALK_TIMEOUT_MS, visit, out: Walked { timed_out: false, aborted: false } };
 	if abort.is_aborted() {
 		walk.out.aborted = true;

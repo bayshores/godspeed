@@ -16,7 +16,7 @@ pub struct ChatAttachment {
 	pub data: String,
 }
 
-pub const MAX_ATTACHMENTS: usize = 5;
+pub(crate) const MAX_ATTACHMENTS: usize = 5;
 /// The long side of a stored picture, in pixels.
 pub const MAX_IMAGE_SIDE: u32 = 1568;
 
@@ -30,8 +30,8 @@ const PDF_TYPE: &str = "application/pdf";
 const IMAGE_TYPES: [&str; 4] = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 const HEIC_TYPES: [&str; 2] = ["image/heic", "image/heif"];
 
-pub const HEIC_REFUSAL: &str = "Can't use HEIC photos yet. Export as JPG.";
-pub const TOO_MANY_REFUSAL: &str = "You can add up to 5 files to one message.";
+const HEIC_REFUSAL: &str = "Can't use HEIC photos yet. Export as JPG.";
+pub(crate) const TOO_MANY_REFUSAL: &str = "You can add up to 5 files to one message.";
 
 /// A file's type: the browser's, or read from its extension when the browser gives none.
 fn attachment_type(name: &str, mime: &str) -> String {

@@ -54,7 +54,7 @@ fn remove_if_old(file: &Path, old: fn(&str) -> bool) -> Result<(), String> {
 /// Write the folder's file, creating the folder if need be, and clear out what an older godspeed
 /// left. The learner's own files, and the pictures and files they once gave the agent in
 /// `.godspeed/attachments`, stay. Err is the first failure, worded like Node's.
-pub fn write_folder(folder: &str) -> Result<(), String> {
+pub(crate) fn write_folder(folder: &str) -> Result<(), String> {
 	let root = Path::new(folder);
 	let steps = root.join(SETUP_STEPS);
 	// Only when it changed, so a refresh leaves the folder alone.

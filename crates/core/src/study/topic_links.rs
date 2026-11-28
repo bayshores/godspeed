@@ -7,7 +7,7 @@ use gs_json::{Json, json};
 
 /// Learn `from` first, then `to`; `weight` is how many reasoning chains run from one into the other.
 #[derive(Clone, Debug, PartialEq)]
-pub struct TopicLink {
+pub(crate) struct TopicLink {
 	pub from: String,
 	pub to: String,
 	pub weight: usize,
@@ -22,7 +22,7 @@ impl TopicLink {
 /// A chain with a premise in topic A and its conclusion in topic B (A is not B) adds 1 to A to B
 /// (once per chain). Cycles are broken by keeping the heaviest edges first (ties: from, then to,
 /// in id order) and dropping any edge that would close a loop.
-pub fn topic_links(chains: &[Json], topic_of_fact: &HashMap<String, String>) -> Vec<TopicLink> {
+pub(crate) fn topic_links(chains: &[Json], topic_of_fact: &HashMap<String, String>) -> Vec<TopicLink> {
 	let mut weights: Vec<TopicLink> = Vec::new();
 	let mut at: HashMap<(String, String), usize> = HashMap::new();
 	for chain in chains {
@@ -73,7 +73,7 @@ fn reaches(out: &HashMap<&str, Vec<&str>>, start: &str, goal: &str) -> bool {
 
 /// Column per topic: the longest path from a topic with no incoming arrow (the links must be
 /// acyclic, which `topic_links` guarantees).
-pub fn topic_columns(topic_ids: &[String], links: &[TopicLink]) -> HashMap<String, i64> {
+pub(crate) fn topic_columns(topic_ids: &[String], links: &[TopicLink]) -> HashMap<String, i64> {
 	let mut incoming: HashMap<&str, Vec<&str>> = HashMap::new();
 	for l in links {
 		incoming.entry(l.to.as_str()).or_default().push(l.from.as_str());

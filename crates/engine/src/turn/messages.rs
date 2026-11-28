@@ -27,7 +27,7 @@ pub fn text_block(text: &str) -> Json {
 }
 
 /// What a failed or refused call returns.
-pub fn error_tool_result(text: &str) -> Json {
+pub(crate) fn error_tool_result(text: &str) -> Json {
 	json!({ "content": [text_block(text)], "details": {} })
 }
 

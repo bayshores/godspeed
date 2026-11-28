@@ -4,16 +4,16 @@
 use crate::study::progress::TopicStatus;
 
 pub const SPACE_KEY: &str = "class";
-pub const DEADLINES_KEY: &str = "test";
+pub(crate) const DEADLINES_KEY: &str = "test";
 pub const STANDING_KEY: &str = "confidence";
-pub const ANSWERED_KEY: &str = "answered";
-pub const MISTAKES_KEY: &str = "mistakes";
-pub const NEXT_REVIEW_KEY: &str = "next_review";
+pub(crate) const ANSWERED_KEY: &str = "answered";
+pub(crate) const MISTAKES_KEY: &str = "mistakes";
+pub(crate) const NEXT_REVIEW_KEY: &str = "next_review";
 pub const OWNER_KEY: &str = "godspeed";
-pub const FACTS_KEY: &str = "facts";
-pub const UP_KEY: &str = "up";
+pub(crate) const FACTS_KEY: &str = "facts";
+pub(crate) const UP_KEY: &str = "up";
 /// The value of `godspeed` that hands a learner's own note to godspeed.
-pub const KEEP: &str = "keep";
+pub(crate) const KEEP: &str = "keep";
 
 /// The word the file holds for a standing; an untested topic leaves the key empty.
 pub fn confidence_word(status: TopicStatus) -> Option<&'static str> {

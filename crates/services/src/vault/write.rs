@@ -92,7 +92,7 @@ impl Request {
 }
 
 /// The vault folder Settings names, when there is one.
-pub fn picked_vault(app: &App) -> bool {
+pub(crate) fn picked_vault(app: &App) -> bool {
 	super::setup::setting(app).is_ok_and(|s| s.path.is_some())
 }
 
@@ -160,13 +160,13 @@ enum Outcome {
 
 /// Writes the note for `args` and answers `{status, name, path, confidence, next_review?, kept?}`.
 /// `status` is written, updated, linked or waiting.
-pub fn write_vault_note(app: &App, args: &Json) -> Result<Json, String> {
+pub(crate) fn write_vault_note(app: &App, args: &Json) -> Result<Json, String> {
 	write_request(app, Request::parse(args)?, args)
 }
 
 /// Writes what the learner typed at a lesson end as the note's "My words". Answers like
 /// `write_vault_note`.
-pub fn write_vault_words(app: &App, space_id: &str, topic_id: &str, words: &str) -> Result<Json, String> {
+pub(crate) fn write_vault_words(app: &App, space_id: &str, topic_id: &str, words: &str) -> Result<Json, String> {
 	let args = json!({ "space_id": space_id, "topic_id": topic_id });
 	let mut req = Request::parse(&args)?;
 	req.words = Some(words.to_owned());

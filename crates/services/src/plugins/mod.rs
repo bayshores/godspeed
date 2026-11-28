@@ -21,7 +21,8 @@ use std::path::PathBuf;
 use gs_json::Json;
 use parking_lot::Mutex;
 
-pub use ask::{ask_agent, plugin_ask_rows};
+pub use ask::ask_agent;
+pub(crate) use ask::plugin_ask_rows;
 pub use csp::{FILES_PREFIX, FONTS_PREFIX, plugin_csp, plugin_files_port};
 pub use install::{install_from_folder, install_from_list};
 pub use installed::{installed_manifest, list_plugins, plugin_view, remove_plugin, served_file};
