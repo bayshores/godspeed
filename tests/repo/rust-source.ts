@@ -229,3 +229,117 @@ export function rustFunctions(tokens: RustToken[]): RustFunction[] {
 		free: !inside(impls.map((block) => block.span), at) && !inside(bodies, at),
 	}));
 }
+
+/**
+ * Whether a `#[cfg(...)]` builds its item only for tests: it names `test`, or a feature for tests
+ * (`fake`, or one with "test" in its name). A `not(...)` is read as app code.
+ */
+function isTestCfg(attribute: string): boolean {
+	if (!attribute.startsWith("#[cfg(") || /\bnot\s*\(/.test(attribute)) return false;
+	const features = [...attribute.matchAll(/feature\s*=\s*"([^"]*)"/g)].map((match) => match[1]!);
+	return /\btest\b/.test(attribute.replace(/"[^"]*"/g, '""')) || features.some((feature) => feature === "fake" || feature.includes("test"));
+}
+
+/** The end of the bracket that opens at `open` in blanked code. */
+function closing(code: string, open: number): number {
+	let depth = 0;
+	for (let i = open; i < code.length; i++) {
+		if ("([{".includes(code[i]!)) depth++;
+		else if (")]}".includes(code[i]!) && --depth === 0) return i + 1;
+	}
+	return code.length;
+}
+
+/** The end of the item that starts at `from` in blanked code: past its `;`, or past its body's closing brace. */
+function itemEnd(code: string, from: number): number {
+	for (let i = from; i < code.length; i++) {
+		if (code[i] === ";") return i + 1;
+		if (code[i] === "{") return closing(code, i);
+		if ("([".includes(code[i]!)) i = closing(code, i) - 1;
+	}
+	return code.length;
+}
+
+/**
+ * What the app builds of a Rust file: its code as `readRust` leaves it, with every item behind a
+ * test cfg blanked too (a test module, a test helper, a `mod` line naming a file of tests), and the
+ * names of the modules those `mod` lines declare. A name a string uses as an inline format argument
+ * (`"{name}"`, `"{name:>4}"`) is code, so it stays in place.
+ */
+export function readAppCode(text: string): { code: string; testModules: string[] } {
+	const { code } = readRust(text);
+	const out = code.split("");
+	const testModules: string[] = [];
+	// Every quote left in the code opens or closes a string, so they pair up in order.
+	const quotes = [...code.matchAll(/"/g)].map((match) => match.index);
+	for (let q = 0; q + 1 < quotes.length; q += 2) {
+		const from = quotes[q]! + 1;
+		for (const arg of text.slice(from, quotes[q + 1]).matchAll(/(?<!\{)\{([A-Za-z_]\w*)(?=[}:])/g)) {
+			for (let i = 1; i <= arg[1]!.length; i++) out[from + arg.index + i] = text[from + arg.index + i]!;
+		}
+	}
+	let at = code.indexOf("#[");
+	while (at !== -1) {
+		let end = at;
+		let test = false;
+		while (code.startsWith("#[", end)) {
+			const close = closing(code, end + 1);
+			test ||= isTestCfg(text.slice(end, close));
+			end = close;
+			while (/\s/.test(code[end] ?? "")) end++;
+		}
+		if (test) {
+			const item = itemEnd(code, end);
+			const declared = /^(?:pub(?:\([^)]*\))?\s+)?mod\s+(\w+)\s*;/.exec(code.slice(end, item));
+			if (declared) testModules.push(declared[1]!);
+			for (let i = at; i < item; i++) if (out[i] !== "\n") out[i] = " ";
+			end = item;
+		}
+		at = code.indexOf("#[", end);
+	}
+	return { code: out.join(""), testModules };
+}
+
+/** The files that may declare a file's module (`mod name;`), with the module's name. None for a crate's root. */
+function declaredIn(file: string): { name: string; files: string[] } | undefined {
+	const match = /^(crates\/[^/]+\/src)\/(.+)\.rs$/.exec(file);
+	if (!match) return undefined;
+	const [, src, rel] = match;
+	const parts = rel!.split("/");
+	if (parts.at(-1) === "mod") parts.pop();
+	if (parts[0] === "bin" || (parts.length === 1 && ["lib", "main"].includes(parts[0]!))) return undefined;
+	const name = parts.pop()!;
+	const dir = parts.length > 0 ? `${src}/${parts.join("/")}` : undefined;
+	return { name, files: dir ? [`${dir}.rs`, `${dir}/mod.rs`] : [`${src}/lib.rs`, `${src}/main.rs`] };
+}
+
+/**
+ * The code of every Rust file the app builds, as `readAppCode` reads it. A file only tests build is
+ * left out: by its name (see `rustFiles`), because its `mod` line sits behind a test cfg, or
+ * because it belongs to such a module.
+ */
+export function appSources(): { file: string; code: string }[] {
+	const files = rustFiles();
+	const testOnly = new Set(files.filter((entry) => entry.testOnly).map((entry) => entry.file));
+	const read = new Map(files.filter((entry) => !entry.testOnly).map((entry) => [entry.file, readAppCode(entry.text)]));
+	const forTests = (file: string): boolean => {
+		const parent = declaredIn(file);
+		const declaring = parent?.files.find((candidate) => read.has(candidate) || testOnly.has(candidate));
+		if (!parent || !declaring) return false;
+		return testOnly.has(declaring) || read.get(declaring)!.testModules.includes(parent.name) || forTests(declaring);
+	};
+	return [...read].filter(([file]) => !forTests(file)).map(([file, { code }]) => ({ file, code }));
+}
+
+/** The `pub` items at the top of a file's blanked code (fn, struct, enum, trait, const, static, type, union), by name and line. Methods and `pub(crate)` items are not among them. */
+export function topLevelPubItems(code: string): { name: string; line: number }[] {
+	const item = /^[ \t]*pub[ \t]+(?:(?:async|const|unsafe|extern[ \t]+"[^"]*")[ \t]+)*(?:fn|struct|enum|trait|const|static|type|union)[ \t]+(?:mut[ \t]+)?([A-Za-z_]\w*)/;
+	const items: { name: string; line: number }[] = [];
+	let depth = 0;
+	code.split("\n").forEach((text, index) => {
+		const found = depth === 0 ? item.exec(text) : null;
+		if (found) items.push({ name: found[1]!, line: index + 1 });
+		for (const c of text) depth += c === "{" ? 1 : c === "}" ? -1 : 0;
+	});
+	return items;
+}

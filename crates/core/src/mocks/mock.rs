@@ -300,15 +300,6 @@ pub fn take_questions(written: &[Json], format: &Json, fact_ids: &HashSet<String
 	Ok(out)
 }
 
-/// What the editor starts with for a code question (`function` is its `fn`).
-pub fn starter_code(function: &Json, language: MockLanguage) -> String {
-	let (name, params) = (function["name"].str_or_empty(), strings(&function["params"]).join(", "));
-	match language {
-		MockLanguage::Python => format!("def {name}({params}):\n    pass\n"),
-		MockLanguage::Javascript => format!("function {name}({params}) {{\n\t\n}}\n"),
-	}
-}
-
 // ─── taking it ───────────────────────────────────────────────────────────────
 
 /// Starts a ready mock: a timed one runs until `endsAt`.

@@ -13,7 +13,7 @@ use gs_core::session::compaction::{
 use gs_core::session::cost_summary::graph_cost_summary;
 use gs_core::session::jobs::{accumulate_job_usage, build_abort_steer, build_subagent_steer, is_subagent_failure, pi_usage_to_step, set_steer_ui_inverted, steer_delivered};
 use gs_core::session::plan::{derive_plan_statuses_lh, derived_node_status};
-use gs_core::session::plan_step_bar::{plan_position_lh, step_position};
+use gs_core::session::plan_step_bar::step_position;
 use gs_core::session::plan_tree::create_tree;
 use gs_core::session::practice_outcomes::practice_outcomes;
 use gs_core::session::prices::{CallUsage, is_subscription_model, session_cost, subscription_labels, sum_steps};
@@ -24,7 +24,7 @@ use gs_core::session::question_core::{
 };
 use gs_core::session::session_markdown::session_markdown;
 use gs_core::session::tool_switches::{TOGGLEABLE_TOOLS, WRITABLE_TOOL_KEYS, filter_enabled_tools, switched_off_tools_note};
-use gs_core::session::work_pages::{WORK_PAGE_BYTES, page_blocks, split_pages};
+use gs_core::session::work_pages::{WORK_PAGE_BYTES, split_pages};
 use gs_json::{Json, Obj, json, parse, stringify};
 
 fn golden(case: &str) -> Json {
@@ -120,7 +120,6 @@ fn check_chat(chat: &Json, want: &Json) {
 	check("markdown", session_markdown(messages, None).into());
 	check("markdownTitled", text::slice16(&session_markdown(messages, chat["title"].as_str()), 0, Some(200)).into());
 	check("outcomes", practice_outcomes(messages).into());
-	check("position", tree.map(|t| plan_position_lh(t, messages)).into());
 	let statuses = tree.map(|t| derive_plan_statuses_lh(t, messages, &HashMap::new()));
 	check("current", statuses.as_ref().and_then(|st| st.current.clone()).into());
 	let node_statuses = match (tree, &statuses) {
@@ -161,21 +160,6 @@ fn work_pages_match_node() {
 			other => panic!("unknown big case {other}"),
 		};
 		same(&lengths(&big), &case["pages"], s(&case["text"]));
-	}
-}
-
-#[test]
-fn work_page_blocks_match_node() {
-	for case in arr(&golden("work pages: blocks")) {
-		if let Some(label) = case["blocks"].as_str() {
-			assert_eq!(label, "huge");
-			let blocks = ["x".repeat(60_000), "tail".to_owned(), "\u{6f22}".repeat(20_000)];
-			let lengths: Json = page_blocks(&blocks, WORK_PAGE_BYTES).iter().map(|page| page.iter().map(|b| text::len16(b)).collect::<Json>()).collect();
-			same(&lengths, &case["pages"], "huge blocks");
-			continue;
-		}
-		let max = case["max"].as_i64().map_or(WORK_PAGE_BYTES, |m| m as usize);
-		same(&page_blocks(&strs(&case["blocks"]), max).into(), &case["pages"], &format!("blocks {} at {max}", short(&stringify(&case["blocks"]))));
 	}
 }
 
@@ -235,10 +219,8 @@ fn plan_statuses_and_step_bar_match_node() {
 		object(vec![
 			("current", statuses.current.clone().into()),
 			("statuses", arr(&tree["nodes"]).iter().map(|n| derived_node_status(&statuses, s(&n["id"]))).collect()),
-			("position", plan_position_lh(tree, messages)),
 		])
 	});
-	each(&case["positions"], "position", |i| plan_position_lh(&i["tree"], arr(&i["messages"])));
 	each(&case["stepPosition"], "step position", |i| step_position(&arr(i).iter().map(|x| s(&x["status"])).collect::<Vec<_>>()).into());
 }
 

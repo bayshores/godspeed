@@ -5,7 +5,6 @@
 //! | `timed("chat")` → `chat_<base36 now>_<8 hex>` | `` `chat_${Date.now().toString(36)}_${randomUUID().slice(0, 8)}` `` | chat, job, spc, msg, pb |
 //! | `uuid_hex("f", 12)` → `f_<12 hex>` | `` `f_${randomUUID().replace(/-/g, "").slice(0, 12)}` `` | f (12), ddl (12), act (12), tpc (10) |
 //! | `bytes_hex("n", 6)` → `n_<12 hex>` | `` `n_${randomBytes(6).toString("hex")}` `` | n (6), arg (6), note (4) |
-//! | `uuid_head("agent", 12)` → `agent_<8 hex>-<3 hex>` | `` `agent_${randomUUID().slice(0, 12)}` `` | agent, work |
 //! | `uuid()` | `randomUUID()` | compaction, cheat sheet entries, usage ids, temp names |
 
 use crate::{clock, num};
@@ -61,10 +60,6 @@ pub fn bytes_hex(prefix: &str, n: usize) -> String {
 	format!("{prefix}_{}", hex(&random_bytes(n)))
 }
 
-/// `<prefix>_<first n chars of a UUID, dash included>`.
-pub fn uuid_head(prefix: &str, n: usize) -> String {
-	format!("{prefix}_{}", &uuid()[..n])
-}
 
 #[cfg(test)]
 mod tests {
@@ -89,6 +84,5 @@ mod tests {
 		assert!(shape(&timed("chat"), "^chat_[0-9a-z]{8,9}_[0-9a-f]{8}$"));
 		assert!(shape(&uuid_hex("tpc", 10), "^tpc_[0-9a-f]{10}$"));
 		assert!(shape(&bytes_hex("note", 4), "^note_[0-9a-f]{8}$"));
-		assert!(shape(&uuid_head("work", 12), "^work_[0-9a-f]{8}-[0-9a-f]{3}$"));
 	}
 }

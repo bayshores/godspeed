@@ -1472,19 +1472,6 @@
 		]
 	},
 	{
-		"name": "starter code",
-		"output": [
-			[
-				"function pairSum() {\n\t\n}\n",
-				"function f(a, b_2) {\n\t\n}\n"
-			],
-			[
-				"def pairSum():\n    pass\n",
-				"def f(a, b_2):\n    pass\n"
-			]
-		]
-	},
-	{
 		"name": "states and clock",
 		"output": {
 			"mocks": [

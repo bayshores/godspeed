@@ -6,7 +6,6 @@
 //!
 //! Positions are UTF-16 units, as in the original, so a page never ends inside a character.
 
-use gs_base::text;
 use gs_json::lone::{from_utf16, to_utf16};
 
 pub const WORK_PAGE_BYTES: usize = 24_000;
@@ -72,59 +71,17 @@ pub fn split_pages(text: &str, max_bytes: usize) -> Vec<String> {
 	pages
 }
 
-/// Packs text blocks into pages of at most `max_bytes` of UTF-8 in all. A block too long for
-/// what is left of a page fills it when at least half a page is left, and goes on on the next
-/// pages, cut as `split_pages` cuts.
-pub fn page_blocks(blocks: &[String], max_bytes: usize) -> Vec<Vec<String>> {
-	let max = max_bytes as f64;
-	let mut pages: Vec<Vec<String>> = Vec::new();
-	let mut page: Vec<String> = Vec::new();
-	let mut room = max;
-	for block in blocks {
-		let units = to_utf16(block);
-		let mut rest = &units[..];
-		loop {
-			let at = cut_at(rest, room);
-			if at == rest.len() {
-				let tail = from_utf16(rest);
-				room -= text::utf8_bytes(&tail).len() as f64;
-				page.push(tail);
-				break;
-			}
-			if page.is_empty() || room >= max / 2.0 {
-				page.push(from_utf16(&rest[..at]));
-				rest = &rest[at..];
-			}
-			pages.push(std::mem::take(&mut page));
-			room = max;
-		}
-	}
-	pages.push(page);
-	pages
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
 
-	fn strings(items: &[&str]) -> Vec<String> {
-		items.iter().map(|s| (*s).to_owned()).collect()
-	}
-
 	#[test]
-	fn short_blocks_share_one_page() {
-		let blocks = strings(&["{}", "instructions", "[text 1]\nhello"]);
-		assert_eq!(page_blocks(&blocks, WORK_PAGE_BYTES), [blocks]);
+	fn a_short_text_is_one_page() {
 		assert_eq!(split_pages("hello", WORK_PAGE_BYTES), ["hello"]);
 	}
 
 	#[test]
-	fn a_long_block_continues_on_the_next_pages() {
-		let long = format!("{}\n{}", "a".repeat(80), "b".repeat(150));
-		let pages = page_blocks(&strings(&["head", &long, "tail"]), 100);
-		let joined: Vec<String> = pages.iter().map(|p| p.join("")).collect();
-		assert_eq!(joined.concat(), format!("head{long}tail"));
-		assert!(joined.iter().all(|p| p.len() <= 100));
+	fn a_long_text_breaks_after_a_line() {
 		let split = split_pages(&format!("{}\n{}", "x".repeat(60), "y".repeat(60)), 100);
 		assert_eq!(split.len(), 2);
 		assert!(split[0].ends_with('\n'));

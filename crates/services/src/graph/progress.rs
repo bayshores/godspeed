@@ -97,11 +97,6 @@ fn plan_state(tree: &Json, messages: &[Json]) -> Obj {
 	out
 }
 
-/// Every graded answer in the space's lessons.
-pub fn space_answers(app: &App, space_id: &str) -> Vec<Json> {
-	app.stores.chats.list_space_chats(space_id).iter().filter_map(|c| lesson_readout(app, c["id"].str_or_empty())).flat_map(|readout| readout.answers.clone()).collect()
-}
-
 /// What the review schedule reads from a space's lessons: every graded answer, every problem
 /// outcome, every question from earlier, every kept sentence and each time one came back.
 #[derive(Default)]

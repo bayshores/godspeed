@@ -1,6 +1,5 @@
 //! The changelog entries (src/shared/changelog.json), newest first.
 
-use std::cmp::Ordering;
 use std::sync::LazyLock;
 
 use gs_base::re::{Caps, Re};
@@ -40,39 +39,16 @@ pub fn compare_versions(a: &str, b: &str) -> f64 {
 	0.0
 }
 
-/// The sort order a JS comparator result means (NaN counts as equal).
-fn order(diff: f64) -> Ordering {
-	diff.partial_cmp(&0.0).unwrap_or(Ordering::Equal)
-}
-
-/// The entries newer than `since` and no newer than `current`, newest first.
-pub fn entries_since(since: &str, current: &str, all: &[Json]) -> Vec<Json> {
-	let version = |e: &Json| e["version"].str_or_empty().to_owned();
-	let mut kept: Vec<Json> = all.iter().filter(|e| compare_versions(&version(e), since) > 0.0 && compare_versions(&version(e), current) <= 0.0).cloned().collect();
-	kept.sort_by(|a, b| order(compare_versions(&version(b), &version(a))));
-	kept
-}
-
-/// The entry for one version.
-pub fn entry_for(version: &str, all: &[Json]) -> Option<Json> {
-	all.iter().find(|e| e["version"].as_str() == Some(version)).cloned()
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
 
 	#[test]
-	fn versions_compare_and_select() {
+	fn versions_compare() {
 		assert!(compare_versions("0.5.10", "0.5.9") > 0.0);
 		assert_eq!(compare_versions("1.2.3", "1.2.3"), 0.0);
 		assert_eq!(compare_versions("junk", "1.0.0"), -1.0);
 		assert_eq!(compare_versions("junk", "also junk"), 0.0);
 		assert!(is_version(&Json::from("0.5.44")) && !is_version(&Json::from("0.5")) && !is_version(&Json::Null));
-		let picked = entries_since("0.5.41", "0.5.43", changelog());
-		let versions: Vec<&str> = picked.iter().map(|e| e["version"].as_str().unwrap()).collect();
-		assert_eq!(versions, ["0.5.43", "0.5.42"]);
-		assert_eq!(entry_for("0.5.44", changelog()).unwrap()["date"].as_str(), Some("2026-11-09"));
-		assert!(entry_for("9.9.9", changelog()).is_none());
 	}
 }

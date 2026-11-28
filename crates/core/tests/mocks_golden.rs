@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet};
 
 use gs_base::time;
 use gs_core::mocks::mock::{
-	MockLanguage, ParsedMock, end_mock, minutes_used, mock_answers, mock_state, mock_summary, parse_mock, question_result, seconds_left, solved_count, start_mock, starter_code, take_questions, with_answer, with_grades,
+	MockLanguage, ParsedMock, end_mock, minutes_used, mock_answers, mock_state, mock_summary, parse_mock, question_result, seconds_left, solved_count, start_mock, take_questions, with_answer, with_grades,
 };
 use gs_core::mocks::mock_requests::{go_over_text, grade_request_text, mock_request_text};
 use gs_core::mocks::mock_run::{read_run, runner_source};
@@ -55,12 +55,6 @@ fn take_questions_matches() {
 		};
 		same(&got, &case["output"], &stringify(&case["written"]));
 	}
-}
-
-#[test]
-fn starter_code_matches() {
-	let got: Vec<Json> = MockLanguage::ALL.iter().map(|&l| json!([starter_code(&json!({ "name": "pairSum", "params": [] }), l), starter_code(&json!({ "name": "f", "params": ["a", "b_2"] }), l)])).collect();
-	same(&Json::from(got), &golden("starter code"), "starter code");
 }
 
 #[test]

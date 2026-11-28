@@ -90,13 +90,6 @@ fn questions_are_refused_with_a_reason_the_teacher_can_act_on() {
 }
 
 #[test]
-fn the_editor_starts_with_the_function_to_write() {
-	let function = json!({ "name": "longestRun", "params": ["nums", "k"] });
-	assert_eq!(starter_code(&function, MockLanguage::Javascript), "function longestRun(nums, k) {\n\t\n}\n");
-	assert_eq!(starter_code(&function, MockLanguage::Python), "def longestRun(nums, k):\n    pass\n");
-}
-
-#[test]
 fn a_mock_moves_from_writing_to_ready_running_grading_and_graded() {
 	let fresh = new_mock("mock_0a1b2c3d", "ddl_a", 1.0, &format(), "2026-11-11T09:00:00.000Z");
 	assert_eq!(stringify(&fresh), r#"{"id":"mock_0a1b2c3d","deadlineId":"ddl_a","n":1,"format":{"questions":3,"minutes":70},"createdAt":"2026-11-11T09:00:00.000Z","questions":[],"answers":{},"pauses":[]}"#);

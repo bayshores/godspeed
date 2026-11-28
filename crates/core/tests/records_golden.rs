@@ -3,12 +3,12 @@
 
 use gs_core::records::agent_notes::{clean_note_text, parse_agent_notes};
 use gs_core::records::agent_rules::{parse_saved_rules, parse_where, rule_for, same_where, where_label};
-use gs_core::records::changelog::{changelog, compare_versions, entries_since, entry_for, is_version};
+use gs_core::records::changelog::{changelog, compare_versions, is_version};
 use gs_core::records::prompt_segments::is_valid_segment_path;
 use gs_core::records::settings::{is_hex_color, sanitize_teacher_name, sanitize_user_settings};
 use gs_core::records::settings_resolution::{graph_tools_enabled, resolve_settings};
 use gs_core::records::teaching_areas::{learner_rules_section, clean_line, sanitize_area_rules, sanitize_rules};
-use gs_json::{Json, json, parse, stringify};
+use gs_json::{Json, parse, stringify};
 
 fn case(name: &str) -> Json {
 	let file = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/records.json");
@@ -133,27 +133,9 @@ fn changelog_matches_node() {
 		let got = compare_versions(row["a"].as_str().unwrap(), row["b"].as_str().unwrap());
 		same(&format!("{} vs {}", stringify(&row["a"]), stringify(&row["b"])), &Json::from(got), &row["output"]);
 	}
-	let small = vec![
-		json!({ "version": "0.5.2", "date": "d", "changes": [] }),
-		json!({ "version": "0.5.10", "date": "d", "changes": [] }),
-		json!({ "version": "0.4.0", "date": "d", "changes": [] }),
-		json!({ "version": "bad", "date": "d", "changes": [] }),
-	];
 	// The recording stops at its newest entry; releases after it must not change the answers.
 	let newest = all["first"]["version"].as_str().unwrap();
 	let recorded: Vec<Json> = changelog().iter().filter(|e| compare_versions(e["version"].as_str().unwrap(), newest) <= 0.0).cloned().collect();
-	let versions = |entries: Vec<Json>| Json::from(entries.iter().map(|e| e["version"].clone()).collect::<Vec<_>>());
-	for row in all["since"].as_arr().unwrap() {
-		let (since, current) = (row["since"].as_str().unwrap(), row["current"].as_str().unwrap());
-		same(&format!("since {since} {current}"), &versions(entries_since(since, current, &recorded)), &row["output"]);
-		same(&format!("small since {since} {current}"), &versions(entries_since(since, current, &small)), &row["small"]);
-	}
-	for row in all["entry"].as_arr().unwrap() {
-		let version = row["version"].as_str().unwrap();
-		let date = entry_for(version, &recorded).map(|e| e["date"].clone());
-		same(version, &Json::from(date), &row["output"]);
-		same(version, &Json::from(entry_for(version, &small)), &row["small"]);
-	}
 	assert_eq!(recorded.len() as i64, all["length"].as_i64().unwrap());
 	same("first", &recorded[0], &all["first"]);
 	same("last", &recorded[recorded.len() - 1], &all["last"]);

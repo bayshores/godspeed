@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use gs_json::{Json, Obj};
+use gs_json::Json;
 
 use super::plan::{derive_plan_statuses_lh, derived_node_status};
 use crate::study::topic_end::opener_nodes;
@@ -98,15 +98,6 @@ pub fn step_bar(tree: &Json, messages: &[Json], finished: Option<&str>) -> StepB
 	StepBar { done, total: statuses.len(), step: step_position(&statuses), current_title: current.and_then(|node| node["title"].as_str().filter(|t| !t.is_empty())).map(Json::from) }
 }
 
-/// The plan's position, `{done, total}`, over the native record.
-pub fn plan_position_lh(tree: &Json, messages: &[Json]) -> Json {
-	let bar = step_bar(tree, messages, None);
-	let mut out = Obj::new();
-	out.insert("done", bar.step as f64);
-	out.insert("total", bar.total as f64);
-	Json::Obj(out)
-}
-
 /// The current step's node id, which is its topic's id.
 pub fn current_step_id(tree: &Json, messages: &[Json]) -> Option<String> {
 	derive_plan_statuses_lh(tree, messages, &opener_nodes(messages)).current
@@ -133,8 +124,12 @@ mod tests {
 	#[test]
 	fn the_count_follows_the_current_step_or_the_visited_ones() {
 		let tree = json!({ "nodes": [{ "id": "a" }, { "id": "b" }, { "id": "c" }], "edges": [] });
-		assert_eq!(plan_position_lh(&tree, &[]), json!({ "done": 0, "total": 3 }));
-		assert_eq!(plan_position_lh(&tree, &[call("a"), call("b")]), json!({ "done": 2, "total": 3 }));
+		let count = |messages: &[Json]| {
+			let bar = step_bar(&tree, messages, None);
+			(bar.step, bar.total)
+		};
+		assert_eq!(count(&[]), (0, 3));
+		assert_eq!(count(&[call("a"), call("b")]), (2, 3));
 		assert_eq!(step_position(&["visited", "upcoming", "visited"]), 2);
 	}
 

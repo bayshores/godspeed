@@ -1,7 +1,7 @@
 /** The Rust reader the checks in this folder stand on: a reader that misreads a string hides real findings. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { beforeTests, inTraitImpl, readRust, rustFiles, rustFunctions, rustTokens } from "./rust-source.ts";
+import { appSources, beforeTests, inTraitImpl, readAppCode, readRust, rustFiles, rustFunctions, rustTokens, topLevelPubItems } from "./rust-source.ts";
 
 describe("reading Rust source", () => {
 	it("blanks comments and keeps their words apart from the code", () => {
@@ -83,5 +83,42 @@ describe("the workspace's Rust files", () => {
 			unbalanced.map((entry) => entry.file),
 			[],
 		);
+	});
+});
+
+describe("reading what the app builds", () => {
+	it("blanks every item behind a test cfg, wherever it sits, and names the test modules it declares", () => {
+		const text = ["#[cfg(test)]", "mod helpers;", "fn run() {}", '#[cfg(any(test, feature = "fake"))]', "pub fn fake() { let a = [1; 2]; }", '#[cfg(feature = "test-support")]', "pub mod memory;", "fn after() {}", "#[cfg(test)]", "mod tests {", "\tfn t() {}", "}"].join("\n");
+		const read = readAppCode(text);
+		assert.deepEqual(read.code.split("\n").map((line) => line.trim()), ["", "", "fn run() {}", "", "", "", "", "fn after() {}", "", "", "", ""]);
+		assert.deepEqual(read.testModules, ["helpers", "memory"]);
+	});
+
+	it("keeps app code behind other cfgs, and a name used as an inline format argument", () => {
+		const text = ['#[cfg(not(test))]', "fn real() {}", '#[cfg(feature = "screens")]', "fn screens() {}", 'fn say() { println!("{NAME} and {width:>4}, not {{braces}}"); }'].join("\n");
+		const code = readAppCode(text).code;
+		assert.ok(code.includes("fn real()") && code.includes("fn screens()"));
+		assert.deepEqual(code.match(/[A-Za-z_]\w*/g)?.slice(-3), ["println", "NAME", "width"]);
+	});
+
+	it("lists the top-level pub items, not methods, private ones or pub(crate) ones", () => {
+		const code = ["pub fn a() {}", "pub(crate) fn b() {}", "pub async fn c() {}", 'pub unsafe extern " " fn d() {}', "pub static mut E: u8 = 0;", "pub type F = u8;", "pub trait G {}", "impl H {", "\tpub fn method() {}", "}", "pub enum I {}", "pub use j::K;", "fn private() {}"].join("\n");
+		assert.deepEqual(topLevelPubItems(code), [
+			{ name: "a", line: 1 },
+			{ name: "c", line: 3 },
+			{ name: "d", line: 4 },
+			{ name: "E", line: 5 },
+			{ name: "F", line: 6 },
+			{ name: "G", line: 7 },
+			{ name: "I", line: 11 },
+		]);
+	});
+
+	it("leaves out the files only tests build: by name, by a test cfg on their mod line, or by their module's", () => {
+		const files = new Set(appSources().map((source) => source.file));
+		assert.ok(files.has("crates/base/src/events.rs") && files.has("crates/core/src/lib.rs"));
+		for (const file of ["crates/agent/src/tools/test_record.rs", "crates/runtime/src/fake.rs", "crates/runtime/src/fake/codex.rs", "crates/core/src/graph/memory.rs", "crates/transcribe/src/test_support.rs"]) {
+			assert.ok(!files.has(file), `${file} is only for tests`);
+		}
 	});
 });

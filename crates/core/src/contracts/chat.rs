@@ -2,8 +2,6 @@
 
 use gs_json::Json;
 
-/// Every lesson id starts with this.
-pub const CHAT_ID_PREFIX: &str = "chat_";
 /// The fixed id of the Talk chat older builds kept (only read now).
 pub const TALK_CHAT_ID: &str = "chat_talk";
 /// v2: `classId`, the "class-context" card and a deadline request's `className` are named for spaces.
