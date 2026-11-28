@@ -47,8 +47,8 @@ The hooks are the files in `.githooks`. `npm install` points git at them for eve
 A check that must let something through reads it from a list, never from a comment that switches the check off.
 
 - A list is a file in `tests/repo/exceptions/`: each name with its reason, or each name with a count.
-- A list may only shrink. `tests/repo/ratchet.test.ts` compares the branch's last commit with the commit where it left `origin/main`, and fails on a new name or a higher count.
-- To grow a list for a reason that holds, write one line in the commit message: `Ratchet: <list>, <reason>`. The list's name is its file name without `.json`.
+- A list may only shrink. `tests/repo/ratchet.test.ts` compares every commit since the branch left `origin/main` with the commit before it, and fails on a new name or a higher count.
+- To grow a list for a reason that holds, write one line in the message of the commit that grows it: `Ratchet: <list>, <reason>`. The list's name is its file name without `.json`.
 - A check whose own cases are the list (`rust-twins`) is counted from its source, by the `COUNTED` table in the ratchet test.
 
 ## Adding a check
