@@ -664,6 +664,17 @@ describe("Picking in the week", () => {
 		assert.ok($(el, "today-undo"));
 	});
 
+	it("a deadline ticked done on the card stays on it with its Undo, as on a space's page", async () => {
+		const [first, ...rest] = LA_OPEN;
+		const done: string[] = [];
+		const el = await mount(body(homeLists(LA_OPEN, [], NOW), { done }));
+		await act(async () => $(el, "today-done")!.click());
+		assert.deepEqual(done, [first!.id]);
+		await act(async () => root!.render(body(homeLists(rest, [{ ...first!, done: true, doneAt: new Date(NOW).toISOString() }], NOW), { done })));
+		assert.equal(cardTitle(el), first!.name);
+		assert.ok($(el, "today-undo"));
+	});
+
 	it("a pick that leaves the lists falls back to the next thing", async () => {
 		const el = await mount(body(homeLists(LA_OPEN, [], NOW)));
 		await act(async () => $(el, "week-item-hw4")!.click());

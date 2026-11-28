@@ -56,7 +56,7 @@ interface HomeBodyProps {
  * TODAY (the render seam of home-page.tsx), from the top of the window
  * down, each part lighter than the one before: the app's name and the days
  * studied, the card with the deadline or outline picked in the week (the
- * next thing to do until one is picked; never an outline), the week with Later, the lessons left unfinished and the topics to work on next, then the spaces. With no
+ * next thing to do until one is picked, or ticked done on the card; never an outline), the week with Later, the lessons left unfinished and the topics to work on next, then the spaces. With no
  * space yet, the spaces card alone, with the key for the first.
  */
 export function HomeBody(p: HomeBodyProps) {
@@ -116,7 +116,11 @@ export function HomeBody(p: HomeBodyProps) {
 											nowMs={p.nowMs}
 											busyOn={p.busyOn}
 											onStart={p.onStart}
-											onDone={p.onDone}
+											// One ticked here stays on the card with its stamp and its Undo, as on a space's page.
+											onDone={(d) => {
+												setPicked({ kind: "deadline", key: d.id });
+												p.onDone(d);
+											}}
 											onUndo={p.onUndo}
 										/>
 									)}
