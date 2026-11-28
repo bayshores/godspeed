@@ -147,7 +147,7 @@ Single files in `components/` include `boot.tsx` (boot info for the whole app), 
 |---|---|
 | `changelog.json` | Release notes shown in What's new. |
 | `core/contracts/` | Contracts the screens read, one file per domain: `boot`, `chat`, `space`, `graph`, `jobs`, `plan`, `probe`. |
-| `core/` | Pure logic, all exported through `index.ts`. For example `native-messages.ts` (the record), `input-events.ts` (what `POST /api/chat` accepts), `question-grading.ts`, `code-question.ts`, `plan-step-bar.ts`, `progress.ts`, `study.ts`, `citations.ts`, `attachments.ts`, `tool-parts.ts`, `mock.ts` and `mock-run.ts`. |
+| `core/` | Pure logic, all exported through `index.ts`. For example `native-messages.ts` (the record), `input-events.ts` (what `POST /api/chat` accepts), `question-grading.ts`, `code-question.ts`, `plan-step-bar.ts`, `progress.ts`, `citations.ts`, `attachments.ts`, `tool-parts.ts`, `mock.ts` and `mock-run.ts`. |
 
 ### tests
 

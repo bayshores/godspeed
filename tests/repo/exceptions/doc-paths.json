@@ -1,0 +1,7 @@
+{
+	"AGENTS.md: design/landing.pen": "a file of the landing page's own repo, godspeed-site",
+	"AGENTS.md: llms.txt": "a file of the landing page's own repo, godspeed-site",
+	"AGENTS.md: live-pill.pen": "an example of how a design file is named",
+	"docs/plugins/README.md: kit.mjs": "a file of a plugin's own folder, copied from the godspeed-plugins template",
+	"docs/plugins/host-tools.md: kit.mjs": "a file of a plugin's own folder, copied from the godspeed-plugins template"
+}
