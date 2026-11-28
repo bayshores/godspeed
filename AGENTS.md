@@ -78,7 +78,7 @@ Keep godspeed small, tidy and easy to read. The checks below enforce these rules
 
 **Plain names and short comments**
 - One name per idea, everywhere (UI, code, tools, tests). Example: "deadline", never mixed with "exam" or "assignment".
-- Comments are short and say why, not what. No dates, history, plan phases or "owner ruling" notes in code; git and `docs/` keep history. Trim old ones in code you change.
+- Comments are short and say why, not what. No dates or history in code; git and `docs/` keep history. Trim old ones in code you change.
 
 **Done means clean**
 - `npm run check` passes: typecheck (unused variables and parameters are errors), tests, lint, `npm run deadcode` (knip) and `npm run rust:check` (cargo test, clippy, cargo machete). CI runs the same.

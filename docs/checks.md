@@ -30,6 +30,10 @@ The hooks are the files in `.githooks`. `npm install` points git at them for eve
 | An unused variable or parameter | `npm run typecheck` | `tsconfig.json` |
 | An unused file, export, type or npm package | `npm run deadcode` (knip) | `knip.json` |
 | A core export only tests use | `tests/repo/core-is-used.test.ts` | the test |
+| A function, constant or type written in two files, also with its names changed | `tests/repo/copies.test.ts` | the test |
+| A name or file in a comment that does not exist, or history in a comment ("for now", "phase 2") | `tests/repo/comment-names.test.ts` | the test |
+| A path in a doc that leads nowhere | `tests/repo/doc-paths.test.ts` | the test |
+| A class or custom property of the stylesheet that nothing uses | `tests/repo/css-used.test.ts` | the test |
 | An import across the layers, an import cycle | `npm run lint` | `eslint.config.mjs` |
 | A request outside `lib/api.ts`, browser storage outside `lib/storage.ts` | `npm run lint` | `eslint.config.mjs` |
 | A right-click menu | `npm run lint` | `eslint.config.mjs` |
