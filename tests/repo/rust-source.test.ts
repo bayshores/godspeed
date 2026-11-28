@@ -1,7 +1,7 @@
 /** The Rust reader the checks in this folder stand on: a reader that misreads a string hides real findings. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { appSources, beforeTests, discardedResults, inTraitImpl, readAppCode, readRust, rustFiles, rustFunctions, rustSize, rustTokens, topLevelPubItems } from "./rust-source.ts";
+import { appSources, beforeTests, discardedResults, exportedMacros, inTraitImpl, namesFromCrate, readAppCode, readRust, rustFiles, rustFunctions, rustSize, rustTokens, topLevelPubItems } from "./rust-source.ts";
 
 describe("reading Rust source", () => {
 	it("blanks comments and keeps their words apart from the code", () => {
@@ -74,6 +74,17 @@ describe("the workspace's Rust files", () => {
 		assert.equal(files.find((entry) => entry.file === "crates/base/src/events.rs")?.testOnly, false);
 	});
 
+	it("all read with balanced braces once what only tests build is blanked too", () => {
+		const unbalanced = files.filter(({ text }) => {
+			const code = readAppCode(text).code;
+			return code.split("{").length !== code.split("}").length;
+		});
+		assert.deepEqual(
+			unbalanced.map((entry) => entry.file),
+			[],
+		);
+	});
+
 	it("all read with balanced braces once comments and strings are blanked", () => {
 		const unbalanced = files.filter(({ text }) => {
 			const code = readRust(text).code;
@@ -125,6 +136,38 @@ describe("reading what the app builds", () => {
 
 	it("sizes a file by its code and strings above its tests", () => {
 		assert.equal(rustSize('// note\nfn a() { b("c d"); }\n#[cfg(test)]\nmod tests {}'), 'fna(){b("cd");}'.length);
+	});
+
+	it("blanks an enum variant, a field or a match arm behind a test cfg up to its comma", () => {
+		const text = ["enum Start {", "\tCodex,", "\t#[cfg(test)]", "\tPipes(Box<dyn Fn()>),", "}", "struct S { #[cfg(test)] a: u8, b: u8 }", "fn f(x: u8) { match x { #[cfg(test)] 0 => {} _ => g() } }", "enum Next {}"].join("\n");
+		const code = readAppCode(text).code;
+		assert.equal(code.split("{").length, code.split("}").length);
+		for (const kept of ["Codex,", "b: u8", "enum Next {}", "_ => g()"]) assert.ok(code.includes(kept), kept);
+		for (const gone of ["Pipes", "a: u8", "0 =>"]) assert.ok(!code.includes(gone), gone);
+	});
+
+	it("knows which names a file takes from another crate, only along a path from that crate", () => {
+		const code = readRust(
+			[
+				"use gs_core::session::{plot::{Plot, Range as Span}, compaction};",
+				"use gs_base::tasks::{self, detach};",
+				"// gs_core::session::comment_only",
+				"fn f() {",
+				'\tlet s = "gs_core::session::string_only";',
+				"\tcompaction::trim(gs_core::study::topic_end::ends_topic(x));",
+				"\tx.merge();",
+				"\tother::cut();",
+				"\ttasks::set_runtime();",
+				"}",
+			].join("\n"),
+		).code;
+		assert.deepEqual([...namesFromCrate(code, "gs_core")].sort(), ["Plot", "Range", "Span", "compaction", "ends_topic", "plot", "session", "study", "topic_end", "trim"]);
+		assert.deepEqual([...namesFromCrate(code, "gs_base")].sort(), ["detach", "set_runtime", "tasks"]);
+	});
+
+	it("finds the macros a file exports, whole, and not the ones it keeps", () => {
+		const code = readRust("macro_rules! own { () => {} }\n#[macro_export]\nmacro_rules! json { ($($tt:tt)+) => { $crate::from_value($($tt)+) }; }\nfn after() {}").code;
+		assert.deepEqual(exportedMacros(code), ["#[macro_export]\nmacro_rules! json { ($($tt:tt)+) => { $crate::from_value($($tt)+) }; }"]);
 	});
 
 	it("leaves out the files only tests build: by name, by a test cfg on their mod line, or by their module's", () => {

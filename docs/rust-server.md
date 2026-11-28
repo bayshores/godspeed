@@ -87,6 +87,7 @@ Where output must equal the original TypeScript's (formatting, ranking, merging,
 ### Style and done
 
 - Short files with one job, short comments that say why, no history or phase notes in comments, no dead code.
+- An item is `pub` only when another crate takes it, or a test outside its crate's `src` does (`crates/<crate>/tests/`, another crate's tests). Anything else is `pub(crate)` or private, so rustc reports it once nothing uses it.
 - No `unsafe`, except the shell's platform modules ([tauri-shell/files.md](tauri-shell/files.md#rules)).
 - Workspace dependencies are listed in root `Cargo.toml`. Indent with tabs.
 - Done means `npm run rust:check` passes: cargo test, clippy with `-D warnings` (also with the shell's `screens` and `self-test` features, and over the libraries and binaries with `unwrap` and `expect` refused) and cargo-machete. Remove an unused dependency; do not ignore it.

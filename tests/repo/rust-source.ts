@@ -260,6 +260,36 @@ function itemEnd(code: string, from: number): number {
 	return code.length;
 }
 
+/** Whether `at` in blanked code lies in a list (an enum, struct or union body, a match, a bracket), where an entry ends at its comma. */
+function inList(code: string, at: number): boolean {
+	let depth = 0;
+	for (let i = at - 1; i >= 0; i--) {
+		const c = code[i]!;
+		if (")]}".includes(c)) depth++;
+		else if ("([{".includes(c) && depth-- === 0) {
+			if (c !== "{") return true;
+			const header = code.slice(0, i).split(/[;{}]/).at(-1)!;
+			return /\b(?:enum|struct|union|match)\b/.test(header);
+		}
+	}
+	return false;
+}
+
+/** The end of the list entry that starts at `from` in blanked code: past its comma, past a block that ends it (a match arm's `{}`), or where its list closes. */
+function entryEnd(code: string, from: number): number {
+	let depth = 0;
+	for (let i = from; i < code.length; i++) {
+		const c = code[i]!;
+		if ("([{".includes(c)) depth++;
+		if (c === "," && depth === 0) return i + 1;
+		if (!")]}".includes(c)) continue;
+		depth--;
+		if (depth < 0) return i;
+		if (c === "}" && depth === 0) return i + 1 + (/^\s*,/.exec(code.slice(i + 1))?.[0].length ?? 0);
+	}
+	return code.length;
+}
+
 /** Where the inside of each string lies in blanked code. Every quote left in the code opens or closes a string, so they pair up in order. */
 function stringSpans(code: string): [number, number][] {
 	const quotes = [...code.matchAll(/"/g)].map((match) => match.index);
@@ -294,7 +324,7 @@ export function readAppCode(text: string): { code: string; testModules: string[]
 			while (/\s/.test(code[end] ?? "")) end++;
 		}
 		if (test) {
-			const item = itemEnd(code, end);
+			const item = inList(code, at) ? entryEnd(code, end) : itemEnd(code, end);
 			const declared = /^(?:pub(?:\([^)]*\))?\s+)?mod\s+(\w+)\s*;/.exec(code.slice(end, item));
 			if (declared) testModules.push(declared[1]!);
 			for (let i = at; i < item; i++) if (out[i] !== "\n") out[i] = " ";
@@ -336,17 +366,41 @@ export function appSources(): { file: string; text: string; code: string }[] {
 	return [...read].filter(([file]) => !forTests(file)).map(([file, { text, code }]) => ({ file, text, code }));
 }
 
-/** The `pub` items at the top of a file's blanked code (fn, struct, enum, trait, const, static, type, union), by name and line. Methods and `pub(crate)` items are not among them. */
-export function topLevelPubItems(code: string): { name: string; line: number }[] {
-	const item = /^[ \t]*pub[ \t]+(?:(?:async|const|unsafe|extern[ \t]+"[^"]*")[ \t]+)*(?:fn|struct|enum|trait|const|static|type|union)[ \t]+(?:mut[ \t]+)?([A-Za-z_]\w*)/;
-	const items: { name: string; line: number }[] = [];
+type RustItem = {
+	kind: "fn" | "struct" | "enum" | "trait" | "const" | "static" | "type" | "union" | "impl";
+	/** An impl is named by its header, as `impl<T> Shape for Plot<T>`. */
+	name: string;
+	line: number;
+	/** Plain `pub`: `pub(crate)` and `pub(super)` are not. */
+	pub: boolean;
+	text: string;
+};
+
+const ITEM = /^[ \t]*(pub(?:\([^)]*\))?[ \t]+)?(?:(?:async|const|unsafe|extern[ \t]+"[^"]*")[ \t]+)*(fn|struct|enum|trait|const|static|type|union)[ \t]+(?:mut[ \t]+)?([A-Za-z_]\w*)/;
+const IMPL = /^[ \t]*(?:unsafe[ \t]+)?impl\b[^{;]*/;
+
+/** The items at the top of a file's blanked code (fn, struct, enum, trait, const, static, type, union, impl), each with its text. Methods and items of inline modules are not among them. */
+export function topLevelItems(code: string): RustItem[] {
+	const items: RustItem[] = [];
 	let depth = 0;
+	let offset = 0;
 	code.split("\n").forEach((text, index) => {
-		const found = depth === 0 ? item.exec(text) : null;
-		if (found) items.push({ name: found[1]!, line: index + 1 });
+		const item = depth === 0 ? ITEM.exec(text) : null;
+		const impl = depth === 0 && !item ? IMPL.exec(text) : null;
+		const body = () => code.slice(offset, itemEnd(code, offset));
+		if (item) items.push({ kind: item[2] as RustItem["kind"], name: item[3]!, line: index + 1, pub: item[1]?.trim() === "pub", text: body() });
+		if (impl) items.push({ kind: "impl", name: impl[0].trim().replace(/\s+/g, " "), line: index + 1, pub: false, text: body() });
 		for (const c of text) depth += c === "{" ? 1 : c === "}" ? -1 : 0;
+		offset += text.length + 1;
 	});
 	return items;
+}
+
+/** The plain `pub` items at the top of a file's blanked code, by name and line. */
+export function topLevelPubItems(code: string): { name: string; line: number }[] {
+	return topLevelItems(code)
+		.filter((item) => item.pub && item.kind !== "impl")
+		.map(({ name, line }) => ({ name, line }));
 }
 
 /** Where the statement around `at` in blanked code begins: after the `;`, `{` or `}` before it at its own depth. */
@@ -401,4 +455,41 @@ export function rustSize(text: string): number {
 	const kept = code.split("");
 	for (const [from, to] of stringSpans(code)) for (let i = from; i < to; i++) kept[i] = text[i]!;
 	return kept.slice(0, beforeTests(code).length).join("").replace(/\s/g, "").length;
+}
+
+/**
+ * The names blanked code takes from the crate whose library is `lib` (as `gs_core`): each name in a
+ * `use lib::...` tree, and each name after `::` in a path that starts at `lib` or at a name such a
+ * tree brought in. Another crate reaches an item only along such a path.
+ */
+export function namesFromCrate(code: string, lib: string): Set<string> {
+	const tokens = code.match(/[A-Za-z_]\w*|::|[{}(),;*]/g) ?? [];
+	const taken = new Set<string>();
+	const heads = new Set([lib]);
+	for (let i = 0; i < tokens.length; i++) {
+		if (tokens[i] !== "use") continue;
+		let at = tokens[i + 1] === "::" ? i + 2 : i + 1;
+		if (tokens[at] !== lib) continue;
+		for (at++; at < tokens.length && tokens[at] !== ";"; at++) {
+			const word = tokens[at]!;
+			if (!/^[A-Za-z_]/.test(word) || word === "self" || word === "as") continue;
+			// A module the tree brings in (also through `{self}`) may start a path later on.
+			taken.add(word);
+			heads.add(word);
+		}
+		i = at;
+	}
+	for (let i = 0; i + 2 < tokens.length; i++) {
+		if (!heads.has(tokens[i]!) || tokens[i + 1] !== "::" || tokens[i - 1] === "::") continue;
+		for (let at = i + 2; /^[A-Za-z_]/.test(tokens[at] ?? ""); at += 2) {
+			taken.add(tokens[at]!);
+			if (tokens[at + 1] !== "::") break;
+		}
+	}
+	return taken;
+}
+
+/** The macros blanked code exports (`#[macro_export] macro_rules! name { ... }`), whole. Their paths are written here but run in the crate that calls them. */
+export function exportedMacros(code: string): string[] {
+	return [...code.matchAll(/#\[macro_export\]\s*(?:#\[[^\]]*\]\s*)*macro_rules!\s*\w+\s*\{/g)].map((match) => code.slice(match.index, closing(code, match.index + match[0].length - 1)));
 }
