@@ -100,7 +100,7 @@ impl Json {
 	}
 
 	/// Sets `key` on an object that the caller just built or read as one.
-	#[expect(clippy::expect_used, reason = "a caller that sets a key on something other than an object has a bug, and a panic shows it")]
+	#[expect(clippy::expect_used, reason = "a record that is not an object was read wrong; stopping here keeps it from being changed and saved, which is safer for the learner's data than going on")]
 	pub fn set(&mut self, key: impl Into<String>, value: impl Into<Json>) {
 		self.as_obj_mut().expect("an object").insert(key, value);
 	}
