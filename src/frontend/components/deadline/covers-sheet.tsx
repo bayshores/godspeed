@@ -60,7 +60,7 @@ export function CoversSheet({
 						!requesting && <p className="max-w-(--lh-measure) text-item text-ink-2">Nothing is linked yet. {teacherName} can work it out from your files, like a practice exam or the syllabus.</p>
 					)}
 					<div className="flex flex-wrap gap-2.5">
-						<button type="button" data-testid="deadline-ask" disabled={requesting} onClick={onAsk} className="lh-btn lh-btn-main">
+						<button type="button" data-testid="deadline-ask" disabled={requesting} onClick={onAsk} className="lh-btn">
 							Ask {teacherName}
 						</button>
 						<button type="button" data-testid="deadline-edit-files" onClick={onEdit} className="lh-btn">

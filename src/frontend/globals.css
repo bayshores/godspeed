@@ -144,7 +144,7 @@
 	/* A sheet's fill and the lip under it. A well is a field's fill: the
 	   sheet color on the page, the page color on a sheet. */
 	--lh-sheet: #262626;
-	--lh-sheet-lip: #383838;
+	--lh-sheet-lip: #444444;
 	--lh-well: var(--lh-sheet);
 	/* The code editor's syntax colors (Shiki's github-dark; Paper below
 	   swaps in github-light, as the code blocks do). */

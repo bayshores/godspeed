@@ -228,7 +228,7 @@ export function MockRun({ view }: { view: MockView }) {
 							<button type="button" data-testid="mock-end-keep" onClick={() => setConfirmEnd(false)} className="lh-btn">
 								Keep going
 							</button>
-							<button type="button" data-testid="mock-end-yes" disabled={ending} onClick={() => void end()} className="lh-btn lh-btn-main">
+							<button type="button" data-testid="mock-end-yes" disabled={ending} onClick={() => void end()} className="lh-btn">
 								End mock
 							</button>
 						</div>

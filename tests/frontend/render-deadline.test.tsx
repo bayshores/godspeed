@@ -241,7 +241,8 @@ describe("the deadline page", () => {
 		const html = render(deadline({ files: [], topics: [], topicIds: [], ready: null, counts: { strong: 0, shaky: 0, weak: 0, untested: 0 } }));
 		assert.match(html, /data-testid="deadline-no-files"/);
 		assert.match(html, /Nothing is linked yet\. marco can work it out from your files/);
-		assert.match(html, /data-testid="deadline-ask"[^>]*lh-btn-main[^>]*>Ask marco<\/button>.*>Pick files</);
+		assert.match(html, /data-testid="deadline-ask"[^>]*>Ask marco<\/button>.*>Pick files</);
+		assert.doesNotMatch(html, /data-testid="deadline-ask"[^>]*lh-btn-main/, "the page's one main key is Study, in its head");
 		assert.ok(!html.includes('data-testid="deadline-day-row"'), "no list of every file");
 		assert.match(html, /A plan shows up once it knows what&#x27;s on it\./);
 		assert.ok(!html.includes('data-testid="deadline-progress"'), "nothing measured, nothing said");

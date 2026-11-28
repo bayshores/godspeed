@@ -64,7 +64,7 @@ const STATUS_COLORS: Record<string, string> = {
 	"--lh-ramp-5": "#6f9a7e",
 };
 
-/** The surfaces and text a background implies. Dark: +8 panel, +16 sheet on a +34 lip, +22
+/** The surfaces and text a background implies. Dark: +8 panel, +16 sheet on a +46 lip, +22
  *  tone, +47 edge, a top bar 12 below, text by contrast. Paper: picked by hand, with an ink
  *  top bar. */
 function surfacesOf(background: string) {
@@ -98,7 +98,7 @@ function surfacesOf(background: string) {
 	return {
 		card,
 		sheet: at(16),
-		sheetLip: at(34),
+		sheetLip: at(46),
 		accent,
 		border: at(47),
 		edge: inkFor(background, "edge", [card]),
