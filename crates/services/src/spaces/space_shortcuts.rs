@@ -203,8 +203,8 @@ fn sync_shortcuts(app: &App, folder: &Path, clear: bool) -> Result<(), String> {
 		}
 		if wanted(path_of(&made)).is_some_and(|t| made["target"].as_str() == Some(t.path.as_str())) && up_to_date(&made)? {
 			links.push(made);
-		} else if let Err(err) = fsx::remove_if_present(Path::new(path_of(&made)), "unlink") {
-			eprintln!("[space-shortcuts] could not remove an old shortcut: {err}");
+		} else {
+			fsx::remove_leftover(Path::new(path_of(&made)));
 		}
 	}
 	let kept: Vec<String> = links.iter().map(|l| path_of(l).to_owned()).collect();
@@ -249,8 +249,8 @@ fn sync_shortcuts(app: &App, folder: &Path, clear: bool) -> Result<(), String> {
 	let readme = root.join(README_NAME);
 	if !want.is_empty() {
 		fsx::write_text_atomic(&readme, &readme_text(&skipped)).map_err(|err| fsx::node_error_message(&err, "open", &readme))?;
-	} else if let Err(err) = fsx::remove_if_present(&readme, "unlink") {
-		eprintln!("[space-shortcuts] could not remove the shortcuts' note: {err}");
+	} else {
+		fsx::remove_leftover(&readme);
 	}
 	// Deepest first, so a space folder empties before spaces/ itself.
 	let mut by_depth = dirs.clone();
