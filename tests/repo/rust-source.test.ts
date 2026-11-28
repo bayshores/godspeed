@@ -136,11 +136,11 @@ describe("reading what the app builds", () => {
 	});
 
 	it("blanks an enum variant, a field or a match arm behind a test cfg up to its comma", () => {
-		const text = ["enum Start {", "\tCodex,", "\t#[cfg(test)]", "\tPipes(Box<dyn Fn()>),", "}", "struct S { #[cfg(test)] a: u8, b: u8 }", "fn f(x: u8) { match x { #[cfg(test)] 0 => {} _ => g() } }", "enum Next {}"].join("\n");
+		const text = ["enum Start {", "\tCodex,", "\t#[cfg(test)]", "\tPipes(Box<dyn Fn()>),", "}", "struct S { #[cfg(test)] a: u8, b: u8 }", "fn f(x: u8) { match x { #[cfg(test)] 0 => {} _ => g() } }", "fn h(k: Kind) -> u8 { match k { #[cfg(test)] Kind::A { x } => x, Kind::B => 1 } }", "enum Next {}"].join("\n");
 		const code = readAppCode(text).code;
 		assert.equal(code.split("{").length, code.split("}").length);
-		for (const kept of ["Codex,", "b: u8", "enum Next {}", "_ => g()"]) assert.ok(code.includes(kept), kept);
-		for (const gone of ["Pipes", "a: u8", "0 =>"]) assert.ok(!code.includes(gone), gone);
+		for (const kept of ["Codex,", "b: u8", "enum Next {}", "_ => g()", "Kind::B => 1"]) assert.ok(code.includes(kept), kept);
+		for (const gone of ["Pipes", "a: u8", "0 =>", "Kind::A", "=> x,"]) assert.ok(!code.includes(gone), gone);
 	});
 
 	it("knows which names a file takes from another crate, only along a path from that crate", () => {

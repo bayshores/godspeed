@@ -254,19 +254,32 @@ function itemEnd(code: string, from: number): number {
 	return code.length;
 }
 
-/** Whether `at` in blanked code lies in a list (an enum, struct or union body, a match, a bracket), where an entry ends at its comma. */
-function inList(code: string, at: number): boolean {
+/** The list around `at` in blanked code, where an entry ends at its comma: a match's arms, or the entries of an enum, struct or union body or a bracket. */
+function listAround(code: string, at: number): "arms" | "entries" | undefined {
 	let depth = 0;
 	for (let i = at - 1; i >= 0; i--) {
 		const c = code[i]!;
 		if (")]}".includes(c)) depth++;
 		else if ("([{".includes(c) && depth-- === 0) {
-			if (c !== "{") return true;
+			if (c !== "{") return "entries";
 			const header = code.slice(0, i).split(/[;{}]/).at(-1)!;
-			return /\b(?:enum|struct|union|match)\b/.test(header);
+			if (/\bmatch\b/.test(header)) return "arms";
+			return /\b(?:enum|struct|union)\b/.test(header) ? "entries" : undefined;
 		}
 	}
-	return false;
+	return undefined;
+}
+
+/** Where a match arm's pattern ends in blanked code: past its `=>`. A struct pattern (`Kind::A { x }`) has braces of its own. */
+function armBody(code: string, from: number): number {
+	let depth = 0;
+	for (let i = from; i < code.length; i++) {
+		const c = code[i]!;
+		if ("([{".includes(c)) depth++;
+		else if (")]}".includes(c) && --depth < 0) return i;
+		else if (depth === 0 && code.startsWith("=>", i)) return i + 2;
+	}
+	return code.length;
 }
 
 /** The end of the list entry that starts at `from` in blanked code: past its comma, past a block that ends it (a match arm's `{}`), or where its list closes. */
@@ -318,7 +331,8 @@ export function readAppCode(text: string): { code: string; testModules: string[]
 			while (/\s/.test(code[end] ?? "")) end++;
 		}
 		if (test) {
-			const item = inList(code, at) ? entryEnd(code, end) : itemEnd(code, end);
+			const list = listAround(code, at);
+			const item = list === undefined ? itemEnd(code, end) : entryEnd(code, list === "arms" ? armBody(code, end) : end);
 			const declared = /^(?:pub(?:\([^)]*\))?\s+)?mod\s+(\w+)\s*;/.exec(code.slice(end, item));
 			if (declared) testModules.push(declared[1]!);
 			for (let i = at; i < item; i++) if (out[i] !== "\n") out[i] = " ";
