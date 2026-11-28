@@ -938,7 +938,6 @@ describe("the turn sheet", () => {
 			assert.equal(picked.length, 1);
 			assert.match(picked[0]!.textContent!, /Venus[\s\S]*Wrong/, "the verdict sits beside the pick");
 			assert.equal(host.querySelectorAll('[data-testid="answer-result"]').length, 1);
-			assert.match(host.querySelector('[data-testid="answer-result"]')!.className, /lh-print/, "given just now: the verdict prints");
 			assert.equal(host.querySelector('[data-testid="composer-send"]')!.textContent, "Send", "the box stays, to steer what the teacher writes");
 			assert.ok(host.querySelector('[data-testid="turn-foot"]') === null, "no help keys while the teacher writes");
 			assert.ok(host.querySelector('[data-testid="turn-next-line"]') === null);
@@ -981,6 +980,21 @@ describe("the turn sheet", () => {
 			await show(named(column({ next: between, kept: { ...keptProblem, discarded: true } })));
 			assert.equal(host.querySelector('[data-testid="kept-problem-discarded"]')!.textContent, "Discarded");
 			assert.equal(host.querySelector('[data-testid="next-problem-button"]')!.textContent, "Next problem");
+		});
+	});
+
+	it("the verdict prints for an answer sent from here, and is at rest however else the kept question comes to show", async () => {
+		const verdict = (host: HTMLElement) => host.querySelector('[data-testid="answer-result"]')!.className;
+		await mounted(named(column({ pending: quiz, value: "no idea" })), async (host, show) => {
+			await click(host, "help-dont-know");
+			await show(named(column({ busy: true, next: null, kept: keptQuestion(buildAnswer(quizQD, { dontKnow: true })) })));
+			await exitPlays();
+			assert.match(verdict(host), /lh-print/);
+		});
+		await mounted(named(column({ busy: true, next: null })), async (host, show) => {
+			await show(named(column({ busy: true, next: null, kept: pickedVenus })));
+			await exitPlays();
+			assert.doesNotMatch(verdict(host), /lh-print/, "the page finding where the turn sits, or a window made wider, is not an answer");
 		});
 	});
 

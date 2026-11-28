@@ -5,7 +5,7 @@ import { DUR_MS, useLeavingList } from "@/frontend/components/presence";
 import { useFold } from "@/frontend/components/use-fold";
 import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { cn } from "@/frontend/lib/utils";
-import type { Arrive } from "./arrivals";
+import type { Arrive } from "@/frontend/components/presence";
 
 /** What the lesson page does when a card comes while the desk is up: glides it into view once. */
 export const AskShownContext = createContext<((card: HTMLElement) => void) | null>(null);

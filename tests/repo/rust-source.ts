@@ -357,7 +357,7 @@ function declaredIn(file: string): { name: string; files: string[] } | undefined
 }
 
 /**
- * The code of every Rust file the app builds, as `readAppCode` reads it. A file only tests build is
+ * The code of every Rust file the app builds, as `readAppCode` reads it, beside its text. A file only tests build is
  * left out: by its name (see `rustFiles`), because its `mod` line sits behind a test cfg, or
  * because it belongs to such a module.
  */

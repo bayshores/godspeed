@@ -8,7 +8,7 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useFold } from "@/frontend/components/use-fold";
 import { cn } from "@/frontend/lib/utils";
 import { ApprovalCards } from "./approval-card";
-import type { Arrive } from "./arrivals";
+import type { Arrive } from "@/frontend/components/presence";
 import { PageStage } from "./page-stage";
 import { PencilLine } from "./pencil-line";
 import { deskPaper, deskRows, type DeskRow } from "./wait-model";

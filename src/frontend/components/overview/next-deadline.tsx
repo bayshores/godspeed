@@ -3,7 +3,8 @@ import { Link } from "react-router";
 import { hasProblems, longDay, studyLabel, type DeadlineProgress } from "@/shared/core";
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import { countLeft } from "@/frontend/components/home-page/home-page-model";
-import { DoneBlock, useJustDone } from "@/frontend/components/deadline/deadline-block";
+import { DoneBlock } from "@/frontend/components/deadline/deadline-block";
+import { useJustDone } from "@/frontend/components/use-open-deadlines";
 import { DeadlineKeys } from "@/frontend/components/deadline/deadline-keys";
 import { useReplayOnChange } from "@/frontend/components/motion";
 import { Key } from "@/frontend/components/ui/key";
@@ -65,7 +66,7 @@ export const NextDeadline = memo(function NextDeadline({
 	const swap = useRef<HTMLDivElement>(null);
 	// Another deadline, or this one ticked or unticked: the card redraws stepped.
 	useReplayOnChange(swap, d && `${d.id} ${d.done}`, "lh-set");
-	const justDone = useJustDone(d);
+	const justDone = useJustDone(d?.id ?? null);
 	if (!d && starts) {
 		return (
 			<Pane data-testid="next-deadline-none" className="lh-card">

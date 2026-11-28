@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from "react";
 import type { SpaceColor, SpaceSummary } from "@/shared/core";
-import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { useArrivals } from "@/frontend/components/presence";
 import { chip } from "@/frontend/components/ui/chip";
 import { rowMotion } from "@/frontend/components/motion";
 import { blockColor, paleSpaceColor, spaceLineColor } from "@/frontend/components/space-color";

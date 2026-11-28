@@ -19,6 +19,7 @@ import { LessonCard } from "@/frontend/components/overview/lesson-card";
 import { LessonMenuLayer } from "@/frontend/components/overview/lesson-menu-layer";
 import { lessonsFor } from "@/frontend/components/overview/lesson-record-model";
 import { useLessonActions } from "@/frontend/components/overview/use-lesson-actions";
+import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { useProgress } from "@/frontend/components/use-progress";
 import { JobFrame } from "@/frontend/components/work/job-frame";
 import { AboutSheet } from "./about-sheet";
@@ -84,6 +85,17 @@ export function DeadlinePage({
 			setSaving(false);
 		},
 		[spaceId, deadlineId, reload, refresh],
+	);
+	// Done and not done save through the open deadlines' one owner, as on every other page.
+	const { markDone, undo } = useOpenDeadlines();
+	const saveDone = useCallback(
+		async (done: boolean) => {
+			setSaving(true);
+			await (done ? markDone : undo)({ spaceId, id: deadlineId });
+			await Promise.all([reload(), refresh()]);
+			setSaving(false);
+		},
+		[spaceId, deadlineId, markDone, undo, reload, refresh],
 	);
 	// Add puts files on the deadline; Leave out marks them as not on it.
 	const saveFiles = useCallback(
@@ -193,7 +205,7 @@ export function DeadlinePage({
 										saving={saving}
 										onPickAssignment={(id) => void save({ assignmentFileId: id })}
 										onOpenAssignment={openAssignment}
-										onMarkDone={(done) => void save({ done })}
+										onMarkDone={(done) => void saveDone(done)}
 									/>
 								)
 							}

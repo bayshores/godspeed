@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { ChatAttachment, CheatSheetView, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
 import { JobFailure } from "@/frontend/components/agent-setup/agent-card";
 import { ApprovalCards } from "@/frontend/components/lesson/approval-card";
-import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { useArrivals } from "@/frontend/components/presence";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/frontend/components/lesson/chat-helpers";
 import { LessonBox } from "@/frontend/components/lesson/lesson-box";

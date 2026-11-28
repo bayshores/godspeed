@@ -13,8 +13,7 @@
  * as-is, so server and static renders match what callers render today.
  */
 
-import { useEffect, useMemo, useState } from "react";
-import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /** The motion tokens of globals.css, for animations and waits run from code: --lh-dur-fast, --lh-dur,
  *  --lh-dur-slow, --lh-dur-page, --lh-ease-out and --lh-ease-in. tests/frontend/motion-times.test.ts
@@ -102,6 +101,36 @@ export function useLeavingList<T extends { key: string }>(items: readonly T[], e
 	return useMemo(() => withGone(items, gone), [items, gone]);
 }
 
+/* ARRIVAL MOTION: a message or card that
+ * appears DURING the live session rises in once (.lh-rise). Whatever the
+ * first render shows — a reopened lesson — never animates. Slots are keyed
+ * by POSITION (message index, part index), not id: an optimistic message
+ * that later swaps its local id for the server's keeps its slot, so the
+ * remount never replays. The teacher's words are drawn as they are
+ * written, so they need no arrival; reasoning is left alone. */
+const ARRIVAL_WINDOW_MS = 400;
+
+export type Arrive = (slot: string) => string | undefined;
+
+/** `drawn`: false while what the slots belong to waits for its data, so what its first drawing
+ *  holds stays at rest; a list of deadlines steps in a row that joins it later. */
+export function useArrivals(drawn = true): Arrive {
+	const firstSeen = useRef(new Map<string, number | null>());
+	const live = useRef(false);
+	useEffect(() => {
+		if (drawn) live.current = true;
+	}, [drawn]);
+	return useCallback((slot: string) => {
+		const now = performance.now();
+		let at = firstSeen.current.get(slot);
+		if (at === undefined) {
+			at = live.current ? now : null; // null: there at first render
+			firstSeen.current.set(slot, at);
+		}
+		return at !== null && now - at < ARRIVAL_WINDOW_MS ? "lh-rise" : undefined;
+	}, []);
+}
+
 /** How a row of a list moves: `leaving` while it fades out in its place, `joined` when it came
  *  after the list first drew (rowMotion). */
 export type Moves = { leaving: boolean; joined: boolean };
@@ -117,4 +146,24 @@ export function useListMotion<T extends { key: string }>(
 	const arrive = useArrivals(drawn);
 	for (const key of seen) arrive(key);
 	return useMemo(() => held.map(({ item, leaving }) => ({ item, leaving, joined: !leaving && !!arrive(item.key) })), [held, arrive]);
+}
+
+/** How long what just happened counts as just now: time for the page to read it back and for its
+ *  mark to print (tests/frontend/motion-times.test.ts holds it no shorter than that). */
+export const MOMENT_MS = 2 * PAGE_MS;
+
+/**
+ * What just happened, by its id, for the moment its mark plays: set it where the thing happens (an
+ * answer sent, a deadline saved as done), and it is null again after MOMENT_MS. Whatever is drawn
+ * without it having been set is at rest, however it came to be drawn (a page opening, a window
+ * resized, a row moved to another list).
+ */
+export function useJustNow(): [string | null, (id: string | null) => void] {
+	const [id, setId] = useState<string | null>(null);
+	useEffect(() => {
+		if (id === null) return;
+		const timer = setTimeout(() => setId(null), MOMENT_MS);
+		return () => clearTimeout(timer);
+	}, [id]);
+	return [id, setId];
 }

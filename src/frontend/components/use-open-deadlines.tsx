@@ -7,7 +7,9 @@
  * edit announces spaces-changed), after the events channel reconnects and
  * when the day changes in an open window (a gap depends on today).
  * `markDone` ticks one done and `undo` unticks it (PUT done); a save that
- * fails says so in a notice. `useAnswerGap` waves a gap off.
+ * fails says so in a notice. One just ticked is named for a moment
+ * (`useJustDone`): its Done stamp prints then, and the done sound plays.
+ * `useAnswerGap` waves a gap off.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -15,6 +17,8 @@ import { localDay, readGaps, type SpaceGap } from "@/shared/core";
 import { useMinute } from "@/frontend/components/countdown";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { DoneNotice } from "@/frontend/components/done-notice";
+import { useJustNow } from "@/frontend/components/presence";
+import { useSound } from "@/frontend/components/sounds";
 import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { useServerResource } from "@/frontend/components/use-server-resource";
 import { jsonInit, send, type WriteResult } from "@/frontend/lib/api";
@@ -38,10 +42,13 @@ interface SharedDeadlines {
 	load: () => Promise<void>;
 	/** Save a deadline's done and read the lists again; `failed` is the
 	 *  notice when the save doesn't work. Settles once the lists are read. */
-	setDone: (d: DeadlineRef, done: boolean, failed: string) => Promise<void>;
+	/** The id of the deadline ticked done just now, if any. */
+	justDone: string | null;
+	/** Whether it was saved. */
+	setDone: (d: DeadlineRef, done: boolean, failed: string) => Promise<boolean>;
 }
 
-const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, error: null, load: async () => {}, setDone: async () => {} });
+const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, error: null, load: async () => {}, justDone: null, setDone: async () => false });
 
 export function OpenDeadlinesProvider({ children }: { children: React.ReactNode }) {
 	// A failed read keeps what we have; the error only matters before a first list.
@@ -72,17 +79,23 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 
 	const [notice, setNotice] = useState<string | null>(null);
 	const clearNotice = useCallback(() => setNotice(null), []);
+	const [justDone, setJustDone] = useJustNow();
 	const setDone = useCallback(
 		async (d: DeadlineRef, done: boolean, failed: string) => {
 			setNotice(null);
 			const { error } = await send(`/api/spaces/${encodeURIComponent(d.spaceId)}/deadlines/${encodeURIComponent(d.id)}`, jsonInit("PUT", { done }));
-			if (error) setNotice(failed);
-			else await load();
+			if (error) {
+				setNotice(failed);
+				return false;
+			}
+			await load();
+			setJustDone(done ? d.id : null);
+			return true;
 		},
-		[load],
+		[load, setJustDone],
 	);
 
-	const value = useMemo(() => ({ fetched, error, load, setDone }), [fetched, error, load, setDone]);
+	const value = useMemo(() => ({ fetched, error, load, justDone, setDone }), [fetched, error, load, justDone, setDone]);
 	return (
 		<OpenDeadlinesContext.Provider value={value}>
 			{children}
@@ -102,7 +115,7 @@ interface OpenDeadlinesState {
 	gaps: SpaceGap[];
 	/** Why the last read failed; null once one succeeds. */
 	error: string | null;
-	/** Both settle once the save is read back. */
+	/** Both settle once the save is read back. A deadline saved as done plays the done sound. */
 	markDone: (d: DeadlineRef) => Promise<void>;
 	undo: (d: DeadlineRef) => Promise<void>;
 	/** Wave a space's gap off (its key), then read the lists again; the error line, or null. */
@@ -117,8 +130,14 @@ const NO_GAPS: SpaceGap[] = [];
 
 export function useOpenDeadlines(): OpenDeadlinesState {
 	const { fetched, error, load, setDone } = useContext(OpenDeadlinesContext);
-	const markDone = useCallback((d: DeadlineRef) => setDone(d, true, "Couldn't mark it done. Try again."), [setDone]);
-	const undo = useCallback((d: DeadlineRef) => setDone(d, false, "Couldn't undo that. Try again."), [setDone]);
+	const play = useSound();
+	const markDone = useCallback(
+		async (d: DeadlineRef) => {
+			if (await setDone(d, true, "Couldn't mark it done. Try again.")) play("done");
+		},
+		[setDone, play],
+	);
+	const undo = useCallback(async (d: DeadlineRef) => void (await setDone(d, false, "Couldn't undo that. Try again.")), [setDone]);
 	const answerGap = useCallback(
 		async ({ spaceId, key }: Pick<SpaceGap, "spaceId" | "key">): Promise<WriteResult> => {
 			const { error: failed } = await send(`/api/deadlines/${encodeURIComponent(spaceId)}/nothing-new`, jsonInit("POST", { key }));
@@ -135,4 +154,10 @@ export function useAnswerGap(gap: Pick<SpaceGap, "spaceId" | "key">) {
 	const { answerGap } = useOpenDeadlines();
 	const { run, busy, error } = useGuardedAction();
 	return { answer: () => void run(() => answerGap(gap)), busy, error };
+}
+
+/** Whether this deadline was ticked done just now, wherever it is drawn. */
+export function useJustDone(id: string | null): boolean {
+	const { justDone } = useContext(OpenDeadlinesContext);
+	return id !== null && justDone === id;
 }

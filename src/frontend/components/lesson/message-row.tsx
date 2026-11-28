@@ -27,7 +27,7 @@ import {
 	type LhViewPart,
 	type QuestionAnswerData,
 } from "@/shared/core";
-import type { Arrive } from "./arrivals";
+import type { Arrive } from "@/frontend/components/presence";
 import { isSubagentSteer } from "./chat-helpers";
 import { MessageAttachments } from "./message-attachments";
 import { LearnerPlate } from "./learner-plate";

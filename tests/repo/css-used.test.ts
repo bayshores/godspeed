@@ -15,7 +15,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { withoutBlockComments } from "./repo-source.ts";
-import { beforeTests, readRust, rustFiles, rustTokens } from "./rust-source.ts";
+import { appSources, readAppCode, rustTokens } from "./rust-source.ts";
 import { parseTs, tsFiles, tsTokens } from "./ts-source.ts";
 
 const root = path.resolve(import.meta.dirname, "../..");
@@ -74,9 +74,9 @@ function unused(sheet: Sheet, uses: ReturnType<typeof usesIn>): string[] {
 	return [...classes, ...properties];
 }
 
-/** The strings the app's own Rust code writes: comments and a file's tests count for nothing. */
-function rustStrings(text: string): string[] {
-	return rustTokens(text, beforeTests(readRust(text).code))
+/** The strings of Rust code the app builds (`code` as `appSources` gives it): a comment and what only tests build count for nothing. */
+function rustStrings({ text, code }: { text: string; code: string }): string[] {
+	return rustTokens(text, code)
 		.map((token) => token.text)
 		.filter((token) => /^(?:b|br|r)?#*"/.test(token));
 }
@@ -100,9 +100,7 @@ it("every class and custom property the stylesheet defines is used", () => {
 			return tsTokens(source, source).map((token) => token.getText(source));
 		}),
 	);
-	const server = rustFiles()
-		.filter((file) => !file.testOnly)
-		.flatMap((file) => rustStrings(file.text));
+	const server = appSources().flatMap(rustStrings);
 	const applied = [...css.matchAll(/@apply ([^;]+);/g)].map(([, list]) => list!);
 	const sheet = definedIn(css);
 	assert.ok(sheet.classes.size > 50 && sheet.properties.size > 100, "found too few classes or properties; the reader is broken");
@@ -138,9 +136,9 @@ describe("the stylesheet reader", () => {
 	});
 
 	it("reads a color the server sends from a string of the Rust code, not from a comment or a test", () => {
-		const rust = '// "var(--lh-in-comment)"\nconst RAMP: [&str; 1] = ["var(--lh-ramp-1)"];\n#[cfg(test)]\nmod tests { const T: &str = "var(--lh-in-test)"; }';
+		const rust = '// "var(--lh-in-comment)"\n#[cfg(test)]\nfn stand_in() -> &\'static str { "var(--lh-in-test)" }\nconst RAMP: [&str; 1] = ["var(--lh-ramp-1)"];';
 		const sheet = definedIn(":root { --lh-ramp-1: red; --lh-in-comment: red; --lh-in-test: red; }");
-		assert.deepEqual(unused(sheet, usesIn(rustStrings(rust).join("\n"))), ["--lh-in-comment", "--lh-in-test"]);
+		assert.deepEqual(unused(sheet, usesIn(rustStrings({ text: rust, code: readAppCode(rust).code }).join("\n"))), ["--lh-in-comment", "--lh-in-test"]);
 	});
 
 	it("takes comments out, but not a /* inside a string", () => {

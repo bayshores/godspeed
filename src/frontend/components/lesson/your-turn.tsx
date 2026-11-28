@@ -19,7 +19,7 @@ import { TurnScroll } from "./turn-scroll";
 import { TurnPlaceContext, TurnSlotsContext } from "./turn-place";
 import { TurnSwap } from "./turn-swap";
 import { AnsweredTurn } from "./answered-turn";
-import { useTurnedOn } from "./arrivals";
+import { useJustNow } from "@/frontend/components/presence";
 import type { NextAction, TurnShown } from "./turn-next-model";
 import { ErrorLine } from "@/frontend/components/error-line";
 
@@ -225,14 +225,21 @@ export function YourTurn({
 		</div>
 	);
 	const nextLine = next?.next.line ?? null;
-	// The two moments of a lesson: an answer given just now, and the lesson ending while it is open.
-	const answeredNow = useTurnedOn(kept?.kind === "question");
-	const endedNow = useTurnedOn(nextKey?.action === "done-for-today");
+	// The two moments of a lesson. An answer sent from here is one for as long as its verdict takes to print.
+	const [answered, setAnswered] = useJustNow();
+	// The lesson ending while it is open is the other; a lesson opened after it ended is at rest.
+	const ended = nextKey?.action === "done-for-today";
+	const [wasEnded, setWasEnded] = useState(ended);
+	const [endedNow, setEndedNow] = useJustNow();
+	if (wasEnded !== ended) {
+		setWasEnded(ended);
+		setEndedNow(ended ? "ended" : null);
+	}
 	// With nothing asked, no line to say and no notes, the task takes no room.
 	const empty = !pending && !shownProblem && !kept && !nextLine && !notes && !reviewRefused;
 
 	const nextRow = nextLine && (
-		<p data-testid="turn-next-line" className={cn("font-prose text-tab leading-7", next?.dim ? "text-ink-2" : "text-ink", endedNow && "lh-print")}>
+		<p data-testid="turn-next-line" className={cn("font-prose text-tab leading-7", next?.dim ? "text-ink-2" : "text-ink", endedNow !== null && "lh-print")}>
 			{nextLine}
 		</p>
 	);
@@ -270,7 +277,10 @@ export function YourTurn({
 											tag={questionTag}
 											onSkip={onSkipQuestion}
 											input={pending.input}
-											onSubmit={onSubmitAnswer}
+											onSubmit={(output) => {
+												setAnswered(pending.toolCallId);
+												onSubmitAnswer(output);
+											}}
 											initialDraft={initialQuestionDraft}
 											onSaveDraft={onSaveQuestionDraft}
 											onReady={setPicked}
@@ -290,7 +300,7 @@ export function YourTurn({
 											)}
 										</div>
 									)}
-									{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} tag={keptTag} fresh={answeredNow} />}
+									{kept?.kind === "question" && <AnsweredTurn answer={kept.answer} tag={keptTag} fresh={kept.toolCallId === answered} />}
 									{!kept && nextRow}
 									{notes && <EndNotes notes={notes} />}
 									{notes && <NotesSaved notes={notes} />}

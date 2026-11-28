@@ -11,7 +11,7 @@ import { DeadlineBlock } from "@/frontend/components/deadline/deadline-block";
 import { BLOCK_ROW, BLOCK_ROW_BOX, BLOCK_ROW_KEYS, BLOCK_ROW_WORDS } from "@/frontend/components/ui/count-block";
 import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { dueThisWeek } from "@/frontend/components/home-page/home-page-model";
-import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { useArrivals } from "@/frontend/components/presence";
 import { JOINED, rowMotion } from "@/frontend/components/motion";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";

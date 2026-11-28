@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode, Ref } from "react";
 import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { LearnerPlate } from "@/frontend/components/lesson/learner-plate";
-import type { Arrive } from "@/frontend/components/lesson/arrivals";
+import type { Arrive } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
 
 /** One line of a thread. */

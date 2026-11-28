@@ -71,7 +71,7 @@ export function ThinkingBlock({
 		<div
 			data-testid={testId}
 			data-commit={dataCommit === undefined ? undefined : dataCommit ? "true" : "false"}
-			// Arrival motion rides the transcript (lesson/arrivals.tsx), so a reopened lesson doesn't replay it per row.
+			// Arrival motion rides the transcript (useArrivals), so a reopened lesson doesn't replay it per row.
 			className={cn("w-full font-ui text-ui", inCard ? "py-1" : "lh-well my-1 lh-notch px-4 py-2.5")}
 		>
 			<button

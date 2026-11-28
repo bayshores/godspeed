@@ -5,7 +5,7 @@ import { useAgentModels } from "@/frontend/components/agent-folder/use-agent-mod
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { AgentAtWork } from "@/frontend/components/lesson/agent-at-work";
 import { AskShownContext } from "@/frontend/components/lesson/approval-card";
-import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { useArrivals } from "@/frontend/components/presence";
 import type { AttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/frontend/components/lesson/chat-helpers";
 import { MessageAttachments } from "@/frontend/components/lesson/message-attachments";

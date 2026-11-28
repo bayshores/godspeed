@@ -40,7 +40,7 @@ import { goAheadLabel, initialPromptOwed, problemPosed, restoreUnsent, sendBlock
 import { holdsDraft } from "@/frontend/components/lesson/lesson-drafts-model";
 import { lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
-import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { useArrivals } from "@/frontend/components/presence";
 import { useSheetGlide } from "@/frontend/components/use-sheet-glide";
 import { LESSON_ROOM } from "@/frontend/components/lesson/lesson-room";
 import { answerAnchorSelector } from "@/frontend/components/lesson/card-anchors";
