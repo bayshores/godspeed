@@ -17,7 +17,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import ts from "typescript";
-import { beforeTests, inTraitImpl, readRust, type RustToken, rustFiles, rustFunctions, rustTokens } from "./rust-source.ts";
+import { appSources, inTraitImpl, readAppCode, type RustToken, rustFunctions, rustTokens } from "./rust-source.ts";
 import { parseTs, tsFiles, tsTokens } from "./ts-source.ts";
 
 const root = path.resolve(import.meta.dirname, "../..");
@@ -237,9 +237,9 @@ function itemEnd(tokens: RustToken[], from: number, braced: boolean): number {
 	return tokens.length;
 }
 
-/** The functions, constants and types of a Rust file's app code. */
-function rustPieces(file: string, text: string): Piece[] {
-	const tokens = rustTokens(text, beforeTests(readRust(text).code));
+/** The functions, constants and types of a Rust file's app code, `code` as `readAppCode` reads it. */
+function rustPieces(file: string, text: string, code = readAppCode(text).code): Piece[] {
+	const tokens = rustTokens(text, code);
 	const traitImpl = inTraitImpl(tokens);
 	const pieces: Piece[] = rustFunctions(tokens)
 		.filter((fn) => !fn.traitImpl)
@@ -303,9 +303,7 @@ function countByKey(copies: Copies[]): Map<string, { count: number; files: strin
 
 function appPieces(): Piece[] {
 	const ts = tsFiles(path.join(root, "src")).flatMap((file) => tsPieces(path.relative(root, file)));
-	const rust = rustFiles()
-		.filter((entry) => !entry.testOnly)
-		.flatMap((entry) => rustPieces(entry.file, entry.text));
+	const rust = appSources().flatMap((source) => rustPieces(source.file, source.text, source.code));
 	return [...ts, ...rust];
 }
 

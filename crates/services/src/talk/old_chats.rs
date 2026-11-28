@@ -12,12 +12,11 @@ use gs_core::records::teacher_chats::parse_teacher_chats;
 use gs_core::spaces::agent_folder::FolderAgent;
 use gs_json::{Json, json};
 
+use super::UNNAMED;
 use crate::App;
 use crate::app::agent_folder::agent_folder;
 
 const FILE: &str = "teacher-chats.json";
-/// What a carried-over chat with no name of its own is called.
-const UNNAMED: &str = "A chat";
 
 /// Carries the old chats over once, if the old file is still there. A file that is not valid
 /// JSON is kept aside unread; one that is read is kept aside after its chats are carried over.

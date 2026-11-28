@@ -323,17 +323,17 @@ function declaredIn(file: string): { name: string; files: string[] } | undefined
  * left out: by its name (see `rustFiles`), because its `mod` line sits behind a test cfg, or
  * because it belongs to such a module.
  */
-export function appSources(): { file: string; code: string }[] {
+export function appSources(): { file: string; text: string; code: string }[] {
 	const files = rustFiles();
 	const testOnly = new Set(files.filter((entry) => entry.testOnly).map((entry) => entry.file));
-	const read = new Map(files.filter((entry) => !entry.testOnly).map((entry) => [entry.file, readAppCode(entry.text)]));
+	const read = new Map(files.filter((entry) => !entry.testOnly).map((entry) => [entry.file, { text: entry.text, ...readAppCode(entry.text) }]));
 	const forTests = (file: string): boolean => {
 		const parent = declaredIn(file);
 		const declaring = parent?.files.find((candidate) => read.has(candidate) || testOnly.has(candidate));
 		if (!parent || !declaring) return false;
 		return testOnly.has(declaring) || read.get(declaring)!.testModules.includes(parent.name) || forTests(declaring);
 	};
-	return [...read].filter(([file]) => !forTests(file)).map(([file, { code }]) => ({ file, code }));
+	return [...read].filter(([file]) => !forTests(file)).map(([file, { text, code }]) => ({ file, text, code }));
 }
 
 /** The `pub` items at the top of a file's blanked code (fn, struct, enum, trait, const, static, type, union), by name and line. Methods and `pub(crate)` items are not among them. */

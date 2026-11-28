@@ -23,7 +23,8 @@ pub use setup::{talk_opening, talk_setup};
 
 /// A talk chat's name is its first line, cut to this many characters.
 const NAME_MAX: usize = 60;
-/// What a chat whose first message has no words (a picture alone) is called.
+/// What a chat with no name of its own is called: one whose first message has no words (a picture
+/// alone), or an old chat carried over without one.
 const UNNAMED: &str = "A chat";
 
 /// GET /api/chats?kind=talk: every talk chat, newest first (`{id, title, createdAt, updatedAt,
