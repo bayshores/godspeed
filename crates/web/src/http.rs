@@ -9,14 +9,14 @@ use reqwest::{Client, Response, Url};
 
 use crate::guard;
 
-const MAX_REDIRECTS: usize = 20;
+pub const MAX_REDIRECTS: usize = 20;
 pub const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 /// How long the server may take to answer, and then to send each piece of the body.
 pub const SILENCE_LIMIT_MS: i64 = 300_000;
 
 /// Every transport failure reads this way in Node.
-const FETCH_FAILED: &str = "fetch failed";
-const BODY_CUT_SHORT: &str = "terminated";
+pub const FETCH_FAILED: &str = "fetch failed";
+pub const BODY_CUT_SHORT: &str = "terminated";
 
 /// What Node's fetch sends when the caller does not set these (Accept is reqwest's own default).
 const NODE_DEFAULTS: [(&str, &str); 3] = [("user-agent", "node"), ("accept-language", "*"), ("sec-fetch-mode", "cors")];

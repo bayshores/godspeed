@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use gs_base::config::Paths;
 use gs_base::{clock, fsx, ids};
-use gs_web::http::{CONNECT_TIMEOUT, SILENCE_LIMIT_MS};
+use gs_web::http::{BODY_CUT_SHORT, CONNECT_TIMEOUT, FETCH_FAILED, MAX_REDIRECTS, SILENCE_LIMIT_MS};
 use parking_lot::Mutex;
 use reqwest::redirect::Policy;
 use tokio::io::AsyncWriteExt;
@@ -80,9 +80,9 @@ async fn download(url: &str, file: &Path) -> Outcome {
 	std::fs::create_dir_all(dir).map_err(|err| fsx::node_error_message(&err, "mkdir", dir))?;
 	// stdout is the desktop shell's protocol; a closed stderr is not an error.
 	let _ = writeln!(std::io::stderr(), "[transcribe] downloading {WHISPER_MODEL_NAME} (~150 MB, one time)");
-	let client = reqwest::Client::builder().redirect(Policy::limited(20)).connect_timeout(CONNECT_TIMEOUT).no_proxy().build().map_err(|_| "fetch failed".to_owned())?;
+	let client = reqwest::Client::builder().redirect(Policy::limited(MAX_REDIRECTS)).connect_timeout(CONNECT_TIMEOUT).no_proxy().build().map_err(|_| FETCH_FAILED.to_owned())?;
 	let Some(Ok(response)) = clock::within(SILENCE_LIMIT_MS, client.get(url).send()).await else {
-		return Err("fetch failed".to_owned());
+		return Err(FETCH_FAILED.to_owned());
 	};
 	let status = response.status().as_u16();
 	// 204 and 205 are "ok" with no body to save.
@@ -110,7 +110,7 @@ async fn save(mut response: reqwest::Response, tmp: &Path) -> Result<(), String>
 		match clock::within(SILENCE_LIMIT_MS, response.chunk()).await {
 			Some(Ok(Some(chunk))) => out.write_all(&chunk).await.map_err(write_error)?,
 			Some(Ok(None)) => return out.flush().await.map_err(write_error),
-			_ => return Err("terminated".to_owned()),
+			_ => return Err(BODY_CUT_SHORT.to_owned()),
 		}
 	}
 }
