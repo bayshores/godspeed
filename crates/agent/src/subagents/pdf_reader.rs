@@ -32,7 +32,7 @@ use parking_lot::Mutex;
 
 use super::headless::HeadlessApi;
 use super::job_agent::Priority;
-use super::pi_run::{JobAgentOptions, OnActivity, SubagentRunOptions, run_subagent};
+use super::pi_run::{JobAgentOptions, OnActivity, SubagentRunOptions, report_activity, run_subagent};
 use crate::fs_tools::fs_shared::resolve_source_path;
 use crate::fs_tools::protected::Protected;
 
@@ -285,12 +285,6 @@ impl Reader {
 		json!({ "path": path, "question": question, "brief": brief, "pagesRead": read.read.iter().copied().collect::<Vec<_>>(), "pagesConsulted": read.consulted.iter().copied().collect::<Vec<_>>() })
 	}
 
-	fn activity(&self, line: &str) {
-		if let Some(f) = &self.on_activity {
-			f(line);
-		}
-	}
-
 	fn kept(&self) -> Option<BTreeMap<u32, String>> {
 		self.read.lock().kept.clone()
 	}
@@ -300,12 +294,12 @@ impl Reader {
 		let path = self.path.as_path();
 		let text = match kind {
 			Kind::Info => {
-				self.activity("pdf_info: triaging");
+				report_activity(&self.on_activity, "pdf_info: triaging");
 				pdf_info_text(&self.pdf, path, self.kept().as_ref()).await?
 			}
 			Kind::Extract => {
 				let spec = arg_text(&args["pages"], "all");
-				self.activity(&format!("pdf_extract: {spec}"));
+				report_activity(&self.on_activity, &format!("pdf_extract: {spec}"));
 				let text = pdf_extract_text(&self.pdf, path, &spec, self.kept().as_ref()).await?;
 				// The pages the model got back: "all" and ranges are clamped to the document, and a
 				// cut result loses its last pages.
@@ -321,7 +315,7 @@ impl Reader {
 				let query = arg_text(&args["query"], "");
 				let context_lines = num_or(&args["context_lines"], 3.0);
 				let literal = args["literal"].truthy();
-				self.activity(&format!("pdf_search: \"{query}\""));
+				report_activity(&self.on_activity, &format!("pdf_search: \"{query}\""));
 				// Hits join the citation set: their context lines are consultation.
 				let hits = self.pdf.pdf_search(path, &query, Some(context_lines), literal).await?;
 				self.read.lock().consulted.extend(hits.iter().map(|h| i64::from(h.page)));
@@ -343,7 +337,7 @@ impl Reader {
 		let spec = arg_text(&args["pages"], "1");
 		let dpi = num_or(&args["dpi"], 150.0);
 		let wanted = render_batch(&spec);
-		self.activity(&format!("pdf_render: {spec} @{}dpi", js_number(dpi)));
+		report_activity(&self.on_activity, &format!("pdf_render: {spec} @{}dpi", js_number(dpi)));
 		let pages = self.headless.render_pdf_pages(&self.path, &wanted, Some(dpi)).await?;
 		if pages.is_empty() {
 			return Ok(("ERROR: no pages rendered (spec matched nothing?)".to_owned(), Vec::new()));
@@ -393,7 +387,7 @@ impl Reader {
 			read.kept.get_or_insert_default().insert(page, markdown.to_owned());
 			read.saved += 1;
 		}
-		self.activity(&format!("save_page: {page}"));
+		report_activity(&self.on_activity, &format!("save_page: {page}"));
 		Ok(format!("Saved page {page}. Later readings and search get this text for it."))
 	}
 }

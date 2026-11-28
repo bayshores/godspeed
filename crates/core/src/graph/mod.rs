@@ -6,7 +6,7 @@ pub mod coverage;
 pub mod duplicates;
 pub mod graph;
 pub mod graph_deletion;
-mod ledger_lines;
+pub mod ledger_lines;
 #[cfg(feature = "test-support")]
 pub mod memory;
 mod merge;

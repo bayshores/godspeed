@@ -4,7 +4,7 @@
 pub mod download;
 pub mod fetch;
 mod guard;
-mod http;
+pub mod http;
 mod jina;
 mod markdown;
 pub mod plugin_list;

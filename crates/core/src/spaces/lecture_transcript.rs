@@ -8,11 +8,7 @@ use gs_json::Json;
 
 use super::file_state::{FileKind, FileStatus};
 use super::file_series::date_in_name;
-use crate::contracts::space::{FILE_NOT_FOUND, is_recording_file, is_transcript_file};
-
-fn name_of(file: &Json) -> &str {
-	file["name"].str_or_empty()
-}
+use crate::contracts::space::{FILE_NOT_FOUND, is_recording_file, is_transcript_file, name_of};
 
 /// Captions, or another file (a PDF, notes) whose name says "transcript".
 fn reads_as_transcript(name: &str) -> bool {

@@ -5,15 +5,10 @@ use std::collections::{HashMap, HashSet};
 
 use gs_base::re::collapse_spaces;
 use gs_base::text;
-use gs_core::graph::coverage::message_view_lines;
+use gs_core::graph::coverage::{message_id, message_view_lines};
 use gs_core::graph::graph::DerivedGraph;
+use gs_core::graph::ledger_lines::touches;
 use gs_json::Json;
-
-
-/// A message's id as a template literal writes it.
-pub fn message_id(message: &Json) -> &str {
-	message["id"].as_str().unwrap_or("undefined")
-}
 
 /// The extraction view: only learner-facing teacher prose (and graded questions), each line
 /// labeled with its message id, exactly the lines the coverage fingerprints hash.
@@ -51,10 +46,6 @@ pub fn chunk_notes(source: &str, budget: f64) -> Vec<String> {
 	out
 }
 
-fn is_ours(line: &Json, source_id: &str) -> bool {
-	line["provenance"].items().iter().any(|pt| pt["chatId"].as_str() == Some(source_id))
-}
-
 fn node_line(n: &Json) -> String {
 	format!("  {} | {} | {}", n["id"].str_or_empty(), n["name"].str_or_empty(), collapse_spaces(n["statement"].str_or_empty()))
 }
@@ -64,9 +55,9 @@ fn node_line(n: &Json) -> String {
 pub fn graph_context(graph: &DerivedGraph, source_id: &str, related_ids: &[String]) -> String {
 	let name_of: HashMap<&str, &str> = graph.nodes.iter().map(|n| (n["id"].str_or_empty(), n["name"].str_or_empty())).collect();
 	let by_id: HashMap<&str, &Json> = graph.nodes.iter().map(|n| (n["id"].str_or_empty(), n)).collect();
-	let ours: Vec<&Json> = graph.nodes.iter().filter(|n| is_ours(n, source_id)).collect();
-	let our_chains: Vec<&Json> = graph.chains.iter().filter(|c| is_ours(c, source_id)).collect();
-	let related: Vec<&Json> = related_ids.iter().filter_map(|id| by_id.get(id.as_str()).copied()).filter(|n| !is_ours(n, source_id)).collect();
+	let ours: Vec<&Json> = graph.nodes.iter().filter(|n| touches(n, source_id)).collect();
+	let our_chains: Vec<&Json> = graph.chains.iter().filter(|c| touches(c, source_id)).collect();
+	let related: Vec<&Json> = related_ids.iter().filter_map(|id| by_id.get(id.as_str()).copied()).filter(|n| !touches(n, source_id)).collect();
 	let name = |id: &'_ str| -> String { name_of.get(id).map_or(id, |n| *n).to_owned() };
 	let mut lines: Vec<String> = Vec::new();
 	if !ours.is_empty() || !our_chains.is_empty() {

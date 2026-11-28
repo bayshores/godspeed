@@ -7,17 +7,16 @@ use std::path::Path;
 use std::sync::{Mutex, MutexGuard};
 
 use gs_base::clock;
+use gs_base::time::DAY_MS;
 use serde_json::{Value, json};
 use tauri::{AppHandle, Manager, State, Webview};
 use tauri_plugin_updater::{Update, Updater, UpdaterExt};
 
 use crate::commands::{AppOrigin, trusted};
-use crate::lock::lock;
+use gs_base::locks::lock;
 use crate::log;
 use crate::paths::Paths;
 use crate::push::push;
-
-const DAY_MS: i64 = 24 * 60 * 60 * 1000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Status {

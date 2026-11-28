@@ -4,9 +4,10 @@
 use std::collections::HashMap;
 use std::io::{BufRead, Write};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex};
 
 use gs_base::clock;
+use gs_base::locks::lock;
 use tokio::sync::oneshot;
 
 use crate::lines::{read_lines, write_line};
@@ -173,7 +174,3 @@ impl Drop for Waiting<'_> {
 	}
 }
 
-/// A panic elsewhere while holding one of these locks leaves the data whole, so keep going.
-pub(crate) fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
-	mutex.lock().unwrap_or_else(PoisonError::into_inner)
-}

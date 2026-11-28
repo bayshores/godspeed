@@ -1,0 +1,20 @@
+{
+	"constant AFTER_UNDO_MS": 2,
+	"constant CREATE": 2,
+	"constant LEARNER": 2,
+	"constant SMALL": 2,
+	"constant SOLVED": 2,
+	"constant UNREACHABLE": 2,
+	"constant VERSION": 2,
+	"constant WEEKDAYS": 2,
+	"function easeOut": 2,
+	"function ignore": 2,
+	"function onKey / onKeyDown": 6,
+	"function pct": 3,
+	"function roomSize / windowSize": 2,
+	"function startOfDay": 2,
+	"function str": 2,
+	"function subscribe": 2,
+	"type Box": 2,
+	"type Lesson": 3
+}

@@ -150,6 +150,11 @@ impl ChatStore {
 		self.summaries_where(|summary| ChatKind::of(summary) != ChatKind::Talk)
 	}
 
+	/// The summaries of a space's lessons, newest activity first.
+	pub fn list_space_chats(&self, space_id: &str) -> Vec<Json> {
+		self.summaries_where(|summary| ChatKind::of(summary) != ChatKind::Talk && summary["spaceId"].as_str() == Some(space_id))
+	}
+
 	/// Every talk chat's summary (`{id, title, createdAt, updatedAt, kind, agent, model}`), newest
 	/// activity first. The old Talk chat is not one.
 	pub fn list_talk_chats(&self) -> Vec<Json> {

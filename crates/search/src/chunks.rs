@@ -4,7 +4,7 @@
 
 use std::sync::LazyLock;
 
-use gs_base::re::{Re, collapse_spaces};
+use gs_base::re::{Re, collapse_spaces, strip_tags};
 use gs_base::{num, text};
 use gs_core::contracts::space::{extension_of, is_transcript_file};
 use gs_json::js_number as finite_number;
@@ -151,7 +151,6 @@ pub fn unix_lines(text: &str) -> String {
 
 fn parse_cues(raw: &str) -> Vec<Cue> {
 	static TIMING: LazyLock<Re> = LazyLock::new(|| Re::new(r"^\s*([\d:.,]+)\s*-->\s*([\d:.,]+)", ""));
-	static TAG: LazyLock<Re> = LazyLock::new(|| Re::new(r"<[^>]+>", "g"));
 	let mut cues: Vec<Cue> = Vec::new();
 	let mut current: Option<usize> = None;
 	for line in unix_lines(raw).split('\n') {
@@ -161,7 +160,7 @@ fn parse_cues(raw: &str) -> Vec<Cue> {
 			current = Some(cues.len() - 1);
 			continue;
 		}
-		let stripped = TAG.replace(line, "");
+		let stripped = strip_tags(line);
 		let t = text::trim(&stripped);
 		if t.is_empty() {
 			current = None;
@@ -276,7 +275,7 @@ pub fn range_point(range: &str) -> Option<f64> {
 }
 
 /// The most characters a snippet shows.
-const SNIPPET_CHARS: i64 = 200;
+pub(crate) const SNIPPET_CHARS: i64 = 200;
 
 /// About two lines of a passage around the first query word it holds (its start when none),
 /// whitespace collapsed.

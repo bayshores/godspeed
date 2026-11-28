@@ -4,11 +4,7 @@
 use gs_json::Json;
 
 use super::file_state::FileStatus;
-use crate::contracts::space::{FILE_NOT_FOUND, display_name, extension_of};
-
-fn name_of(file: &Json) -> &str {
-	file["name"].str_or_empty()
-}
+use crate::contracts::space::{FILE_NOT_FOUND, display_name, extension_of, name_of};
 
 /// The folder a file sits in: a linked file's folder in the linked tree, or "" for the app's own
 /// copies, which each sit in a folder of their own.

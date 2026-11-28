@@ -11,7 +11,7 @@ use gs_base::fsx;
 use gs_core::vault::frontmatter::{Doc, Owner};
 use gs_core::vault::note_keys::{SPACE_KEY, STANDING_KEY};
 use gs_files::walk::walk_markdown;
-use gs_search::vault::{MAX_NOTE_CHARS, VaultEntry, VaultHit, VaultIndex, VaultOwner};
+use gs_search::vault::{MAX_NOTE_CHARS, VaultEntry, VaultHit, VaultIndex, VaultOwner, first_chars};
 
 /// The most notes read; a bigger vault is read in folder order up to this many.
 pub const MAX_VAULT_NOTES: usize = 5_000;
@@ -37,10 +37,6 @@ pub struct VaultReader {
 	pub capped: bool,
 	/// Built when a search needs it and dropped when a note changes.
 	index: Option<VaultIndex>,
-}
-
-fn first_chars(text: &str, n: usize) -> String {
-	text.chars().take(n).collect()
 }
 
 fn read_note(root: &Path, rel: &str) -> io::Result<Note> {

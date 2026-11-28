@@ -2,15 +2,13 @@
 //! not yet due, and a menu row for each of the next few. The shell only draws them.
 
 use gs_base::text::one_line;
+use gs_base::time::{DAY_MS, HOUR_MS, MINUTE_MS};
 use gs_json::Json;
 
 use crate::contracts::space::{due_at, is_upcoming};
 use crate::spaces::today_note::{due_sentence, local_day};
 use crate::study::progress::days_between;
 
-const MINUTE_MS: i64 = 60 * 1000;
-const HOUR_MS: i64 = 60 * MINUTE_MS;
-const DAY_MS: i64 = 24 * HOUR_MS;
 /// Rows the menu shows.
 const ROWS: usize = 5;
 /// A deadline's name is cut to this many characters.

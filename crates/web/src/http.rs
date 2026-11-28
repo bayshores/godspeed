@@ -10,9 +10,9 @@ use reqwest::{Client, Response, Url};
 use crate::guard;
 
 const MAX_REDIRECTS: usize = 20;
-const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+pub const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 /// How long the server may take to answer, and then to send each piece of the body.
-const SILENCE_LIMIT_MS: i64 = 300_000;
+pub const SILENCE_LIMIT_MS: i64 = 300_000;
 
 /// Every transport failure reads this way in Node.
 const FETCH_FAILED: &str = "fetch failed";

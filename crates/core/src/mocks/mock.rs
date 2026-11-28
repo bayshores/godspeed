@@ -189,11 +189,6 @@ pub fn mock_state(mock: &Json) -> MockState {
 	}
 }
 
-/// `Date.parse`, NaN for text it can't read.
-fn date_ms(v: &Json) -> f64 {
-	v.as_str().and_then(time::parse_date).map_or(f64::NAN, |ms| ms as f64)
-}
-
 /// `Math.max(low, x)`: NaN stays NaN.
 fn at_least(low: f64, x: f64) -> f64 {
 	if x.is_nan() { x } else { x.max(low) }
@@ -211,7 +206,7 @@ pub fn seconds_left(mock: &Json, now_ms: f64) -> Option<f64> {
 	Some(match mock_state(mock) {
 		MockState::Writing | MockState::Ready => minutes * 60.0,
 		MockState::Paused => mock["paused"]["left"].as_f64().unwrap_or(0.0),
-		_ if mock["endsAt"].truthy() => at_least(0.0, ((date_ms(&mock["endsAt"]) - now_ms) / 1000.0).ceil()),
+		_ if mock["endsAt"].truthy() => at_least(0.0, ((time::date_ms(&mock["endsAt"]) - now_ms) / 1000.0).ceil()),
 		_ => 0.0,
 	})
 }
@@ -467,9 +462,9 @@ pub fn mock_answers(mock: &Json) -> Vec<Json> {
 /// How many times the mock was paused and for how long in all (ms), an open pause up to
 /// `now_ms`.
 pub fn pause_total(mock: &Json, now_ms: i64) -> (usize, f64) {
-	let mut spans: Vec<(f64, f64)> = mock["pauses"].items().iter().map(|p| (date_ms(&p["from"]), date_ms(&p["to"]))).collect();
+	let mut spans: Vec<(f64, f64)> = mock["pauses"].items().iter().map(|p| (time::date_ms(&p["from"]), time::date_ms(&p["to"]))).collect();
 	if mock["paused"].truthy() {
-		spans.push((date_ms(&mock["paused"]["at"]), now_ms as f64));
+		spans.push((time::date_ms(&mock["paused"]["at"]), now_ms as f64));
 	}
 	let ms = spans.iter().map(|(from, to)| to - from).filter(|ms| ms.is_finite() && *ms > 0.0).sum();
 	(spans.len(), ms)
@@ -481,9 +476,9 @@ pub fn minutes_used(mock: &Json) -> Option<f64> {
 	if !mock["startedAt"].truthy() || !mock["endedAt"].truthy() {
 		return None;
 	}
-	let ended = date_ms(&mock["endedAt"]);
+	let ended = time::date_ms(&mock["endedAt"]);
 	let (_, paused) = pause_total(mock, ended as i64);
-	let minutes = at_least(1.0, ((ended - date_ms(&mock["startedAt"]) - paused) / 60_000.0).ceil());
+	let minutes = at_least(1.0, ((ended - time::date_ms(&mock["startedAt"]) - paused) / 60_000.0).ceil());
 	Some(match mock["format"]["minutes"].as_f64() {
 		Some(most) if !minutes.is_nan() => most.min(minutes),
 		_ => minutes,

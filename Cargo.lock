@@ -2112,6 +2112,7 @@ dependencies = [
  "gs-base",
  "gs-core",
  "gs-json",
+ "gs-web",
  "parking_lot",
  "reqwest",
  "tokio",

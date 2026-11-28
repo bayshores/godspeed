@@ -97,14 +97,9 @@ fn plan_state(tree: &Json, messages: &[Json]) -> Obj {
 	out
 }
 
-/// The lessons of one space (`spaceId` equal to `space_id`).
-pub(super) fn space_lessons(app: &App, space_id: &str) -> Vec<Json> {
-	app.stores.chats.list_chats().into_iter().filter(|c| c["spaceId"].as_str() == Some(space_id)).collect()
-}
-
 /// Every graded answer in the space's lessons.
 pub fn space_answers(app: &App, space_id: &str) -> Vec<Json> {
-	space_lessons(app, space_id).iter().filter_map(|c| lesson_readout(app, c["id"].str_or_empty())).flat_map(|readout| readout.answers.clone()).collect()
+	app.stores.chats.list_space_chats(space_id).iter().filter_map(|c| lesson_readout(app, c["id"].str_or_empty())).flat_map(|readout| readout.answers.clone()).collect()
 }
 
 /// What the review schedule reads from a space's lessons: every graded answer, every problem
@@ -120,7 +115,7 @@ pub struct SpaceReviews {
 
 pub fn space_reviews(app: &App, space_id: &str) -> SpaceReviews {
 	let mut out = SpaceReviews::default();
-	for readout in space_lessons(app, space_id).iter().filter_map(|c| lesson_readout(app, c["id"].str_or_empty())) {
+	for readout in app.stores.chats.list_space_chats(space_id).iter().filter_map(|c| lesson_readout(app, c["id"].str_or_empty())) {
 		out.answers.extend(readout.answers.iter().cloned());
 		out.outcomes.extend(readout.outcomes.iter().cloned());
 		out.items.extend(readout.reviews.iter().cloned());
@@ -132,7 +127,7 @@ pub fn space_reviews(app: &App, space_id: &str) -> SpaceReviews {
 
 /// The space's problems (practice and study) the learner solved only with hints.
 pub fn hinted_problems(app: &App, space_id: &str) -> Vec<Json> {
-	space_lessons(app, space_id)
+	app.stores.chats.list_space_chats(space_id)
 		.iter()
 		.filter_map(|c| lesson_readout(app, c["id"].str_or_empty()))
 		.flat_map(|readout| readout.outcomes.clone())
@@ -191,7 +186,7 @@ fn mistake_id(chat_id: &str, call_id: &str) -> String {
 pub fn space_mistakes(app: &App, space_id: &str, progress: &Json) -> Result<Vec<Json>, String> {
 	let lookup = topic_lookup(app, space_id, progress)?;
 	let mut out = Vec::new();
-	for c in space_lessons(app, space_id) {
+	for c in app.stores.chats.list_space_chats(space_id) {
 		let chat_id = c["id"].str_or_empty();
 		let Some(readout) = lesson_readout(app, chat_id) else { continue };
 		for a in readout.answers.iter().filter(|a| a["outcome"].as_str() == Some("wrong")) {

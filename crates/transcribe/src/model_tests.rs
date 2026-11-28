@@ -4,8 +4,9 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gs_json::{Json, json};
+use gs_web::http::SILENCE_LIMIT_MS;
 
-use crate::model::{ModelDownload, SILENCE_LIMIT_MS, WHISPER_MODEL_URL};
+use crate::model::{ModelDownload, WHISPER_MODEL_URL};
 use crate::test_support::{Sandbox, golden};
 
 /// Downloads take turns: one test moves the app clock, which would end another's waits.

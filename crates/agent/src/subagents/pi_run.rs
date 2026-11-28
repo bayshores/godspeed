@@ -61,6 +61,13 @@ impl SubagentRunOptions {
 /// Called with each new activity line (the job record's progress).
 pub type OnActivity = Arc<dyn Fn(&str) + Send + Sync>;
 
+/// Hands an activity line to the job's listener, when it has one.
+pub(super) fn report_activity(on_activity: &Option<OnActivity>, line: &str) {
+	if let Some(f) = on_activity {
+		f(line);
+	}
+}
+
 /// What the runner hands the demo builder and the pdf reader.
 #[derive(Clone)]
 pub struct JobAgentOptions {
@@ -73,14 +80,6 @@ pub struct JobAgentOptions {
 	pub on_activity: Option<OnActivity>,
 	/// The lesson that started the job answers the agent's permission questions.
 	pub approve: Option<Approve>,
-}
-
-impl JobAgentOptions {
-	pub(super) fn activity(&self, line: &str) {
-		if let Some(f) = &self.on_activity {
-			f(line);
-		}
-	}
 }
 
 /// A prompt as the agent takes it: text, or content parts.

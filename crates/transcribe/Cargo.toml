@@ -9,6 +9,7 @@ publish.workspace = true
 [dependencies]
 gs-base.workspace = true
 gs-core.workspace = true
+gs-web.workspace = true
 parking_lot.workspace = true
 reqwest.workspace = true
 tokio.workspace = true

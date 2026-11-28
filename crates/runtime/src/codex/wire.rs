@@ -4,7 +4,7 @@
 
 use gs_json::{Json, Obj, json};
 
-use crate::event::{Ask, Part, ToolCall, ToolReply, Usage, Verdict};
+use crate::event::{Ask, Part, ToolCall, ToolReply, Usage, Verdict, token_count};
 use crate::models::Model;
 use crate::session::SessionSpec;
 
@@ -240,10 +240,6 @@ pub enum Note {
 	Other,
 }
 
-fn count(value: &Json) -> u64 {
-	value.as_f64().map_or(0, |n| n.max(0.0) as u64)
-}
-
 fn text(value: &Json) -> String {
 	value.str_or_empty().to_owned()
 }
@@ -256,7 +252,7 @@ pub fn note(method: &str, params: &Json) -> Note {
 		"item/started" | "item/completed" => Note::Item { thread, turn: text(&params["turnId"]), item: item(&params["item"]), done: method == "item/completed" },
 		"thread/tokenUsage/updated" => {
 			let last = &params["tokenUsage"]["last"];
-			Note::Usage { thread, usage: Usage { input: count(&last["inputTokens"]), cached: count(&last["cachedInputTokens"]), output: count(&last["outputTokens"]) } }
+			Note::Usage { thread, usage: Usage { input: token_count(&last["inputTokens"]), cached: token_count(&last["cachedInputTokens"]), output: token_count(&last["outputTokens"]) } }
 		}
 		"thread/compacted" => Note::Compacted { thread },
 		"turn/completed" => {

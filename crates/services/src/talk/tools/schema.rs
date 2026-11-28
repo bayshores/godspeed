@@ -4,10 +4,7 @@
 //! keeps only the keys its schema names.
 
 use gs_base::text::trim;
-use gs_json::{Json, Obj, js_number};
-
-/// Number.MAX_SAFE_INTEGER: zod's `.int()` range.
-const MAX_SAFE: f64 = 9_007_199_254_740_991.0;
+use gs_json::{Json, MAX_SAFE, Obj, js_number};
 
 /// The checked arguments, or the issues as the SDK words them.
 pub fn check_arguments(tool: &str, schema: &Json, args: &Json) -> Result<Json, String> {
@@ -137,6 +134,7 @@ fn check_number(schema: &Json, value: Option<&Json>, int: bool, path: &[String],
 			push(issues, path, "Invalid input: expected int, received number".to_owned());
 			return None;
 		}
+		// zod's `.int()` takes whole numbers up to Number.MAX_SAFE_INTEGER.
 		if *n > MAX_SAFE {
 			push(issues, path, format!("Too big: expected int to be <={}", js_number(MAX_SAFE)));
 		} else if *n < -MAX_SAFE {

@@ -4,6 +4,7 @@
 use std::sync::Mutex;
 
 use gs_base::clock;
+use gs_base::locks::lock;
 
 /// A token is good this long after it arrives.
 const LOGIN_LIMIT_MS: i64 = 60_000;
@@ -21,7 +22,7 @@ impl LoginTokens {
 			return false;
 		}
 		let now = clock::now_ms();
-		let mut tokens = crate::link::lock(&self.tokens);
+		let mut tokens = lock(&self.tokens);
 		tokens.retain(|(_, until)| now < *until);
 		tokens.push((token, now + LOGIN_LIMIT_MS));
 		true
@@ -30,7 +31,7 @@ impl LoginTokens {
 	/// Whether `token` arrived and has not expired. It works once.
 	pub(crate) fn take(&self, token: &str) -> bool {
 		let now = clock::now_ms();
-		let mut tokens = crate::link::lock(&self.tokens);
+		let mut tokens = lock(&self.tokens);
 		tokens.retain(|(_, until)| now < *until);
 		let found = tokens.iter().position(|(kept, _)| same_bytes(kept.as_bytes(), token.as_bytes()));
 		found.map(|i| tokens.remove(i)).is_some()

@@ -20,7 +20,7 @@ pub enum Json {
 static NULL: Json = Json::Null;
 
 /// Largest integer an f64 holds exactly (`Number.MAX_SAFE_INTEGER`).
-const MAX_SAFE: f64 = 9_007_199_254_740_991.0;
+pub const MAX_SAFE: f64 = 9_007_199_254_740_991.0;
 
 impl Json {
 	pub fn is_null(&self) -> bool {

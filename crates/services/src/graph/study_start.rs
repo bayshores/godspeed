@@ -10,7 +10,7 @@ use gs_core::study::study::{MAX_STUDY_FACTS, NEAREST_FACTS, deadline_study_topic
 use gs_json::{Json, Obj, json};
 
 use super::graph::graph_store_for;
-use super::progress::{progress_for, progress_files, space_lessons, space_reviews, studied_on};
+use super::progress::{progress_for, progress_files, space_reviews, studied_on};
 use crate::App;
 
 /// A study session's topics from its picked facts: grouped by space topic, in space order.
@@ -126,7 +126,7 @@ pub fn path_study_for(app: &App, space_id: &str, topic_id: &str) -> Result<Optio
 	let topics = path["topics"].items();
 	let Some(at) = topics.iter().position(|t| t["id"].as_str() == Some(topic_id)) else { return Ok(None) };
 	let t = &topics[at];
-	let lessons: HashSet<String> = space_lessons(app, space_id)
+	let lessons: HashSet<String> = app.stores.chats.list_space_chats(space_id)
 		.iter()
 		.filter_map(|c| app.stores.chats.get_chat(c["id"].str_or_empty()))
 		.filter(|c| c["tree"]["nodes"].items().iter().any(|n| n["id"].as_str() == Some(topic_id)))

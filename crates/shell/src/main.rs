@@ -11,7 +11,6 @@ mod first_run;
 mod fonts;
 #[cfg(target_os = "linux")]
 mod linux;
-mod lock;
 mod log;
 #[cfg(target_os = "macos")]
 mod mac;

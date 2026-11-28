@@ -54,10 +54,6 @@ pub fn close_space_work(app: &App, id: &str) -> Result<(), String> {
 	app.stores.spaces.close_work(id).map(|_| ())
 }
 
-fn lessons_of(app: &App, space_id: &str) -> Vec<Json> {
-	app.stores.chats.list_chats().into_iter().filter(|c| c["spaceId"].as_str() == Some(space_id)).collect()
-}
-
 /// Deletes a space with its lessons, copied files and graph; the ids of the lessons removed.
 /// Refused while any of its lessons has a turn or job running; extractions are aborted and waited
 /// out. A linked folder on the learner's computer is untouched.
@@ -70,7 +66,7 @@ pub async fn delete_space(app: &Arc<App>, id: &str) -> SpaceOutcome<Vec<String>>
 
 async fn run_delete_space(app: &Arc<App>, id: &str) -> SpaceOutcome<Vec<String>> {
 	let Some(record) = app.stores.spaces.get_space(id) else { return no_space() };
-	for lesson in lessons_of(app, id) {
+	for lesson in app.stores.chats.list_space_chats(id) {
 		if let Some(blocker) = quiesce_chat_for_rewrite(app, lesson["id"].str_or_empty()).await {
 			return fail(blocker.status, blocker.code, format!("{}: {}", lesson["title"].str_or_empty(), blocker.error));
 		}
@@ -96,7 +92,7 @@ async fn run_delete_space(app: &Arc<App>, id: &str) -> SpaceOutcome<Vec<String>>
 		// Lessons may have started a turn, or been created in or moved out of the space, during the
 		// waits above: read them again and hold each one's lock (a turn begins under it, a move
 		// runs under it) through the removal. Taken in id order, as the lock order asks.
-		let mut current = lessons_of(app, id);
+		let mut current = app.stores.chats.list_space_chats(id);
 		let mut lock_order: Vec<&str> = current.iter().map(|lesson| lesson["id"].str_or_empty()).collect();
 		lock_order.sort_unstable();
 		let _lessons: Vec<_> = lock_order.into_iter().map(|lesson_id| app.locks.lock(LockKey::Chat(lesson_id))).collect();

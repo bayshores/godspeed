@@ -9,11 +9,11 @@
 //! brief), and it still steers: the teacher must learn the outcome.
 
 use std::collections::{BTreeMap, HashMap};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
-use gs_base::ids;
+use gs_base::fsx::make_temp_dir;
 use gs_base::re::Re;
 use gs_base::text::{slice16, trim};
 use gs_core::messages::role::Role;
@@ -472,19 +472,6 @@ fn parse_sources(brief: &str, fetched: &[String]) -> Vec<Json> {
 	}
 	sources.truncate(10);
 	sources
-}
-
-/// `fs.mkdtemp(path.join(dir, prefix))`: a new folder named prefix + 6 random characters.
-fn make_temp_dir(dir: &Path, prefix: &str) -> std::io::Result<PathBuf> {
-	const CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-	loop {
-		let suffix: String = ids::random_bytes(6).iter().map(|b| CHARS[*b as usize % CHARS.len()] as char).collect();
-		let path = dir.join(format!("{prefix}{suffix}"));
-		match std::fs::create_dir(&path) {
-			Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
-			made => return made.map(|()| path),
-		}
-	}
 }
 
 #[cfg(test)]

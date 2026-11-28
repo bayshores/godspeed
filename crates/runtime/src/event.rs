@@ -81,6 +81,11 @@ pub struct Usage {
 	pub output: u64,
 }
 
+/// A token count as an agent's wire sends it: a missing or negative one counts as 0.
+pub(crate) fn token_count(value: &Json) -> u64 {
+	value.as_f64().map_or(0, |n| n.max(0.0) as u64)
+}
+
 /// How a turn ended. A turn ended by a tool reply's `ends_turn` counts as completed.
 #[derive(Clone, Debug, PartialEq)]
 pub enum End {

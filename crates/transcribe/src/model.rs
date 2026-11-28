@@ -3,10 +3,10 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
 
 use gs_base::config::Paths;
 use gs_base::{clock, fsx, ids};
+use gs_web::http::{CONNECT_TIMEOUT, SILENCE_LIMIT_MS};
 use parking_lot::Mutex;
 use reqwest::redirect::Policy;
 use tokio::io::AsyncWriteExt;
@@ -14,9 +14,6 @@ use tokio::sync::watch;
 
 pub(crate) const WHISPER_MODEL_NAME: &str = "ggml-base.en.bin";
 pub(crate) const WHISPER_MODEL_URL: &str = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin";
-/// Node's fetch limits: 10 s to connect, then 300 s for the answer and for each piece of the body.
-const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
-pub(crate) const SILENCE_LIMIT_MS: i64 = 300_000;
 
 type Outcome = Result<PathBuf, String>;
 type Pending = watch::Receiver<Option<Outcome>>;

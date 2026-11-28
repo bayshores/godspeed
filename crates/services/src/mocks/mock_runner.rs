@@ -16,6 +16,7 @@ use gs_core::mocks::mock::MockLanguage;
 use gs_core::mocks::mock_run::{RUN_SECONDS, read_run, run_file, runner_source};
 use gs_engine::turn::abort::Abort;
 use gs_json::{Json, json};
+use gs_runtime::process::hide_window;
 use gs_transcribe::programs::{HOMEBREW_BIN_DIRS, find_in};
 use tokio::io::{AsyncRead, AsyncReadExt};
 use tokio::process::{Child, Command};
@@ -125,15 +126,6 @@ async fn stop_all(pid: u32, running: bool) {
 	// Every process of it may have ended already.
 	let _ = stop.status().await;
 }
-
-#[cfg(windows)]
-fn hide_window(command: &mut Command) {
-	const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-	command.creation_flags(CREATE_NO_WINDOW);
-}
-
-#[cfg(not(windows))]
-fn hide_window(_command: &mut Command) {}
 
 /// `fs.mkdtempSync(path.join(tmp, "godspeed-run-"))`, by its real path: it is the one the error
 /// text names.

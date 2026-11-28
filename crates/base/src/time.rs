@@ -3,11 +3,14 @@
 
 use jiff::civil::DateTime;
 use jiff::tz::TimeZone;
+use gs_json::Json;
 use jiff::{Timestamp, Zoned};
 
 use crate::clock;
 
-const DAY_MS: i64 = 86_400_000;
+pub const MINUTE_MS: i64 = 60_000;
+pub const HOUR_MS: i64 = 60 * MINUTE_MS;
+pub const DAY_MS: i64 = 24 * HOUR_MS;
 
 /// `new Date(ms).toISOString()`.
 pub fn iso(ms: i64) -> String {
@@ -21,6 +24,12 @@ pub fn iso(ms: i64) -> String {
 /// `new Date().toISOString()` on the app clock.
 pub fn iso_now() -> String {
 	iso(clock::now_ms())
+}
+
+/// `Date.parse` of a record's field: NaN for a value that is not date text, so every comparison
+/// with it is false.
+pub fn date_ms(value: &Json) -> f64 {
+	value.as_str().and_then(parse_date).map_or(f64::NAN, |ms| ms as f64)
 }
 
 /// `Date.parse(text)` for the ISO forms the app writes and reads: `YYYY[-MM[-DD]]`, then

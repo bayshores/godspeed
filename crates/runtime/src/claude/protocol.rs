@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use gs_json::{Json, json};
 
-use crate::event::{Ask, End, Part, SessionEvent, ToolCall, ToolReply, Usage, Verdict};
+use crate::event::{Ask, End, Part, SessionEvent, ToolCall, ToolReply, Usage, Verdict, token_count};
 use crate::models::Model;
 use crate::session::SessionSpec;
 
@@ -158,10 +158,6 @@ fn godspeed_tool(name: &str) -> Option<&str> {
 	name.strip_prefix("mcp__")?.strip_prefix(TOOL_SERVER)?.strip_prefix("__")
 }
 
-fn count(value: &Json) -> u64 {
-	value.as_f64().map_or(0, |n| n.max(0.0) as u64)
-}
-
 /// The events one SDK message makes, and the turn's end when it is the result. Messages from a
 /// subagent (`parent_tool_use_id`) are not the reply.
 pub fn read_sdk(message: &Json, reading: &mut Reading) -> (Vec<SessionEvent>, Option<End>) {
@@ -176,12 +172,12 @@ pub fn read_sdk(message: &Json, reading: &mut Reading) -> (Vec<SessionEvent>, Op
 				Some("content_block_delta") if event["delta"]["type"].as_str() == Some("text_delta") => events.push(SessionEvent::TextDelta(event["delta"]["text"].str_or_empty().to_owned())),
 				Some("message_start") => {
 					let usage = &event["message"]["usage"];
-					let cached = count(&usage["cache_read_input_tokens"]);
-					reading.call = Some(Usage { input: count(&usage["input_tokens"]) + count(&usage["cache_creation_input_tokens"]) + cached, cached, output: 0 });
+					let cached = token_count(&usage["cache_read_input_tokens"]);
+					reading.call = Some(Usage { input: token_count(&usage["input_tokens"]) + token_count(&usage["cache_creation_input_tokens"]) + cached, cached, output: 0 });
 				}
 				Some("message_delta") => {
 					if let Some(mut usage) = reading.call.take() {
-						usage.output = count(&event["usage"]["output_tokens"]);
+						usage.output = token_count(&event["usage"]["output_tokens"]);
 						events.push(SessionEvent::Usage(usage));
 					}
 				}

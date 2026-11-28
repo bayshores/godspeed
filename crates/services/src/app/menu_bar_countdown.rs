@@ -7,6 +7,7 @@ use std::sync::Arc;
 use gs_base::clock;
 use gs_base::events::{Event, EventKind};
 use gs_base::tasks::detach;
+use gs_base::time::MINUTE_MS;
 use gs_core::spaces::menu_bar_countdown::{countdown_rows, countdown_title};
 use gs_json::Json;
 use gs_shell_rpc::{CountdownRow, ShellLink, ToShell};
@@ -15,8 +16,6 @@ use tokio::sync::mpsc::UnboundedReceiver;
 use crate::App;
 use crate::app::settings_record::general_switch_on;
 use crate::spaces::list_open_deadlines;
-
-const MINUTE_MS: i64 = 60 * 1000;
 
 /// Only the Mac has the item.
 pub fn start_menu_bar_countdown(app: &Arc<App>) {

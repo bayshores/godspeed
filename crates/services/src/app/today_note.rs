@@ -12,9 +12,8 @@ use crate::App;
 fn hinted_problems(app: &App, space_id: &str) -> Vec<Json> {
 	app.stores
 		.chats
-		.list_chats()
+		.list_space_chats(space_id)
 		.iter()
-		.filter(|chat| chat["spaceId"].as_str() == Some(space_id))
 		.filter_map(|chat| app.stores.chats.get_chat(chat["id"].as_str()?))
 		.flat_map(|chat| practice_outcomes(chat["messages"].items()))
 		.filter(|outcome| outcome["outcome"].as_str() == Some("solvedWithHints"))

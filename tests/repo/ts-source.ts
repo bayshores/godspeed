@@ -19,3 +19,12 @@ export function tsFiles(dir: string): string[] {
 export function parseTs(file: string, text = readFileSync(file, "utf-8")): ts.SourceFile {
 	return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, file.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
 }
+
+/** The tokens of a syntax tree, doc comment nodes left out (their text is a comment). */
+export function tsTokens(node: ts.Node, source: ts.SourceFile, out: ts.Node[] = []): ts.Node[] {
+	if (node.kind >= ts.SyntaxKind.FirstJSDocNode && node.kind <= ts.SyntaxKind.LastJSDocNode) return out;
+	const children = node.getChildren(source);
+	if (children.length === 0 && node.getText(source) !== "") out.push(node);
+	for (const child of children) tsTokens(child, source, out);
+	return out;
+}

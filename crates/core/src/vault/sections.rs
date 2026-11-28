@@ -4,7 +4,7 @@
 
 use gs_base::hash::sha256_text;
 
-use super::frontmatter::normal;
+use super::frontmatter::{line_text, normal};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
@@ -55,10 +55,6 @@ struct Chunk {
 pub struct Sections {
 	chunks: Vec<Chunk>,
 	eol: &'static str,
-}
-
-fn line_text(line: &str) -> &str {
-	line.trim_end_matches(['\r', '\n'])
 }
 
 /// The section a line starts, if any. A callout starts one only at the top of a quote block.

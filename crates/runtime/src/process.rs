@@ -273,13 +273,13 @@ fn add_args(command: &mut Command, launch: &Launch) {
 
 /// On Windows a console program started from a window app opens a console window of its own.
 #[cfg(windows)]
-pub(crate) fn hide_window(command: &mut Command) {
+pub fn hide_window(command: &mut Command) {
 	const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 	command.creation_flags(CREATE_NO_WINDOW);
 }
 
 #[cfg(not(windows))]
-pub(crate) fn hide_window(_command: &mut Command) {}
+pub fn hide_window(_command: &mut Command) {}
 
 /// A job holding the child, so everything it starts ends with the job's handle.
 #[cfg(windows)]

@@ -289,15 +289,3 @@ fn failure_shapes_per_kind() {
 	assert_eq!(failure_result(JobKind::Demo, Some(&json!({ "title": " T " })), "r")["title"], Json::from(" T "));
 	assert_eq!(failure_result(JobKind::Research, None, "r"), json!({ "brief": "Research failed: r", "sources": [] }));
 }
-
-#[test]
-fn temp_folders_are_new_each_time() {
-	let dir = std::env::temp_dir().join(format!("gs-runner-mkdtemp-{}", std::process::id()));
-	std::fs::create_dir_all(&dir).unwrap();
-	let a = make_temp_dir(&dir, "lh-research-").unwrap();
-	let b = make_temp_dir(&dir, "lh-research-").unwrap();
-	assert_ne!(a, b);
-	let name = a.file_name().unwrap().to_string_lossy().into_owned();
-	assert!(Re::new("^lh-research-[A-Za-z0-9]{6}$", "").test(&name), "{name}");
-	std::fs::remove_dir_all(&dir).unwrap();
-}

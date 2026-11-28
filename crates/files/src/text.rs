@@ -5,10 +5,9 @@ use std::collections::HashMap;
 use std::fmt;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::sync::LazyLock;
 use std::time::SystemTime;
 
-use gs_base::re::Re;
+use gs_base::re::strip_tags;
 use gs_base::text::{from_utf8_lossy, trim};
 use gs_core::contracts::space::{extension_of, is_office_file, is_recording_file, is_supported_space_file, is_transcript_file, plain_text_extensions};
 use gs_pdf::worker::Pdf;
@@ -40,7 +39,6 @@ impl fmt::Display for FileTextError {
 /// Strips a WebVTT / SRT transcript down to its spoken text: no header, no cue numbers, no
 /// timestamps, no styling tags; consecutive duplicate lines (rolling captions) collapse.
 pub fn transcript_to_text(raw: &str) -> String {
-	static TAG: LazyLock<Re> = LazyLock::new(|| Re::new(r"<[^>]+>", "g"));
 	let mut out: Vec<String> = Vec::new();
 	for line in raw.replace("\r\n", "\n").replace('\r', "\n").split('\n') {
 		let t = trim(line);
@@ -51,7 +49,7 @@ pub fn transcript_to_text(raw: &str) -> String {
 		if t.bytes().all(|b| b.is_ascii_digit()) || t.contains("-->") {
 			continue;
 		}
-		let text = TAG.replace(t, "");
+		let text = strip_tags(t);
 		let text = trim(&text);
 		if text.is_empty() || out.last().is_some_and(|last| last == text) {
 			continue;

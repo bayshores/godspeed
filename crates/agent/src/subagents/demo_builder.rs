@@ -21,7 +21,7 @@ use gs_engine::turn::job_session::OnToolStart;
 
 use super::headless::{DemoRunResult, HeadlessApi};
 use super::job_agent::Priority;
-use super::pi_run::{JobAgentOptions, OnActivity, SubagentRunOptions, run_subagent};
+use super::pi_run::{JobAgentOptions, OnActivity, SubagentRunOptions, report_activity, run_subagent};
 
 const INSTRUCTIONS: &str = r#"You are a demo builder, a specialist sub-agent in a learning app. You get a brief for ONE
 interactive teaching instrument and deliver a single self-contained HTML document running it. You never
@@ -78,12 +78,6 @@ struct DemoTool {
 }
 
 impl DemoTool {
-	fn activity(&self, line: &str) {
-		if let Some(f) = &self.on_activity {
-			f(line);
-		}
-	}
-
 	fn write_demo(&self, args: &Json) -> String {
 		let html = args["html"].str_or_empty();
 		if trim(html).is_empty() {
@@ -91,7 +85,7 @@ impl DemoTool {
 		}
 		self.state.lock().html = Some(html.to_owned());
 		let size = len16(html);
-		self.activity(&format!("write_demo: {} KB", to_fixed(size as f64 / 1024.0, 1)));
+		report_activity(&self.on_activity, &format!("write_demo: {} KB", to_fixed(size as f64 / 1024.0, 1)));
 		format!("Saved ({size} bytes). Now call run_demo to test it — never deliver untested.")
 	}
 
@@ -104,11 +98,11 @@ impl DemoTool {
 		let result = match self.headless.run_demo(&html, probe).await {
 			Ok(result) => result,
 			Err(e) => {
-				self.activity("run_demo: browser error");
+				report_activity(&self.on_activity, "run_demo: browser error");
 				return format!("HEADLESS ERROR (retrying may help): {e}");
 			}
 		};
-		self.activity(&if result.ok { "run_demo: clean".to_owned() } else { format!("run_demo: {}", summarize_counts(&result)) });
+		report_activity(&self.on_activity, &if result.ok { "run_demo: clean".to_owned() } else { format!("run_demo: {}", summarize_counts(&result)) });
 		let text = format_run_result(&result);
 		let mut state = self.state.lock();
 		// The document as it is now: a write in the same batch may have replaced the one tested.
@@ -239,7 +233,7 @@ pub async fn run_demo_builder(title: &str, brief: &str, opts: &JobAgentOptions) 
 	// The delivered HTML must have a clean run, even when the model claims success or forgets
 	// the last run_demo.
 	if tested_html.as_ref() != Some(&html) || !last_ok {
-		opts.activity("final verification");
+		report_activity(&opts.on_activity, "final verification");
 		let verify = match opts.headless.run_demo(&html, None).await {
 			Ok(verify) => verify,
 			Err(e) => return failed(title, &format!("final verification crashed: {e}")),

@@ -12,7 +12,7 @@ mod write;
 pub use object::Obj;
 pub use parse::{ParseError, parse};
 pub use serde_bridge::{from_json, to_json};
-pub use value::Json;
+pub use value::{Json, MAX_SAFE};
 pub use write::{js_number, number_text, quote, stringify, stringify_pretty};
 
 #[doc(hidden)]

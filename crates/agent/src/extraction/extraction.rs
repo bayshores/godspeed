@@ -17,7 +17,7 @@ use futures_util::future::BoxFuture;
 use gs_base::events::Events;
 use gs_base::locks::{LockKey, Locks};
 use gs_base::{hash, time};
-use gs_core::graph::coverage::{CoverageSlot, batch_runs, coverage_of, message_view_lines};
+use gs_core::graph::coverage::{CoverageSlot, batch_runs, coverage_of, message_id, message_view_lines};
 use gs_core::graph::duplicates::Nearest;
 use gs_core::graph::graph::{MergeSource, get_graph, merge_findings};
 use gs_core::graph::ports::GraphStore;
@@ -30,7 +30,7 @@ use gs_json::{Json, Obj, json};
 use gs_store::chats::ChatStore;
 use gs_store::graph::GraphStores;
 
-use super::context::{chunk_notes, graph_context, message_id, notes_view, prose_view};
+use super::context::{chunk_notes, graph_context, notes_view, prose_view};
 use super::duplicate_check::duplicate_check;
 use super::extraction_runs::{ExtractionPhase, ExtractionRuns, RunKind};
 use super::findings::{

@@ -173,6 +173,12 @@ pub fn collapse_spaces(text: &str) -> String {
 	SPACES.replace(text, " ")
 }
 
+/// `text.replace(/<[^>]+>/g, "")`: drops every tag, such as a caption line's `<i>` or `<c.red>`.
+pub fn strip_tags(text: &str) -> String {
+	static TAG: LazyLock<Re> = LazyLock::new(|| Re::new(r"<[^>]+>", "g"));
+	TAG.replace(text, "")
+}
+
 /// GetSubstitution: the replacement text for one match.
 fn substitute(caps: &Caps, replacement: &str) -> String {
 	let r = caps.range();

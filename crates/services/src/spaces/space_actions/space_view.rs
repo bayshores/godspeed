@@ -132,9 +132,8 @@ impl SpaceActions {
 		let lessons: Vec<Json> = app
 			.stores
 			.chats
-			.list_chats()
+			.list_space_chats(space_id)
 			.iter()
-			.filter(|c| c["spaceId"].as_str() == Some(space_id))
 			.map(|c| {
 				let mut entry = Obj::new();
 				for key in ["id", "title", "kind", "updatedAt"] {

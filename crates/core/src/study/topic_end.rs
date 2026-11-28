@@ -19,7 +19,7 @@ use crate::session::plan::{TAGGING_TOOLS, derive_plan_statuses_lh};
 use crate::session::plan_step_bar::ordered_plan_ids;
 use crate::session::question_core::{QUIZ_TOOL, normalize_quiz_type};
 
-const MINUTE_MS: f64 = 60_000.0;
+const MINUTE_MS: f64 = time::MINUTE_MS as f64;
 /// A longer gap between lesson events counts as this long.
 const GAP_CAP_MS: f64 = 5.0 * MINUTE_MS;
 /// A gap this long or longer starts a new sitting.
@@ -82,7 +82,7 @@ pub fn long_problem_stop(messages: &[Json], now_ms: i64) -> Option<Json> {
 
 /// Active minutes up to `now_ms` over the lesson's times since its newest stop.
 fn minutes_since_stop(messages: &[Json], now_ms: i64) -> i64 {
-	let since = record_stops(messages).last().map(|s| ms_of(&s.stop["at"]));
+	let since = record_stops(messages).last().map(|s| time::date_ms(&s.stop["at"]));
 	let mut times: Vec<f64> = since.into_iter().collect();
 	times.extend(messages.iter().filter_map(|m| m["timestamp"].as_f64()).filter(|t| since.is_none_or(|s| *t > s)));
 	active_minutes(&times, now_ms as f64)
@@ -224,15 +224,10 @@ pub fn resume_due(messages: &[Json]) -> bool {
 	let Some(last) = record_stops(messages).pop() else { return false };
 	let Some((index, keep)) = keep_going_markers(messages).find(|(_, k)| k["stopOf"].as_str() == Some(last.stop_of)) else { return false };
 	let times: Vec<f64> = messages.iter().filter_map(|m| m["timestamp"].as_f64()).collect();
-	if !resumed_after_stop(ms_of(&last.stop["at"]), ms_of(&keep["at"]), &times) {
+	if !resumed_after_stop(time::date_ms(&last.stop["at"]), time::date_ms(&keep["at"]), &times) {
 		return false;
 	}
 	!messages[index + 1..].iter().any(is_learner_input)
-}
-
-/// `Date.parse`: NaN for text it cannot read, so every comparison with it is false.
-fn ms_of(at: &Json) -> f64 {
-	at.as_str().and_then(time::parse_date).map_or(f64::NAN, |ms| ms as f64)
 }
 
 /// A message that carries the learner's input to the agent.

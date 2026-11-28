@@ -38,7 +38,8 @@ fn is_end_fence(line: &str) -> bool {
 	matches!(line.trim_end(), "---" | "...")
 }
 
-fn line_text(line: &str) -> &str {
+/// A line without its line break, which the note keeps as it found it (`\n` or `\r\n`).
+pub(super) fn line_text(line: &str) -> &str {
 	line.trim_end_matches(['\r', '\n'])
 }
 

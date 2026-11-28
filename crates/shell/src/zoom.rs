@@ -7,7 +7,7 @@ use serde_json::Value;
 use tauri::{AppHandle, Manager, State, Webview};
 
 use crate::commands::{AppOrigin, trusted_any};
-use crate::lock::lock;
+use gs_base::locks::lock;
 use crate::push::push_to;
 use crate::window::WINDOWS;
 

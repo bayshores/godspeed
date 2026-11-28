@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use gs_core::messages::citations::{CheckedMarks, CiteMark, DroppedQuote, MARK_MAX, cut_unreadable_quotes, file_cite_mark, replace_cite_marks};
 use gs_base::{fsx, text};
-use gs_core::contracts::space::{extension_of, plain_text_extensions};
+use gs_core::contracts::space::{extension_of, name_of, plain_text_extensions};
 use gs_core::messages::quote_find::{QuoteMiss, check_quote, find_once};
 use gs_json::lone::{from_utf16, to_utf16};
 use gs_json::{Json, json};
@@ -25,10 +25,6 @@ fn find_file<'a>(records: &'a [Json], file_id: &str) -> Option<(&'a Json, &'a Js
 		let file = record["files"].as_arr()?.iter().find(|f| f["id"].as_str() == Some(file_id))?;
 		Some((record, file))
 	})
-}
-
-fn name_of(file: &Json) -> &str {
-	file["name"].str_or_empty()
 }
 
 /// The text of the passages at `at`, joined as a click shows them.

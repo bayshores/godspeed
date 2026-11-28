@@ -14,7 +14,7 @@ use gs_shell_rpc::ToServer;
 use tauri::{AppHandle, Manager, Url};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult};
 
-use crate::lock::lock;
+use gs_base::locks::lock;
 use crate::paths::{self, Paths};
 use crate::{bug_report, log, restarts, rpc, window};
 

@@ -15,7 +15,7 @@ use tauri::{App, AppHandle, Manager};
 
 use crate::commands::AppOrigin;
 use crate::demo::{self, DemoJob, SvgJob};
-use crate::lock::lock;
+use gs_base::locks::lock;
 use crate::paths::Paths;
 use crate::{window, zoom};
 

@@ -115,7 +115,7 @@ export function beforeTests(code: string): string {
 }
 
 /** A piece of Rust code at its offset: a word, a number, a lifetime, a whole string or char as written, or one mark. */
-type RustToken = { text: string; at: number };
+export type RustToken = { text: string; at: number };
 
 const NUMBER = /\d[\d_]*(?:\.\d[\d_]*)?(?:[eE][+-]?\d+)?\w*/y;
 

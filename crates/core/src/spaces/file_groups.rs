@@ -8,7 +8,7 @@ use gs_json::{Json, js_number};
 
 use super::file_state::FileKind;
 use super::file_series::{FileSeries, date_in_name, group_file_series};
-use crate::contracts::space::is_recording_or_captions;
+use crate::contracts::space::{is_recording_or_captions, name_of};
 
 /// One entry of a group: a number of a series ("Lecture 3", with every file that carries it,
 /// notes and transcript together) or one other file.
@@ -29,10 +29,6 @@ pub struct FileGroup<'a> {
 	/// Files in the group (not entries).
 	pub count: usize,
 	pub items: Vec<FileItem<'a>>,
-}
-
-fn name_of(file: &Json) -> &str {
-	file["name"].str_or_empty()
 }
 
 /// "Day", "Week" from a series label ("Week, Discussion"); None when the names start with the

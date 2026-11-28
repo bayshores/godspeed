@@ -159,6 +159,11 @@ pub fn supported_space_file_extensions() -> impl Iterator<Item = &'static str> {
 	plain_text_extensions().chain(DOCUMENT_EXTENSIONS).chain(TRANSCRIPT_EXTENSIONS).chain(RECORDING_EXTENSIONS)
 }
 
+/// A space file record's name, or "" when it has none.
+pub fn name_of(file: &Json) -> &str {
+	file["name"].str_or_empty()
+}
+
 /// A path's last part ("Week 7.md"), on any computer's separators.
 pub fn base_name(path: &str) -> &str {
 	path.trim_end_matches(['/', '\\']).rsplit(['/', '\\']).next().filter(|n| !n.is_empty()).unwrap_or(path)

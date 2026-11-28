@@ -71,7 +71,8 @@ fn view_tokens(lines: &[String]) -> usize {
 	text::len16(&lines.join("\n")).div_ceil(4)
 }
 
-fn message_id(message: &Json) -> &str {
+/// A message's id as a template literal writes it.
+pub fn message_id(message: &Json) -> &str {
 	message["id"].as_str().unwrap_or("undefined")
 }
 

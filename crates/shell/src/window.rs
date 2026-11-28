@@ -19,7 +19,7 @@ use tauri::window::Color;
 use tauri::{AppHandle, Manager, State, Url, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Wry};
 
 use crate::commands::{AppOrigin, trusted, trusted_any};
-use crate::lock::lock;
+use gs_base::locks::lock;
 use crate::paths::Paths;
 use crate::push::push;
 use crate::server::Server;

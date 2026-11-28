@@ -6,7 +6,7 @@ use std::io::Write;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 
-use crate::lock::lock;
+use gs_base::locks::lock;
 
 const ROTATE_BYTES: u64 = 5 * 1024 * 1024;
 
