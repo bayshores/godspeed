@@ -1,7 +1,8 @@
 /**
  * A dialog foot (or a list row) that asks before something is lost: the
  * question, the way back and the red way on. `quiet` draws the way on as a red word (throwing
- * away typed text); without it the button is filled (deleting something).
+ * away typed text); without it the button is filled (deleting something). It only ever comes after a
+ * click, in the place of the keys that asked it, so it rises in.
  */
 export function FootQuestion({
 	testid,
@@ -25,7 +26,7 @@ export function FootQuestion({
 	onGo: () => void;
 }) {
 	return (
-		<div data-testid={testid} className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
+		<div data-testid={testid} className="lh-rise flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
 			<span className="flex min-w-0 flex-1 basis-[200px] flex-col gap-px">
 				<span className="text-ui break-words text-ink">{line}</span>
 				{note && <span className="text-ui text-ink-2">{note}</span>}

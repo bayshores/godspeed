@@ -13,6 +13,9 @@ import { CodeAnswer } from "./mock-answer";
 import { MockBar } from "./mock-bar";
 import { MOCK_LANGUAGE_KEY, answerOf, clockText, exampleCall, nextOpen, parseMockLanguage, submittedLine, workOf, type Work } from "./mock-model";
 import { postMock } from "./use-mock";
+import { ErrorLine } from "@/frontend/components/error-line";
+import { riseMotion } from "@/frontend/components/motion";
+import { usePresence } from "@/frontend/components/presence";
 
 /** How often what is typed is saved. */
 const SAVE_EVERY_MS = 4000;
@@ -39,6 +42,7 @@ export function MockRun({ view }: { view: MockView }) {
 	const [at, setAt] = useState(() => Math.max(0, questions.findIndex((q) => !mock.answers[q.id]?.submitted)));
 	const [resets, setResets] = useState(0);
 	const [confirmEnd, setConfirmEnd] = useState(false);
+	const endAsk = usePresence(confirmEnd);
 	const [ending, setEnding] = useState(false);
 	/** A pause or resume is on its way. */
 	const [switching, setSwitching] = useState(false);
@@ -157,11 +161,7 @@ export function MockRun({ view }: { view: MockView }) {
 		change({ language });
 	};
 
-	const errorLine = error && (
-		<p role="alert" data-testid="mock-run-error-line" className="min-w-0 flex-1 text-ui text-ans-wrong">
-			{error}
-		</p>
-	);
+	const errorLine = <ErrorLine error={error} data-testid="mock-run-error-line" className="min-w-0 flex-1 text-ui text-ans-wrong" />;
 
 	return (
 		<div data-testid={paused ? "mock-paused" : "mock-run"} className="flex h-full flex-col">
@@ -220,8 +220,8 @@ export function MockRun({ view }: { view: MockView }) {
 				</div>
 			) : (
 				<>
-					{confirmEnd && (
-						<div role="alertdialog" aria-label="End the mock" data-testid="mock-end-confirm" className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 bg-highlight px-6 py-2.5 text-ui text-ink">
+					{endAsk.mounted && (
+						<div role="alertdialog" aria-label="End the mock" data-testid="mock-end-confirm" {...riseMotion(endAsk.state, "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 bg-highlight px-6 py-2.5 text-ui text-ink")}>
 							<p className="min-w-0 flex-1">
 								{submittedLine(questions.length, notSubmitted)} End Mock {mock.n} now? {teacher} grades what you have written.
 							</p>

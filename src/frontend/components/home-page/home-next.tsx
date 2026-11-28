@@ -94,7 +94,8 @@ export function HomeNext({
 					<ul className="-mx-3 flex flex-col gap-1">
 						{topics.map((t) => (
 							<li key={`${t.spaceId}:${t.topicId}`}>
-								<button type="button" data-testid="today-topic-row" disabled={busyOn !== null} onClick={() => onStudyTopic(t.spaceId, t.topicId)} className={cn(ROW, ROW_CLASS)}>
+								{/* Pressed while the lesson it starts is made and read (data-pending, as a link's page is). */}
+								<button type="button" data-testid="today-topic-row" data-pending={busyOn === t.topicId || undefined} disabled={busyOn !== null} onClick={() => onStudyTopic(t.spaceId, t.topicId)} className={cn(ROW, ROW_CLASS)}>
 									<span className="flex items-start gap-2.5">
 										<Square color={t.color} />
 										<span className="min-w-0 flex-1 truncate text-item leading-snug text-ink">

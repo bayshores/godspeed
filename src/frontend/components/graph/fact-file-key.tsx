@@ -8,6 +8,7 @@ import { Link } from "react-router";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { useFactFile } from "./use-fact-file.ts";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 const KEY = "lh-btn lh-btn-small lh-btn-quiet min-w-0 max-w-[34ch]";
 
@@ -30,11 +31,7 @@ export function FactFileKey({ born, file, lesson }: { born: string | null; file:
 					<PixelIcon name={onDisk.opens ? "pages" : "folder"} size={13} />
 					<span className="truncate">{name}</span>
 				</button>
-				{onDisk.error && (
-					<p role="alert" data-testid="fact-source-error" className="text-right text-sm text-ans-wrong">
-						{onDisk.error}
-					</p>
-				)}
+				<ErrorLine error={onDisk.error} data-testid="fact-source-error" className="text-right text-sm text-ans-wrong" />
 			</div>
 		);
 	}

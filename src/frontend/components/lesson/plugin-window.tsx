@@ -71,7 +71,7 @@ function Window({ plugin, context, state, onClose }: { plugin: ShownPlugin; cont
 			state={state}
 			data-testid="plugin-window"
 			aria-label={plugin.name}
-			className="motion-safe:transition-[height] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)"
+			className="transition-[height] duration-(--lh-dur) ease-(--lh-ease-out)"
 		>
 			<PluginFrame manifest={plugin.manifest} values={plugin.values} context={context} onSize={setReported} className="h-full justify-center py-0" />
 		</BarWindow>

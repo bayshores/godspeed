@@ -14,6 +14,7 @@ import { useVault } from "@/frontend/components/vault/vault-context";
 import { folderLine, folderTitle, openLabel, pickLine, vaultHead, VAULT_WORDS, type VaultFolder, type VaultStatus, type VaultWords } from "@/frontend/components/vault/vault-model";
 import { cn } from "@/frontend/lib/utils";
 import { QUIET_KEY, SettingsGroup, SMALL_KEY } from "./controls.tsx";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 export function NotesFolderGroup() {
 	const { status, error: readError } = useVault();
@@ -109,11 +110,7 @@ function FolderBlock({ status }: { status: VaultStatus }) {
 				</>
 			)}
 			{typing && <LinkFolderField initial={folder?.path ?? ""} disabled={busy} onLink={link} onCancel={() => setTyping(false)} />}
-			{error && (
-				<p role="alert" data-testid="vault-error" className="text-ui text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} data-testid="vault-error" className="text-ui text-ans-wrong" />
 		</div>
 	);
 }
@@ -142,11 +139,7 @@ function WhoWrites({ words }: { words: VaultWords }) {
 				disabled={busy}
 				onChange={(next) => void run(() => change({ words: next }))}
 			/>
-			{error && (
-				<p role="alert" className="text-ui text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} className="text-ui text-ans-wrong" />
 		</div>
 	);
 }

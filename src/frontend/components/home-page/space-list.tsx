@@ -1,8 +1,12 @@
+import { useMemo } from "react";
 import { Link } from "react-router";
 import type { ProgressPayload, SpaceSummary } from "@/shared/core";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
+import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { rowMotion } from "@/frontend/components/motion";
+import { useLeavingList } from "@/frontend/components/presence";
 import { spaceRow } from "./space-list-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { chip } from "@/frontend/components/ui/chip";
@@ -12,7 +16,8 @@ import { chip } from "@/frontend/components/ui/chip";
  * color square, then its name), with its topics by status and a chip for
  * the new files its linked folder brought. What the teacher is doing is
  * the strip, so the tile never says it. The tile opens the space
- * as its tab does; the new-files chip opens its Files page.
+ * as its tab does; the new-files chip opens its Files page. A closed
+ * space's tile fades out in its place, with what it said; a reopened one steps in.
  */
 export function SpaceList({
 	spaces,
@@ -29,14 +34,18 @@ export function SpaceList({
 	newFiles: ReadonlyMap<string, string>;
 	onOpen: (spaceId: string) => void;
 }) {
+	const tiles = useLeavingList(
+		useMemo(() => spaces.map((s) => ({ key: s.id, space: s, progress: progress.get(s.id), failed: errors.has(s.id), newFiles: newFiles.get(s.id) ?? null })), [spaces, progress, errors, newFiles]),
+	);
+	const arrive = useArrivals();
 	return (
 		<Pane data-testid="today-spaces" className="lh-card">
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">Your spaces</h2>
 			</div>
 			<ul className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-[6px]">
-				{spaces.map((s) => (
-					<SpaceTile key={s.id} space={s} progress={progress.get(s.id)} failed={errors.has(s.id)} newFiles={newFiles.get(s.id) ?? null} onOpen={onOpen} />
+				{tiles.map(({ item, leaving }) => (
+					<SpaceTile key={item.key} space={item.space} progress={item.progress} failed={item.failed} newFiles={item.newFiles} leaving={leaving} joined={!!arrive(item.key)} onOpen={onOpen} />
 				))}
 			</ul>
 		</Pane>
@@ -48,19 +57,23 @@ function SpaceTile({
 	progress,
 	failed,
 	newFiles,
+	leaving,
+	joined,
 	onOpen,
 }: {
 	space: SpaceSummary;
 	progress: ProgressPayload | undefined;
 	failed: boolean;
 	newFiles: string | null;
+	leaving: boolean;
+	joined: boolean;
 	onOpen: (spaceId: string) => void;
 }) {
 	const words = spaceRow(progress, failed);
 	const total = words.segments.reduce((sum, seg) => sum + seg.count, 0);
 	return (
 		// The name's link covers the whole tile; the new-files chip sits above it.
-		<li data-testid={`today-space-${s.id}`} className="relative flex min-w-0 flex-col gap-2 bg-tone px-3 py-2.5 text-item transition-colors hover:bg-tone-2">
+		<li data-testid={`today-space-${s.id}`} {...rowMotion(leaving, joined, "relative flex min-w-0 flex-col gap-2 bg-tone px-3 py-2.5 text-item transition-colors hover:bg-tone-2")}>
 			<span className="flex min-h-[26px] min-w-0 items-center gap-2">
 				<span aria-hidden className="size-2.5 shrink-0" style={{ background: spaceColorVar(s.color) }} />
 				<Link to="/space" data-testid="today-space-open" onClick={() => onOpen(s.id)} title={s.name} className="min-w-0 truncate text-ink after:absolute after:inset-0">

@@ -1,10 +1,12 @@
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Link } from "react-router";
 import type { LessonProgress } from "@/shared/core";
+import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { useLeavingList } from "@/frontend/components/presence";
 import { KeyHint, keyShortcutProps } from "@/frontend/components/ui/key-hint";
 import { Pane } from "@/frontend/components/ui/pane";
 import { FINISHED_SHOWN, dayWord, shownRows } from "./lesson-record-model";
-import { FINISHED_LIST, FinishedRow } from "./lesson-rows";
+import { FINISHED_LIST, FinishedRow, lessonItems } from "./lesson-rows";
 import type { LessonActions } from "./use-lesson-actions";
 
 /**
@@ -28,8 +30,12 @@ export const LessonRecord = memo(function LessonRecord({
 	actions: LessonActions;
 }) {
 	const [shownAll, setShownAll] = useState(false);
-	const { rows, showAll } = shownRows(finished ?? [], FINISHED_SHOWN, shownAll);
-	const days = rows.map((l) => (nowMs !== null ? dayWord(l.updatedAt, nowMs) : ""));
+	const { rows, showAll } = useMemo(() => shownRows(finished ?? [], FINISHED_SHOWN, shownAll), [finished, shownAll]);
+	const listed = useLeavingList(useMemo(() => lessonItems(rows), [rows]));
+	const arrive = useArrivals(finished !== null);
+	// Every loaded lesson is seen, so the rows "Show all" uncovers are simply there.
+	for (const l of finished ?? []) arrive(l.chatId);
+	const days = listed.map(({ item }) => (nowMs !== null ? dayWord(item.lesson.updatedAt, nowMs) : ""));
 	return (
 		<Pane data-testid="lesson-record" className="lh-card">
 			<div className="lh-card-head">
@@ -40,10 +46,10 @@ export const LessonRecord = memo(function LessonRecord({
 				</Link>
 			</div>
 			{none && <p className="text-ui text-ink-2">No lessons yet.</p>}
-			{rows.length > 0 && (
+			{listed.length > 0 && (
 				<ul className={`-mx-3 ${FINISHED_LIST}`}>
-					{rows.map((l, i) => (
-						<FinishedRow key={l.chatId} lesson={l} day={i === 0 || days[i] !== days[i - 1] ? days[i]! : null} actions={actions} />
+					{listed.map(({ item, leaving }, i) => (
+						<FinishedRow key={item.key} lesson={item.lesson} day={i === 0 || days[i] !== days[i - 1] ? days[i]! : null} actions={actions} held={{ leaving, joined: !!arrive(item.key) }} />
 					))}
 				</ul>
 			)}

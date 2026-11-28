@@ -13,6 +13,7 @@ import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { updateLine } from "@/frontend/components/teacher/starter-model";
 import { useCloseSpace } from "@/frontend/components/top-bar/use-close-space";
 import { useAnswerGap } from "@/frontend/components/use-open-deadlines";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /** `onUpdate`: the learner handed the teacher the update, so the card leaves for this run of the window. */
 export function GapCard({ gap, onUpdate }: { gap: SpaceGap; onUpdate: () => void }) {
@@ -55,11 +56,7 @@ export function GapCard({ gap, onUpdate }: { gap: SpaceGap; onUpdate: () => void
 			}
 		>
 			<NoticeText>{gap.line}</NoticeText>
-			{error && (
-				<p role="alert" className="text-(length:--text-sm) text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} className="text-(length:--text-sm) text-ans-wrong" />
 		</NoticeCard>
 	);
 }

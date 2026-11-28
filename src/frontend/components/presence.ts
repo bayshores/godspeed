@@ -16,9 +16,11 @@
 import { useEffect, useMemo, useState } from "react";
 
 /** The motion tokens of globals.css, for animations and waits run from code: --lh-dur-fast, --lh-dur,
- *  --lh-dur-page, --lh-ease-out and --lh-ease-in. tests/frontend/motion-times.test.ts holds them equal. */
+ *  --lh-dur-slow, --lh-dur-page, --lh-ease-out and --lh-ease-in. tests/frontend/motion-times.test.ts
+ *  holds them equal. */
 export const FAST_MS = 110;
 export const DUR_MS = 160;
+export const SLOW_MS = 220;
 export const PAGE_MS = 420;
 export const EASE_OUT = "cubic-bezier(0.2, 0, 0, 1)";
 export const EASE_IN = "cubic-bezier(0.4, 0, 1, 1)";
@@ -54,17 +56,32 @@ export function usePresence(open: boolean, exitMs: number = FAST_MS): { mounted:
 /** An item of a list held while it leaves. */
 export type Leaving<T> = { item: T; leaving: boolean };
 
-/** usePresence for a list: what leaves `items` stays `exitMs` more, after them, marked `leaving`,
- *  so its exit plays (.lh-fade with data-state="closed"). With reduced motion it goes at once. */
+/** A leaving item and the kept item it follows (null: the list's start). */
+type Gone<T> = { item: T; after: string | null };
+
+function withGone<T extends { key: string }>(items: readonly T[], gone: readonly Gone<T>[]): Leaving<T>[] {
+	const after = (key: string | null) => gone.filter((g) => g.after === key).map((g) => ({ item: g.item, leaving: true }));
+	return [...after(null), ...items.flatMap((item) => [{ item, leaving: false }, ...after(item.key)])];
+}
+
+/** usePresence for a list: what leaves `items` stays `exitMs` more in its place, marked `leaving`,
+ *  so its exit plays (.lh-fade with data-state="closed"). With reduced motion it goes at once.
+ *  `items` keeps its identity between renders while it holds the same things (useMemo). */
 export function useLeavingList<T extends { key: string }>(items: readonly T[], exitMs: number = FAST_MS): Leaving<T>[] {
 	const [last, setLast] = useState(items);
-	const [gone, setGone] = useState<readonly T[]>([]);
+	const [gone, setGone] = useState<readonly Gone<T>[]>([]);
 	// Read in the render that drops it, so the leaving one is never missing for a frame.
 	if (items !== last) {
 		const kept = new Set(items.map((item) => item.key));
-		const left = prefersReducedMotion() ? [] : last.filter((item) => !kept.has(item.key));
-		const leftKeys = new Set(left.map((item) => item.key));
-		setGone([...gone.filter((item) => !kept.has(item.key) && !leftKeys.has(item.key)), ...left]);
+		const next: Gone<T>[] = [];
+		if (!prefersReducedMotion()) {
+			let after: string | null = null;
+			for (const { item } of withGone(last, gone)) {
+				if (kept.has(item.key)) after = item.key;
+				else next.push({ item, after });
+			}
+		}
+		setGone(next);
 		setLast(items);
 	}
 	useEffect(() => {
@@ -72,5 +89,5 @@ export function useLeavingList<T extends { key: string }>(items: readonly T[], e
 		const timer = setTimeout(() => setGone([]), exitMs);
 		return () => clearTimeout(timer);
 	}, [gone, exitMs]);
-	return useMemo(() => [...items.map((item) => ({ item, leaving: false })), ...gone.map((item) => ({ item, leaving: true }))], [items, gone]);
+	return useMemo(() => withGone(items, gone), [items, gone]);
 }

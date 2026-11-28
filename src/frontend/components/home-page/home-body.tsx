@@ -15,6 +15,7 @@ import { StudiedLine } from "./studied-line";
 import { StudyLine } from "./study-line";
 import { HomeNext } from "./home-next";
 import { topicsToWorkOn, unfinishedAcross } from "./home-next-model";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 interface HomeBodyProps {
 	/** Null before the first minute tick. */
@@ -102,11 +103,7 @@ export function HomeBody(p: HomeBodyProps) {
 					{/* Wide, the spaces take a column beside the card and the week and end level with them; the blocks under run the page's width. */}
 					<div className={cn("grid gap-(--lh-gap) @[1100px]/page:grid-cols-[minmax(0,1fr)_340px]", waited && "lh-set")}>
 						<div className="flex min-w-0 flex-col gap-(--lh-gap)">
-							{p.lessonError && (
-								<p role="alert" className="text-ui text-ans-wrong">
-									{p.lessonError}
-								</p>
-							)}
+							<ErrorLine error={p.lessonError} className="text-ui text-ans-wrong" />
 							{/* The card glides to the height of its other form, or of another deadline picked, so the page below moves once. */}
 							{(gap || card) && (
 								<div ref={cardGlide}>

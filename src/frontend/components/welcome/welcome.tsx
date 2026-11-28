@@ -38,7 +38,7 @@ export function Welcome({ initialOpen, whatsNewSince }: { initialOpen: boolean; 
 	const close = useCallback(() => {
 		setOpen(false);
 		// "What's new" and the godspeed folder notice never come on the same launch.
-		setTimeout(() => (whatsNewSince ? openWhatsNew(whatsNewSince) : openFolderNotice()), LEAVE_MS);
+		setTimeout(() => (whatsNewSince ? openWhatsNew(whatsNewSince) : openFolderNotice()), prefersReducedMotion() ? 0 : LEAVE_MS);
 	}, [whatsNewSince]);
 	if (!presence.mounted) return null;
 	return <WelcomeScreen leaving={!open} onClose={close} upgraded={lookUpgraded(whatsNewSince)} />;
@@ -49,7 +49,8 @@ function WelcomeScreen({ leaving, onClose, upgraded }: { leaving: boolean; onClo
 	const { deadlines } = useOpenDeadlines();
 	const [played, setPlayed] = useState(false);
 	const [skipped, setSkipped] = useState(false);
-	const ready = played || skipped;
+	// With reduced motion nothing plays, so "Let's go" takes the first press.
+	const ready = played || skipped || prefersReducedMotion();
 	const play = useSound();
 
 	useEffect(() => {

@@ -6,6 +6,7 @@ import { mockHref, mockLine, openMock, openMockLabel } from "@/frontend/componen
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { MockBox } from "./mock-box";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /** As wide as its words, at the sheet's right, as every key is. */
 const KEY = "lh-btn max-w-full self-end";
@@ -76,7 +77,7 @@ export function PathMocks({
 				)
 			)}
 			{failed && (
-				<div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2">
+				<div role="alert" className="lh-rise flex flex-wrap items-center gap-x-3 gap-y-2">
 					<p className="min-w-0 flex-1 text-ui text-ink">Couldn&apos;t load the mocks.</p>
 					<button type="button" data-testid="deadline-mocks-retry" onClick={onRetry} className="lh-btn">
 						Try again
@@ -90,11 +91,7 @@ export function PathMocks({
 					))}
 				</ul>
 			)}
-			{error && (
-				<p role="alert" data-testid="deadline-mocks-error" className="text-ui text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} data-testid="deadline-mocks-error" className="text-ui text-ans-wrong" />
 			<MockBox open={boxOpen} anchorRef={takeRef} onClose={() => setBoxOpen(false)} onWrite={onWrite} />
 		</div>
 	);

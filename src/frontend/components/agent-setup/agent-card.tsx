@@ -26,6 +26,7 @@ import { cn } from "@/frontend/lib/utils";
 import { cantRun, cardRows, compact, ready, type CardRow, type RowKey } from "./agent-card-model";
 import { cancelLogin, sendLoginCode, startLogin, startUpdate } from "./agent-setup-api";
 import { useAgentSetup, usePickedAgent } from "./agent-setup-context";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 const AGENTS = (["claude", "codex"] as const).map((value) => ({ value, label: AGENT_LABEL[value] }));
 
@@ -51,11 +52,7 @@ export function AgentCard({ foot }: { foot?: ReactNode }) {
 				onChange={(next) => void action.run(() => pick(next))}
 			/>
 			<Rows action={action} />
-			{action.error && (
-				<p role="alert" className="lh-rise text-ui text-ans-wrong">
-					{action.error}
-				</p>
-			)}
+			<ErrorLine error={action.error} className="text-ui text-ans-wrong" />
 			{ready(health) && <ModelRow agent={agent} arrives={!readyAtOpen} />}
 			{foot}
 		</div>
@@ -91,11 +88,7 @@ export function AgentCompact({ className }: { className?: string }) {
 				<RowEnd row={said.row} action={action} main />
 			</div>
 			<RowUnder row={said.row} action={action} />
-			{action.error && (
-				<p role="alert" className="text-ui text-ans-wrong">
-					{action.error}
-				</p>
-			)}
+			<ErrorLine error={action.error} className="text-ui text-ans-wrong" />
 		</div>
 	);
 }
@@ -323,11 +316,7 @@ function ModelRow({ agent, arrives }: { agent: FolderAgent; arrives: boolean }) 
 				</select>
 				<PixelIcon name="chevron" className={SELECT_ARROW} />
 			</span>
-			{action.error && (
-				<p role="alert" className="w-full text-ui text-ans-wrong">
-					{action.error}
-				</p>
-			)}
+			<ErrorLine error={action.error} className="w-full text-ui text-ans-wrong" />
 		</div>
 	);
 }

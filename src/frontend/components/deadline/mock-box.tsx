@@ -6,6 +6,7 @@ import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { Segmented } from "@/frontend/components/ui/segmented";
 import { MINUTES, QUESTIONS, clampTo, type StepRange } from "./mocks-model";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 const LIMITS = [
 	{ value: "none", label: "No time limit" },
@@ -63,11 +64,7 @@ function MockBoxForm({ onWrite }: { onWrite: (questions: number, minutes: number
 				<Segmented label="Time" testid="mock-box-time" options={LIMITS} value={limited ? "limit" : "none"} disabled={busy} onChange={(v) => setLimited(v === "limit")} />
 			</div>
 			{limited && <Stepper label="Minutes" range={MINUTES} value={minutes} disabled={busy} testid="mock-box-minutes" onChange={setMinutes} />}
-			{error && (
-				<p role="alert" data-testid="mock-box-error" className="text-ui text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} data-testid="mock-box-error" className="text-ui text-ans-wrong" />
 			<Key data-testid="mock-box-write" busy={busy} onClick={() => void write()} className="lh-btn-main self-end">
 				Write the mock
 			</Key>

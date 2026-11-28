@@ -10,7 +10,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LoadingBox } from "@/frontend/components/loading";
+import { LoadingBox, useWaited } from "@/frontend/components/loading";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
@@ -31,6 +31,8 @@ import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialo
 import { FIELD } from "@/frontend/components/ui/field";
 import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
+import { ErrorLine } from "@/frontend/components/error-line";
+import { cn } from "@/frontend/lib/utils";
 
 export type SpaceDialogMode = { kind: "create" } | { kind: "edit"; spaceId: string };
 
@@ -59,6 +61,8 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 	const loadFailed = mode.kind === "edit" && !record && recordFailed;
 	// Edit space waits for the space before showing its fields.
 	const loading = mode.kind === "edit" && !record && !recordFailed;
+	// The fields step in when they replace the wait for the space.
+	const waited = useWaited(!loading);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
 	const [signature, setSignature] = useState<{ kind: SignatureKind; value: string }>({ kind: "math", value: "" });
@@ -168,12 +172,8 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 	};
 
 	const shownError = error ?? closer.error;
-	const errorLine = shownError && (
-		// Scrolled to on each new error, so it is never out of sight after Save.
-		<p key={shownError} ref={scrollIntoSight} role="alert" data-testid="space-dialog-error" className="text-ui whitespace-pre-wrap text-ans-wrong">
-			{shownError}
-		</p>
-	);
+	// Scrolled to on each new error, so it is never out of sight after Save.
+	const errorLine = <ErrorLine error={shownError} ref={scrollIntoSight} data-testid="space-dialog-error" className="text-ui whitespace-pre-wrap text-ans-wrong" />;
 
 	if (asking === "delete" && record) {
 		return (
@@ -250,7 +250,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 				// As tall as the fields, so the dialog doesn't jump when the space arrives.
 				<LoadingBox data-testid="space-dialog-loading" className="min-h-[420px]" />
 			) : (
-				<>
+				<div className={cn("contents", waited && "lh-set")}>
 					<label className="flex flex-col gap-1.5">
 						<span className={LABEL_TEXT}>Name</span>
 						<input
@@ -275,19 +275,19 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 							className={`${FIELD} h-auto min-h-[84px] resize-y py-[9px] leading-ui`}
 						/>
 					</label>
-				</>
-			)}
-			{editing && (
-				<>
-					<SpaceIconField icon={icon} disabled={busy} onChange={setIcon} />
-					<SpaceColorField color={color} disabled={busy} onChange={setColor} />
-					<SpaceSignatureField kind={signature.kind} value={signature.value} disabled={busy} onChange={(kind, value) => setSignature({ kind, value })} />
-					<div className="flex flex-col gap-1.5">
-						<span className={LABEL_TEXT}>Rules for this space</span>
-						<span className="text-ui text-ink-2">Added to your rules in every {editing.name} lesson</span>
-						<RuleChips rules={rules} onChange={setRules} testid="space-rules" saved={savedTimes(savedRules, { spaceId: editing.id })} teacherName={teacherName} />
-					</div>
-				</>
+					{editing && (
+						<>
+							<SpaceIconField icon={icon} disabled={busy} onChange={setIcon} />
+							<SpaceColorField color={color} disabled={busy} onChange={setColor} />
+							<SpaceSignatureField kind={signature.kind} value={signature.value} disabled={busy} onChange={(kind, value) => setSignature({ kind, value })} />
+							<div className="flex flex-col gap-1.5">
+								<span className={LABEL_TEXT}>Rules for this space</span>
+								<span className="text-ui text-ink-2">Added to your rules in every {editing.name} lesson</span>
+								<RuleChips rules={rules} onChange={setRules} testid="space-rules" saved={savedTimes(savedRules, { spaceId: editing.id })} teacherName={teacherName} />
+							</div>
+						</>
+					)}
+				</div>
 			)}
 			{errorLine}
 		</DialogSheet>

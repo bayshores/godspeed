@@ -15,6 +15,7 @@ import type { Pointed } from "./canvas-model";
 import { sheetBox } from "./sheet-box-model";
 import { sheetFilePath } from "./use-cheat-sheet";
 import { TeacherThread, type ThreadLine } from "@/frontend/components/teacher/teacher-thread";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /** "the back of version 3", "page 1 of version 2". */
 export function pointedLabel(region: SheetRegion, pages: number): string {
@@ -110,11 +111,7 @@ export function SheetChat({
 	const pagesOf = (n: number) => view.sheet.versions.find((v) => v.n === n)?.pages.length ?? 1;
 	const notes = (
 		<>
-			{(failed || view.newer) && (
-				<p role="alert" className="text-ui text-ans-wrong">
-					{view.newer ? "A newer godspeed saved this cheat sheet. Update godspeed to change it." : failed}
-				</p>
-			)}
+			<ErrorLine error={view.newer ? "A newer godspeed saved this cheat sheet. Update godspeed to change it." : failed} className="text-ui text-ans-wrong" />
 			{pointed && <PointedChip pointed={pointed} pages={pagesOf(pointed.region.n)} onClear={onClearPointed} />}
 		</>
 	);

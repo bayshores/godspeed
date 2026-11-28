@@ -9,6 +9,7 @@ import { useFold } from "@/frontend/components/use-fold";
 import { cn } from "@/frontend/lib/utils";
 import { MockBar } from "./mock-bar";
 import { RESULT_WORD, pauseLine, spentText, usedLine } from "./mock-model";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /**
  * A GRADED MOCK: each question with how it went, the teacher's feedback
@@ -49,11 +50,7 @@ export function MockResults({ view }: { view: MockView }) {
 								{paused}
 							</p>
 						)}
-						{lesson.error && (
-							<p role="alert" className="pt-3 text-ui text-ans-wrong">
-								{lesson.error}
-							</p>
-						)}
+						<ErrorLine error={lesson.error} className="pt-3 text-ui text-ans-wrong" />
 					</Pane>
 				</div>
 			</div>

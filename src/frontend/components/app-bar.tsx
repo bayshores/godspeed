@@ -21,6 +21,7 @@ import { AppMenu } from "@/frontend/components/top-bar/app-menu";
 import { BarZoom } from "@/frontend/components/top-bar/bar-zoom";
 import { SpaceTabs } from "@/frontend/components/top-bar/space-tabs";
 import { useBarHosts } from "@/frontend/components/top-bar/bar-slots";
+import { PageWait } from "@/frontend/components/top-bar/page-wait";
 import { clockText, dateText, selectedTab } from "@/frontend/components/top-bar/top-bar-model";
 
 export function AppBar() {
@@ -53,10 +54,12 @@ function BarDate() {
 	);
 }
 
+/** The clock, with the wait for a page being read laid in its left padding, so nothing moves when it shows. */
 function Clock() {
 	const minute = useMinute();
 	return (
-		<span data-testid="bar-clock" className="font-count order-1 flex shrink-0 items-center pr-5 pl-3 text-ui tabular-nums max-[1099px]:pr-3">
+		<span data-testid="bar-clock" className="font-count relative order-1 flex shrink-0 items-center pr-5 pl-3 text-ui tabular-nums max-[1099px]:pr-3">
+			<PageWait />
 			{minute === null ? "" : clockText(new Date(minute))}
 		</span>
 	);

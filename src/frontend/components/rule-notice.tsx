@@ -14,6 +14,7 @@ import { useServerEvent } from "@/frontend/components/server-events";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useHeld } from "@/frontend/components/use-held";
 import { cn } from "@/frontend/lib/utils";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 const SHOW_MS = 12_000;
 const AFTER_UNDO_MS = 3_000;
@@ -74,11 +75,7 @@ function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 					<NoticeText>{saved.label}</NoticeText>
 				</>
 			)}
-			{mode.kind === "error" && (
-				<p role="alert" className="text-(length:--text-sm) text-ans-wrong">
-					{mode.message}
-				</p>
-			)}
+			<ErrorLine error={mode.kind === "error" ? mode.message : null} className="text-(length:--text-sm) text-ans-wrong" />
 		</NoticeCard>
 	);
 }

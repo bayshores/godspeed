@@ -19,13 +19,13 @@ describe("space surfaces", () => {
 	it("a file row says Study or Info, shows Failed + Retry and its studied facts, and always has the More menu", () => {
 		const base = { id: "f_1", name: "notes.md", path: "f_1/notes.md", kind: "study" as const, contentFp: "", addedAt: "" };
 		const actions = { onKind: () => {}, onRetry: () => {}, onRemove: () => {} };
-		const copied = renderToStaticMarkup(<FileRow file={{ ...base, origin: "copied", status: "failed", error: "boom" }} coverage={undefined} work={undefined} pick="free" onPick={() => {}} boxes={false} teacher="Ada" actions={actions} />);
+		const copied = renderToStaticMarkup(<FileRow file={{ ...base, origin: "copied", status: "failed", error: "boom" }} coverage={undefined} work={undefined} pick="free" onPick={() => {}} boxes={false} teacher="Ada" leaving={false} joined={false} actions={actions} />);
 		assert.ok(copied.includes("Failed"));
 		assert.ok(copied.includes('data-testid="space-file-retry-f_1"'));
 		assert.match(copied, /data-testid="space-file-kind-f_1"[^>]*>Study</);
 		assert.ok(!copied.includes("draggable"), "rows are not dragged between kinds any more");
 		const linked = renderToStaticMarkup(
-			<FileRow file={{ ...base, origin: "linked", status: "ready" }} coverage={{ fileId: "f_1", name: "notes.md", displayName: "notes", facts: 31, inLessons: 12, share: 12 / 31 }} work={undefined} pick="free" onPick={() => {}} boxes={false} teacher="Ada" actions={actions} />,
+			<FileRow file={{ ...base, origin: "linked", status: "ready" }} coverage={{ fileId: "f_1", name: "notes.md", displayName: "notes", facts: 31, inLessons: 12, share: 12 / 31 }} work={undefined} pick="free" onPick={() => {}} boxes={false} teacher="Ada" leaving={false} joined={false} actions={actions} />,
 		);
 		assert.ok(!linked.includes("Failed"));
 		assert.match(linked, /12 of 31 facts studied/);
@@ -36,7 +36,7 @@ describe("space surfaces", () => {
 	const row = (pick: RowPick, work?: FileWork, boxes = false) =>
 		renderToStaticMarkup(
 			<MemoryRouter>
-				<FileRow file={midterm} coverage={undefined} work={work} pick={pick} onPick={() => {}} boxes={boxes} teacher="Ada" actions={{ onKind: () => {}, onRetry: () => {}, onRemove: () => {} }} />
+				<FileRow file={midterm} coverage={undefined} work={work} pick={pick} onPick={() => {}} boxes={boxes} teacher="Ada" leaving={false} joined={false} actions={{ onKind: () => {}, onRetry: () => {}, onRemove: () => {} }} />
 			</MemoryRouter>,
 		);
 
@@ -54,7 +54,7 @@ describe("space surfaces", () => {
 		assert.match(picked, /aria-pressed="true"/);
 		assert.ok(picked.includes('data-picked="true"'));
 		assert.match(picked, />PDF</, "the tile keeps the file's type");
-		assert.match(picked, /<span aria-hidden="true" class="[^"]*bg-tint[^"]*"><svg/, "the tick box is ticked");
+		assert.match(picked, /<span aria-hidden="true" class="[^"]*bg-tint[^"]*"><span class="[^"]*"><svg/, "the tick box is ticked");
 		assert.match(row("free", undefined, true), /<span aria-hidden="true" class="[^"]*border-ink[^"]*"><\/span>/, "an unpicked row's box is empty");
 		const held = row("held");
 		assert.match(held, /data-testid="space-file-pick-f_mid" aria-pressed="false" aria-disabled="true"/, "past the limit a row no longer picks");
@@ -73,7 +73,7 @@ describe("space surfaces", () => {
 		assert.match(alone, /space-file-status-f_mid[^]*5 of 12 problems done[^]*<\/button>/, "and sit inside the button");
 		const failed = renderToStaticMarkup(
 			<MemoryRouter>
-				<FileRow file={{ ...midterm, status: "failed" }} coverage={undefined} work={{ fileId: "f_mid", problems: { done: 1, total: 2 } }} pick="free" onPick={() => {}} boxes={false} teacher="Ada" actions={{ onKind: () => {}, onRetry: () => {}, onRemove: () => {} }} />
+				<FileRow file={{ ...midterm, status: "failed" }} coverage={undefined} work={{ fileId: "f_mid", problems: { done: 1, total: 2 } }} pick="free" onPick={() => {}} boxes={false} teacher="Ada" leaving={false} joined={false} actions={{ onKind: () => {}, onRetry: () => {}, onRemove: () => {} }} />
 			</MemoryRouter>,
 		);
 		assert.match(failed, /<\/button>[^]*space-file-blocks-f_mid[^]*>Failed<[^]*space-file-retry-f_mid/, "a failed file keeps Failed and Retry, after the blocks, beside the button");

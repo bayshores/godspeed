@@ -44,19 +44,14 @@ export const APP_ICONS: ReadonlyArray<{ name: string; icon: AppIcon | null }> = 
 	{ name: "Classic", icon: "classic" },
 ];
 
-/** The app's status colors (right, wrong, delete, the confidence and topic
- *  ramps) before a palette adjusts them. Every palette keeps each one
+/** The app's status colors (right, wrong, delete, the topic ramp) before a
+ *  palette adjusts them. Every palette keeps each one
  *  readable as text on its background and panels, so a fill of one carries
  *  text-background. */
 const STATUS_COLORS: Record<string, string> = {
 	"--lh-ans-right": "#6f9a7e",
 	"--lh-ans-wrong": "#b3665c",
 	"--destructive": "#b3665c",
-	"--lh-conf-1": "#b3665c",
-	"--lh-conf-2": "#c0875a",
-	"--lh-conf-3": "#c2aa5c",
-	"--lh-conf-4": "#8e9467",
-	"--lh-conf-5": "#6f9a7e",
 	"--lh-ramp-1": "#b3665c",
 	"--lh-ramp-2": "#c0875a",
 	"--lh-ramp-3": "#c2aa5c",
@@ -146,8 +141,6 @@ export function derivedPalette(background: string): Record<string, string> {
 		"--card": s.card,
 		"--lh-sheet": s.sheet,
 		"--lh-sheet-lip": s.sheetLip,
-		"--popover": s.card,
-		"--secondary": s.card,
 		"--muted": s.card,
 		"--accent": s.accent,
 		"--border": s.border,
@@ -158,8 +151,6 @@ export function derivedPalette(background: string): Record<string, string> {
 		"--lh-highlight": s.highlight,
 		"--foreground": s.fg,
 		"--card-foreground": s.fg,
-		"--popover-foreground": s.fg,
-		"--secondary-foreground": s.fg,
 		"--primary": s.fg,
 		"--primary-foreground": background,
 		"--muted-foreground": s.muted,

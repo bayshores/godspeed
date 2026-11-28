@@ -14,6 +14,7 @@ import { jsonInit, send } from "@/frontend/lib/api";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
+import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { LessonCard } from "@/frontend/components/overview/lesson-card";
 import { LessonMenuLayer } from "@/frontend/components/overview/lesson-menu-layer";
 import { lessonsFor } from "@/frontend/components/overview/lesson-record-model";
@@ -100,6 +101,8 @@ export function DeadlinePage({
 	const plan = useMemo(() => (current && deadline ? planDays(current.today, deadline.date, deadline.topics) : []), [current, deadline]);
 	const lessonActions = useLessonActions(current?.lessons ?? null, spaceId);
 	const lessons = useMemo(() => lessonsFor(lessonActions.shown ?? [], deadlineId), [lessonActions.shown, deadlineId]);
+	// With one lesson left the path's key opens it, so the card goes, holding its lessons while it fades.
+	const lessonsCard = useLastWhileClosing(lessons.length > 1 ? lessons : null);
 
 	const { studyDeadline, workOnHomework } = lesson;
 	const assignmentId = saved?.assignmentFileId;
@@ -179,7 +182,7 @@ export function DeadlinePage({
 									/>
 								)
 							}
-							lessons={lessons.length > 1 && <LessonCard title="Lessons" name="deadline" lessons={lessons} actions={lessonActions} />}
+							lessons={lessonsCard.mounted && lessonsCard.shown && <LessonCard title="Lessons" name="deadline" lessons={lessonsCard.shown} actions={lessonActions} leaving={lessonsCard.state === "closed"} />}
 							homework={
 								hasProblems(deadline.kind) && (
 									<HomeworkCard

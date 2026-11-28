@@ -4,8 +4,11 @@
  * folder chooser itself and installs from the folder.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { LoadingLine } from "@/frontend/components/loading";
+import { rowMotion } from "@/frontend/components/motion";
+import { useLeavingList } from "@/frontend/components/presence";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -14,6 +17,7 @@ import { changePlugin, fetchListed, fetchPlugins, installListed, installPlugin, 
 import { cn } from "@/frontend/lib/utils";
 import { addAction, addable, updateFor } from "./plugins-model.ts";
 import { AddSheet, BrokenSheet, PluginSheet } from "./plugins-sheet.tsx";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 const ROW = "lh-press flex items-center gap-2 px-3.5 py-3 text-left text-ui text-ink";
 
@@ -30,6 +34,10 @@ export function PluginsSection() {
 	const [showAdd, setShowAdd] = useState(false);
 	const [running, setRunning] = useState<Place | null>(null);
 	const [problem, setProblem] = useState<{ at: Place; text: string } | null>(null);
+
+	// A removed plugin's row fades out in its place, an added one steps in.
+	const heldPlugins = useLeavingList(useMemo(() => (plugins ?? []).map((plugin) => ({ key: plugin.id, plugin })), [plugins]));
+	const arrive = useArrivals(!!plugins);
 
 	const load = useCallback(() => fetchPlugins().then(setPlugins), []);
 	// Both first, so a sheet shows once with its Update key, not before it.
@@ -73,7 +81,7 @@ export function PluginsSection() {
 			return folder ? added(await installPlugin(folder)) : null;
 		});
 
-	if (!plugins) return plugins === null ? <p className="text-ui text-ink-2">Plugins could not be loaded.</p> : <LoadingLine className="text-ui" />;
+	if (!plugins) return plugins === null ? <p className="lh-rise text-ui text-ink-2">Plugins could not be loaded.</p> : <LoadingLine className="text-ui" />;
 	const rows = addable(listed, plugins);
 	const addDoes = addAction(rows.length, !!pickFolder);
 	const sheetOpen = showAdd && rows.length > 0;
@@ -84,7 +92,7 @@ export function PluginsSection() {
 		<>
 			<div className="flex flex-col gap-(--lh-gap) @[760px]/page:flex-row @[760px]/page:items-start">
 				<Pane aria-label="Plugins" data-testid="plugins-list" className="flex shrink-0 flex-col p-2 @[760px]/page:w-[260px]">
-					{plugins.map((p) => {
+					{heldPlugins.map(({ item: { plugin: p }, leaving }) => {
 						const on = !sheetOpen && p === picked;
 						const off = "manifest" in p && !p.enabled;
 						return (
@@ -98,7 +106,7 @@ export function PluginsSection() {
 									setShowAdd(false);
 									setPick(p.id);
 								}}
-								className={cn(ROW, on ? "bg-highlight font-medium" : "hover:bg-tone")}
+								{...rowMotion(leaving, !!arrive(p.id), cn(ROW, on ? "bg-highlight font-medium" : "hover:bg-tone"))}
 							>
 								<span className="min-w-0 flex-1 truncate">{"manifest" in p ? p.manifest.name : p.id}</span>
 								{/* Picked, the sheet's switch says it. */}
@@ -106,7 +114,7 @@ export function PluginsSection() {
 							</button>
 						);
 					})}
-					{plugins.length > 0 && <div className="h-4" aria-hidden />}
+					{heldPlugins.length > 0 && <div className="h-4" aria-hidden />}
 					{addDoes && (
 						<button
 							type="button"
@@ -125,11 +133,7 @@ export function PluginsSection() {
 							Add
 						</button>
 					)}
-					{!sheetOpen && problem?.at === "add" && (
-						<p role="alert" data-testid="plugins-add-error" className="px-3.5 pt-2 text-ui whitespace-pre-wrap text-ans-wrong">
-							{problem.text}
-						</p>
-					)}
+					<ErrorLine error={!sheetOpen && problem?.at === "add" ? problem.text : null} data-testid="plugins-add-error" className="px-3.5 pt-2 text-ui whitespace-pre-wrap text-ans-wrong" />
 				</Pane>
 				<div className="min-w-0 flex-1">
 					{sheetOpen ? (

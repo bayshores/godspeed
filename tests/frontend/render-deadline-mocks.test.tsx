@@ -22,6 +22,11 @@ Object.assign(globalThis, {
 	Node: dom.window.Node,
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
+	// A pick (Segmented) follows its fill's box.
+	ResizeObserver: class {
+		observe() {}
+		disconnect() {}
+	},
 	requestAnimationFrame: (callback: FrameRequestCallback) => setTimeout(() => callback(performance.now()), 0),
 	cancelAnimationFrame: (id: number) => clearTimeout(id),
 	getComputedStyle: () => ({ getPropertyValue: () => "" }),

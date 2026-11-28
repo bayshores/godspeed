@@ -24,6 +24,11 @@ Object.assign(globalThis, {
 	Node: dom.window.Node,
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
+	// A pick (Segmented) follows its fill's box.
+	ResizeObserver: class {
+		observe() {}
+		disconnect() {}
+	},
 });
 
 const { createRoot } = await import("react-dom/client");

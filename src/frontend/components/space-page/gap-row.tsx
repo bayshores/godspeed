@@ -19,7 +19,7 @@ export function GapRow({ gap, color, nowMs, onAdd }: { gap: RhythmGap; color: Sp
 			name={gap.label}
 			line={
 				answering.error ? (
-					<span role="alert" className="text-ans-wrong">
+					<span role="alert" className="lh-rise text-ans-wrong">
 						{answering.error}
 					</span>
 				) : (

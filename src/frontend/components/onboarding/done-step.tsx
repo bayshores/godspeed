@@ -6,6 +6,7 @@ import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { MAIN_KEY } from "@/frontend/components/ui/big-key";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useReturn } from "./use-return";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /** The last screen: "You’re all set." once the agent can teach, "You’re
  *  almost set." before, with what stops the agent and the key that fixes it
@@ -40,11 +41,7 @@ export function DoneStep({
 				) : (
 					<AgentCompact className="w-full max-w-[460px] text-left" />
 				)}
-				{failed && (
-					<p role="alert" data-testid="onboarding-save-error" className="text-ui text-ans-wrong">
-						Couldn&apos;t save your setup.
-					</p>
-				)}
+				<ErrorLine error={failed ? "Couldn't save your setup." : null} data-testid="onboarding-save-error" className="text-ui text-ans-wrong" />
 			</div>
 			<button type="button" data-testid="onboarding-finish" disabled={disabled} className={`lh-btn ${MAIN_KEY}`} onClick={onStart}>
 				{failed ? "Try again" : "Start learning"}

@@ -100,6 +100,18 @@ describe("the lit marker", () => {
 		assert.equal(marker().hasAttribute("data-slide"), true);
 	});
 
+	it("is placed in the row's own pixels while a box around the row scales it", async () => {
+		// The pinch magnifier at 2x: the row is laid out 300 wide and shows 600 wide.
+		const view = dom.window as unknown as { getComputedStyle?: (el: Element) => { width: string } };
+		view.getComputedStyle = (el) => ({ width: el.matches("nav") ? "300px" : "" });
+		try {
+			await show(<Row lit="space" />);
+			assert.equal(box(), "40px 0px 60px 20px");
+		} finally {
+			delete view.getComputedStyle;
+		}
+	});
+
 	it("is hidden while nothing is lit, and does not slide in from nowhere", async () => {
 		await show(<Row lit={null} />);
 		assert.equal(marker().hidden, true);

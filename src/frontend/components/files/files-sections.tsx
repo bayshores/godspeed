@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { dayLabel, type FileCoverage, type FileGroup, type FileWork } from "@/shared/core";
+import { dayLabel, type FileCoverage, type FileGroup, type FileWork, type SpaceFile } from "@/shared/core";
+import { rowMotion } from "@/frontend/components/motion";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useFold } from "@/frontend/components/use-fold";
@@ -35,6 +36,22 @@ export function SectionToggle({
 	);
 }
 
+/** The files that are leaving (held while they fade out) and those that joined after the page drew. */
+interface FilesMotion {
+	leaving: ReadonlySet<string>;
+	joined: ReadonlySet<string>;
+}
+
+/** A part of the list (a group, an entry, a row) leaves or joins when all its files do, unless the
+ *  part that holds it (the files of `outer`) moves with them, so one fade plays, not two. */
+function partMoves(files: readonly SpaceFile[], motion: FilesMotion, outer?: readonly SpaceFile[]): { leaving: boolean; joined: boolean } {
+	const all = (set: ReadonlySet<string>, of: readonly SpaceFile[]) => of.every((f) => set.has(f.id));
+	return {
+		leaving: all(motion.leaving, files) && !(outer && all(motion.leaving, outer)),
+		joined: all(motion.joined, files) && !(outer && all(motion.joined, outer)),
+	};
+}
+
 /**
  * ONE GROUP (Files page): a series found in the file names ("Lecture",
  * "Week, Discussion") or Other. Its header folds it; each entry shows its
@@ -53,6 +70,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 	disabled,
 	teacher,
 	actions,
+	motion,
 }: {
 	group: FileGroup;
 	collapsed: boolean;
@@ -66,12 +84,16 @@ export const FileGroupSection = memo(function FileGroupSection({
 	disabled?: boolean;
 	teacher: string;
 	actions: FileRowActions;
+	motion: FilesMotion;
 }) {
 	const fold = useFold(!collapsed);
-	const rows = (files: FileGroup["items"][number]["files"]) =>
+	const groupFiles = group.items.flatMap((i) => i.files);
+	const whole = partMoves(groupFiles, motion);
+	const rows = (files: FileGroup["items"][number]["files"], outer: readonly SpaceFile[]) =>
 		entryRows(files).map(({ file, source }) => (
 			<FileRow
 				key={file.id}
+				{...partMoves(source ? [file, source] : [file], motion, outer)}
 				file={file}
 				source={source}
 				coverage={coverage.get(file.id)}
@@ -85,7 +107,7 @@ export const FileGroupSection = memo(function FileGroupSection({
 			/>
 		));
 	return (
-		<Pane data-testid={`files-group-${group.key}`} aria-label={group.label} className="lh-card gap-1.5">
+		<Pane data-testid={`files-group-${group.key}`} aria-label={group.label} {...rowMotion(whole.leaving, whole.joined, "lh-card gap-1.5")}>
 			<SectionToggle
 				label={group.label}
 				note={`${group.count} ${group.count === 1 ? "file" : "files"}`}
@@ -98,21 +120,21 @@ export const FileGroupSection = memo(function FileGroupSection({
 				<div className="lh-collapse" data-state={fold.state}>
 					<div>
 						<ul className="flex flex-col">
-							{group.items.map((item) =>
-								item.label === null ? (
-									rows(item.files)
-								) : (
-									<li key={item.key} data-testid={`files-item-${item.key}`} className="flex items-start gap-3 py-[5px]">
+							{group.items.map((item) => {
+								if (item.label === null) return rows(item.files, groupFiles);
+								const entry = partMoves(item.files, motion, groupFiles);
+								return (
+									<li key={item.key} data-testid={`files-item-${item.key}`} {...rowMotion(entry.leaving, entry.joined, "flex items-start gap-3 py-[5px]")}>
 										<div className="flex w-[110px] shrink-0 flex-col pt-1.5">
 											<span title={item.label} className="truncate text-ui font-medium text-ink">
 												{item.label}
 											</span>
 											{item.date && <span className="font-count text-sm text-ink-2">{dayLabel(item.date)}</span>}
 										</div>
-										<ul className="flex min-w-0 flex-1 flex-col">{rows(item.files)}</ul>
+										<ul className="flex min-w-0 flex-1 flex-col">{rows(item.files, item.files)}</ul>
 									</li>
-								),
-							)}
+								);
+							})}
 						</ul>
 					</div>
 				</div>

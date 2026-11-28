@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { WorkApproval } from "@/shared/core";
+import { ErrorLine } from "@/frontend/components/error-line";
 import { DUR_MS, useLeavingList } from "@/frontend/components/presence";
 import { useFold } from "@/frontend/components/use-fold";
 import { useGuardedAction } from "@/frontend/components/use-guarded-action";
@@ -67,11 +68,7 @@ function ApprovalCard({ approval, leaving, live, answer: send }: { approval: Wor
 						</p>
 					)}
 					<div className="flex flex-wrap items-center justify-end gap-3">
-						{answer.error && (
-							<p role="alert" className="min-w-0 flex-1 text-ui leading-5 text-ans-wrong">
-								{answer.error}
-							</p>
-						)}
+						<ErrorLine error={answer.error} className="min-w-0 flex-1 text-ui leading-5 text-ans-wrong" />
 						<button type="button" data-testid="approval-deny" disabled={answer.busy} onClick={() => reply(false)} className="lh-btn lh-btn-small lh-btn-quiet">
 							Deny
 						</button>

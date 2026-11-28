@@ -1,5 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { riseMotion, rowMotion } from "@/frontend/components/motion";
+import { useLeavingList } from "@/frontend/components/presence";
+import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { useArrivals } from "./arrivals";
 import { readBase64 } from "@/frontend/lib/read-base64";
 import { cn } from "@/frontend/lib/utils";
 import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS, attachmentType, isPdfType, pickAttachments, type ChatAttachment } from "@/shared/core";
@@ -125,28 +129,36 @@ export function attachmentInputProps(draft: AttachmentDraft) {
 	};
 }
 
-/** The waiting files above the text, each with "Remove", and the last refusal. */
+/** The waiting files above the text, each with "Remove", and the last refusal. A file added steps in,
+ *  one removed fades out in its place, and the tray goes once what it held has. */
 export function AttachmentTray({ draft }: { draft: AttachmentDraft }) {
-	if (draft.files.length === 0 && !draft.error) return null;
+	const chips = useLeavingList(useMemo(() => draft.files.map((f) => ({ key: f.id, file: f })), [draft.files]));
+	const arrive = useArrivals();
+	const refusal = useLastWhileClosing(draft.error || null);
+	if (chips.length === 0 && !refusal.mounted) return null;
 	return (
 		<div data-testid="attachment-tray" className="flex shrink-0 flex-col gap-2 pt-3">
-			{draft.files.length > 0 && (
+			{chips.length > 0 && (
 				<div className="flex flex-wrap gap-2">
-					{draft.files.map((f) => (
-						<DraftChip key={f.id} file={f.attachment} onRemove={() => draft.remove(f.id)} />
+					{chips.map(({ item: { file: f }, leaving }) => (
+						<DraftChip key={f.id} file={f.attachment} leaving={leaving} joined={!!arrive(f.id)} onRemove={() => draft.remove(f.id)} />
 					))}
 				</div>
 			)}
-			{draft.error && <p data-testid="attachment-error" className="text-ui text-ink-2">{draft.error}</p>}
+			{refusal.mounted && (
+				<p key={refusal.shown} data-testid="attachment-error" {...riseMotion(refusal.state, "text-ui text-ink-2")}>
+					{refusal.shown}
+				</p>
+			)}
 		</div>
 	);
 }
 
 /** One waiting file: a picture's small preview, the file's name, "Remove". */
-function DraftChip({ file, onRemove }: { file: ChatAttachment; onRemove: () => void }) {
+function DraftChip({ file, leaving, joined, onRemove }: { file: ChatAttachment; leaving: boolean; joined: boolean; onRemove: () => void }) {
 	const pdf = isPdfType(file.mimeType);
 	return (
-		<div data-testid={pdf ? "draft-pdf" : "draft-image"} className={cn("flex h-[47px] max-w-72 items-center gap-1.5 overflow-hidden lh-well lh-notch pr-1.5", pdf && "pl-3")}>
+		<div data-testid={pdf ? "draft-pdf" : "draft-image"} {...rowMotion(leaving, joined, cn("flex h-[47px] max-w-72 items-center gap-1.5 overflow-hidden lh-well lh-notch pr-1.5", pdf && "pl-3"))}>
 			{!pdf && (
 				<img src={`data:${file.mimeType};base64,${file.data}`} alt="" className="size-11 shrink-0 object-cover" />
 			)}

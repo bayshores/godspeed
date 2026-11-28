@@ -10,6 +10,7 @@ import { MAIN_KEY } from "@/frontend/components/ui/big-key";
 import { Key } from "@/frontend/components/ui/key";
 import { endedByTime, formatLine, fromAboutLine } from "./mock-model";
 import { postMock, removeMock } from "./use-mock";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /**
  * A mock that isn't being answered or graded: the teacher is writing its
@@ -107,11 +108,7 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 	return (
 		<div data-testid={`mock-${state}`} className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3.5 overflow-y-auto p-8 text-center">
 			{body}
-			{error && (
-				<p role="alert" className="text-ui text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} className="text-ui text-ans-wrong" />
 		</div>
 	);
 }

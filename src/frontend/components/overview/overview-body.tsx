@@ -1,5 +1,6 @@
 import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import { useWaited } from "@/frontend/components/loading";
+import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { useSheetGlide } from "@/frontend/components/use-sheet-glide";
 import { cn } from "@/frontend/lib/utils";
 import type { SpaceNote, DeadlineProgress, ProgressPayload } from "@/shared/core";
@@ -18,6 +19,7 @@ import { TeacherNote } from "./teacher-note";
 import { LessonCard } from "./lesson-card";
 import { useLessonActions } from "./use-lesson-actions";
 import { useStickyTop } from "./use-sticky-top";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /**
  * The Progress tab under the space head (pure view, the render-test seam).
@@ -87,6 +89,8 @@ export const OverviewBody = memo(function OverviewBody({
 	const needed = useMemo(() => mostNeeded(upcoming), [upcoming]);
 	const actions = useLessonActions(data?.lessons ?? null, data?.spaceId ?? null);
 	const { unfinished, finished } = useMemo(() => splitLessons(actions.shown ?? []), [actions.shown]);
+	// The card goes with its last lesson, holding it while both fade.
+	const unfinishedCard = useLastWhileClosing(data && unfinished.length > 0 ? unfinished : null);
 
 	const spaceData = hasSpace && data && nowMs !== null ? data : null;
 	// The deadline "Next" turned the card to, or the one ticked done on it; back to the soonest on a new visit.
@@ -148,12 +152,10 @@ export const OverviewBody = memo(function OverviewBody({
 								</div>
 							))}
 						{hasSpace && waiting}
-						{startError && (
-							<p role="alert" data-testid="start-error" className="text-ui text-ans-wrong">
-								{startError}
-							</p>
+						<ErrorLine error={startError} data-testid="start-error" className="text-ui text-ans-wrong" />
+						{unfinishedCard.mounted && unfinishedCard.shown && (
+							<LessonCard title="Unfinished" name="unfinished" lessons={unfinishedCard.shown} actions={actions} headKey leaving={unfinishedCard.state === "closed"} />
 						)}
-						{data && unfinished.length > 0 && <LessonCard title="Unfinished" name="unfinished" lessons={unfinished} actions={actions} headKey />}
 						{spaceData?.path && !pathFirst && <PathBlock path={spaceData.path} main={false} busyOn={busyOn} onStudy={onStudyPath} />}
 						{hasSpace && needed && <MostNeeded needed={needed} busyOn={busyOn} onStudy={onStudy} />}
 					</div>

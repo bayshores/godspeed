@@ -5,6 +5,7 @@ import { CheckRow } from "@/frontend/components/ui/check-row";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { jsonInit, send, serverError } from "@/frontend/lib/api";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 type Lesson = { id: string; title: string; spaceId?: string };
 
@@ -65,11 +66,7 @@ function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; 
 			<p className="text-ui text-ink-2">
 				Its facts leave the current space&apos;s graph (facts another lesson or file also taught stay) and are rebuilt in the new space&apos;s graph. Rebuilding is done by your agent.
 			</p>
-			{error && (
-				<p role="alert" className="text-ui text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} className="text-ui text-ans-wrong" />
 		</DialogSheet>
 	);
 }

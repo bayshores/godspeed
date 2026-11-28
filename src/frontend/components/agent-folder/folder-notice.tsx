@@ -15,6 +15,7 @@ import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { jsonInit, send } from "@/frontend/lib/api";
 import { useAgentFolderView } from "./agent-folder-context";
 import { AGENT_LABEL } from "./agent-folder-model";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 const OPEN_EVENT = "lh:folder-notice";
 
@@ -74,11 +75,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 				{name} teaches you from {view?.short ?? "~/godspeed"} now. Your other {name} chats stop loading godspeed, and your spaces and lessons stay as
 				they are.
 			</p>
-			{action.error && (
-				<p role="alert" className="text-ui text-ans-wrong">
-					{action.error}
-				</p>
-			)}
+			<ErrorLine error={action.error} className="text-ui text-ans-wrong" />
 		</DialogSheet>,
 		document.body,
 	);

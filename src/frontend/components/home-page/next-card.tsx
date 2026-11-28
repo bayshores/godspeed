@@ -125,7 +125,7 @@ export function NextGap({ gap, color, spaceName, nowMs }: { gap: RhythmGap; colo
 			title={gap.label}
 			line={
 				answering.error ? (
-					<span role="alert" className="text-ans-wrong">
+					<span role="alert" className="lh-rise text-ans-wrong">
 						{answering.error}
 					</span>
 				) : (

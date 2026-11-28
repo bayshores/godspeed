@@ -15,6 +15,7 @@ import { SheetChat } from "./sheet-chat";
 import { JobFrame } from "@/frontend/components/work/job-frame";
 import { OlderSheet, emptyChatLine, versionLabel } from "./studio-states";
 import { remakeSheet, sheetPdfFile, sheetPdfPath, showSheetPdf, useCheatSheet, useSheetFocus } from "./use-cheat-sheet";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /**
  * THE CHEAT SHEET STUDIO: a page under the app's bar, whose crumb names the
@@ -129,11 +130,7 @@ function Studio({
 					</button>
 				</BarActions>
 			)}
-			{failed && (
-				<p role="alert" className="shrink-0 px-8 pt-3 text-ui text-ans-wrong">
-					{failed}
-				</p>
-			)}
+			<ErrorLine error={failed} className="shrink-0 px-8 pt-3 text-ui text-ans-wrong" />
 			<div className="min-h-0 flex-1">
 				<JobFrame doing={view.running ? (current ? "changing your sheet" : "making your sheet") : null}>
 					{/* Side by side where both fit; in less room the sheet is over its chat. */}

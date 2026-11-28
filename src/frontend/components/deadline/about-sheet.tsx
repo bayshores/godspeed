@@ -1,5 +1,5 @@
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
-import { LoadingBox } from "@/frontend/components/loading";
+import { LoadingBox, useWaited } from "@/frontend/components/loading";
 import { Pane } from "@/frontend/components/ui/pane";
 import { RequestLine } from "./request-line";
 import type { About } from "./use-deadline-about";
@@ -28,6 +28,7 @@ export function AboutSheet({
 	onAsk: () => void;
 	onRetry: () => void;
 }) {
+	const waited = useWaited(about.state === "ready");
 	return (
 		<Pane data-testid="deadline-about" className="lh-card">
 			<div className="lh-card-head">
@@ -35,10 +36,10 @@ export function AboutSheet({
 			</div>
 			{about.state === "ready" ? (
 				<div data-testid="deadline-about-text" className={ABOUT_TEXT}>
-					<MessageResponse>{about.text}</MessageResponse>
+					<MessageResponse className={waited ? "lh-set" : undefined}>{about.text}</MessageResponse>
 				</div>
 			) : about.state === "failed" ? (
-				<div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2">
+				<div role="alert" className="lh-rise flex flex-wrap items-center gap-x-3 gap-y-2 py-2">
 					<p className="min-w-0 flex-1 text-item text-ink">Couldn&apos;t load what it&apos;s like.</p>
 					<button type="button" data-testid="deadline-about-retry" onClick={onRetry} className="lh-btn">
 						Try again

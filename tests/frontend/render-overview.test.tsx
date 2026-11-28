@@ -714,15 +714,21 @@ describe("clicks", () => {
 			assert.equal(failed.getAttribute("role"), "alert");
 			await click(el, "lesson-row-menu");
 			await act(async () => (document.querySelector('[data-testid="ctx-rename"]') as HTMLButtonElement).click());
-			assert.equal(q(el, "lesson-rename-failed"), null);
+			assert.equal(q(el, "lesson-rename-failed")?.getAttribute("data-state"), "closed", "it fades out");
+			await act(() => new Promise((r) => setTimeout(r, 200)));
+			assert.ok(q(el, "lesson-rename-failed") === null);
 		});
 
-		it("a deleted lesson's row goes at once", async () => {
+		it("a deleted lesson's row fades out at once, out of reach, and then goes", async () => {
 			serve((_url, init) => (init?.method === "DELETE" ? Response.json({ graphRevision: 2 }) : Response.json({})));
 			const el = await mount({ data: { ...PAYLOAD, lessons: ROWS } });
 			await click(el, "lesson-row-menu");
 			await act(async () => (document.querySelector('[data-testid="ctx-delete"]') as HTMLButtonElement).click());
 			await act(async () => (document.querySelector('[data-testid="delete-confirm"]') as HTMLButtonElement).click());
+			const gone = el.querySelector('[data-testid="lesson-row"][title="Induction"]')!.closest("li")!;
+			assert.equal(gone.getAttribute("data-state"), "closed");
+			assert.ok(gone.hasAttribute("inert"), "a leaving row takes no click or focus");
+			await act(() => new Promise((r) => setTimeout(r, 200)));
 			assert.deepEqual(rowTitles(el), ["Pointers"]);
 		});
 	});

@@ -21,6 +21,7 @@ import { useSettings } from "@/frontend/components/settings-context";
 import { PluginsSection } from "./plugins-section.tsx";
 import { AppearanceSection } from "./appearance-section.tsx";
 import { TeacherSection } from "./teacher-section.tsx";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /** The tabs. */
 const SECTIONS = [
@@ -135,19 +136,11 @@ export function SettingsPage({ section }: { section?: string }) {
 					</div>
 				</nav>
 				<div data-testid="settings-content">
-					{error && (
-						<p
-							role="alert"
-							className="mb-4 lh-well px-3 py-2 text-ui text-ans-wrong"
-							data-testid="settings-error"
-						>
-							{error}
-						</p>
-					)}
+					<ErrorLine error={error} className="mb-4 lh-well px-3 py-2 text-ui text-ans-wrong" data-testid="settings-error" />
 					{record === undefined ? (
 						<LoadingLine className="text-ui">Loading settings…</LoadingLine>
 					) : record === null ? (
-						<p className="text-ui text-ink-2">
+						<p className="lh-rise text-ui text-ink-2">
 							Settings could not be loaded. Refresh to retry.
 						</p>
 					) : (

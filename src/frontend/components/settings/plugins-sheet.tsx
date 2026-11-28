@@ -9,6 +9,7 @@ import { cn } from "@/frontend/lib/utils";
 import { Toggle } from "@/frontend/components/ui/toggle";
 import { CommitInput, QUIET_KEY, SMALL_KEY, SettingsRow } from "./controls.tsx";
 import { SEGMENTED_MAX, pluginLine } from "./plugins-model.ts";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /** The control godspeed draws for one setting the manifest declares. */
 function SettingControl({ setting, value, onChange }: { setting: PluginSetting; value: SettingValue; onChange: (next: SettingValue) => void }) {
@@ -38,13 +39,7 @@ function SettingControl({ setting, value, onChange }: { setting: PluginSetting; 
 }
 
 /** A failed save or removal, where the action was. */
-function ErrorLine({ text }: { text: string }) {
-	return (
-		<p role="alert" data-testid="plugin-error" className="pt-3 text-ui whitespace-pre-wrap text-ans-wrong">
-			{text}
-		</p>
-	);
-}
+const ERROR_LINE = "pt-3 text-ui whitespace-pre-wrap text-ans-wrong";
 
 function RemoveKey({ busy, onAsk }: { busy: boolean; onAsk: () => void }) {
 	return (
@@ -104,7 +99,7 @@ export function PluginSheet({
 						</SettingsRow>
 					</div>
 				))}
-				{error && <ErrorLine text={error} />}
+				<ErrorLine error={error} data-testid="plugin-error" className={ERROR_LINE} />
 				<div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pt-(--lh-gap)">
 					{asking ? (
 						<RemoveQuestion
@@ -178,7 +173,7 @@ export function AddSheet({
 								{adding === entry.id ? "Adding…" : "Add"}
 							</button>
 						</SettingsRow>
-						{failed === entry.id && <ErrorLine text={`${entry.name} couldn't be added.`} />}
+						<ErrorLine error={failed === entry.id ? `${entry.name} couldn't be added.` : null} data-testid="plugin-error" className={ERROR_LINE} />
 					</div>
 				))}
 				{onChoose && (
@@ -188,7 +183,7 @@ export function AddSheet({
 						</button>
 					</SettingsRow>
 				)}
-				{folderError && <ErrorLine text={folderError} />}
+				<ErrorLine error={folderError} data-testid="plugin-error" className={ERROR_LINE} />
 			</div>
 		</Pane>
 	);
@@ -205,7 +200,7 @@ export function BrokenSheet({ name, reason, busy, error, onRemove }: { name: str
 			<p data-testid="plugin-broken" className="text-ui whitespace-pre-wrap text-ans-wrong">
 				{reason}
 			</p>
-			{error && <ErrorLine text={error} />}
+			<ErrorLine error={error} data-testid="plugin-error" className={ERROR_LINE} />
 			<div className="flex justify-end pt-(--lh-gap)">
 				{asking ? (
 					<RemoveQuestion

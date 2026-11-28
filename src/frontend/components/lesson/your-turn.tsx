@@ -20,6 +20,7 @@ import { TurnPlaceContext, TurnSlotsContext } from "./turn-place";
 import { TurnSwap } from "./turn-swap";
 import { AnsweredTurn } from "./answered-turn";
 import type { NextAction, TurnShown } from "./turn-next-model";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
 
@@ -315,13 +316,9 @@ export function YourTurn({
 					</div>
 				</JobFailure>
 			)}
-			{askError && (
-				<p role="alert" data-testid="notes-ask-error" className="text-ui text-ans-wrong">
-					{askError}
-				</p>
-			)}
+			<ErrorLine error={askError} data-testid="notes-ask-error" className="text-ui text-ans-wrong" />
 			{ask && over > 0 && (
-				<p role="status" data-testid="notes-ask-over" className="text-ui text-ink-2">
+				<p role="status" data-testid="notes-ask-over" className="lh-rise text-ui text-ink-2">
 					Shorten it by {over} characters.
 				</p>
 			)}

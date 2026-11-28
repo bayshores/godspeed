@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LoadingLine } from "@/frontend/components/loading";
+import { LoadingLine, useWaited } from "@/frontend/components/loading";
 import { useNavigate } from "react-router";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { spaceName, useSpaces } from "@/frontend/components/space-context";
@@ -42,6 +42,9 @@ function Results({ onClose }: { onClose: () => void }) {
 	const { chats, failed, refresh } = useLessonList();
 	const [query, setQuery] = useState("");
 	const [walked, setWalked] = useState(0);
+	// The rows step in once, as they replace the wait; a search changes them at once.
+	const waited = useWaited(chats !== null);
+	const [searched, setSearched] = useState(false);
 	const listRef = useRef<HTMLDivElement>(null);
 	const shown = useMemo(() => (chats ? matchLessons(chats, query) : null), [chats, query]);
 
@@ -76,6 +79,7 @@ function Results({ onClose }: { onClose: () => void }) {
 				value={query}
 				onChange={(e) => {
 					setQuery(e.target.value);
+					setSearched(true);
 					setWalked(0); // the list reorders under the query
 				}}
 				onKeyDown={onKeyDown}
@@ -93,7 +97,7 @@ function Results({ onClose }: { onClose: () => void }) {
 			) : shown.length === 0 ? (
 				<p className="py-3 text-ui text-ink-2">{query.trim() ? "No lessons match." : "No lessons yet."}</p>
 			) : (
-				<div ref={listRef} className="flex flex-col">
+				<div ref={listRef} className={cn("flex flex-col", waited && !searched && "lh-set")}>
 					{shown.map((c, i) => {
 						const space = spaces.find((k) => k.id === c.spaceId);
 						return (

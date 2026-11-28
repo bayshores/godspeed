@@ -10,6 +10,7 @@ import { cn } from "@/frontend/lib/utils";
 import { BAR_TAB, barTabState } from "./bar-look";
 import { hasLessonsWithNoSpace, plusName } from "./top-bar-model";
 import { useCloseSpace } from "./use-close-space";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /**
  * THE + after the last tab: "Add a space", then, when any space is closed,
@@ -83,11 +84,7 @@ export function ClosedSpacesMenu({ lit, onAdd }: { lit: boolean; onAdd: () => vo
 						</div>
 					)}
 					<LessonsWithNoSpace onPick={close} />
-					{error && (
-						<p role="alert" data-testid="spaces-plus-error" className="px-3 py-2 text-ui whitespace-pre-wrap text-ans-wrong">
-							{error}
-						</p>
-					)}
+					<ErrorLine error={error} data-testid="spaces-plus-error" className="px-3 py-2 text-ui whitespace-pre-wrap text-ans-wrong" />
 				</div>
 			</MenuShell>
 		</>

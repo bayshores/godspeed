@@ -236,7 +236,10 @@ describe("the app's size in the bar", () => {
 		act(() => q("bar-zoom")!.click());
 		assert.deepEqual(set, [1]);
 		act(() => push(1));
-		assert.equal(q("bar-zoom"), null);
+		assert.equal(q("bar-zoom")?.getAttribute("data-state"), "closed", "back at 100%, it fades out");
+		assert.equal(q("bar-zoom")!.textContent, "150%", "with the last number it showed");
+		await act(() => new Promise((r) => setTimeout(r, 200)));
+		assert.ok(q("bar-zoom") === null);
 	});
 
 	it("shows nothing at 100%", async () => {

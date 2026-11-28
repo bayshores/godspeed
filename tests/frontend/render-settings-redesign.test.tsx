@@ -294,14 +294,16 @@ describe("settings restyle", () => {
 		await act(async () => button("Prefers mornings.")!.click());
 		assert.equal(el.querySelectorAll('[data-testid="note-delete-confirm"]').length, 1, "one row asks at a time");
 		await act(async () => q("note-delete-confirm-keep")!.click());
-		assert.equal(q("note-delete-confirm"), null);
-		assert.ok(button("Likes proofs."));
+		assert.ok(button("Likes proofs."), "the key is back at once");
+		await act(() => new Promise((r) => setTimeout(r, 200)));
+		assert.ok(q("note-delete-confirm") === null, "the question is gone once its exit has played");
 		await act(async () => button("Likes proofs.")!.click());
 		await act(async () => q("note-delete-confirm-go")!.click());
 		assert.equal(deletes, 1);
 		assert.equal(button("Prefers mornings.")!.disabled, true);
 		await act(async () => finish());
-		assert.ok(!q("remembered-notes")!.textContent!.includes("Likes proofs."));
+		await act(() => new Promise((r) => setTimeout(r, 200)));
+		assert.ok(!q("remembered-notes")!.textContent!.includes("Likes proofs."), "the deleted note is gone once it has faded out");
 	});
 
 	it("Remembered says there are no notes yet", async () => {

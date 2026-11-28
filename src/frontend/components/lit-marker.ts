@@ -9,9 +9,18 @@ interface Box {
 
 const SIDES = ["left", "top", "width", "height"] as const;
 
-/** The lit element's box inside the row, cut to what a scrolling strip around it shows. */
+/** How much a box around `row` scales it now (the pinch magnifier, a pop-up scaling in): its width on
+ *  screen over its laid-out width. 1 where the laid-out width cannot be read. */
+function scaleOf(row: HTMLElement, shown: number): number {
+	const laid = parseFloat(row.ownerDocument.defaultView?.getComputedStyle?.(row).width ?? "");
+	return laid > 0 && shown > 0 ? shown / laid : 1;
+}
+
+/** The lit element's box inside the row, cut to what a scrolling strip around it shows, in the row's own
+ *  pixels, so a marker placed while the row is scaled still fits once it is not. */
 function litBox(row: HTMLElement, lit: Element): Box | null {
 	const frame = row.getBoundingClientRect();
+	const scale = scaleOf(row, frame.width);
 	let { left, right } = lit.getBoundingClientRect();
 	const { top, height } = lit.getBoundingClientRect();
 	for (let strip = lit.parentElement; strip && strip !== row; strip = strip.parentElement) {
@@ -20,7 +29,7 @@ function litBox(row: HTMLElement, lit: Element): Box | null {
 		left = Math.max(left, shown.left);
 		right = Math.min(right, shown.right);
 	}
-	return right > left && height > 0 ? { left: left - frame.left, top: top - frame.top, width: right - left, height } : null;
+	return right > left && height > 0 ? { left: (left - frame.left) / scale, top: (top - frame.top) / scale, width: (right - left) / scale, height: height / scale } : null;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useSound } from "@/frontend/components/sounds";
 import { MAIN_KEY } from "@/frontend/components/ui/big-key";
 import { useReturn } from "./use-return";
@@ -16,8 +17,8 @@ export function Intro({ skipped, onSkip, onDone }: { skipped: boolean; onSkip: (
 		const timer = setTimeout(() => setPlayed(true), INTRO_MS);
 		return () => clearTimeout(timer);
 	}, [play]);
-	// Return during the animation jumps to its end; after it, continues.
-	useReturn(played || skipped ? onDone : onSkip);
+	// Return during the animation jumps to its end; after it, or with reduced motion (no animation), continues.
+	useReturn(played || skipped || prefersReducedMotion() ? onDone : onSkip);
 	return (
 		<div data-testid="onboarding-intro" className="flex w-full flex-col items-center justify-center">
 			<div className="ob-rise flex flex-col items-center gap-[30px]">

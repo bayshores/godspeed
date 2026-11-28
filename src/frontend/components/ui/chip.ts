@@ -34,7 +34,7 @@ const SIZES = {
  */
 export function chip(tone: ChipTone, size: keyof typeof SIZES = "item", { press = false, lead = false, remove = false } = {}): string {
 	return cn(
-		"lh-notch transition-colors duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
+		"lh-notch transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
 		SIZES[size],
 		TONES[tone],
 		press && "lh-press enabled:hover:bg-tone",

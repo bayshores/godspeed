@@ -23,6 +23,11 @@ Object.assign(globalThis, {
 	Node: dom.window.Node,
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
+	// A pick (Segmented) follows its fill's box.
+	ResizeObserver: class {
+		observe() {}
+		disconnect() {}
+	},
 });
 
 const { createRoot } = await import("react-dom/client");
@@ -119,6 +124,8 @@ async function mount() {
 }
 const q = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
 const click = (id: string) => act(async () => q(id)!.click());
+/** Past a leaving thing's exit (--lh-dur-fast), when presence lets it go. */
+const exitPlayed = () => act(() => new Promise((r) => setTimeout(r, 200)));
 
 afterEach(async () => {
 	await act(async () => root?.unmount());
@@ -173,6 +180,8 @@ describe("Settings, Plugins", () => {
 		await click("plugin-remove");
 		await click("plugin-remove-confirm-go");
 		assert.deepEqual(server.calls.at(-1), { method: "DELETE", url: "/api/plugins/memes", body: undefined });
+		assert.equal(q("plugin-memes")?.getAttribute("data-state"), "closed", "its row fades out in its place");
+		await exitPlayed();
 		assert.ok(q("plugin-memes") === null);
 	});
 
@@ -220,6 +229,7 @@ describe("Settings, Plugins", () => {
 		await click("plugin-remove");
 		await click("plugin-remove-confirm-go");
 		assert.deepEqual(server.calls.at(-1), { method: "DELETE", url: "/api/plugins/old-quiz", body: undefined });
+		await exitPlayed();
 		assert.ok(q("plugin-old-quiz") === null);
 		assert.equal(q("plugin-sheet")!.querySelector("h2")!.textContent, "Memes");
 	});
@@ -239,6 +249,7 @@ describe("Settings, Plugins", () => {
 		assert.deepEqual(server.calls.find((c) => c.method === "POST"), { method: "POST", url: "/api/plugins", body: { from: "folder", folder: "/Users/me/plugin" } });
 		assert.equal(q("plugins-add-error")!.textContent, "The folder has no manifest.json.");
 		await click("plugin-memes");
+		await exitPlayed();
 		assert.ok(q("plugins-add-error") === null, "picking a plugin clears it");
 	});
 

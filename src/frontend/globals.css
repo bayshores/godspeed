@@ -20,8 +20,8 @@
    shows: a keypress lights :focus-visible on a clicked control too (a
    clicked lesson row lit up at the quiz's arrow keys), so the ring
    waits for Tab or an arrow that moves focus (data-tab-focus,
-   focus-hygiene.ts) and goes at the next click. Text fields keep their
-   own focus edge, and a dialog box that takes focus on open
+   focus-hygiene.ts) and goes at the next click. A field wears its own
+   edge instead (below), and a dialog box that takes focus on open
    (useDialogFocus) wears none. A color picker is invisible over its tile
    (Settings, Appearance), so the tile wears its ring. Unlayered on
    purpose, so it wins over any outline-none utility. */
@@ -29,14 +29,27 @@
 *:focus-visible {
 	outline: none;
 }
-:root[data-tab-focus] :focus-visible:not(textarea, [contenteditable="true"], [role="dialog"], input:not([type="checkbox"], [type="radio"], [type="range"])),
+:root[data-tab-focus] :focus-visible:not(textarea, select, [contenteditable="true"], [role="dialog"], input:not([type="checkbox"], [type="radio"], [type="range"])),
 :root[data-tab-focus] :has(> input[type="color"]:focus-visible) {
 	outline: 2px solid var(--ring);
 	outline-offset: 2px;
 }
-/* A ring lies outside its box, where a cut corner's box would cut it: the cut lifts while the ring shows. */
-:root[data-tab-focus] .lh-notch:is(:focus-visible, :has(:focus-visible)) {
+/* A ring lies outside its box, where a cut corner's box would cut it: the cut lifts while the ring shows.
+   A field keeps its cut, as its edge lies inside it. */
+:root[data-tab-focus] .lh-notch:is(:focus-visible, :has(:focus-visible)):not(input, textarea, select, :has(> :is(input, textarea):focus)) {
 	clip-path: none;
+}
+/* A field that holds the keyboard, clicked or reached by Tab, wears a 2px edge in the ring's ink.
+   It is drawn inside the box, so the field keeps its size and its cut corner cuts the edge in the
+   same steps. A well around a bare field (Home's study boxes) wears it for its field. */
+:is(input, textarea, select).lh-well,
+.lh-well:has(> :is(input, textarea)) {
+	box-shadow: inset 0 0 0 2px transparent;
+	transition: box-shadow var(--lh-dur-fast) var(--lh-ease-out);
+}
+:is(input, textarea, select).lh-well:focus,
+.lh-well:has(> :is(input, textarea):focus) {
+	box-shadow: inset 0 0 0 2px var(--ring);
 }
 
 /* Palette: Graphite, the default: a dark page with pale text. These are
@@ -89,7 +102,6 @@
 	--card-foreground: #e6e6e6;
 	--primary: #e6e6e6;
 	--primary-foreground: #161616;
-	--secondary: #1e1e1e;
 	--muted: #1e1e1e;
 	--muted-foreground: #a9a9a9;
 	--accent: #2c2c2c;
@@ -109,11 +121,6 @@
 	   text-background as a fill. */
 	--lh-ans-right: #739d81;
 	--lh-ans-wrong: #c4847a;
-	--lh-conf-1: #c4847a;
-	--lh-conf-2: #c0875a;
-	--lh-conf-3: #c2aa5c;
-	--lh-conf-4: #91976b;
-	--lh-conf-5: #739d81;
 	--lh-ramp-1: #c4847a;
 	--lh-ramp-2: #c0875a;
 	--lh-ramp-3: #c2aa5c;
@@ -292,11 +299,6 @@
 	--lh-ans-right: #8fb09a;
 	--lh-ans-wrong: #d09a92;
 	--destructive: #d09a92;
-	--lh-conf-1: #d09a92;
-	--lh-conf-2: #cc9c78;
-	--lh-conf-3: #c2aa5c;
-	--lh-conf-4: #a3a984;
-	--lh-conf-5: #8fb09a;
 	--lh-ramp-1: #d09a92;
 	--lh-ramp-2: #cc9c78;
 	--lh-ramp-3: #c2aa5c;
@@ -379,30 +381,19 @@
 	/* No heavy interface text: every rung above medium draws as medium. */
 	--font-weight-semibold: 500;
 	--font-weight-bold: 500;
-	--font-weight-extrabold: 500;
-	--font-weight-black: 500;
 	/* Square where a library's own markup asks for a round corner: the app's boxes are cut in steps (.lh-notch). */
-	--radius-xs: 0px;
-	--radius-sm: 0px;
 	--radius-md: 0px;
 	--radius-lg: 0px;
 	--radius-xl: 0px;
-	--radius-2xl: 0px;
-	--radius-3xl: 0px;
-	--radius-4xl: 0px;
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
-	--color-card: var(--card);
 	--color-card-foreground: var(--card-foreground);
 	--color-primary: var(--primary);
 	--color-primary-foreground: var(--primary-foreground);
-	--color-secondary: var(--secondary);
 	--color-muted: var(--muted);
 	--color-muted-foreground: var(--muted-foreground);
 	--color-destructive: var(--destructive);
 	--color-border: var(--border);
-	--color-input: var(--input);
-	--color-ring: var(--ring);
 	/* Surface + text tokens. The surfaces read the derived palette, so
 	   Settings, Appearance moves them: bg-panel (sheets), bg-tone (hovered
 	   and active rows), bg-tone-2 (thin lines, empty bars), bg-bar
@@ -422,8 +413,8 @@
 	--color-on-space: var(--lh-on-space);
 	--color-stamp: var(--lh-stamp);
 	--color-line: var(--lh-line);
-	/* Right / wrong / didn't know. The confidence and topic ramps are read
-	   as var(--lh-conf-N) and var(--lh-ramp-N). */
+	/* Right / wrong / didn't know. The topic ramp is read as var(--lh-ramp-N),
+	   which the server sends as a topic's color. */
 	--color-ans-right: var(--lh-ans-right);
 	--color-ans-wrong: var(--lh-ans-wrong);
 	--color-ans-dontknow: var(--lh-edge);
@@ -764,6 +755,9 @@ body {
 		line-height: 1.4;
 		white-space: nowrap;
 		color: var(--foreground);
+		/* A press and its release, and the pointer's change of face, all take --lh-dur-fast. */
+		transition: var(--lh-dur-fast) var(--lh-ease-out);
+		transition-property: translate, color;
 	}
 	.lh-btn::after,
 	:is(.lh-btn-main, .lh-btn-danger)::before {
@@ -771,6 +765,8 @@ body {
 		position: absolute;
 		z-index: -1;
 		pointer-events: none;
+		transition: var(--lh-dur-fast) var(--lh-ease-out);
+		transition-property: background-color, top, right, bottom, left, border-bottom-width;
 	}
 	.lh-btn::after {
 		inset: 0 var(--lh-drop) var(--lh-drop) 0;
@@ -778,16 +774,16 @@ body {
 		background: var(--lh-key-face);
 		/* One step cut from each corner, as a sheet's corners are. */
 		clip-path: polygon(0 3px, 3px 3px, 3px 0, calc(100% - 3px) 0, calc(100% - 3px) 3px, 100% 3px, 100% calc(100% - 3px), calc(100% - 3px) calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 3px calc(100% - 3px), 0 calc(100% - 3px));
-		transition: background-color var(--lh-dur-fast) var(--lh-ease-out);
 	}
 	.lh-btn:hover {
 		--lh-key-face: var(--lh-key-hover);
 	}
-	/* A pressed plate sinks onto its lip: its foot stays where it was. */
-	.lh-btn:active {
+	/* A pressed plate sinks onto its lip: its foot stays where it was. A key whose page is being
+	   read (data-pending) stays down, at every rank. */
+	.lh-btn:is(:active, [data-pending]) {
 		translate: 0 calc(var(--lh-lip) - 1px);
 	}
-	.lh-btn:active::after {
+	.lh-btn:is(:active, [data-pending])::after {
 		bottom: calc(var(--lh-lip) - 1px);
 		border-bottom-width: 1px;
 	}
@@ -834,15 +830,16 @@ body {
 		border: 2px solid var(--lh-key-edge);
 		clip-path: none;
 	}
-	:is(.lh-btn-main, .lh-btn-danger):active {
+	:is(.lh-btn-main, .lh-btn-danger):is(:active, [data-pending]) {
 		translate: var(--lh-drop) var(--lh-drop);
 	}
-	:is(.lh-btn-main, .lh-btn-danger):active::after {
+	:is(.lh-btn-main, .lh-btn-danger):is(:active, [data-pending])::after {
 		bottom: var(--lh-drop);
 		border-bottom-width: 2px;
 	}
-	:is(.lh-btn-main, .lh-btn-danger):active::before {
-		visibility: hidden;
+	/* The shadow holds still while the face slides into it, and ends under the face. */
+	:is(.lh-btn-main, .lh-btn-danger):is(:active, [data-pending])::before {
+		inset: 0 var(--lh-drop) var(--lh-drop) 0;
 	}
 	.lh-btn-quiet {
 		--lh-key: transparent;
@@ -853,10 +850,10 @@ body {
 	.lh-btn-quiet:hover {
 		color: var(--foreground);
 	}
-	.lh-btn-quiet:active {
+	.lh-btn-quiet:is(:active, [data-pending]) {
 		translate: 0 1px;
 	}
-	.lh-btn-quiet:active::after {
+	.lh-btn-quiet:is(:active, [data-pending])::after {
 		bottom: 0;
 		border-bottom-width: 0;
 	}
@@ -1475,11 +1472,7 @@ body:has(.lh-own-bar) .lh-app-bar {
    panel push its page aside: both sit under it, as under the app's bar. */
 .lh-own-bar {
 	margin-right: calc(-1 * (var(--lh-dock-push, 0px) + var(--lh-strip)));
-}
-@media (prefers-reduced-motion: no-preference) {
-	.lh-own-bar {
-		transition: margin-right var(--lh-dur) var(--lh-ease-out);
-	}
+	transition: margin-right var(--lh-dur) var(--lh-ease-out);
 }
 
 /* The date, a page's own words (bar-slots.tsx) and the clock. On one
@@ -1548,16 +1541,18 @@ body:has(.lh-own-bar) .lh-app-bar {
    - .lh-pop       menus/popovers: fade + 2% scale + 4px travel toward the
                    anchor (--lh-pop-y: +4px opens down, -4px opens up)
    - .lh-hang      a pop-up out of the top bar: grows down, rows after it
-   - .lh-dialog    dialog panels: fade + 2% scale
    - .lh-fade      backdrops and anything that only fades
    - .lh-rise      one-shot arrival (messages, cards): fade + 4px rise
                    (no exit)
    - .lh-press     pressable things that are not keys: ease the hover colors,
-                   dip to 97% while pressed
+                   sink 1px while pressed (never shrink: a wide row would);
+                   a link whose page is being read stays pressed
+                   (data-pending, as a key does)
    - .lh-collapse  a folding section: grid-rows 0fr ↔ 1fr (data-state)
 
-   Reduced motion: every animation and transform here turns off; colors
-   still change, instantly. */
+   Reduced motion: every animation here turns off, and every transition
+   anywhere is instant (the rule below), so colors still change and a press
+   still sinks, at once. */
 :root {
 	--lh-dur-fast: 110ms;
 	--lh-dur: 160ms;
@@ -1565,6 +1560,20 @@ body:has(.lh-own-bar) .lh-app-bar {
 	--lh-dur-page: 420ms;
 	--lh-ease-out: cubic-bezier(0.2, 0, 0, 1);
 	--lh-ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+/* A transition utility given no time of its own (a bare transition-colors) takes --lh-dur, not Tailwind's 150 ms. */
+@theme inline {
+	--default-transition-duration: var(--lh-dur);
+	--default-transition-timing-function: var(--lh-ease-out);
+}
+/* Important, so it also beats a utility class and a style attribute. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	::before,
+	::after {
+		transition-duration: 0ms !important;
+		transition-delay: 0ms !important;
+	}
 }
 
 @keyframes lh-pop-in {
@@ -1692,7 +1701,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 	animation-delay: 162ms;
 }
 .lh-hang[data-state="closed"] > .lh-hang-body > * {
-	animation: lh-fade-out 70ms var(--lh-ease-in) both;
+	animation: lh-fade-out var(--lh-dur-fast) var(--lh-ease-in) both;
 }
 
 /* The strip down the window's right edge (strip/strip.tsx): the teacher's
@@ -1966,14 +1975,6 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	animation: lh-dialog-out var(--lh-dur-fast) var(--lh-ease-in) both;
 }
 
-.lh-dialog,
-.lh-dialog[data-state="open"] {
-	animation: lh-dialog-in var(--lh-dur-slow) var(--lh-ease-out) both;
-}
-.lh-dialog[data-state="closed"] {
-	animation: lh-dialog-out var(--lh-dur-fast) var(--lh-ease-in) both;
-	pointer-events: none;
-}
 
 .lh-fade,
 .lh-fade[data-state="open"] {
@@ -2009,25 +2010,30 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	animation: lh-box-in var(--lh-dur-slow) var(--lh-ease-out) both;
 }
 
-/* A plot's held-back lines and slider, once his guess is answered: drawn in
-   left to right in four steps. */
+/* A plot's held-back lines and slider, once the guess is answered: drawn in
+   left to right in four steps. A control's mark (a check box's tick) draws
+   the same way in the time of a change of state (.lh-draw-quick). */
 @keyframes lh-draw-in {
 	from {
 		clip-path: inset(0 100% 0 0);
 	}
 }
 .lh-draw-in {
-	animation: lh-draw-in 400ms steps(4, end) both;
+	animation: lh-draw-in var(--lh-dur-page) steps(4, end) both;
+}
+.lh-draw-in.lh-draw-quick {
+	animation-duration: var(--lh-dur);
 }
 
+/* The sink goes down and comes back up in --lh-dur-fast; the colors ease in --lh-dur. */
 .lh-press {
 	transition-property: color, background-color, border-color, box-shadow, opacity, transform;
-	transition-duration: var(--lh-dur);
+	transition-duration: var(--lh-dur), var(--lh-dur), var(--lh-dur), var(--lh-dur), var(--lh-dur), var(--lh-dur-fast);
 	transition-timing-function: var(--lh-ease-out);
 }
-.lh-press:active:not(:disabled) {
-	transform: scale(0.97);
-	transition-duration: var(--lh-dur-fast);
+/* A pending one stays pressed even while it is switched off for the wait (Home's topic row). */
+.lh-press:is(:active:not(:disabled), [data-pending]) {
+	transform: translateY(1px);
 }
 
 /* minmax(0, …) and not a bare fr: WebKit keeps a bare 1fr row at its first height when the window
@@ -2191,11 +2197,10 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	.lh-bar-zoom,
 	[data-testid="bar-crumb"] > *,
 	.lh-pop,
-	.lh-dialog,
 	.lh-fade,
 	.lh-rise,
 	.lh-rise .lh-choice,
-	.lh-doc-box,
+	.lh-doc-box-in,
 	.lh-draw-in,
 	.lh-hang::before,
 	.lh-hang::after,
@@ -2214,14 +2219,6 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 		animation: none !important;
 		background: none !important;
 		color: var(--muted-foreground) !important;
-	}
-	.lh-press,
-	.lh-collapse,
-	.lh-lit-marker {
-		transition-duration: 0ms !important;
-	}
-	.lh-press:active:not(:disabled) {
-		transform: none;
 	}
 }
 
@@ -2352,7 +2349,6 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 	.ob-root *,
 	.ob-root {
 		animation: none !important;
-		transition: none !important;
 	}
 	/* The pulse also shows outside onboarding (the strip, the setup card, the teacher panel). */
 	.ob-pulse {
@@ -2512,20 +2508,17 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 
 .lh-ink {
 	mask-image: linear-gradient(90deg, #000 calc(var(--ink) - 3%), transparent calc(var(--ink) + 3%));
-	transition: --ink 600ms ease;
+	transition: --ink var(--lh-dur-page) var(--lh-ease-out);
 	animation: lh-ink-in 900ms ease-out;
 }
 
-/* A bar that is there when its page opens is just there; it glides only when its share changes. */
+/* A bar that is there when its page opens is just there; it glides only when its share changes,
+   a change of amount the eye follows. */
 .lh-grow {
-	transition: width 600ms ease;
+	transition: width var(--lh-dur-page) var(--lh-ease-out);
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.lh-ink,
-	.lh-grow {
-		transition: none;
-	}
 	.lh-ink {
 		animation: none;
 	}
@@ -2622,6 +2615,10 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 .lh-set > :nth-child(n + 8) {
 	animation-delay: 210ms;
 }
+/* What leaves a set later fades at once, whatever its place, so its exit plays before it goes. */
+.lh-set > [data-state="closed"] {
+	animation-delay: 0ms;
+}
 
 /* Its own keyframe: lh-draw-in uncovers left to right, a moon prints top to bottom, two of its 18 rows a step. */
 @keyframes lh-print-rows {
@@ -2639,31 +2636,33 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 /* The Graph picture's reveal: each cluster and its name ink in at --lh-at,
    each faint line draws in from its start once both its ends are in. */
 .lh-reveal {
-	animation: lh-fade-in 200ms var(--lh-ease-out) var(--lh-at, 0ms) backwards;
+	animation: lh-fade-in var(--lh-dur-slow) var(--lh-ease-out) var(--lh-at, 0ms) backwards;
 }
 @keyframes lh-draw-line {
 	from {
 		stroke-dashoffset: 1;
 	}
 }
+/* Its length is SLOW_MS in constellation-reveal.ts too. */
 .lh-reveal-line {
 	stroke-dasharray: 1 1;
-	animation: lh-draw-line 240ms var(--lh-ease-out) var(--lh-at, 0ms) backwards;
+	animation: lh-draw-line var(--lh-dur-slow) var(--lh-ease-out) var(--lh-at, 0ms) backwards;
 }
+/* The inverse holds for the first half (--lh-dur-fast), then settles. */
 @keyframes lh-flash {
 	0%,
-	37% {
+	50% {
 		background-color: var(--lh-flash);
 		color: var(--background);
 	}
 }
 .lh-flash-right [data-testid="answered-card"] {
 	--lh-flash: var(--lh-ans-right);
-	animation: lh-flash 320ms var(--lh-ease-out);
+	animation: lh-flash var(--lh-dur-slow) var(--lh-ease-out);
 }
 .lh-flash-wrong [data-testid="answered-card"] {
 	--lh-flash: var(--lh-ans-wrong);
-	animation: lh-flash 320ms var(--lh-ease-out);
+	animation: lh-flash var(--lh-dur-slow) var(--lh-ease-out);
 }
 
 @keyframes lh-blink {

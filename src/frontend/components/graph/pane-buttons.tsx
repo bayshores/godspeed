@@ -2,6 +2,7 @@
 import type { TopicProgress } from "@/shared/core";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { topicColor } from "./derive.ts";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /** A panel's main key, as wide as its word, with why the last start failed under it. */
 export function StudyButton({ onClick, busy, error, testid }: { onClick: () => void; busy: boolean; error: string | null; testid: string }) {
@@ -10,11 +11,7 @@ export function StudyButton({ onClick, busy, error, testid }: { onClick: () => v
 			<button type="button" data-testid={testid} disabled={busy} onClick={onClick} className="lh-btn lh-btn-main">
 				Study
 			</button>
-			{error && (
-				<p role="alert" data-testid="study-start-error" className="max-w-[32ch] text-right text-sm text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} data-testid="study-start-error" className="max-w-[32ch] text-right text-sm text-ans-wrong" />
 		</div>
 	);
 }

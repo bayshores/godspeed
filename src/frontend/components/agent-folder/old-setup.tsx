@@ -8,6 +8,7 @@ import { useState } from "react";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { oldSetupLines, removedNote } from "./agent-folder-model";
 import { useOldSetup } from "./use-old-setup";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 export function OldSetupNotice() {
 	const { view, removed, busy, error, remove } = useOldSetup();
@@ -39,11 +40,7 @@ export function OldSetupNotice() {
 		>
 			{rest && <NoticeText>{rest}</NoticeText>}
 			{!removed && lines.slice(1).map((line) => <NoticeText key={line}>{line}</NoticeText>)}
-			{error && (
-				<p role="alert" className="text-(length:--text-sm) text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} className="text-(length:--text-sm) text-ans-wrong" />
 		</NoticeCard>
 	);
 }

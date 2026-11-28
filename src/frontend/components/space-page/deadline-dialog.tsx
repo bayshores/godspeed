@@ -28,6 +28,7 @@ import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { Segmented } from "@/frontend/components/ui/segmented";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /** What the dialog opens on. One object per open: the dialog compares it by identity. */
 interface DeadlineDialogMode {
@@ -195,11 +196,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 				</div>
 			)}
 			{saved && <CheckRow testid="deadline-done" label="Done" checked={draft.done} disabled={busy} onToggle={() => change({ done: !draft.done })} />}
-			{error && (
-				<p key={error} ref={(el) => el?.scrollIntoView({ block: "nearest" })} role="alert" data-testid="deadline-dialog-error" className="text-ui whitespace-pre-wrap text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} ref={(el) => el?.scrollIntoView({ block: "nearest" })} data-testid="deadline-dialog-error" className="text-ui whitespace-pre-wrap text-ans-wrong" />
 		</DialogSheet>
 	);
 }

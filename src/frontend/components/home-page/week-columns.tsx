@@ -2,7 +2,7 @@ import { useState, type CSSProperties } from "react";
 import type { SpaceColor, SpaceSummary } from "@/shared/core";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
 import { chip } from "@/frontend/components/ui/chip";
-import { JOINED } from "@/frontend/components/motion";
+import { rowMotion } from "@/frontend/components/motion";
 import { blockColor, paleSpaceColor, spaceLineColor } from "@/frontend/components/space-color";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useFold } from "@/frontend/components/use-fold";
@@ -102,7 +102,7 @@ function WeekBlock({ item, dated, color, picked, joined, onPick }: { item: WeekI
 			? { "--lh-dash": picked ? "var(--color-ink)" : color && spaceLineColor(color) }
 			: { background: item.done && color ? paleSpaceColor(color) : blockColor(color) };
 	return (
-		<div data-state={leaving ? "closed" : undefined} className={leaving ? "lh-fade" : joined ? JOINED : undefined}>
+		<div {...rowMotion(leaving, joined)}>
 			<button
 				type="button"
 				data-testid={item.kind === "gap" ? "week-gap" : `week-item-${item.key}`}

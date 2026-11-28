@@ -31,7 +31,7 @@ function Line({ saved }: { saved: SaveRuleResult }) {
 						Saved a rule for {saved.for}: {api.rule}
 					</span>
 					{mode.kind === "error" ? (
-						<span role="alert" className="text-ans-wrong">
+						<span role="alert" className="lh-rise text-ans-wrong">
 							{mode.message}
 						</span>
 					) : (

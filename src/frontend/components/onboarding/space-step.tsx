@@ -8,6 +8,7 @@ import { cn } from "@/frontend/lib/utils";
 import { pickedLabel, type Picked } from "./space-step-model";
 import { StepSheet } from "./step-sheet";
 import { useReturn } from "./use-return";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /** Step 2: name the first space and optionally add its notes (a folder to
  *  link or files to copy in). Skip goes on without a space. */
@@ -127,11 +128,7 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 					</span>
 				</button>
 			</div>
-			{error && (
-				<p role="alert" className="whitespace-pre-wrap text-ui text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} className="whitespace-pre-wrap text-ui text-ans-wrong" />
 			<div className="flex items-center pt-2">
 				{!madeId && (
 					<button type="button" data-testid="onboarding-skip" className="lh-btn lh-btn-quiet" onClick={() => onDone(null)}>

@@ -9,6 +9,7 @@ import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { send, serverError } from "@/frontend/lib/api";
 import { useGuardedAction } from "@/frontend/components/use-guarded-action";
 import { cn } from "@/frontend/lib/utils";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /** GET /api/web-search: the saved key's last characters and its searches
  *  this month, as Tavily says right now. All null with no key. */
@@ -62,7 +63,7 @@ export function WebSearch() {
 	return (
 		<section data-testid="web-search" aria-label="Who searches" className="flex flex-col gap-4 pt-1 pb-4">
 			{!view ? (
-				error ? <p className="text-ui text-ink-2">{error}</p> : <LoadingLine className="text-ui" />
+				error ? <p className="lh-rise text-ui text-ink-2">{error}</p> : <LoadingLine className="text-ui" />
 			) : (
 				<div className="grid items-start gap-4 min-[860px]:grid-cols-[290px_1fr]">
 					<Choice testid="web-search-agent" name={`${teacher} searches`} picked={!works}>
@@ -118,11 +119,7 @@ export function WebSearch() {
 								{busy && <p className="text-ui text-ink-2">Checking the key…</p>}
 							</form>
 						)}
-						{error && (
-							<p role="alert" data-testid="web-search-failed" className="text-ui text-ans-wrong">
-								{error}
-							</p>
-						)}
+						<ErrorLine error={error} data-testid="web-search-failed" className="text-ui text-ans-wrong" />
 					</Choice>
 				</div>
 			)}

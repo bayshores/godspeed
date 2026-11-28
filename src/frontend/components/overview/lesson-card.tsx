@@ -1,9 +1,12 @@
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Link } from "react-router";
 import type { LessonProgress } from "@/shared/core";
+import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { rowMotion } from "@/frontend/components/motion";
+import { useLeavingList } from "@/frontend/components/presence";
 import { Pane } from "@/frontend/components/ui/pane";
 import { UNFINISHED_SHOWN, keyLabel, shownRows, stepBlocks } from "./lesson-record-model";
-import { UnfinishedRow } from "./lesson-rows";
+import { UnfinishedRow, lessonItems } from "./lesson-rows";
 import { lessonHref } from "./overview-model";
 import type { LessonActions } from "./use-lesson-actions";
 
@@ -11,7 +14,7 @@ import type { LessonActions } from "./use-lesson-actions";
  * A CARD OF LESSONS, each with its steps as blocks: Progress's Unfinished
  * (the side column, with a key in its head that opens the first) and a
  * deadline's Lessons (under its path, where the path's key opens the
- * first). `name` starts its test ids.
+ * first). `name` starts its test ids. `leaving`: it fades out with its last lesson (useLastWhileClosing).
  */
 export const LessonCard = memo(function LessonCard({
 	title,
@@ -19,6 +22,7 @@ export const LessonCard = memo(function LessonCard({
 	lessons,
 	actions,
 	headKey = false,
+	leaving = false,
 }: {
 	title: string;
 	name: "unfinished" | "deadline";
@@ -26,11 +30,16 @@ export const LessonCard = memo(function LessonCard({
 	lessons: readonly LessonProgress[];
 	actions: LessonActions;
 	headKey?: boolean;
+	leaving?: boolean;
 }) {
 	const [shownAll, setShownAll] = useState(false);
-	const { rows, showAll } = shownRows(lessons, UNFINISHED_SHOWN, shownAll);
+	const { rows, showAll } = useMemo(() => shownRows(lessons, UNFINISHED_SHOWN, shownAll), [lessons, shownAll]);
+	const listed = useLeavingList(useMemo(() => lessonItems(rows), [rows]));
+	const arrive = useArrivals();
+	// Every lesson is seen, so the rows "Show all" uncovers are simply there.
+	for (const l of lessons) arrive(l.chatId);
 	return (
-		<Pane data-testid={`${name}-lessons`} className="lh-card">
+		<Pane data-testid={`${name}-lessons`} {...rowMotion(leaving, false, "lh-card")}>
 			<div className="lh-card-head">
 				<h2 className="lh-card-title">{title}</h2>
 				{headKey && rows[0] && (
@@ -40,8 +49,8 @@ export const LessonCard = memo(function LessonCard({
 				)}
 			</div>
 			<ul className="-mx-3 flex flex-col gap-1">
-				{rows.map((l) => (
-					<UnfinishedRow key={l.chatId} lesson={l} blocks={stepBlocks(l)} actions={actions} />
+				{listed.map(({ item, leaving }) => (
+					<UnfinishedRow key={item.key} lesson={item.lesson} blocks={stepBlocks(item.lesson)} actions={actions} held={{ leaving, joined: !!arrive(item.key) }} />
 				))}
 			</ul>
 			{showAll !== null && (

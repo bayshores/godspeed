@@ -146,7 +146,7 @@ export function usePageRest({
 		hold.current.timer = window.setTimeout(() => {
 			const context = contextRef.current;
 			if (!context || context.state.escapedFromLock) return;
-			void context.scrollToBottom("smooth");
+			void context.scrollToBottom(prefersReducedMotion() ? "instant" : "smooth");
 			requestAnimationFrame(settleUp);
 		}, wait);
 	}, [contextRef, settleUp]);

@@ -6,6 +6,8 @@ import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { LoadFailed } from "@/frontend/components/load-failed";
+import { useArrivals } from "@/frontend/components/lesson/arrivals";
+import { useLeavingList } from "@/frontend/components/presence";
 import { Hint } from "@/frontend/components/ui/hint";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -41,6 +43,7 @@ import { FolderStatusLine, LinkedFolderButton, LinkFolderButton, LinkFolderField
 import { RECENT_CHANGES_KEY, RecentChanges } from "./recent-changes";
 import { recentChanges, removedLately } from "./recent-changes-model";
 import { PickSpace } from "@/frontend/components/pick-space";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /**
  * THE FILES PAGE (a space tab): Find, the linked folder and Add files are
@@ -158,7 +161,17 @@ function FilesPageBody() {
 	const full = picked.length >= MAX_LESSON_FILES;
 	const pickOf = useCallback((fileId: string): RowPick => (picked.includes(fileId) ? "picked" : full ? "held" : "free"), [picked, full]);
 	const pickedLine = useMemo(() => pickedNames(picked, new Map(record?.files.map((f) => [f.id, f.name]))), [picked, record]);
-	const groups = useMemo(() => fileGroups(record?.files ?? []), [record]);
+	// A removed file's row fades out in its place and an added one steps in; a search changes the rows at once.
+	const heldFiles = useLeavingList(useMemo(() => (record?.files ?? []).map((file) => ({ key: file.id, file })), [record]));
+	const arrive = useArrivals(!!record);
+	const motion = useMemo(
+		() => ({
+			leaving: new Set(heldFiles.filter((h) => h.leaving).map((h) => h.item.key)),
+			joined: new Set(heldFiles.filter((h) => !h.leaving && arrive(h.item.key)).map((h) => h.item.key)),
+		}),
+		[heldFiles, arrive],
+	);
+	const groups = useMemo(() => fileGroups(heldFiles.map((h) => h.item.file)), [heldFiles]);
 	// A picked file whose row goes (it left the space, or a .tex joined its PDF's row) leaves the picks.
 	useEffect(() => {
 		if (record) setPicked((p) => keepListed(p, new Set(groups.flatMap((g) => g.items.flatMap((i) => entryRows(i.files).map((r) => r.file.id))))));
@@ -332,11 +345,7 @@ function FilesPageBody() {
 								</div>
 							</Pane>
 						)}
-						{error && (
-							<p role="alert" data-testid="space-files-error" className="text-ui whitespace-pre-wrap text-ans-wrong">
-								{error}
-							</p>
-						)}
+						<ErrorLine error={error} data-testid="space-files-error" className="text-ui whitespace-pre-wrap text-ans-wrong" />
 						{finderDrag !== null && (
 							<div data-testid="files-drop" className="flex h-[110px] items-center justify-center lh-well lh-notch px-4 text-center text-item font-medium text-ink">
 								{dropTitle(finderDrag)}
@@ -383,6 +392,7 @@ function FilesPageBody() {
 											disabled={disabled}
 											teacher={teacher}
 											actions={actions}
+											motion={motion}
 										/>
 									))}
 								</div>

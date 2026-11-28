@@ -13,6 +13,7 @@ import { CheckBox } from "@/frontend/components/ui/check-row";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
+import { rowMotion } from "@/frontend/components/motion";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { canRemove, canRetry, fileState, fileType, kindTitle, studiedFill, type FileState } from "./files-model";
 import { FULL_LINE } from "./files-pick-model";
@@ -35,7 +36,7 @@ import { FULL_LINE } from "./files-pick-model";
  * The hover tips inside it open on the pointer; for the keyboard and screen
  * readers the button carries their words as its description.
  * Memoized: a row redraws only when its own file, coverage, work or pick
- * changes.
+ * changes. A removed file's row fades out (`leaving`), an added one steps in (`joined`).
  */
 
 export interface FileRowActions {
@@ -82,6 +83,8 @@ export const FileRow = memo(function FileRow({
 	disabled,
 	teacher,
 	actions,
+	leaving,
+	joined,
 }: {
 	file: SpaceFile;
 	/** The .tex this PDF is built from: one row, the PDF's. */
@@ -97,6 +100,8 @@ export const FileRow = memo(function FileRow({
 	/** The teacher's name, for the kind label's hover text. */
 	teacher: string;
 	actions: FileRowActions;
+	leaving: boolean;
+	joined: boolean;
 }) {
 	const state = fileState(file, coverage);
 	const install = state.kind === "failed" ? state.install : undefined;
@@ -122,9 +127,13 @@ export const FileRow = memo(function FileRow({
 			data-testid={`space-file-${file.id}`}
 			data-teacher-target={`file:${file.id}`}
 			data-picked={picked || undefined}
-			className={cn(
-				"-mx-2 flex flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1.5 transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
-				picked ? "bg-highlight" : cn("hover:bg-(--lh-well)", menuOpen && "bg-(--lh-well)"),
+			{...rowMotion(
+				leaving,
+				joined,
+				cn(
+					"-mx-2 flex flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1.5 transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
+					picked ? "bg-highlight" : cn("hover:bg-(--lh-well)", menuOpen && "bg-(--lh-well)"),
+				),
 			)}
 		>
 			<button

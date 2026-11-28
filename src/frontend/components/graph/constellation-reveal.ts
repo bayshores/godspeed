@@ -3,6 +3,7 @@
  * left to right as laid out, a cluster's rim a beat after its core, a line
  * once both its ends are in. The same length for any number of topics.
  */
+import { SLOW_MS } from "@/frontend/components/presence";
 import type { Seg, Sky } from "./constellation-layout.ts";
 
 /** From the leftmost cluster to the rightmost, in ms. */
@@ -12,12 +13,10 @@ export const RIM_AFTER = 70;
 export const NAME_AFTER = 40;
 /** A line starts this long after the later of its two ends. */
 const LINE_AFTER = 200;
-/** A line's draw: .lh-reveal-line in globals.css. */
-const LINE_DRAW = 240;
 /** Room for a late frame before the reveal's classes come off, so no line is cut short. */
 const SLACK = 40;
-/** The whole reveal: the rightmost cluster's lines are the last to finish. */
-export const REVEAL_MS = SWEEP + LINE_AFTER + LINE_DRAW + SLACK;
+/** The whole reveal: the rightmost cluster's lines are the last to finish, each drawn in SLOW_MS (.lh-reveal-line). */
+export const REVEAL_MS = SWEEP + LINE_AFTER + SLOW_MS + SLACK;
 
 /** One opening's reveal: when it started, and each topic's start, set by
  *  the first picture drawn and kept, so a re-fit or a remount never moves an

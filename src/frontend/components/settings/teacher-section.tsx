@@ -12,6 +12,7 @@ import { usePickedAgent } from "@/frontend/components/agent-setup/agent-setup-co
 import type { GeneralPatch } from "@/frontend/components/settings-context";
 import { useFold } from "@/frontend/components/use-fold";
 import { CommitInput, QUIET_KEY, SettingsRow } from "./controls.tsx";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 export function TeacherSection({ record, onGeneralChange }: { record: UserSettings; onGeneralChange: (fields: GeneralPatch) => void }) {
 	return (
@@ -89,11 +90,7 @@ function FolderRows() {
 					</div>
 				</div>
 			)}
-			{error && (
-				<p role="alert" className="text-ui text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} className="text-ui text-ans-wrong" />
 		</>
 	);
 }

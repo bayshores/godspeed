@@ -36,7 +36,7 @@ const { AppBar } = await import("../../src/frontend/components/app-bar.tsx");
 const { BarSlotsProvider, BarActions, BarCrumb } = await import("../../src/frontend/components/top-bar/bar-slots.tsx");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
-const { MemoryRouter } = await import("react-router");
+const { createMemoryRouter, RouterProvider } = await import("react-router");
 
 const space = (id: string, name: string): SpaceSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", closed: false, fileCount: 3, color: 1, filesLeft: 0 });
 const SPACES = [space("c21", "CSE 21"), space("c29", "CSE 29")];
@@ -84,16 +84,24 @@ async function mount(page: React.ReactNode, { pathname = "/chat/ses_1", active =
 			<main>{page}</main>
 		</>
 	);
+	// A data router, as in the app: the bar reads the page being read from it.
+	const router = createMemoryRouter(
+		[
+			{
+				path: "*",
+				element: (
+					<ServerEventsProvider connect={quietEvents as never}>
+						<SpaceProvider initialActive={active} initialSpaces={SPACES}>
+							{slots ? <BarSlotsProvider>{frame}</BarSlotsProvider> : frame}
+						</SpaceProvider>
+					</ServerEventsProvider>
+				),
+			},
+		],
+		{ initialEntries: [pathname] },
+	);
 	await act(async () => {
-		root!.render(
-			<MemoryRouter initialEntries={[pathname]}>
-				<ServerEventsProvider connect={quietEvents as never}>
-					<SpaceProvider initialActive={active} initialSpaces={SPACES}>
-						{slots ? <BarSlotsProvider>{frame}</BarSlotsProvider> : frame}
-					</SpaceProvider>
-				</ServerEventsProvider>
-			</MemoryRouter>,
-		);
+		root!.render(<RouterProvider router={router} />);
 	});
 }
 

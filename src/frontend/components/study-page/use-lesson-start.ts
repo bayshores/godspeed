@@ -66,6 +66,16 @@ export function useLessonStart() {
 		[busyOn, active, navigate],
 	);
 
+	/** Open a lesson that is already there: its key is busy until the page shows, as a start's is. */
+	const reopen = useCallback(
+		(startId: string, chatId: string) => {
+			if (busyOn !== null) return;
+			setBusyOn(startId);
+			navigate(`/chat/${chatId}`);
+		},
+		[busyOn, navigate],
+	);
+
 	/** Study a typed topic, with any facts picked for it and any files added,
 	 *  or the picked facts alone. `id` names the start in `busyOn` when a key
 	 *  other than the topic box's starts it; `spaceId` is the space it goes
@@ -104,10 +114,10 @@ export function useLessonStart() {
 	 *  deadline's space when it isn't the active one (Home). */
 	const studyDeadline = useCallback(
 		(deadline: Pick<DeadlineProgress, "id" | "continueStudy">, spaceId?: string) => {
-			if (deadline.continueStudy) navigate(`/chat/${deadline.continueStudy.chatId}`);
+			if (deadline.continueStudy) reopen(deadline.id, deadline.continueStudy.chatId);
 			else return post(deadline.id, { deadlineId: deadline.id }, [], spaceId ?? active);
 		},
-		[post, navigate, active],
+		[post, reopen, active],
 	);
 
 	/** Continue a Study session at its stop: Keep going is stored first, so
@@ -131,10 +141,10 @@ export function useLessonStart() {
 	 *  else starts one on its next problem not done. */
 	const workOnHomework = useCallback(
 		(deadline: Pick<DeadlineProgress, "id" | "continueHomework">, spaceId?: string) => {
-			if (deadline.continueHomework) navigate(`/chat/${deadline.continueHomework}`);
+			if (deadline.continueHomework) reopen(homeworkStartId(deadline.id), deadline.continueHomework);
 			else return post(homeworkStartId(deadline.id), { deadlineId: deadline.id, homework: true }, [], spaceId ?? active);
 		},
-		[post, navigate, active],
+		[post, reopen, active],
 	);
 
 	return {

@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { useReplayOnChange } from "@/frontend/components/motion";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 
@@ -6,8 +8,11 @@ type BoxMark = "tick" | "half" | "cross" | null;
 const ICON = { tick: "check", half: "minus", cross: "close" } as const;
 
 /** The drawn check box. Only the look: the control around it is the page's own. A real input just before it
- *  (`peer`) rings it while the input has keyboard focus; `className` may give a filled box another color. */
+ *  (`peer`) rings it while the input has keyboard focus; `className` may give a filled box another color.
+ *  A mark set after the box first drew is drawn in, in pixel steps; taken away, it goes at once. */
 export function CheckBox({ mark, className }: { mark: BoxMark; className?: string }) {
+	const markRef = useRef<HTMLSpanElement>(null);
+	useReplayOnChange(markRef, mark, "lh-draw-in");
 	return (
 		<span
 			aria-hidden
@@ -17,7 +22,11 @@ export function CheckBox({ mark, className }: { mark: BoxMark; className?: strin
 				className,
 			)}
 		>
-			{mark && <PixelIcon name={ICON[mark]} size={10} />}
+			{mark && (
+				<span ref={markRef} className="lh-draw-quick flex">
+					<PixelIcon name={ICON[mark]} size={10} />
+				</span>
+			)}
 		</span>
 	);
 }

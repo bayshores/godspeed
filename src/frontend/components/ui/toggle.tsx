@@ -27,7 +27,7 @@ export function Toggle({
 			<span className="text-ui font-medium text-ink">{showLabel ? label : checked ? "On" : "Off"}</span>
 			<span
 				className={cn(
-					"relative h-[22px] w-10 lh-notch",
+					"relative h-[22px] w-10 lh-notch transition-[background-color,box-shadow] duration-(--lh-dur) ease-(--lh-ease-out)",
 					// On is a filled track with the knob at the right; off is an
 					// empty track (a 3:1 edge) with the knob at the left.
 					checked ? "bg-ink" : "shadow-[inset_0_0_0_2px_var(--lh-edge)] group-hover:shadow-[inset_0_0_0_2px_var(--lh-ink-3)]",
@@ -35,7 +35,7 @@ export function Toggle({
 			>
 				<span
 					className={cn(
-						"absolute left-0 top-[3px] size-4 lh-notch transition-[translate,background-color] duration-(--lh-dur) ease-(--lh-ease-out) motion-reduce:transition-none",
+						"absolute left-0 top-[3px] size-4 lh-notch transition-[translate,background-color] duration-(--lh-dur) ease-(--lh-ease-out)",
 						checked ? "translate-x-[21px] bg-background" : "translate-x-[3px] bg-ink-2",
 					)}
 				/>

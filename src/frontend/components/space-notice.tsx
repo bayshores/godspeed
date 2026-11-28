@@ -28,6 +28,7 @@ import { useHeld } from "@/frontend/components/use-held";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { send } from "@/frontend/lib/api";
 import { addCheck, cardLines, changeHref, undoneWords, type SpaceCheck } from "./space-notice-model";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 const AFTER_UNDO_MS = 3_000;
 
@@ -120,11 +121,7 @@ function ChangeCard({ check, onDone }: { check: SpaceCheck; onDone: () => void }
 					</NoticeText>
 				)}
 			</button>
-			{mode.kind === "error" && (
-				<p role="alert" className="text-(length:--text-sm) text-ans-wrong">
-					{mode.message}
-				</p>
-			)}
+			<ErrorLine error={mode.kind === "error" ? mode.message : null} className="text-(length:--text-sm) text-ans-wrong" />
 		</NoticeCard>
 	);
 }
@@ -156,11 +153,7 @@ function OverdueCard({ deadline: d }: { deadline: OpenDeadline }) {
 				</>
 			}
 		>
-			{error && (
-				<p role="alert" className="text-(length:--text-sm) text-ans-wrong">
-					{error}
-				</p>
-			)}
+			<ErrorLine error={error} className="text-(length:--text-sm) text-ans-wrong" />
 		</NoticeCard>
 	);
 }

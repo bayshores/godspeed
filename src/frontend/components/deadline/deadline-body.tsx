@@ -16,6 +16,7 @@ import { DeadlineKeys } from "./deadline-keys";
 import { rightLabel, whenLine, type Material, type TopicTally } from "./deadline-model";
 import { PathSheet } from "./path-sheet";
 import type { RequestKind } from "./request-model";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /**
  * ONE DEADLINE'S PAGE (pure view, the render-test seam): its head sheet
@@ -129,11 +130,7 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 					{keys && <div className="flex shrink-0 px-(--lh-inset) pb-5 @[640px]/head:py-4 @[640px]/head:pl-0">{keys}</div>}
 				</header>
 			</Pane>
-			{props.startError && (
-				<p role="alert" data-testid="deadline-start-error" className="text-ui text-ans-wrong">
-					{props.startError}
-				</p>
-			)}
+			<ErrorLine error={props.startError} data-testid="deadline-start-error" className="text-ui text-ans-wrong" />
 
 			<div className="flex flex-col gap-(--lh-gap)">
 				<div className="flex flex-col items-start gap-(--lh-gap) @4xl:flex-row">

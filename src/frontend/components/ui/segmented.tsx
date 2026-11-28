@@ -1,6 +1,9 @@
+import { useRef } from "react";
+import { useLitMarker } from "@/frontend/components/lit-marker";
 import { cn } from "@/frontend/lib/utils";
 
-/** One pick out of a few, as joined buttons; the picked one is filled. */
+/** One pick out of a few, as joined buttons; the picked one is filled. The fill is one box that
+ *  slides to a new pick (useLitMarker), and each word changes its color with it. */
 export function Segmented<T extends string>({
 	label,
 	testid,
@@ -18,8 +21,11 @@ export function Segmented<T extends string>({
 	disabled: boolean;
 	onChange: (value: T) => void;
 }) {
+	const rowRef = useRef<HTMLDivElement>(null);
+	const fill = useLitMarker(rowRef, '[aria-checked="true"]', value);
 	return (
-		<div role="radiogroup" aria-label={label} className="flex shrink-0 self-start lh-well overflow-hidden lh-notch">
+		<div ref={rowRef} role="radiogroup" aria-label={label} className="relative isolate flex shrink-0 self-start lh-well overflow-hidden lh-notch">
+			<div ref={fill} hidden aria-hidden className="lh-lit-marker bg-tint" />
 			{options.map((o) => (
 				<button
 					key={o.value}
@@ -29,7 +35,10 @@ export function Segmented<T extends string>({
 					data-testid={`${testid}-${o.value}`}
 					disabled={disabled}
 					onClick={() => onChange(o.value)}
-					className={cn("px-3.5 py-2 text-ui leading-tight", value === o.value ? "bg-tint text-background" : "text-ink hover:bg-tone")}
+					className={cn(
+						"px-3.5 py-2 text-ui leading-tight transition-colors duration-(--lh-dur-slow) ease-(--lh-ease-out)",
+						value === o.value ? "text-background" : "text-ink hover:bg-tone",
+					)}
 				>
 					{o.label}
 				</button>

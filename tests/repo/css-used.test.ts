@@ -1,10 +1,12 @@
 /**
  * Every class and custom property src/frontend/globals.css defines is used. A class is used when
  * the frontend's code or index.html writes it, or an `@apply` of the stylesheet does. A custom
- * property is used when a `var()` reads it, in the stylesheet or the frontend's code; a theme token
+ * property is used when a `var()` reads it, in the stylesheet, the frontend's code, the shared core
+ * or the Rust code (the server sends a topic's color as `var(--lh-ramp-3)`); a theme token
  * is used through its Tailwind utility (`--color-card` by `bg-card`, `--radius-xl` by `rounded-xl`),
- * and `--text-xs--line-height` with `--text-xs`. A name the code builds at run time
- * (`--lh-space-${color}`) makes every name that starts with the part before `${` used. Comments of
+ * `--text-xs--line-height` with `--text-xs`, and Tailwind's `--default-transition-*` by any
+ * `transition` utility. A name the code builds at run time (`--lh-space-${color}`) makes every
+ * name that starts with the part before `${` used. Comments of
  * the stylesheet and of the code count for nothing. Tailwind also reads the files an `@source`
  * line names, so a utility a library's own code writes there is used.
  */
@@ -13,6 +15,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { withoutBlockComments } from "./repo-source.ts";
+import { appSources } from "./rust-source.ts";
 import { parseTs, tsFiles, tsTokens } from "./ts-source.ts";
 
 const root = path.resolve(import.meta.dirname, "../..");
@@ -63,9 +66,11 @@ function unused(sheet: Sheet, uses: ReturnType<typeof usesIn>): string[] {
 		const own = token.slice(namespace.length + 1);
 		return [...uses.classes].some((name) => new RegExp(`^${before}-${own}$`).test(name));
 	};
+	// Tailwind's own `--default-transition-*` is what a transition utility given no time of its own takes.
+	const defaultOf = (property: string) => property.startsWith("--default-transition-") && [...uses.classes].some((name) => /^transition(-|$)/.test(name));
 	const classes = [...sheet.classes].filter((name) => !uses.classes.has(name) && !builtFrom(name)).map((name) => `.${name}`);
 	// `--text-xs--line-height` goes with `--text-xs`.
-	const properties = [...sheet.properties].filter((name) => !uses.reads.has(name) && !uses.reads.has(name.replace(/(?<=\w)--[\w-]+$/, "")) && !builtFrom(name) && !utilityOf(name));
+	const properties = [...sheet.properties].filter((name) => !uses.reads.has(name) && !uses.reads.has(name.replace(/(?<=\w)--[\w-]+$/, "")) && !builtFrom(name) && !utilityOf(name) && !defaultOf(name));
 	return [...classes, ...properties];
 }
 
@@ -82,14 +87,17 @@ function sourcesOf(css: string, dir: string): string[] {
 it("every class and custom property the stylesheet defines is used", () => {
 	const dir = path.join(root, "src/frontend");
 	const css = withoutBlockComments(readFileSync(path.join(dir, "globals.css"), "utf-8"));
-	const code = tsFiles(path.join(root, "src/frontend")).flatMap((file) => {
-		const source = parseTs(file);
-		return tsTokens(source, source).map((token) => token.getText(source));
-	});
+	const code = ["src/frontend", "src/shared/core"].flatMap((folder) =>
+		tsFiles(path.join(root, folder)).flatMap((file) => {
+			const source = parseTs(file);
+			return tsTokens(source, source).map((token) => token.getText(source));
+		}),
+	);
+	const server = appSources().map((source) => source.code);
 	const applied = [...css.matchAll(/@apply ([^;]+);/g)].map(([, list]) => list!);
 	const sheet = definedIn(css);
 	assert.ok(sheet.classes.size > 50 && sheet.properties.size > 100, "found too few classes or properties; the reader is broken");
-	const uses = usesIn([...code, ...applied, readFileSync(path.join(dir, "index.html"), "utf-8"), css, ...sourcesOf(css, dir)].join("\n"));
+	const uses = usesIn([...code, ...server, ...applied, readFileSync(path.join(dir, "index.html"), "utf-8"), css, ...sourcesOf(css, dir)].join("\n"));
 	const allowed = JSON.parse(readFileSync(path.join(root, LIST), "utf-8")) as Record<string, string>;
 	const found = unused(sheet, uses);
 	assert.deepEqual(

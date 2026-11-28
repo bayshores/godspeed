@@ -17,6 +17,7 @@ import { useNavigate } from "react-router";
 import { ready } from "@/frontend/components/agent-setup/agent-card-model";
 import { useAgentSetup } from "@/frontend/components/agent-setup/agent-setup-context";
 import { useBoot } from "@/frontend/components/boot";
+import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { useSettings } from "@/frontend/components/settings-context";
 import { showFocusRingAfterTab } from "@/frontend/components/focus-hygiene";
 import { WELCOME_KEY } from "@/frontend/components/teacher/panel-auto-model";
@@ -37,6 +38,19 @@ export function Onboarding() {
 	const [step, setStep] = useState<Step>("intro");
 	// Return during the intro jumps its animation to the end (.ob-skip).
 	const [introSkipped, setIntroSkipped] = useState(false);
+	// The step on screen: the one left fades out before the next rises in. A skipped intro has no
+	// exit to play (.ob-skip stops every animation in it), so it goes at once.
+	const [shown, setShown] = useState(step);
+	const out = usePresence(shown === step, shown === "intro" && introSkipped ? 0 : undefined);
+	if (shown !== step && !out.mounted) setShown(step);
+	const stepLeaving = out.state === "closed";
+	// While a step leaves, Return waits: the step going would act on it a second time (make the space again).
+	useEffect(() => {
+		if (!stepLeaving) return;
+		const hold = (e: KeyboardEvent) => e.key === "Enter" && e.stopImmediatePropagation();
+		window.addEventListener("keydown", hold, true);
+		return () => window.removeEventListener("keydown", hold, true);
+	}, [stepLeaving]);
 	const [leaving, setLeaving] = useState(false);
 	const [spaceId, setSpaceId] = useState<string | null>(null);
 	// Saving "onboarded" failed: stay on the done step (leaving would show the intro again).
@@ -55,7 +69,8 @@ export function Onboarding() {
 			return;
 		}
 		writeStorage(WELCOME_KEY, "1");
-		await new Promise((r) => setTimeout(r, 600));
+		// The sky's flash plays out first; with reduced motion there is none to wait for.
+		if (!prefersReducedMotion()) await new Promise((r) => setTimeout(r, 600));
 		navigate("/", { replace: true });
 		void refresh();
 	}, [spaceId, navigate, refresh, patchGeneral]);
@@ -65,15 +80,19 @@ export function Onboarding() {
 	return (
 		<div
 			data-testid="onboarding"
-			className={cn("ob-root relative flex h-dvh w-full flex-col overflow-hidden bg-background", step === "intro" && introSkipped && "ob-skip")}
+			className={cn("ob-root relative flex h-dvh w-full flex-col overflow-hidden bg-background", shown === "intro" && introSkipped && "ob-skip")}
 		>
 			{/* The window-drag band (desktop shell): first in the DOM, see globals.css. */}
 			<div aria-hidden className="lh-drag absolute inset-x-0 top-0 z-10 h-12" />
 			<Constellation mode={sky} />
-			<div className={cn("relative flex min-h-0 flex-1 overflow-y-auto", leaving && "ob-leave")}>
-				{step === "intro" && <Intro skipped={introSkipped} onSkip={() => setIntroSkipped(true)} onDone={() => setStep("agent")} />}
-				{step === "agent" && <AgentStep ready={canTeach} onNext={() => setStep("space")} />}
-				{step === "space" && (
+			<div
+				data-state={out.state}
+				inert={stepLeaving || undefined}
+				className={cn("relative flex min-h-0 flex-1 overflow-y-auto", leaving && "ob-leave", stepLeaving && "lh-fade")}
+			>
+				{shown === "intro" && <Intro skipped={introSkipped} onSkip={() => setIntroSkipped(true)} onDone={() => setStep("agent")} />}
+				{shown === "agent" && <AgentStep ready={canTeach} onNext={() => setStep("space")} />}
+				{shown === "space" && (
 					<SpaceStep
 						onDone={(id) => {
 							setSpaceId(id);
@@ -81,7 +100,7 @@ export function Onboarding() {
 						}}
 					/>
 				)}
-				{step === "done" && (
+				{shown === "done" && (
 					<DoneStep
 						ready={canTeach}
 						onStart={() => void finish()}

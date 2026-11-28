@@ -15,6 +15,7 @@ import { TopicBox } from "@/frontend/components/study-page/topic-box";
 import { useLessonStart } from "@/frontend/components/study-page/use-lesson-start";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { ErrorLine } from "@/frontend/components/error-line";
 
 /**
  * THE STUDY PAGE ("/new"): where every study session starts, in the
@@ -86,11 +87,7 @@ export function NewLesson() {
 							onClearPicks={() => setPicks([])}
 							attachments={attachments}
 						/>
-						{lesson.error && (
-							<p role="alert" data-testid="lesson-start-error" className="text-ui text-ans-wrong">
-								{lesson.error}
-							</p>
-						)}
+						<ErrorLine error={lesson.error} data-testid="lesson-start-error" className="text-ui text-ans-wrong" />
 						{nowMs !== null && deadlines.length > 0 && (
 							<div className="flex flex-col @[1100px]/page:col-start-2 @[1100px]/page:row-span-3 @[1100px]/page:row-start-1 @[1100px]/page:self-stretch">
 								<DeadlineRows deadlines={deadlines} color={activeSpace ? spaceColorVar(activeSpace.color) : "var(--border)"} nowMs={nowMs} busyOn={lesson.busyOn} onStudy={(d) => void studyDeadline(d)} onWork={(d) => void workOnHomework(d)} />

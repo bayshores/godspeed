@@ -12,7 +12,7 @@ import { BLOCK_ROW, BLOCK_ROW_BOX, BLOCK_ROW_KEYS, BLOCK_ROW_WORDS } from "@/fro
 import { useSpaceRecord } from "@/frontend/components/files/space-record";
 import { dueThisWeek } from "@/frontend/components/home-page/home-page-model";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
-import { JOINED } from "@/frontend/components/motion";
+import { JOINED, rowMotion } from "@/frontend/components/motion";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
 import { PickSpace } from "@/frontend/components/pick-space";
@@ -122,8 +122,7 @@ export function DeadlinesTab() {
 							r.kind === "deadline" ? (
 								row(r.deadline)
 							) : (
-								// Leaving, it fades while held (useLeavingList); joining, it steps in.
-								<li key={r.gap.key} data-state={r.leaving ? "closed" : "open"} className={r.leaving ? "lh-fade" : arrive(r.gap.key) && JOINED}>
+								<li key={r.gap.key} {...rowMotion(r.leaving, !!arrive(r.gap.key))}>
 									<GapRow gap={r.gap} color={activeSpace.color} nowMs={nowMs!} onAdd={() => setAdding({ seed: seedFromGap(r.gap) })} />
 								</li>
 							),
